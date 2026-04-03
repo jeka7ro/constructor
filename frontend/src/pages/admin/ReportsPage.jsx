@@ -283,18 +283,18 @@ export default function ReportsPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                         {/* Hours by Employee */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                            <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-500" />
                                 Ore pe Angajat
                             </h3>
                             <div style={{ width: '100%', height: Math.max(200, charts.byEmployee.length * 36) }}>
                                 <ResponsiveContainer>
                                     <BarChart data={charts.byEmployee.slice(0, 15)} layout="vertical" barSize={20}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" />
                                         <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="h" />
-                                        <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
+                                        <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                         <Tooltip
-                                            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                                            contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#e2e8f0' }}
                                             formatter={(value) => [`${Math.round(value * 10) / 10}h`, 'Ore']}
                                         />
                                         <defs>
@@ -311,18 +311,18 @@ export default function ReportsPage() {
 
                         {/* Hours by Day */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                            <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-emerald-500" />
                                 Ore pe Zi
                             </h3>
                             <div style={{ width: '100%', height: 250 }}>
                                 <ResponsiveContainer>
                                     <BarChart data={charts.byDay} barSize={28}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
                                         <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                         <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="h" />
                                         <Tooltip
-                                            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                                            contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#e2e8f0' }}
                                             formatter={(value, name) => [name === 'hours' ? `${value}h` : value, name === 'hours' ? 'Ore' : 'Muncitori']}
                                         />
                                         <defs>
@@ -339,7 +339,7 @@ export default function ReportsPage() {
 
                         {/* Site Distribution Pie */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                            <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <PieChartIcon className="w-4 h-4 text-orange-500" />
                                 Distribuție pe Șantiere
                             </h3>
@@ -369,7 +369,7 @@ export default function ReportsPage() {
 
                         {/* Employee Rankings */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-                            <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-violet-500" />
                                 Clasament Angajați
                             </h3>
@@ -404,7 +404,7 @@ export default function ReportsPage() {
 
                     {/* Tabs: Timesheets / By Site */}
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="flex items-center border-b border-slate-200 bg-slate-50">
+                        <div className="flex items-center border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                             {[
                                 { key: 'timesheets', label: 'Detalii Pontaj', icon: Clock },
                                 { key: 'bySite', label: 'Pe Șantiere', icon: Building2 },
@@ -413,17 +413,18 @@ export default function ReportsPage() {
                                 <button
                                     key={tab.key}
                                     onClick={() => setActiveTab(tab.key)}
-                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors border-b-2 ${activeTab === tab.key
-                                        ? 'text-blue-600 border-blue-500 bg-white'
-                                        : 'text-slate-500 border-transparent hover:text-slate-700'
-                                        }`}
+                                    className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors border-b-2 ${
+                                        activeTab === tab.key
+                                        ? 'text-blue-600 border-blue-500 bg-white dark:bg-slate-900'
+                                        : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200'
+                                    }`}
                                 >
                                     <tab.icon className="w-4 h-4" />
                                     {tab.label}
                                 </button>
                             ))}
                             <div className="flex-1" />
-                            <div className="px-5 py-3 text-sm text-slate-600">
+                            <div className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">
                                 <span className="font-semibold">{preview.total}</span> înregistrări •
                                 <span className="font-semibold ml-1">{preview.total_hours}</span> ore
                             </div>
@@ -432,28 +433,28 @@ export default function ReportsPage() {
                         {activeTab === 'timesheets' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Data</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Angajat</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Cod</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Rol</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Șantier</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Intrare</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Ieșire</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Ore</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Data</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Cod</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Rol</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Intrare</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Ieșire</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Ore</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                         {preview.timesheets.map((ts) => (
-                                            <tr key={ts.id} className="hover:bg-blue-50/50 transition-colors">
-                                                <td className="px-5 py-3 text-sm text-slate-900">{new Date(ts.date).toLocaleDateString('ro-RO')}</td>
-                                                <td className="px-5 py-3 text-sm font-medium text-slate-900">{ts.employee_name}</td>
+                                            <tr key={ts.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                                <td className="px-5 py-3 text-sm text-slate-700 dark:text-slate-300">{new Date(ts.date).toLocaleDateString('ro-RO')}</td>
+                                                <td className="px-5 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{ts.employee_name}</td>
                                                 <td className="px-5 py-3 text-sm text-slate-500">{ts.employee_code}</td>
                                                 <td className="px-5 py-3 text-sm text-slate-500">{ts.role}</td>
-                                                <td className="px-5 py-3 text-sm text-slate-600">{ts.site_name}</td>
-                                                <td className="px-5 py-3 text-sm text-slate-600">{ts.check_in}</td>
-                                                <td className="px-5 py-3 text-sm text-slate-600">{ts.check_out}</td>
+                                                <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">{ts.site_name}</td>
+                                                <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">{ts.check_in}</td>
+                                                <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">{ts.check_out}</td>
                                                 <td className="px-5 py-3 text-sm font-bold text-blue-600 text-right">{ts.hours_worked}h</td>
                                             </tr>
                                         ))}
@@ -465,31 +466,31 @@ export default function ReportsPage() {
                         {activeTab === 'bySite' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Șantier</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Pontaje</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Total Ore</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Medie/Pontaj</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Grafic</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Pontaje</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Ore</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Medie/Pontaj</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Grafic</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                         {charts.bySite.map((site, i) => {
                                             const maxH = charts.bySite[0]?.hours || 1
                                             return (
-                                                <tr key={site.name} className="hover:bg-blue-50/50 transition-colors">
+                                                <tr key={site.name} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                                     <td className="px-5 py-3">
-                                                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
                                                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                                                             {site.name}
                                                         </span>
                                                     </td>
-                                                    <td className="px-5 py-3 text-sm text-slate-600 text-right">{site.count}</td>
+                                                    <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400 text-right">{site.count}</td>
                                                     <td className="px-5 py-3 text-sm font-bold text-blue-600 text-right">{Math.round(site.hours * 10) / 10}h</td>
-                                                    <td className="px-5 py-3 text-sm text-slate-600 text-right">{Math.round((site.hours / site.count) * 10) / 10}h</td>
+                                                    <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400 text-right">{Math.round((site.hours / site.count) * 10) / 10}h</td>
                                                     <td className="px-5 py-3 w-48">
-                                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                                             <div className="h-full rounded-full transition-all" style={{ width: `${(site.hours / maxH) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }} />
                                                         </div>
                                                     </td>
@@ -504,34 +505,35 @@ export default function ReportsPage() {
                         {activeTab === 'byEmployee' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">#</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Angajat</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Zile lucrate</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Total Ore</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Medie/Zi</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Grafic</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">#</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Zile lucrate</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Ore</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Medie/Zi</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Grafic</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                         {charts.byEmployee.map((emp, i) => {
                                             const maxH = charts.byEmployee[0]?.hours || 1
                                             return (
-                                                <tr key={emp.name} className="hover:bg-blue-50/50 transition-colors">
+                                                <tr key={emp.name} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                                     <td className="px-5 py-3">
-                                                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-amber-100 text-amber-700' :
+                                                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${
+                                                            i === 0 ? 'bg-amber-100 text-amber-700' :
                                                             i === 1 ? 'bg-slate-200 text-slate-600' :
-                                                                i === 2 ? 'bg-orange-100 text-orange-700' :
-                                                                    'bg-slate-100 text-slate-500'
-                                                            }`}>{i + 1}</span>
+                                                            i === 2 ? 'bg-orange-100 text-orange-700' :
+                                                            'bg-slate-100 text-slate-500'
+                                                        }`}>{i + 1}</span>
                                                     </td>
-                                                    <td className="px-5 py-3 text-sm font-semibold text-slate-800">{emp.name}</td>
-                                                    <td className="px-5 py-3 text-sm text-slate-600 text-right">{emp.days}</td>
+                                                    <td className="px-5 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200">{emp.name}</td>
+                                                    <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400 text-right">{emp.days}</td>
                                                     <td className="px-5 py-3 text-sm font-bold text-blue-600 text-right">{Math.round(emp.hours * 10) / 10}h</td>
-                                                    <td className="px-5 py-3 text-sm text-slate-600 text-right">{Math.round((emp.hours / emp.days) * 10) / 10}h</td>
+                                                    <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400 text-right">{Math.round((emp.hours / emp.days) * 10) / 10}h</td>
                                                     <td className="px-5 py-3 w-48">
-                                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                                             <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all" style={{ width: `${(emp.hours / maxH) * 100}%` }} />
                                                         </div>
                                                     </td>
@@ -544,15 +546,7 @@ export default function ReportsPage() {
                         )}
                     </div>
                 </>
-            ) : !loading && (
-                <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-16 text-center">
-                    <div className="bg-slate-50 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                        <FileDown className="w-10 h-10 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-700 mb-2">Selectează filtrele și apasă "Generează Raport"</h3>
-                    <p className="text-sm text-slate-500 max-w-md mx-auto">Raportul va include grafice vizuale, statistici, and tabel detaliat cu toate pontajele din perioada selectată</p>
-                </div>
-            )}
+            ) : !loading && null}
         </div>
     )
 }

@@ -21,9 +21,11 @@ router = APIRouter()
 
 
 def _build_report_data(db: Session, date_from=None, date_to=None, employee_id=None, site_id=None):
-    """Build report data from timesheets + segments"""
-    query = db.query(Timesheet).filter(Timesheet.owner_type == "USER")
+    """Build report data — optimized: bulk queries, no N+1"""
+    from sqlalchemy import and_
 
+    # ── 1. Fetch matching timesheets ──────────────────────────────────────
+    query = db.query(Timesheet).filter(Timesheet.owner_type == "USER")
     if date_from:
         query = query.filter(Timesheet.date >= datetime.strptime(date_from, "%Y-%m-%d").date())
     if date_to:
@@ -32,68 +34,96 @@ def _build_report_data(db: Session, date_from=None, date_to=None, employee_id=No
         query = query.filter(Timesheet.owner_user_id == employee_id)
 
     timesheets = query.order_by(Timesheet.date.desc()).all()
+    if not timesheets:
+        return []
 
-    results = []
+    ts_ids = [ts.id for ts in timesheets]
+    user_ids = list({ts.owner_user_id for ts in timesheets})
+
+    # ── 2. Bulk-load all related data ────────────────────────────────────
+    # Users + roles
+    users_list = db.query(User).filter(User.id.in_(user_ids)).all()
+    user_map = {u.id: u for u in users_list}
+
+    role_ids = list({u.role_id for u in users_list if u.role_id})
+    roles_list = db.query(Role).filter(Role.id.in_(role_ids)).all()
+    role_map = {r.id: r for r in roles_list}
+
+    # Segments (all at once)
+    segments_list = db.query(TimesheetSegment).filter(
+        TimesheetSegment.timesheet_id.in_(ts_ids)
+    ).order_by(TimesheetSegment.check_in_time.asc()).all()
+    seg_by_ts = {}
+    for seg in segments_list:
+        seg_by_ts.setdefault(seg.timesheet_id, []).append(seg)
+
+    # Sites
+    site_ids = list({seg.site_id for seg in segments_list if seg.site_id})
+    sites_list = db.query(ConstructionSite).filter(ConstructionSite.id.in_(site_ids)).all()
+    site_map = {s.id: s for s in sites_list}
+
+    # Geofence pauses
+    seg_ids = [seg.id for seg in segments_list]
+    pauses_list = db.query(GeofencePause).filter(GeofencePause.segment_id.in_(seg_ids)).all() if seg_ids else []
+    pauses_by_seg = {}
+    for gp in pauses_list:
+        pauses_by_seg.setdefault(gp.segment_id, []).append(gp)
+
+    # Timesheet lines + activities
+    lines_list = db.query(TimesheetLine).filter(TimesheetLine.timesheet_id.in_(ts_ids)).all()
+    act_ids = list({tl.activity_id for tl in lines_list if tl.activity_id})
+    acts_list = db.query(Activity).filter(Activity.id.in_(act_ids)).all() if act_ids else []
+    act_map = {a.id: a for a in acts_list}
+    lines_by_ts = {}
+    for tl in lines_list:
+        lines_by_ts.setdefault(tl.timesheet_id, []).append(tl)
+
+    # ── 3. Build results in memory ────────────────────────────────────────
     now = now_ro()
+    results = []
 
     for ts in timesheets:
-        user = db.query(User).filter(User.id == ts.owner_user_id).first()
+        user = user_map.get(ts.owner_user_id)
         if not user:
             continue
 
-        role = db.query(Role).filter(Role.id == user.role_id).first()
-
-        segments = db.query(TimesheetSegment).filter(
-            TimesheetSegment.timesheet_id == ts.id
-        ).order_by(TimesheetSegment.check_in_time.asc()).all()
-
+        segments = seg_by_ts.get(ts.id, [])
         if not segments:
             continue
 
         first_seg = segments[0]
         last_seg = segments[-1]
 
-        # Filter by site if requested
-        seg_site = db.query(ConstructionSite).filter(
-            ConstructionSite.id == first_seg.site_id
-        ).first()
-
+        # Site filter
         if site_id and first_seg.site_id != site_id:
             continue
 
+        seg_site = site_map.get(first_seg.site_id)
+        role = role_map.get(user.role_id)
+
         # Calculate hours
-        total_worked = 0
-        total_break = 0
+        total_worked = 0.0
+        total_break = 0.0
         for seg in segments:
             end_time = seg.check_out_time or now
             seg_hours = (end_time - seg.check_in_time).total_seconds() / 3600
-
-            seg_break = 0
+            seg_break = 0.0
             if seg.break_start_time:
                 break_end = seg.break_end_time or now
                 seg_break = (break_end - seg.break_start_time).total_seconds() / 3600
 
-            # Geofence pauses
-            geo_pauses = db.query(GeofencePause).filter(GeofencePause.segment_id == seg.id).all()
-            geo_secs = sum((
-                (gp.pause_end or now) - gp.pause_start
-            ).total_seconds() for gp in geo_pauses)
-
+            geo_pauses = pauses_by_seg.get(seg.id, [])
+            geo_secs = sum(((gp.pause_end or now) - gp.pause_start).total_seconds() for gp in geo_pauses)
             total_worked += max(0, seg_hours - seg_break - geo_secs / 3600)
             total_break += seg_break
 
         # Activities
-        activity_lines = db.query(TimesheetLine).filter(
-            TimesheetLine.timesheet_id == ts.id
-        ).all()
+        tlines = lines_by_ts.get(ts.id, [])
         activities = []
-        for tl in activity_lines:
-            act = db.query(Activity).filter(Activity.id == tl.activity_id).first()
+        for tl in tlines:
+            act = act_map.get(tl.activity_id)
             if act:
                 activities.append(f"{act.name}: {tl.quantity_numeric or 0} {tl.unit_type or ''}")
-
-        check_in_str = first_seg.check_in_time.strftime("%H:%M") if first_seg.check_in_time else None
-        check_out_str = last_seg.check_out_time.strftime("%H:%M") if last_seg.check_out_time else "—"
 
         results.append({
             "id": ts.id,
@@ -102,8 +132,8 @@ def _build_report_data(db: Session, date_from=None, date_to=None, employee_id=No
             "employee_code": user.employee_code,
             "role": role.name if role else "—",
             "site_name": seg_site.name if seg_site else "Necunoscut",
-            "check_in": check_in_str,
-            "check_out": check_out_str,
+            "check_in": first_seg.check_in_time.strftime("%H:%M") if first_seg.check_in_time else None,
+            "check_out": last_seg.check_out_time.strftime("%H:%M") if last_seg.check_out_time else "—",
             "break_minutes": round(total_break * 60, 0),
             "hours_worked": round(total_worked, 2),
             "activities": "; ".join(activities) if activities else "—"
