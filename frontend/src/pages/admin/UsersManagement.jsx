@@ -1062,78 +1062,69 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
         <div className="overflow-x-auto">
             <table className="w-full">
                 <thead>
-                    <tr className="bg-gradient-to-r from-slate-50 to-slate-100/80 border-b border-slate-200">
+                    <tr className="bg-gradient-to-r from-slate-50 to-slate-100/80 dark:from-slate-800 dark:to-slate-800/80 border-b border-slate-200 dark:border-slate-700">
                         <th className="px-6 py-4 text-left w-12">
                             <input type="checkbox" checked={allSelected} onChange={onToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Angajat</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Rol</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acțiuni</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Angajat</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rol</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Acțiuni</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
                     {users.map((user) => (
-                        <tr key={user.id} className={`group hover:bg-blue-50/40 transition-all duration-200 cursor-pointer ${selectedUserIds?.includes(user.id) ? 'bg-blue-50' : ''}`} onClick={() => onView(user)}>
+                        <tr key={user.id} className={`group hover:bg-blue-50/40 dark:hover:bg-slate-700/50 transition-all duration-200 cursor-pointer ${selectedUserIds?.includes(user.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`} onClick={() => onView(user)}>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                 <input type="checkbox" checked={selectedUserIds?.includes(user.id) || false} onChange={() => onToggleSelect(user.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                             </td>
                             <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
-                                    {/* Avatar */}
                                     {user.avatar_path ? (
-                                        <img
-                                            src={`${apiBase}${user.avatar_path}`}
-                                            alt=""
-                                            className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-white shadow-md"
-                                            onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
-                                        />
+                                        <img src={`${apiBase}${user.avatar_path}`} alt="" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-white dark:ring-slate-700 shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
                                     ) : null}
-                                    <div
-                                        className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white ${user.avatar_path ? 'hidden' : 'flex'}`}
-                                    >
+                                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white dark:ring-slate-700 ${user.avatar_path ? 'hidden' : 'flex'}`}>
                                         {(user.last_name?.charAt(0) || '') + (user.first_name?.charAt(0) || '')}
                                     </div>
-                                    {/* Name + Code */}
                                     <div>
-                                        <p className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">{user.last_name} {user.first_name}</p>
-                                        <p className="text-xs font-mono text-slate-400">{user.employee_code}</p>
+                                        <p className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{user.last_name} {user.first_name}</p>
+                                        <p className="text-xs font-mono text-slate-400 dark:text-slate-500">{user.employee_code}</p>
                                     </div>
                                 </div>
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                 <div className="space-y-0.5">
                                     {user.email && (
-                                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                                        <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
                                             <Mail className="w-3.5 h-3.5 text-slate-400" />
                                             <span className="truncate max-w-[180px]">{user.email}</span>
                                         </div>
                                     )}
                                     {user.phone && (
-                                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                                        <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
                                             <Phone className="w-3.5 h-3.5 text-slate-400" />
                                             {user.phone}
                                         </div>
                                     )}
                                     {!user.email && !user.phone && (
-                                        <span className="text-xs text-slate-300 italic">—</span>
+                                        <span className="text-xs text-slate-300 dark:text-slate-600 italic">—</span>
                                     )}
                                 </div>
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/40 dark:to-indigo-900/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
                                     {user.role_name}
                                 </span>
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                 {user.is_active ? (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
                                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                                         Activ
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600">
                                         <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
                                         Inactiv
                                     </span>
@@ -1141,20 +1132,20 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-full border border-slate-200 transition-colors" title="Vizualizează">
-                                        <Eye className="w-4 h-4 text-blue-600" />
+                                    <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Vizualizează">
+                                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                     </button>
-                                    <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-2 hover:bg-amber-100 rounded-full border border-slate-200 transition-colors" title={user.is_active ? 'Dezactivează' : 'Activează'}>
-                                        {user.is_active ? <UserX className="w-4 h-4 text-amber-600" /> : <UserCheck className="w-4 h-4 text-emerald-600" />}
+                                    <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title={user.is_active ? 'Dezactivează' : 'Activează'}>
+                                        {user.is_active ? <UserX className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                                     </button>
-                                    <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-full border border-slate-200 transition-colors" title="Resetează PIN">
-                                        <Key className="w-4 h-4 text-violet-600" />
+                                    <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Resetează PIN">
+                                        <Key className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                                     </button>
-                                    <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-full border border-slate-200 transition-colors" title="Editează">
-                                        <Edit2 className="w-4 h-4 text-blue-600" />
+                                    <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Editează">
+                                        <Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                     </button>
-                                    <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-full border border-slate-200 transition-colors" title="Șterge">
-                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                    <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Șterge">
+                                        <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
                                     </button>
                                 </div>
                             </td>
@@ -1171,7 +1162,7 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
             {users.map((user) => (
-                <div key={user.id} className={`bg-white border ${selectedUserIds?.includes(user.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-slate-200'} rounded-2xl p-5 hover:border-blue-300 hover:shadow-xl transition-all duration-300 group cursor-pointer relative`} onClick={() => onView(user)}>
+                <div key={user.id} className={`bg-white dark:bg-slate-800 border ${selectedUserIds?.includes(user.id) ? 'border-blue-400 ring-1 ring-blue-400 dark:border-blue-500' : 'border-slate-200 dark:border-slate-700'} rounded-2xl p-5 hover:border-blue-300 hover:shadow-xl transition-all duration-300 group cursor-pointer relative`} onClick={() => onView(user)}>
                     <div className="absolute top-4 right-4 z-10" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedUserIds?.includes(user.id) || false} onChange={() => onToggleSelect(user.id)} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer drop-shadow-sm" />
                     </div>
@@ -1260,8 +1251,8 @@ function StatCard({ label, value, icon: Icon, color, onClick, active }) {
                     <Icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                    <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{value}</p>
-                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mt-1">{label}</p>
+                    <p className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">{value}</p>
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">{label}</p>
                 </div>
             </div>
         </div>

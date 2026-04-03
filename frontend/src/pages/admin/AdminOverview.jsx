@@ -256,7 +256,7 @@ export default function AdminOverview() {
                 </div>
 
                 {/* Live Site Map */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-emerald-500" />
                         Șantiere Live
@@ -310,7 +310,7 @@ export default function AdminOverview() {
             {/* Row 3: Hourly Chart + Top Performers + Late Arrivals */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 {/* Hourly Activity */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                         <Activity className="w-4 h-4 text-green-500" />
                         Activitate pe Ore — Azi
@@ -338,7 +338,7 @@ export default function AdminOverview() {
                 </div>
 
                 {/* Top Performers */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                         <Trophy className="w-4 h-4 text-amber-500" />
                         Top Performeri — Azi
@@ -377,7 +377,7 @@ export default function AdminOverview() {
                 <div className="space-y-6">
                     {/* Late Arrivals */}
                     {lateArrivals.length > 0 && (
-                        <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                             <h3 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
                                 Sosiri Târzii ({lateArrivals.length})
@@ -398,7 +398,7 @@ export default function AdminOverview() {
 
                     {/* Today's Activities Summary */}
                     {(chartData.activities || []).length > 0 && (
-                        <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                             <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                                 <Zap className="w-4 h-4 text-violet-500" />
                                 Producție Azi
@@ -429,7 +429,7 @@ export default function AdminOverview() {
 
             {/* Site Distribution Pie + Workers per Day */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-orange-500" />
                         Distribuție pe Șantiere — Azi
@@ -467,7 +467,7 @@ export default function AdminOverview() {
                     )}
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                         <Users className="w-4 h-4 text-violet-500" />
                         Muncitori pe Zi — Ultimele 7 Zile
@@ -500,7 +500,7 @@ export default function AdminOverview() {
                 const liveWorkers = activeWorkers.filter(w => w.status !== 'terminat')
                 const doneWorkers = activeWorkers.filter(w => w.status === 'terminat')
                 const tableHead = (
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <tr>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Muncitor</th>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Șantier</th>
@@ -570,7 +570,7 @@ export default function AdminOverview() {
                 return (
                     <>
                         {/* Active Workers */}
-                        <div id="live-workers-table" className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden mb-4 scroll-mt-6">
+                        <div id="live-workers-table" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-4 scroll-mt-6">
                             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                                 <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -602,7 +602,7 @@ export default function AdminOverview() {
 
                         {/* Finished Workers */}
                         {doneWorkers.length > 0 && (
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden mb-6">
+                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-6">
                                 <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50">
                                     <h3 className="text-sm font-bold text-slate-500 flex items-center gap-2">
                                         <CheckCircle className="w-4 h-4 text-slate-400" /> Terminat Azi
@@ -631,8 +631,8 @@ export default function AdminOverview() {
             {selectedWorker && (
                 <div className="fixed inset-0 z-50 flex">
                     <div className="flex-1 bg-black/40" onClick={closeWorkerDetail} />
-                    <div className="w-full max-w-lg bg-white shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.25s ease-out' }}>
-                        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+                    <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.25s ease-out' }}>
+                        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
                             <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
                                 <ArrowLeft className="w-4 h-4" /> Înapoi
                             </button>
@@ -821,7 +821,7 @@ function KPICard({ label, value, icon: Icon, gradient, onClick, pulse, isText })
 
 function QuickAction({ icon: Icon, title, desc, color, onClick }) {
     return (
-        <div onClick={onClick} className="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all shadow-md">
+        <div onClick={onClick} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all shadow-md">
             <div className="flex items-start gap-3">
                 <div className={`p-2 ${color} rounded-lg`}>
                     <Icon className="w-4 h-4 text-white" />

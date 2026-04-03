@@ -167,7 +167,7 @@ export default function ReportsPage() {
             </div>
 
             {/* Filters Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Filter className="w-5 h-5 text-blue-500" />
                     <h2 className="text-sm font-bold text-slate-700">Filtre Raport</h2>
@@ -281,7 +281,7 @@ export default function ReportsPage() {
                     {/* Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                         {/* Hours by Employee */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-500" />
                                 Ore pe Angajat
@@ -309,7 +309,7 @@ export default function ReportsPage() {
                         </div>
 
                         {/* Hours by Day */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-emerald-500" />
                                 Ore pe Zi
@@ -337,7 +337,7 @@ export default function ReportsPage() {
                         </div>
 
                         {/* Site Distribution Pie */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                                 <PieChartIcon className="w-4 h-4 text-orange-500" />
                                 Distribuție pe Șantiere
@@ -367,7 +367,7 @@ export default function ReportsPage() {
                         </div>
 
                         {/* Employee Rankings */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-violet-500" />
                                 Clasament Angajați
@@ -402,7 +402,7 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Tabs: Timesheets / By Site */}
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="flex items-center border-b border-slate-200 bg-slate-50">
                             {[
                                 { key: 'timesheets', label: 'Detalii Pontaj', icon: Clock },

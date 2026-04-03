@@ -243,7 +243,7 @@ export default function TimesheetApprovalPage() {
             </div>
 
             {/* Period Selector */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-6">
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-1 flex-wrap">
                         {PERIOD_PRESETS.map(preset => (
@@ -259,10 +259,10 @@ export default function TimesheetApprovalPage() {
                     <div className="flex items-center gap-2">
                         <label className="text-xs text-slate-500 font-medium">De la:</label>
                         <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setActivePeriod('custom') }}
-                            className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
+                            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
                         <label className="text-xs text-slate-500 font-medium">Până la:</label>
                         <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setActivePeriod('custom') }}
-                            className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
+                            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
                     </div>
                 </div>
             </div>
@@ -279,7 +279,7 @@ export default function TimesheetApprovalPage() {
 
             {/* Site Photos */}
             {photos.length > 0 && (
-                <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 mb-6">
                     <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                         <Image className="w-4 h-4 text-blue-500" />
                         Poze Șantier ({photos.length})
@@ -324,9 +324,9 @@ export default function TimesheetApprovalPage() {
             )}
 
             {/* Workers Table */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden relative">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden relative">
                 <table className="w-full">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Angajat</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Șantier</th>
@@ -490,8 +490,8 @@ export default function TimesheetApprovalPage() {
             {selectedWorker && (
                 <div className="fixed inset-0 z-50 flex">
                     <div className="flex-1 bg-black/40" onClick={closeWorkerDetail} />
-                    <div className="w-full max-w-lg bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
-                        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+                    <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto animate-slide-in-right">
+                        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
                             <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
                                 <ArrowLeft className="w-4 h-4" /> Înapoi
                             </button>

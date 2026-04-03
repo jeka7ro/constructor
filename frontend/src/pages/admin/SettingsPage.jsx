@@ -109,7 +109,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
                 {activeTab === 'organization' && (
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-slate-900 mb-4">Informații Organizație</h2>

@@ -228,7 +228,7 @@ export default function ActivitiesManagement() {
             </div>
 
             {/* Unified Action Bar */}
-            <div className="bg-white/80 backdrop-blur-3xl border border-white/60 p-4 rounded-3xl shadow-lg shadow-slate-200/50 mb-8">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-3xl shadow-lg shadow-slate-200/50 mb-8">
                 <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                     {/* Search Bar */}
                     <div className="relative w-full lg:w-[400px] shrink-0">
@@ -328,7 +328,7 @@ export default function ActivitiesManagement() {
                         });
 
                         return (
-                            <div key={catKey} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div key={catKey} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
                                 {/* Category Header */}
                                 <div
                                     className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -470,7 +470,7 @@ export default function ActivitiesManagement() {
                     })}
 
                     {categories.length === 0 && !loading && (
-                        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
                             <Layers className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-slate-700 mb-2">Nicio categorie încă</h3>
                             <p className="text-slate-500 mb-6">Creează prima categorie de activități pentru a organiza catalogul.</p>

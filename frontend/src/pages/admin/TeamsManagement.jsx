@@ -213,7 +213,7 @@ export default function TeamsManagement() {
                     <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 </div>
             ) : teams.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-sm p-16 text-center">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-16 text-center">
                     <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-lg font-semibold text-slate-600">Nicio echipă</p>
                     <p className="text-sm text-slate-400 mt-1">Creează prima echipă.</p>
@@ -221,7 +221,7 @@ export default function TeamsManagement() {
             ) : (
                 <div className="space-y-4">
                     {teams.map(team => (
-                        <div key={team.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div key={team.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                             {/* Team Header */}
                             <div
                                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
