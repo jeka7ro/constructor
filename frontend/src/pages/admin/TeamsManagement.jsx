@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminStore } from '../../store/adminStore'
+import { useUIStore } from '../../store/uiStore'
 import {
     Users, Plus, Search, Trash2, Edit3, Building2,
     Loader2, UserPlus, X, Check, ChevronDown, Shield
@@ -7,6 +8,7 @@ import {
 
 export default function TeamsManagement() {
     const { token } = useAdminStore()
+    const { openDialog } = useUIStore()
     const [teams, setTeams] = useState([])
     const [loading, setLoading] = useState(true)
     const [users, setUsers] = useState([])
@@ -78,11 +80,18 @@ export default function TeamsManagement() {
     }
 
     const handleDelete = async (teamId) => {
-        if (!confirm('Sigur vrei să ștergi această echipă?')) return
-        try {
-            await api(`/admin/teams/${teamId}`, { method: 'DELETE' })
-            fetchTeams()
-        } catch (e) { console.error(e) }
+        openDialog({
+            type: 'danger',
+            title: 'Șterge Echipă',
+            message: 'Sigur vrei să ștergi această echipă? Membrii nu vor fi afectați.',
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    await api(`/admin/teams/${teamId}`, { method: 'DELETE' })
+                    fetchTeams()
+                } catch (e) { console.error(e) }
+            }
+        })
     }
 
     const handleSetMembers = async (teamId, memberIds) => {

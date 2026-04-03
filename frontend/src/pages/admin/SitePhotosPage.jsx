@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../lib/api'
+import { useUIStore } from '../../store/uiStore'
 import {
     Camera, Trash2, ChevronLeft, ChevronRight, Building2,
     User, Calendar, Loader2, Image as ImageIcon, X, Filter,
@@ -9,6 +10,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SitePhotosPage() {
+    const { openDialog } = useUIStore()
     const [photos, setPhotos] = useState([])
     const [loading, setLoading] = useState(true)
     const [page, setPage] = useState(1)
@@ -45,22 +47,36 @@ export default function SitePhotosPage() {
     }, [])
 
     const handleDelete = async (id) => {
-        if (!confirm('Sigur vrei să ștergi această poză?')) return
-        try {
-            await api.delete(`/site-photos/${id}`)
-            setSelected(prev => { const n = new Set(prev); n.delete(id); return n })
-            fetchPhotos()
-        } catch (e) { console.error(e) }
+        openDialog({
+            type: 'danger',
+            title: 'Șterge Poză',
+            message: 'Sigur vrei să ștergi această poză? Acțiunea este ireversibilă.',
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/site-photos/${id}`)
+                    setSelected(prev => { const n = new Set(prev); n.delete(id); return n })
+                    fetchPhotos()
+                } catch (e) { console.error(e) }
+            }
+        })
     }
 
     const handleBulkDelete = async () => {
         if (selected.size === 0) return
-        if (!confirm(`Ștergi ${selected.size} poze selectate?`)) return
-        try {
-            await Promise.all([...selected].map(id => api.delete(`/site-photos/${id}`)))
-            setSelected(new Set())
-            fetchPhotos()
-        } catch (e) { console.error(e) }
+        openDialog({
+            type: 'danger',
+            title: 'Șterge Poze Selectate',
+            message: `Ștergi ${selected.size} ${selected.size === 1 ? 'poză' : 'poze'} selectate? Acțiunea este ireversibilă.`,
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    await Promise.all([...selected].map(id => api.delete(`/site-photos/${id}`)))
+                    setSelected(new Set())
+                    fetchPhotos()
+                } catch (e) { console.error(e) }
+            }
+        })
     }
 
     const handleDownload = async (photo) => {
