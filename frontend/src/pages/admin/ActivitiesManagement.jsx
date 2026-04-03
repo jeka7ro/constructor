@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/api'
+import { useUIStore } from '../../store/uiStore'
 import {
     Plus, Edit2, Trash2, Loader2, Activity as ActivityIcon,
     CheckCircle, XCircle, ChevronDown, ChevronRight, Palette,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react'
 
 export default function ActivitiesManagement() {
+    const { openDialog } = useUIStore()
     const [categories, setCategories] = useState([])
     const [flatActivities, setFlatActivities] = useState([])
     const [loading, setLoading] = useState(true)
@@ -113,7 +115,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving category:', error)
-            alert(error.response?.data?.detail || 'Eroare la salvare categorie')
+            openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la salvare categorie', confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -124,14 +126,21 @@ export default function ActivitiesManagement() {
     }
 
     const handleDeleteCategory = async (catId) => {
-        if (!confirm('Ștergi această categorie? Activitățile vor fi mutate la "Necategorizate".')) return
-        try {
-            await api.delete(`/admin/activity-categories/${catId}`)
-            fetchData()
-        } catch (error) {
-            console.error('Error deleting category:', error)
-            alert(error.response?.data?.detail || 'Eroare la ștergere categorie')
-        }
+        openDialog({
+            type: 'danger',
+            title: 'Șterge Categorie',
+            message: 'Ștergi această categorie? Activitățile vor fi mutate la "Necategorizate".',
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/activity-categories/${catId}`)
+                    fetchData()
+                } catch (error) {
+                    console.error('Error deleting category:', error)
+                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la ștergere categorie', confirmText: 'OK', cancelText: null })
+                }
+            }
+        })
     }
 
     // Activity CRUD
@@ -156,7 +165,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving activity:', error)
-            alert(error.response?.data?.detail || 'Eroare la salvare activitate')
+            openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la salvare activitate', confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -184,17 +193,30 @@ export default function ActivitiesManagement() {
     }
 
     const handleDeleteActivity = async (id) => {
-        if (!confirm('Ștergi această activitate?')) return
-        try {
-            const response = await api.delete(`/admin/activities/${id}`)
-            if (response.data?.message?.includes('deactivated')) {
-                alert('Activitatea a fost DEZACTIVATĂ, deoarece există deja pontaje care o folosesc. Aceasta nu mai este vizibilă pe șantier dar istoricul rămâne intact.')
+        openDialog({
+            type: 'danger',
+            title: 'Șterge Activitate',
+            message: 'Ștergi această activitate? Dacă are pontaje asociate va fi dezactivată automat.',
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    const response = await api.delete(`/admin/activities/${id}`)
+                    if (response.data?.message?.includes('deactivated')) {
+                        openDialog({
+                            type: 'info',
+                            title: 'Activitate Dezactivată',
+                            message: 'Activitatea a fost DEZACTIVATĂ deoarece există pontaje care o folosesc. Nu mai este vizibilă pe șantier dar istoricul rămâne intact.',
+                            confirmText: 'OK',
+                            cancelText: null
+                        })
+                    }
+                    fetchData()
+                } catch (error) {
+                    console.error('Error deleting activity:', error)
+                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la ștergere', confirmText: 'OK', cancelText: null })
+                }
             }
-            fetchData()
-        } catch (error) {
-            console.error('Error deleting activity:', error)
-            alert(error.response?.data?.detail || 'Eroare la ștergere')
-        }
+        })
     }
 
     const handleToggleActive = async (id, currentStatus) => {
