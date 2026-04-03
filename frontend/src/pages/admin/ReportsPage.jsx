@@ -154,18 +154,18 @@ export default function ReportsPage() {
     const charts = preview ? computeCharts() : null
 
     return (
-        <div className="p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
+        <div className="p-8 min-h-screen">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900">📊 Rapoarte</h1>
-                <p className="text-sm text-slate-600">Analize și statistici detaliate pentru pontaje</p>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">📊 Rapoarte</h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Analize și statistici detaliate pentru pontaje</p>
             </div>
 
             {/* Filters Card */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Filter className="w-5 h-5 text-blue-500" />
-                    <h2 className="text-sm font-bold text-slate-700">Filtre Raport</h2>
+                    <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">Filtre Raport</h2>
                 </div>
 
                 {/* Quick Filters */}
@@ -191,7 +191,7 @@ export default function ReportsPage() {
                         },
                     ].map(f => (
                         <button key={f.label} onClick={f.fn}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors">
                             {f.label}
                         </button>
                     ))}
@@ -255,14 +255,14 @@ export default function ReportsPage() {
 
             {/* Report Results */}
             {loading && !preview ? (
-                <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl mb-6">
+                <div className="flex flex-col items-center justify-center py-24 rounded-xl mb-6">
                     <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
                     <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Se încarcă raportul...</h3>
-                    <p className="text-sm text-slate-500">Aşteaptă puțin, prelucrăm pontajele din perioada selectată.</p>
+                    <p className="text-sm text-slate-500">Așteaptă puțin, prelucrăm pontajele din perioada selectată.</p>
                 </div>
             ) : !preview ? (
-                <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl mb-6">
-                    <BarChart3 className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
+                <div className="flex flex-col items-center justify-center py-24 rounded-xl mb-6">
+                    <BarChart3 className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-4" />
                     <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400 mb-2">Niciun raport generat</h3>
                     <p className="text-sm text-slate-400">Alege perioada şi apăsă „Generează Raport”.</p>
                 </div>
