@@ -28,7 +28,7 @@ const EMPTY_USER = {
 }
 
 export default function UsersManagement() {
-    const { showDialog, showToast } = useUIStore()
+    const { showDialog, showToast, openDialog } = useUIStore()
     const [users, setUsers] = useState([])
     const [totalUsers, setTotalUsers] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -386,7 +386,7 @@ export default function UsersManagement() {
             link.remove()
             window.URL.revokeObjectURL(url)
         } catch (error) {
-            alert('Eroare la export: ' + (error.response?.data?.detail || error.message))
+            openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -401,15 +401,15 @@ export default function UsersManagement() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
             const result = resp.data
-            let msg = `✅ ${result.message}`
+            let msg = `${result.message}`
             if (result.errors?.length) {
-                msg += `\n\n⚠️ Erori:\n${result.errors.join('\n')}`
+                msg += `\n\nErori:\n${result.errors.join('\n')}`
             }
-            alert(msg)
+            openDialog({ type: 'info', title: 'Import Finalizat', message: msg, confirmText: 'OK', cancelText: null })
             fetchUsers()
             fetchStats()
         } catch (error) {
-            alert('Eroare la import: ' + (error.response?.data?.detail || error.message))
+            openDialog({ type: 'danger', title: 'Eroare Import', message: 'Eroare la import: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
         } finally {
             setImporting(false)
             if (importInputRef.current) importInputRef.current.value = ''
@@ -822,8 +822,8 @@ export default function UsersManagement() {
                                                             fd.append('file', file)
                                                             const resp = await api.post(`/admin/users/${editingUser.id}/upload-contract`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                                                             setEditingUser({ ...editingUser, contract_path: resp.data.contract_path })
-                                                            alert('✅ Contract încărcat cu succes!')
-                                                        } catch (err) { alert('Eroare: ' + (err.response?.data?.detail || err.message)) }
+                                                            openDialog({ type: 'info', title: 'Succes', message: 'Contract încărcat cu succes!', confirmText: 'OK', cancelText: null })
+                                                        } catch (err) { openDialog({ type: 'danger', title: 'Eroare', message: 'Eroare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null }) }
                                                         finally { setUploadingContract(false); if (contractInputRef.current) contractInputRef.current.value = '' }
                                                     }} className="hidden" />
                                                     <button
@@ -846,8 +846,8 @@ export default function UsersManagement() {
                                                             fd.append('file', file)
                                                             const resp = await api.post(`/admin/users/${editingUser.id}/upload-contract`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                                                             setEditingUser({ ...editingUser, contract_path: resp.data.contract_path })
-                                                            alert('✅ Contract încărcat cu succes!')
-                                                        } catch (err) { alert('Eroare: ' + (err.response?.data?.detail || err.message)) }
+                                                            openDialog({ type: 'info', title: 'Succes', message: 'Contract încărcat cu succes!', confirmText: 'OK', cancelText: null })
+                                                        } catch (err) { openDialog({ type: 'danger', title: 'Eroare', message: 'Eroare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null }) }
                                                         finally { setUploadingContract(false); if (contractInputRef.current) contractInputRef.current.value = '' }
                                                     }} className="hidden" />
                                                     <button

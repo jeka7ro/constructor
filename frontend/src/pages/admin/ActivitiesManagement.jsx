@@ -279,7 +279,7 @@ export default function ActivitiesManagement() {
                                     link.remove()
                                     window.URL.revokeObjectURL(url)
                                 } catch (error) {
-                                    alert('Eroare la export: ' + (error.response?.data?.detail || error.message))
+                                    openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                                 }
                             }}
                             className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"

@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react'
 import { Save, Building2, Clock, Bell, Globe, Upload, Image, X } from 'lucide-react'
 import api from '../../lib/api'
+import { useUIStore } from '../../store/uiStore'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SettingsPage() {
+    const { openDialog } = useUIStore()
     const [settings, setSettings] = useState({
         // Organization
         org_name: 'Sushi Master',
@@ -57,9 +59,9 @@ export default function SettingsPage() {
             })
             setSettings(prev => ({ ...prev, org_logo: resp.data.logo_url }))
             setLogoFile(null)
-            alert('✅ Logo încărcat cu succes!')
+            openDialog({ type: 'info', title: 'Succes', message: 'Logo încărcat cu succes!', confirmText: 'OK', cancelText: null })
         } catch (err) {
-            alert('Eroare la încărcare: ' + (err.response?.data?.detail || err.message))
+            openDialog({ type: 'danger', title: 'Eroare Încărcare', message: 'Eroare la încărcare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null })
         } finally {
             setUploading(false)
         }
@@ -67,7 +69,7 @@ export default function SettingsPage() {
 
     const handleSave = () => {
         // TODO: Save to backend
-        alert('Setări salvate cu succes!')
+        openDialog({ type: 'info', title: 'Salvat', message: 'Setările au fost salvate cu succes!', confirmText: 'OK', cancelText: null })
     }
 
     return (

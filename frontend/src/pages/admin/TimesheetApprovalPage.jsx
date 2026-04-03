@@ -224,7 +224,7 @@ export default function TimesheetApprovalPage() {
                                 link.remove()
                                 window.URL.revokeObjectURL(url)
                             } catch (error) {
-                                alert('Eroare la export: ' + (error.response?.data?.detail || error.message))
+                                openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                             }
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg text-sm font-semibold hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
