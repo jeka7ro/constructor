@@ -31,12 +31,7 @@ export default function ReportsPage() {
         setDefaultDates()
     }, [])
 
-    // Auto-load report after dates are set
-    useEffect(() => {
-        if (dateFrom && dateTo) {
-            handlePreview()
-        }
-    }, [dateFrom, dateTo])
+    // NO auto-load — user clicks "Generează Raport" manually
 
     const setDefaultDates = () => {
         const today = new Date()
@@ -260,10 +255,16 @@ export default function ReportsPage() {
 
             {/* Report Results */}
             {loading && !preview ? (
-                <div className="flex flex-col items-center justify-center py-24 bg-white border border-slate-300 shadow-sm rounded-xl mb-6">
+                <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl mb-6">
                     <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-                    <h3 className="text-xl font-bold text-slate-700 mb-2">Se încarcă raportul...</h3>
-                    <p className="text-sm text-slate-500">Așteaptă puțin, prelucrăm pontajele din perioada selectată.</p>
+                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Se încarcă raportul...</h3>
+                    <p className="text-sm text-slate-500">Aşteaptă puțin, prelucrăm pontajele din perioada selectată.</p>
+                </div>
+            ) : !preview ? (
+                <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl mb-6">
+                    <BarChart3 className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400 mb-2">Niciun raport generat</h3>
+                    <p className="text-sm text-slate-400">Alege perioada şi apăsă „Generează Raport”.</p>
                 </div>
             ) : preview && charts ? (
                 <>
