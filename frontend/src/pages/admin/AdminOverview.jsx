@@ -265,21 +265,21 @@ export default function AdminOverview() {
                     </div>
                 </div>
 
-                {/* Live Site Map */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                {/* Live Site Map — same height as chart card */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col" style={{height: '360px'}}>
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <MapPin className="w-4 h-4 text-emerald-500" />
                         Șantiere Live
                     </h3>
                     {siteList.length === 0 ? (
-                        <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+                        <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">
                             <div className="text-center">
                                 <Building2 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                                 <p>Niciun muncitor azi</p>
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-3 overflow-y-auto flex-1 pr-0.5">
                             {siteList.sort((a, b) => b.total - a.total).map(site => (
                                 <div key={site.name} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 hover:bg-slate-100 transition-colors">
                                     <div className="flex items-center justify-between mb-2">
@@ -317,16 +317,16 @@ export default function AdminOverview() {
                 </div>
             </div>
 
-            {/* Row 3: Hourly Chart + Top Performers + Late Arrivals */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
+            {/* Row 3: Hourly Chart + Top Performers + Late Arrivals/Production */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 {/* Hourly Activity */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <Activity className="w-4 h-4 text-green-500" />
                         Activitate pe Ore — Azi
                     </h3>
-                    <div style={{ width: '100%', height: 200 }}>
-                        <ResponsiveContainer>
+                    <div className="flex-1 min-h-[180px]">
+                        <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData.hourly || []}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
                                 <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -348,24 +348,25 @@ export default function AdminOverview() {
                 </div>
 
                 {/* Top Performers */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <Trophy className="w-4 h-4 text-amber-500" />
                         Top Performeri — Azi
                     </h3>
                     {topPerformers.length === 0 ? (
-                        <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+                        <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">
                             <p>Niciun muncitor azi</p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-2 overflow-y-auto flex-1">
                             {topPerformers.map((w, idx) => (
                                 <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-amber-100 text-amber-700' :
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                        idx === 0 ? 'bg-amber-100 text-amber-700' :
                                         idx === 1 ? 'bg-slate-200 text-slate-600' :
-                                            idx === 2 ? 'bg-orange-100 text-orange-600' :
-                                                'bg-slate-100 text-slate-500'
-                                        }`}>
+                                        idx === 2 ? 'bg-orange-100 text-orange-600' :
+                                        'bg-slate-100 text-slate-500'
+                                    }`}>
                                         {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
                                     </div>
                                     <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-8 h-8" />
@@ -383,11 +384,11 @@ export default function AdminOverview() {
                     )}
                 </div>
 
-                {/* Alerts / Late Arrivals + Activities */}
-                <div className="space-y-6">
+                {/* Alerts + Production — single card, two sections */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col gap-5">
                     {/* Late Arrivals */}
                     {lateArrivals.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
+                        <div>
                             <h3 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
                                 Sosiri Târzii ({lateArrivals.length})
@@ -396,27 +397,28 @@ export default function AdminOverview() {
                                 {lateArrivals.slice(0, 4).map(w => (
                                     <div key={w.worker_id} className="flex items-center gap-2 text-sm">
                                         <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-6 h-6" textSize="text-[10px]" />
-                                        <span className="font-medium text-slate-700 truncate flex-1">{w.worker_name}</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate flex-1">{w.worker_name}</span>
                                         <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                                             {new Date(w.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 ))}
                             </div>
+                            {(chartData.activities || []).length > 0 && <div className="border-t border-slate-100 dark:border-slate-700 mt-4" />}
                         </div>
                     )}
 
                     {/* Today's Activities Summary */}
-                    {(chartData.activities || []).length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
-                            <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    {(chartData.activities || []).length > 0 ? (
+                        <div className="flex-1">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                                 <Zap className="w-4 h-4 text-violet-500" />
                                 Producție Azi
                             </h3>
-                            <div className="space-y-2">
-                                {(chartData.activities || []).slice(0, 6).map((act, i) => (
+                            <div className="space-y-2 overflow-y-auto">
+                                {(chartData.activities || []).slice(0, 8).map((act, i) => (
                                     <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-100 dark:border-slate-700">
-                                        <span className="text-sm text-slate-700">{act.name}</span>
+                                        <span className="text-sm text-slate-700 dark:text-slate-300">{act.name}</span>
                                         <span className="text-sm font-bold text-violet-600">
                                             {act.quantity} <span className="text-xs text-slate-400 font-normal">{act.unit_type}</span>
                                         </span>
@@ -424,14 +426,13 @@ export default function AdminOverview() {
                                 ))}
                             </div>
                         </div>
-                    )}
-
-                    {/* No alerts state */}
-                    {lateArrivals.length === 0 && (chartData.activities || []).length === 0 && (
-                        <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-5 text-center">
-                            <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                            <p className="text-sm font-semibold text-slate-700">Totul în regulă!</p>
-                            <p className="text-xs text-slate-400 mt-1">Nicio alertă sau sosire târzie</p>
+                    ) : lateArrivals.length === 0 && (
+                        <div className="flex items-center justify-center flex-1 text-center">
+                            <div>
+                                <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Totul în regulă!</p>
+                                <p className="text-xs text-slate-400 mt-1">Nicio alertă sau sosire târzie</p>
+                            </div>
                         </div>
                     )}
                 </div>
