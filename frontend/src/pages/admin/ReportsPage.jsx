@@ -159,7 +159,7 @@ export default function ReportsPage() {
     const charts = preview ? computeCharts() : null
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen">
+        <div className="p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Header */}
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-900">📊 Rapoarte</h1>

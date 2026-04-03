@@ -200,12 +200,12 @@ export default function TimesheetApprovalPage() {
     const totalBreak = workers.reduce((sum, w) => sum + (w.break_hours || 0), 0)
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen">
+        <div className="p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">📋 Pontaje</h1>
-                    <p className="text-sm text-slate-600">Monitorizare live ture și activități</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">📋 Pontaje</h1>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Monitorizare live ture și activități</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -328,18 +328,18 @@ export default function TimesheetApprovalPage() {
                 <table className="w-full">
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Angajat</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Șantier</th>
-                            {isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Zile</th>}
-                            {!isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Check-in</th>}
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Timp Șantier</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Pauză</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Total Tură</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Activități</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
+                            {isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Zile</th>}
+                            {!isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Check-in</th>}
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Timp Șantier</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Pauză</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Tură</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Activități</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {loading && workers.length === 0 ? (
                             <tr><td colSpan={9} className="px-4 py-12 text-center">
                                 <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
@@ -354,7 +354,7 @@ export default function TimesheetApprovalPage() {
                             workers.map((w, idx) => {
                                 const live = getLiveHours(w)
                                 return (
-                                    <tr key={`${w.worker_id}_${idx}`} className="hover:bg-blue-50/50 transition-colors">
+                                    <tr key={`${w.worker_id}_${idx}`} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors">
                                         {/* Worker — clickable */}
                                         <td className="px-4 py-3">
                                             <button onClick={() => openWorkerDetail(w)} className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity group">
@@ -368,7 +368,7 @@ export default function TimesheetApprovalPage() {
 
                                         {/* Site */}
                                         <td className="px-4 py-3">
-                                            <span className="text-sm text-slate-700 flex items-center gap-1">
+                                            <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1">
                                                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
                                                 {w.site_name || '—'}
                                             </span>
@@ -377,12 +377,12 @@ export default function TimesheetApprovalPage() {
                                         {/* Days count (range) or Check-in (single day) */}
                                         {isRange ? (
                                             <td className="px-4 py-3">
-                                                <span className="text-sm font-semibold text-slate-700">{w.days_count || 1}</span>
+                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{w.days_count || 1}</span>
                                                 <span className="text-xs text-slate-400 ml-1">zile</span>
                                             </td>
                                         ) : (
                                             <td className="px-4 py-3">
-                                                <div className="text-sm text-slate-700">
+                                                <div className="text-sm text-slate-700 dark:text-slate-300">
                                                     {w.check_in_time ? new Date(w.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
                                                 </div>
                                                 {w.check_out_time && (
@@ -395,7 +395,7 @@ export default function TimesheetApprovalPage() {
 
                                         {/* On Site */}
                                         <td className="px-4 py-3">
-                                            <span className="text-sm font-medium text-slate-700">{formatHours(live.onSite)}</span>
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatHours(live.onSite)}</span>
                                         </td>
 
                                         {/* Break */}
@@ -407,7 +407,7 @@ export default function TimesheetApprovalPage() {
 
                                         {/* Total */}
                                         <td className="px-4 py-3">
-                                            <span className={`text-sm font-bold ${w.status === 'terminat' ? 'text-slate-700' : 'text-blue-600'}`}>
+                                            <span className={`text-sm font-bold ${w.status === 'terminat' ? 'text-slate-700 dark:text-slate-300' : 'text-blue-600 dark:text-blue-400'}`}>
                                                 {formatHours(live.worked)}
                                             </span>
                                             {w.status !== 'terminat' && isToday && (
@@ -449,14 +449,14 @@ export default function TimesheetApprovalPage() {
                     <>
                         <div className="fixed inset-0 z-30" onClick={() => setActivityPopup(null)} />
                         <div
-                            className="fixed z-40 bg-white rounded-xl border border-slate-200 shadow-2xl p-4 min-w-[280px] max-w-[360px]"
+                            className="fixed z-40 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl p-4 min-w-[280px] max-w-[360px]"
                             style={{
                                 top: Math.min(activityPopup.anchorRect.bottom + 8, window.innerHeight - 250),
                                 left: Math.min(activityPopup.anchorRect.left, window.innerWidth - 380),
                             }}
                         >
                             <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-blue-500" />
                                     Activități — {activityPopup.worker_name}
                                 </h4>
@@ -466,8 +466,8 @@ export default function TimesheetApprovalPage() {
                             </div>
                             <div className="space-y-2">
                                 {activityPopup.activities.map((a, i) => (
-                                    <div key={i} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-100">
-                                        <span className="text-sm text-slate-700 font-medium">{a.name}</span>
+                                    <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2.5 border border-slate-100 dark:border-slate-700">
+                                        <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{a.name}</span>
                                         <span className="text-sm font-bold text-blue-600">{a.quantity} <span className="text-xs text-slate-400 font-normal">{a.unit_type}</span></span>
                                     </div>
                                 ))}
@@ -477,11 +477,11 @@ export default function TimesheetApprovalPage() {
                 )}
 
                 {workers.length > 0 && (
-                    <div className="bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between">
-                        <span className="text-xs text-slate-500">
+                    <div className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                             {workers.length} muncitor{workers.length !== 1 ? 'i' : ''} • {activeCount} activ{activeCount !== 1 ? 'i' : ''} • {finishedCount} terminat{finishedCount !== 1 ? 'e' : ''}
                         </span>
-                        <span className="text-xs font-semibold text-slate-700">Total ore lucrate: {formatHours(totalWorked)}</span>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Total ore lucrate: {formatHours(totalWorked)}</span>
                     </div>
                 )}
             </div>
@@ -506,8 +506,8 @@ export default function TimesheetApprovalPage() {
                                 <div className="flex items-center gap-4">
                                     <AvatarImg path={workerDetail.worker.avatar_path} name={workerDetail.worker.full_name} size="w-16 h-16" textSize="text-xl" rounded="rounded-2xl" />
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900">{workerDetail.worker.full_name}</h2>
-                                        <p className="text-sm text-slate-500">{workerDetail.worker.employee_code} • {workerDetail.worker.role_name}</p>
+                                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{workerDetail.worker.full_name}</h2>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{workerDetail.worker.employee_code} • {workerDetail.worker.role_name}</p>
                                         <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${workerDetail.worker.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                             }`}>
                                             {workerDetail.worker.is_active ? '● Activ' : '● Inactiv'}
@@ -516,8 +516,8 @@ export default function TimesheetApprovalPage() {
                                 </div>
 
                                 {/* Personal Info */}
-                                <div className="bg-slate-50 rounded-xl p-4 space-y-3">
-                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Informații Personale</h3>
+                                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-3">
+                                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Informații Personale</h3>
                                     {workerDetail.worker.phone && (
                                         <div className="flex items-center gap-3 text-sm">
                                             <Phone className="w-4 h-4 text-slate-400" />
@@ -564,16 +564,16 @@ export default function TimesheetApprovalPage() {
 
                                 {/* Timesheet History */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Istoric Pontaje</h3>
+                                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Istoric Pontaje</h3>
                                     {workerDetail.history.length === 0 ? (
                                         <p className="text-sm text-slate-400 text-center py-4">Niciun pontaj găsit</p>
                                     ) : (
                                         <div className="space-y-2">
                                             {workerDetail.history.map((entry, i) => (
-                                                <div key={i} className="bg-white border border-slate-200 rounded-xl p-3.5">
+                                                <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5">
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-semibold text-slate-900">
+                                                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                                                 {new Date(entry.date).toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric', month: 'short' })}
                                                             </span>
                                                             <StatusBadge status={entry.status} />

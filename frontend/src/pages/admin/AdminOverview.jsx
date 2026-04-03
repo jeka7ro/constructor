@@ -168,7 +168,7 @@ export default function AdminOverview() {
     }
 
     return (
-        <div className="p-6 lg:p-8 bg-slate-50 min-h-screen">
+        <div className="p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -271,7 +271,7 @@ export default function AdminOverview() {
                     ) : (
                         <div className="space-y-3">
                             {siteList.sort((a, b) => b.total - a.total).map(site => (
-                                <div key={site.name} className="bg-slate-50 rounded-xl p-3 border border-slate-100 hover:bg-slate-100 transition-colors">
+                                <div key={site.name} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 hover:bg-slate-100 transition-colors">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm font-semibold text-slate-800 truncate flex-1">{site.name}</span>
                                         <span className="text-xs font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border">{site.total}</span>
@@ -405,7 +405,7 @@ export default function AdminOverview() {
                             </h3>
                             <div className="space-y-2">
                                 {(chartData.activities || []).slice(0, 6).map((act, i) => (
-                                    <div key={i} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                                    <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-100 dark:border-slate-700">
                                         <span className="text-sm text-slate-700">{act.name}</span>
                                         <span className="text-sm font-bold text-violet-600">
                                             {act.quantity} <span className="text-xs text-slate-400 font-normal">{act.unit_type}</span>
@@ -603,7 +603,7 @@ export default function AdminOverview() {
                         {/* Finished Workers */}
                         {doneWorkers.length > 0 && (
                             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-6">
-                                <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50">
+                                <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                                     <h3 className="text-sm font-bold text-slate-500 flex items-center gap-2">
                                         <CheckCircle className="w-4 h-4 text-slate-400" /> Terminat Azi
                                     </h3>
@@ -654,7 +654,7 @@ export default function AdminOverview() {
                                 </div>
 
                                 {/* Contact */}
-                                <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
                                     {workerDetail.worker.phone && (
                                         <div className="flex items-center gap-3 text-sm">
                                             <Phone className="w-4 h-4 text-slate-400" />
@@ -681,7 +681,7 @@ export default function AdminOverview() {
                                             <div className="text-lg font-bold text-orange-600">{formatTime(selectedWorker.break_hours || 0)}</div>
                                             <div className="text-[10px] text-orange-500 mt-0.5">Pauză</div>
                                         </div>
-                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                                        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-center">
                                             <div className="text-lg font-bold text-slate-700">
                                                 {selectedWorker.check_in_time ? new Date(selectedWorker.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
                                             </div>
