@@ -199,25 +199,25 @@ export default function ReportsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> De la data
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> De la data
                         </label>
                         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Până la data
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> Până la data
                         </label>
                         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                            <Users className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Angajat
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                            <Users className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> Angajat
                         </label>
                         <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
                             <option value="">Toți angajații</option>
                             {employees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>
@@ -225,11 +225,11 @@ export default function ReportsPage() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                            <Building2 className="w-3.5 h-3.5 inline mr-1 text-slate-400" /> Șantier
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                            <Building2 className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> Șantier
                         </label>
                         <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
                             <option value="">Toate șantierele</option>
                             {sites.map(site => (
                                 <option key={site.id} value={site.id}>{site.name}</option>
