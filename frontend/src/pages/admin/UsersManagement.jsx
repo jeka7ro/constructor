@@ -90,7 +90,13 @@ export default function UsersManagement() {
             if (roleFilter) params.role_id = roleFilter
             if (statusFilter !== '') params.is_active = statusFilter === 'true'
             const response = await api.get('/admin/users/', { params })
-            setUsers(response.data.users)
+            // Exclude technical admin/system accounts from employee list
+            const filtered = (response.data.users || []).filter(u =>
+                !(u.role_code === 'ADMIN' || u.employee_code === 'ADMIN' ||
+                  (u.last_name === 'Admin' && u.first_name === 'User') ||
+                  u.role_name === 'Administrator')
+            )
+            setUsers(filtered)
             setTotalUsers(response.data.total)
         } catch (error) {
             console.error('Error fetching users:', error)
