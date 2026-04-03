@@ -5,6 +5,7 @@ import api from '../../lib/api'
 import { Users, Plus, Search, Edit2, Trash2, Key, UserCheck, UserX, Loader2, Mail, Phone, Calendar, X, Save, Eye, Download, Upload, CreditCard, FileSpreadsheet, ScanLine, MapPin, Filter, XCircle, FileText, FileUp, FileDown } from 'lucide-react'
 import ViewToggle from '../../components/ViewToggle'
 import Pagination from '../../components/Pagination'
+import AvatarCropModal from '../../components/AvatarCropModal'
 import { useUIStore } from '../../store/uiStore'
 
 const PAGE_ID = 'admin-users'
@@ -37,6 +38,9 @@ export default function UsersManagement() {
     const [stats, setStats] = useState(null)
     const [roles, setRoles] = useState([])
     const token = useAdminStore((state) => state.token)
+    
+    // Bulk Select states
+    const [selectedUserIds, setSelectedUserIds] = useState([])
 
     // Modal states
     const [showEditModal, setShowEditModal] = useState(false)
@@ -52,6 +56,7 @@ export default function UsersManagement() {
     const [idCardPreview, setIdCardPreview] = useState(null)
     const [uploadingIdCard, setUploadingIdCard] = useState(false)
     const [ocrLoading, setOcrLoading] = useState(false)
+    const [avatarCropImage, setAvatarCropImage] = useState(null)
     const [importing, setImporting] = useState(false)
     const [contractFile, setContractFile] = useState(null)
     const [uploadingContract, setUploadingContract] = useState(false)
@@ -253,6 +258,36 @@ export default function UsersManagement() {
         setShowPinModal(true)
     }
 
+    const handleToggleSelectAll = (e) => {
+        if (e.target.checked) setSelectedUserIds(users.map(u => u.id))
+        else setSelectedUserIds([])
+    }
+
+    const handleToggleSelect = (userId) => {
+        setSelectedUserIds(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId])
+    }
+
+    const handleBulkDelete = () => {
+        if (selectedUserIds.length === 0) return
+        showDialog({
+            title: 'Ștergere Multiplă',
+            message: `Ești sigur că vrei să dezactivezi/ștergi cei ${selectedUserIds.length} angajați selectați?`,
+            type: 'danger',
+            confirmText: 'Șterge Selecția',
+            onConfirm: async () => {
+                try {
+                    await Promise.all(selectedUserIds.map(id => api.delete(`/admin/users/${id}`)))
+                    setSelectedUserIds([])
+                    fetchUsers()
+                    fetchStats()
+                    showToast('Angajații selectați au fost șterși.', 'success')
+                } catch (error) {
+                    showToast('Eroare la ștergerea în masă', 'error')
+                }
+            }
+        })
+    }
+
     const handleSavePin = async () => {
         if (!newPin || newPin.length < 4) {
             showToast('PIN-ul trebuie să aibă minim 4 caractere!', 'error')
@@ -376,127 +411,90 @@ export default function UsersManagement() {
     }
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="p-4 space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-3">
                         <Users className="w-8 h-8 text-blue-600" />
                         Gestionare Angajați
                     </h1>
-                    <p className="text-slate-600 mt-1">Administrează conturile angajaților</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {/* Excel Import */}
-                    <input
-                        type="file"
-                        ref={importInputRef}
-                        accept=".xlsx,.xls"
-                        onChange={handleImportExcel}
-                        className="hidden"
-                    />
-                    <button
-                        onClick={() => importInputRef.current?.click()}
-                        disabled={importing}
-                        className="bg-white border-2 border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                        {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
-                        Import
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
-                    </button>
-                    {/* Excel Export */}
-                    <button
-                        onClick={handleExportExcel}
-                        className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-                    >
-                        <FileDown className="w-4 h-4" />
-                        Export
-                        <FileSpreadsheet className="w-4 h-4" />
-                    </button>
-                    {/* Add User */}
-                    <button
-                        onClick={handleAddUser}
-                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Adaugă Angajat
-                    </button>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Administrează conturile angajaților și vizualizează starea lor actuală</p>
                 </div>
             </div>
 
             {/* Stats Cards */}
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <StatCard label="Total Angajați" value={stats.total_users} icon={Users} color="from-blue-500 to-blue-600" />
-                    <StatCard label="Activi" value={stats.active_users} icon={UserCheck} color="from-emerald-500 to-emerald-600" />
-                    <StatCard label="Inactivi" value={stats.inactive_users} icon={UserX} color="from-slate-500 to-slate-600" />
-                    <StatCard label="Roluri" value={stats.users_by_role?.length || 0} icon={Key} color="from-violet-500 to-violet-600" />
+                    <StatCard label="Total" value={(stats.total_users || 0) + (stats.inactive_users || 0)} icon={Users} color="from-blue-500 to-indigo-600" onClick={() => {setStatusFilter(''); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === ''} />
+                    <StatCard label="Activi" value={stats.total_users || 0} icon={UserCheck} color="from-emerald-500 to-green-600" onClick={() => {setStatusFilter('true'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'true'} />
+                    <StatCard label="Inactivi" value={stats.inactive_users || 0} icon={UserX} color="from-slate-500 to-slate-600" onClick={() => {setStatusFilter('false'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'false'} />
+                    <StatCard label="Roluri" value={stats.users_by_role?.length || 0} icon={Key} color="from-violet-500 to-purple-600" />
                 </div>
             )}
 
-            {/* Search and Filters */}
-            <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex-1 min-w-[280px] relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                        placeholder="Caută după nume sau cod angajat..."
-                        className="w-full pl-12 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all shadow-sm"
+            {/* Search, Filters and Actions */}
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-3xl shadow-sm flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                            placeholder="Caută după nume..."
+                            className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                        />
+                    </div>
+                    {/* Role Filter */}
+                    <select
+                        value={roleFilter}
+                        onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                        className="px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                    >
+                        <option value="">Toate</option>
+                        {roles.map(role => (
+                            <option key={role.id} value={role.id}>{role.name}</option>
+                        ))}
+                    </select>
+
+                    <ViewToggle
+                        viewMode={preferences.viewMode}
+                        onViewModeChange={(mode) => setViewMode(PAGE_ID, mode)}
                     />
                 </div>
 
-                {/* Role Filter */}
-                <select
-                    value={roleFilter}
-                    onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                    className="px-4 py-3 border border-slate-200 bg-white shadow-sm rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm min-w-[160px]"
-                >
-                    <option value="">Toate rolurile</option>
-                    {roles.map(role => (
-                        <option key={role.id} value={role.id}>{role.name}</option>
-                    ))}
-                </select>
-
-                {/* Status Filter */}
-                <select
-                    value={statusFilter}
-                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                    className="px-4 py-3 border border-slate-200 bg-white shadow-sm rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm min-w-[140px]"
-                >
-                    <option value="">Toți</option>
-                    <option value="true">Activi</option>
-                    <option value="false">Inactivi</option>
-                </select>
-
-                {/* Clear Filters */}
-                {(roleFilter || statusFilter !== 'true' || search) && (
-                    <button
-                        onClick={() => { setRoleFilter(''); setStatusFilter('true'); setSearch(''); setCurrentPage(PAGE_ID, 1) }}
-                        className="p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors border border-red-200"
-                        title="Resetează filtrele"
-                    >
-                        <XCircle className="w-5 h-5" />
+                <div className="flex items-center gap-2 flex-wrap">
+                    <input type="file" ref={importInputRef} accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
+                    <button onClick={() => importInputRef.current?.click()} disabled={importing} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
+                        {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />} Import
                     </button>
-                )}
+                    <button onClick={handleExportExcel} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
+                        <FileDown className="w-4 h-4" /> Export
+                    </button>
 
-                <ViewToggle
-                    viewMode={preferences.viewMode}
-                    onViewModeChange={(mode) => setViewMode(PAGE_ID, mode)}
-                />
+                    {selectedUserIds.length > 0 && (
+                        <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap">
+                            <Trash2 className="w-4 h-4" /> Șterge ({selectedUserIds.length})
+                        </button>
+                    )}
+
+                    <button onClick={handleAddUser} className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap">
+                        <Plus className="w-5 h-5" /> Adaugă
+                    </button>
+                </div>
             </div>
 
             {/* Users Content */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
                 {loading ? (
                     <div className="flex items-center justify-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                     </div>
                 ) : preferences.viewMode === 'list' ? (
-                    <UsersTable users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} />
+                    <UsersTable users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} onToggleSelectAll={handleToggleSelectAll} />
                 ) : (
-                    <UsersGrid users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} />
+                    <UsersGrid users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
                 )}
 
                 {!loading && users.length === 0 && (
@@ -553,16 +551,10 @@ export default function UsersManagement() {
                                             type="file"
                                             accept="image/*"
                                             className="hidden"
-                                            onChange={async (e) => {
+                                            onChange={(e) => {
                                                 const f = e.target.files[0]
                                                 if (!f || !editingUser) return
-                                                const fd = new FormData()
-                                                fd.append('file', f)
-                                                try {
-                                                    const resp = await api.post(`/admin/users/${editingUser.id}/upload-avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-                                                    setEditingUser({ ...editingUser, avatar_path: resp.data.avatar_path })
-                                                    fetchUsers()
-                                                } catch (err) { console.error('Avatar upload error:', err) }
+                                                setAvatarCropImage(f)
                                                 e.target.value = ''
                                             }}
                                         />
@@ -633,19 +625,17 @@ export default function UsersManagement() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {/* Employee Code - only for new */}
-                                {!editingUser && (
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Cod Angajat *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.employee_code}
-                                            onChange={e => setFormData({ ...formData, employee_code: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                            placeholder="ex: EMP001"
-                                        />
-                                    </div>
-                                )}
+                                {/* Employee Code */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Cod Angajat *</label>
+                                    <input
+                                        type="text"
+                                        value={formData.employee_code}
+                                        onChange={e => setFormData({ ...formData, employee_code: e.target.value })}
+                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                                        placeholder="ex: EMP001"
+                                    />
+                                </div>
 
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Nume *</label>
@@ -1029,6 +1019,24 @@ export default function UsersManagement() {
                     </div>
                 </div>
             )}
+
+            {/* =================== AVATAR CROP MODAL =================== */}
+            <AvatarCropModal
+                imageFile={avatarCropImage}
+                onCancel={() => setAvatarCropImage(null)}
+                onSave={async (blob) => {
+                    if (!editingUser) return
+                    const fd = new FormData()
+                    fd.append('file', blob, 'avatar.jpg')
+                    try {
+                        const resp = await api.post(`/admin/users/${editingUser.id}/upload-avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+                        setEditingUser({ ...editingUser, avatar_path: resp.data.avatar_path })
+                        fetchUsers()
+                        showToast('Avatar actualizat', 'success')
+                    } catch (err) { console.error('Avatar upload error:', err); showToast('Eroare la actualizare avatar', 'error') }
+                    setAvatarCropImage(null)
+                }}
+            />
         </div>
     )
 }
@@ -1047,13 +1055,17 @@ function InfoField({ label, value, icon, fullWidth }) {
     )
 }
 
-function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onView }) {
+function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onView, selectedUserIds, onToggleSelect, onToggleSelectAll }) {
     const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+    const allSelected = users.length > 0 && selectedUserIds.length === users.length
     return (
         <div className="overflow-x-auto">
             <table className="w-full">
                 <thead>
                     <tr className="bg-gradient-to-r from-slate-50 to-slate-100/80 border-b border-slate-200">
+                        <th className="px-6 py-4 text-left w-12">
+                            <input type="checkbox" checked={allSelected} onChange={onToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                        </th>
                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Angajat</th>
                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Rol</th>
@@ -1063,7 +1075,10 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                     {users.map((user) => (
-                        <tr key={user.id} className="group hover:bg-blue-50/40 transition-all duration-200 cursor-pointer" onClick={() => onView(user)}>
+                        <tr key={user.id} className={`group hover:bg-blue-50/40 transition-all duration-200 cursor-pointer ${selectedUserIds?.includes(user.id) ? 'bg-blue-50' : ''}`} onClick={() => onView(user)}>
+                            <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                                <input type="checkbox" checked={selectedUserIds?.includes(user.id) || false} onChange={() => onToggleSelect(user.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                            </td>
                             <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
                                     {/* Avatar */}
@@ -1125,20 +1140,20 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                 )}
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                                <div className="flex items-center justify-end gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Vizualizează">
+                                <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-full border border-slate-200 transition-colors" title="Vizualizează">
                                         <Eye className="w-4 h-4 text-blue-600" />
                                     </button>
-                                    <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-2 hover:bg-amber-100 rounded-lg transition-colors" title={user.is_active ? 'Dezactivează' : 'Activează'}>
+                                    <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-2 hover:bg-amber-100 rounded-full border border-slate-200 transition-colors" title={user.is_active ? 'Dezactivează' : 'Activează'}>
                                         {user.is_active ? <UserX className="w-4 h-4 text-amber-600" /> : <UserCheck className="w-4 h-4 text-emerald-600" />}
                                     </button>
-                                    <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-lg transition-colors" title="Resetează PIN">
+                                    <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-full border border-slate-200 transition-colors" title="Resetează PIN">
                                         <Key className="w-4 h-4 text-violet-600" />
                                     </button>
-                                    <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Editează">
+                                    <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-full border border-slate-200 transition-colors" title="Editează">
                                         <Edit2 className="w-4 h-4 text-blue-600" />
                                     </button>
-                                    <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-lg transition-colors" title="Șterge">
+                                    <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-full border border-slate-200 transition-colors" title="Șterge">
                                         <Trash2 className="w-4 h-4 text-red-500" />
                                     </button>
                                 </div>
@@ -1151,14 +1166,17 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
     )
 }
 
-function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView }) {
+function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView, selectedUserIds, onToggleSelect }) {
     const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
             {users.map((user) => (
-                <div key={user.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-blue-300 hover:shadow-xl transition-all duration-300 group cursor-pointer" onClick={() => onView(user)}>
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
+                <div key={user.id} className={`bg-white border ${selectedUserIds?.includes(user.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-slate-200'} rounded-2xl p-5 hover:border-blue-300 hover:shadow-xl transition-all duration-300 group cursor-pointer relative`} onClick={() => onView(user)}>
+                    <div className="absolute top-4 right-4 z-10" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={selectedUserIds?.includes(user.id) || false} onChange={() => onToggleSelect(user.id)} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer drop-shadow-sm" />
+                    </div>
+                    <div className="flex items-start justify-between mb-4 mt-2">
+                        <div className="flex items-center gap-3 pr-8">
                             {/* Avatar */}
                             {user.avatar_path ? (
                                 <img
@@ -1231,16 +1249,21 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
     )
 }
 
-function StatCard({ label, value, icon: Icon, color }) {
+function StatCard({ label, value, icon: Icon, color, onClick, active }) {
     return (
-        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 bg-gradient-to-br ${color} rounded-xl shadow-lg`}>
+        <div 
+            onClick={onClick}
+            className={`bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-md ${active ? 'border-blue-500 ring-4 ring-blue-500/20 shadow-lg transform -translate-y-1' : ''} rounded-2xl p-6 hover:shadow-lg transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+        >
+            <div className="flex items-center gap-4">
+                <div className={`p-4 bg-gradient-to-br ${color} rounded-2xl shadow-inner`}>
                     <Icon className="w-6 h-6 text-white" />
                 </div>
+                <div>
+                    <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{value}</p>
+                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mt-1">{label}</p>
+                </div>
             </div>
-            <p className="text-3xl font-bold text-slate-900 mb-1">{value}</p>
-            <p className="text-sm font-medium text-slate-600">{label}</p>
         </div>
     )
 }

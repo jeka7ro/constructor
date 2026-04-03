@@ -54,25 +54,25 @@ export default function Pagination({
     }
 
     return (
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-white/10">
             {/* Items info */}
             <div className="flex items-center gap-4">
-                <span className="text-sm text-slate-600">
-                    Afișare <span className="font-semibold text-slate-900">{startItem}</span> -{' '}
-                    <span className="font-semibold text-slate-900">{endItem}</span> din{' '}
-                    <span className="font-semibold text-slate-900">{totalItems}</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Afișare <span className="font-semibold text-slate-900 dark:text-slate-200">{startItem}</span> -{' '}
+                    <span className="font-semibold text-slate-900 dark:text-slate-200">{endItem}</span> din{' '}
+                    <span className="font-semibold text-slate-900 dark:text-slate-200">{totalItems}</span>
                 </span>
 
                 {/* Page size selector */}
                 <div className="flex items-center gap-2">
-                    <label htmlFor="pageSize" className="text-sm text-slate-600">
+                    <label htmlFor="pageSize" className="text-sm text-slate-600 dark:text-slate-400">
                         Rânduri:
                     </label>
                     <select
                         id="pageSize"
                         value={pageSize}
                         onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                        className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
                     >
                         {pageSizeOptions.map((size) => (
                             <option key={size} value={size}>
@@ -88,25 +88,25 @@ export default function Pagination({
                 <button
                     onClick={handlePrevious}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-2xl border border-slate-200 dark:border-white/10 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     title="Pagina anterioară"
                 >
-                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                    <ChevronLeft className="w-5 h-5" />
                 </button>
 
                 <div className="flex items-center gap-1">
                     {getPageNumbers().map((page, index) => (
                         page === '...' ? (
-                            <span key={`ellipsis-${index}`} className="px-3 py-2 text-slate-400">
+                            <span key={`ellipsis-${index}`} className="px-3 py-2 text-slate-400 dark:text-slate-500">
                                 ...
                             </span>
                         ) : (
                             <button
                                 key={page}
                                 onClick={() => onPageChange(page)}
-                                className={`min-w-[40px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                                className={`min-w-[40px] px-3 py-2 rounded-2xl text-sm font-medium transition-colors ${currentPage === page
                                         ? 'bg-blue-500 text-white shadow-sm'
-                                        : 'text-slate-700 hover:bg-slate-100'
+                                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                                     }`}
                             >
                                 {page}
@@ -118,10 +118,10 @@ export default function Pagination({
                 <button
                     onClick={handleNext}
                     disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-2xl border border-slate-200 dark:border-white/10 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     title="Pagina următoare"
                 >
-                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                    <ChevronRight className="w-5 h-5" />
                 </button>
             </div>
         </div>

@@ -35,6 +35,7 @@ export default function SitesManagement() {
     const [totalSites, setTotalSites] = useState(0)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
+    const [statusFilter, setStatusFilter] = useState('') // New status filter
     const [stats, setStats] = useState(null)
     const [selectedSite, setSelectedSite] = useState(null) // For photo modal
     const [showPhotoModal, setShowPhotoModal] = useState(false)
@@ -43,6 +44,9 @@ export default function SitesManagement() {
     const [formData, setFormData] = useState(EMPTY_SITE)
     const [saving, setSaving] = useState(false)
     const token = useAdminStore((state) => state.token)
+    
+    // Bulk Select states
+    const [selectedSiteIds, setSelectedSiteIds] = useState([])
 
     // View preferences
     const preferences = useViewPreferencesStore((state) => state.getPagePreferences(PAGE_ID))
@@ -53,7 +57,7 @@ export default function SitesManagement() {
     useEffect(() => {
         fetchSites()
         fetchStats()
-    }, [search, preferences.currentPage, preferences.pageSize])
+    }, [search, statusFilter, preferences.currentPage, preferences.pageSize])
 
     const fetchSites = async () => {
         try {
@@ -61,7 +65,7 @@ export default function SitesManagement() {
             const response = await api.get('/admin/sites/', {
                 params: {
                     search,
-                    status: 'active',
+                    ...(statusFilter && { status: statusFilter }),
                     page: preferences.currentPage,
                     page_size: preferences.pageSize
                 }
@@ -161,6 +165,36 @@ export default function SitesManagement() {
         })
     }
 
+    const handleToggleSelectAll = (e) => {
+        if (e.target.checked) setSelectedSiteIds(sites.map(s => s.id))
+        else setSelectedSiteIds([])
+    }
+
+    const handleToggleSelect = (siteId) => {
+        setSelectedSiteIds(prev => prev.includes(siteId) ? prev.filter(id => id !== siteId) : [...prev, siteId])
+    }
+
+    const handleBulkDelete = () => {
+        if (selectedSiteIds.length === 0) return
+        showDialog({
+            title: 'Ștergere Multiplă',
+            message: `Ești sigur că vrei să ștergi (suspenzi) cele ${selectedSiteIds.length} proiecte/șantiere selectate?`,
+            type: 'danger',
+            confirmText: 'Șterge Selecția',
+            onConfirm: async () => {
+                try {
+                    await Promise.all(selectedSiteIds.map(id => api.delete(`/admin/sites/${id}`)))
+                    setSelectedSiteIds([])
+                    fetchSites()
+                    fetchStats()
+                    showToast('Șantierele selectate au fost șterse.', 'success')
+                } catch (error) {
+                    showToast('Eroare la ștergerea în masă', 'error')
+                }
+            }
+        })
+    }
+
     const handlePhotoClick = (site) => {
         setSelectedSite(site)
         setShowPhotoModal(true)
@@ -218,124 +252,122 @@ export default function SitesManagement() {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-4 space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">Gestionare Proiecte Fotovoltaice</h1>
-                <p className="text-slate-600">Administrează șantierele de instalare panouri solare</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-3">
+                        <Building2 className="w-8 h-8 text-blue-600" />
+                        Gestionare Șantiere
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Administrează șantierele de instalare panouri solare și starea lor</p>
+                </div>
             </div>
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-100 rounded-xl">
-                                <Building2 className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-600">Total Proiecte</p>
-                                <p className="text-2xl font-bold text-slate-900">{stats.total_sites || 0}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-emerald-100 rounded-xl">
-                                <CheckCircle className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-600">Proiecte Active</p>
-                                <p className="text-2xl font-bold text-slate-900">{stats.active_sites || 0}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl border border-slate-200 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-amber-100 rounded-xl">
-                                <Zap className="w-6 h-6 text-amber-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-600">Finalizate</p>
-                                <p className="text-2xl font-bold text-slate-900">{stats.completed_sites || 0}</p>
-                            </div>
-                        </div>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <StatCard label="Total" value={(stats.active_sites || 0) + (stats.completed_sites || 0)} icon={Building2} color="from-blue-500 to-indigo-600" onClick={() => {setStatusFilter(''); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === ''} />
+                    <StatCard label="Active" value={stats.active_sites || 0} icon={CheckCircle} color="from-emerald-500 to-green-600" onClick={() => {setStatusFilter('active'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'active'} />
+                    <StatCard label="Finalizate" value={stats.completed_sites || 0} icon={Zap} color="from-amber-500 to-orange-500" onClick={() => {setStatusFilter('completed'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'completed'} />
+                    <StatCard label="Suspendați" value={stats.suspended_sites || 0} icon={XCircle} color="from-slate-500 to-slate-600" onClick={() => {setStatusFilter('suspended'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'suspended'} />
                 </div>
             )}
 
-            {/* Search and Actions */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="relative flex-1 w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            {/* Search, Filters and Actions */}
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-3xl shadow-sm flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Caută după nume, client sau locație..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            onChange={(e) => {setSearch(e.target.value); setCurrentPage(PAGE_ID, 1)}}
+                            className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
                         />
                     </div>
-                    <div className="flex items-center gap-3">
-                        <ViewToggle
-                            viewMode={preferences.viewMode}
-                            onChange={(mode) => setViewMode(PAGE_ID, mode)}
-                        />
+                    {/* Status Filter */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                        className="px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 outline-none transition-all shadow-sm font-medium min-w-[140px]"
+                    >
+                        <option value="">Toate stările</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Finalizate</option>
+                        <option value="suspended">Suspendate</option>
+                    </select>
+
+                    <ViewToggle
+                        viewMode={preferences.viewMode}
+                        onChange={(mode) => setViewMode(PAGE_ID, mode)}
+                    />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    {selectedSiteIds.length > 0 && (
                         <button
-                            onClick={handleAddSite}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                            onClick={handleBulkDelete}
+                            className="px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-all shadow flex items-center gap-2 whitespace-nowrap"
                         >
-                            <Plus className="w-5 h-5" />
-                            Adaugă Proiect
+                            <Trash2 className="w-4 h-4" />
+                            {selectedSiteIds.length > 1 ? 'Șterge Selecția' : 'Șterge'} ({selectedSiteIds.length})
                         </button>
-                    </div>
+                    )}
+                    <button
+                        onClick={handleAddSite}
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Adaugă Proiect
+                    </button>
                 </div>
             </div>
 
             {/* Sites List/Grid */}
             {preferences.viewMode === 'list' ? (
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
                     <table className="w-full">
-                        <thead className="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th className="px-4 py-4 text-left text-sm font-semibold text-slate-700">#</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Proiect</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Client</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Sistem</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Tip</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Program</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
-                                <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Acțiuni</th>
+                        <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                <th className="px-6 py-4 text-left w-12">
+                                    <input type="checkbox" checked={sites.length > 0 && selectedSiteIds.length === sites.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Proiect</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Client</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Sistem</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Tip</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Program</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Status</th>
+                                <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Acțiuni</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200">
-                            {sites.map((site, index) => (
-                                <tr key={site.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-4 py-4 text-sm font-medium text-slate-500">
-                                        {index + 1}
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            {sites.map((site) => (
+                                <tr key={site.id} className={`hover:bg-blue-50/40 dark:hover:bg-slate-800 transition-colors ${selectedSiteIds.includes(site.id) ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
+                                    <td className="px-6 py-4">
+                                        <input type="checkbox" checked={selectedSiteIds.includes(site.id)} onChange={() => handleToggleSelect(site.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                                     </td>
                                     <td className="px-6 py-4">
                                         <div>
-                                            <p className="font-semibold text-slate-900">{site.name}</p>
-                                            <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
+                                            <p className="font-semibold text-slate-900 dark:text-slate-100">{site.name}</p>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
                                                 <MapPin className="w-3 h-3" />
                                                 {site.address || 'Fără adresă'}
                                             </p>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <p className="text-slate-900">{site.client_name || '-'}</p>
+                                        <p className="text-slate-800 dark:text-slate-200">{site.client_name || '-'}</p>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                                            <span className="flex items-center gap-1 text-amber-500 font-semibold">
                                                 <Zap className="w-4 h-4" />
                                                 {site.system_power_kw || 0} kW
                                             </span>
-                                            <span className="flex items-center gap-1 text-slate-600">
+                                            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                                                 <Hash className="w-4 h-4" />
                                                 {site.panel_count || 0}
                                             </span>
@@ -347,9 +379,9 @@ export default function SitesManagement() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1 text-sm">
                                             <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                            <span className="font-medium text-slate-700">{site.work_start_time || '07:00'}</span>
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">{site.work_start_time || '07:00'}</span>
                                             <span className="text-slate-400">—</span>
-                                            <span className="font-medium text-slate-700">{site.work_end_time || '16:00'}</span>
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">{site.work_end_time || '16:00'}</span>
                                         </div>
                                         <p className="text-xs text-slate-400 mt-0.5">+{site.max_overtime_minutes ?? 120}min OT</p>
                                     </td>
@@ -360,24 +392,24 @@ export default function SitesManagement() {
                                         <div className="flex items-center justify-end gap-2">
                                             <button
                                                 onClick={() => handlePhotoClick(site)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-1.5 hover:bg-blue-50 rounded-full border border-slate-200 transition-colors"
                                                 title="Fotografii"
                                             >
-                                                <Camera className="w-4 h-4" />
+                                                <Camera className="w-3.5 h-3.5 text-blue-600" />
                                             </button>
                                             <button
                                                 onClick={() => handleEditSite(site)}
-                                                className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                                className="p-1.5 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors"
                                                 title="Editează"
                                             >
-                                                <Edit2 className="w-4 h-4" />
+                                                <Edit2 className="w-3.5 h-3.5 text-slate-600" />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteSite(site.id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 hover:bg-red-50 rounded-full border border-slate-200 transition-colors"
                                                 title="Șterge"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
                                             </button>
                                         </div>
                                     </td>
@@ -389,8 +421,11 @@ export default function SitesManagement() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sites.map((site) => (
-                        <div key={site.id} className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-shadow">
-                            <div className="flex items-start justify-between mb-4">
+                        <div key={site.id} className={`bg-white rounded-xl border ${selectedSiteIds.includes(site.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-slate-200'} p-6 hover:shadow-lg transition-shadow relative`}>
+                            <div className="absolute top-4 right-4 z-10" onClick={e => e.stopPropagation()}>
+                                <input type="checkbox" checked={selectedSiteIds.includes(site.id)} onChange={() => handleToggleSelect(site.id)} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer drop-shadow-sm" />
+                            </div>
+                            <div className="flex items-start justify-between mb-4 pr-8">
                                 <h3 className="font-bold text-lg text-slate-900">{site.name}</h3>
                                 {getStatusBadge(site.status)}
                             </div>
@@ -675,6 +710,25 @@ export default function SitesManagement() {
                     </div>
                 </div>
             )}
+        </div>
+    )
+}
+
+function StatCard({ label, value, icon: Icon, color, isActive, onClick }) {
+    return (
+        <div 
+            onClick={onClick}
+            className={`bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 shadow-md ${isActive ? 'border-blue-500 ring-4 ring-blue-500/20 shadow-lg transform -translate-y-1' : ''} rounded-2xl p-6 hover:shadow-lg transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+        >
+            <div className="flex items-center gap-4">
+                <div className={`p-4 bg-gradient-to-br ${color} rounded-2xl shadow-inner`}>
+                    <Icon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                    <p className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">{value}</p>
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">{label}</p>
+                </div>
+            </div>
         </div>
     )
 }

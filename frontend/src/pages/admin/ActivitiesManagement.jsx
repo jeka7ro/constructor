@@ -3,7 +3,7 @@ import api from '../../lib/api'
 import {
     Plus, Edit2, Trash2, Loader2, Activity as ActivityIcon,
     CheckCircle, XCircle, ChevronDown, ChevronRight, Palette,
-    FolderPlus, GripVertical, Layers, FileDown, FileSpreadsheet
+    FolderPlus, GripVertical, Layers, FileDown, FileSpreadsheet, Search
 } from 'lucide-react'
 
 export default function ActivitiesManagement() {
@@ -11,6 +11,7 @@ export default function ActivitiesManagement() {
     const [flatActivities, setFlatActivities] = useState([])
     const [loading, setLoading] = useState(true)
     const [expandedCategories, setExpandedCategories] = useState({})
+    const [searchQuery, setSearchQuery] = useState('')
 
     // Category modal
     const [showCategoryModal, setShowCategoryModal] = useState(false)
@@ -185,7 +186,10 @@ export default function ActivitiesManagement() {
     const handleDeleteActivity = async (id) => {
         if (!confirm('Ștergi această activitate?')) return
         try {
-            await api.delete(`/admin/activities/${id}`)
+            const response = await api.delete(`/admin/activities/${id}`)
+            if (response.data?.message?.includes('deactivated')) {
+                alert('Activitatea a fost DEZACTIVATĂ, deoarece există deja pontaje care o folosesc. Aceasta nu mai este vizibilă pe șantier dar istoricul rămâne intact.')
+            }
             fetchData()
         } catch (error) {
             console.error('Error deleting activity:', error)
@@ -216,52 +220,70 @@ export default function ActivitiesManagement() {
     return (
         <div className="p-8">
             {/* Header */}
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">📋 Catalog Activități</h1>
                     <p className="text-slate-600">Gestionează categoriile și activitățile disponibile pentru pontaje</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={async () => {
-                            try {
-                                const response = await api.get('/admin/activities/export/excel', { responseType: 'blob' })
-                                const url = window.URL.createObjectURL(new Blob([response.data]))
-                                const link = document.createElement('a')
-                                link.href = url
-                                link.setAttribute('download', `activitati_${new Date().toISOString().slice(0, 10)}.xlsx`)
-                                document.body.appendChild(link)
-                                link.click()
-                                link.remove()
-                                window.URL.revokeObjectURL(url)
-                            } catch (error) {
-                                alert('Eroare la export: ' + (error.response?.data?.detail || error.message))
-                            }
-                        }}
-                        className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
-                    >
-                        <FileDown className="w-4 h-4" />
-                        Export
-                        <FileSpreadsheet className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => {
-                            setEditingCategory(null)
-                            setCategoryForm({ name: '', color: '#3b82f6', sort_order: 0 })
-                            setShowCategoryModal(true)
-                        }}
-                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
-                    >
-                        <FolderPlus className="w-5 h-5" />
-                        Categorie Nouă
-                    </button>
-                    <button
-                        onClick={() => handleAddActivityToCategory('')}
-                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Activitate Nouă
-                    </button>
+            </div>
+
+            {/* Unified Action Bar */}
+            <div className="bg-white/80 backdrop-blur-3xl border border-white/60 p-4 rounded-3xl shadow-lg shadow-slate-200/50 mb-8">
+                <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                    {/* Search Bar */}
+                    <div className="relative w-full lg:w-[400px] shrink-0">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Caută categorie, activitate sau descriere..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-11 pr-4 py-3 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-2xl shadow-sm text-sm transition-all focus:bg-white placeholder:text-slate-400"
+                        />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap items-center justify-end gap-3 w-full lg:w-auto">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const response = await api.get('/admin/activities/export/excel', { responseType: 'blob' })
+                                    const url = window.URL.createObjectURL(new Blob([response.data]))
+                                    const link = document.createElement('a')
+                                    link.href = url
+                                    link.setAttribute('download', `activitati_${new Date().toISOString().slice(0, 10)}.xlsx`)
+                                    document.body.appendChild(link)
+                                    link.click()
+                                    link.remove()
+                                    window.URL.revokeObjectURL(url)
+                                } catch (error) {
+                                    alert('Eroare la export: ' + (error.response?.data?.detail || error.message))
+                                }
+                            }}
+                            className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
+                        >
+                            <FileDown className="w-5 h-5" />
+                            Export
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingCategory(null)
+                                setCategoryForm({ name: '', color: '#3b82f6', sort_order: 0 })
+                                setShowCategoryModal(true)
+                            }}
+                            className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
+                        >
+                            <FolderPlus className="w-5 h-5" />
+                            Categorie Nouă
+                        </button>
+                        <button
+                            onClick={() => handleAddActivityToCategory('')}
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold transition-all shadow-lg shadow-blue-600/30 flex-1 lg:flex-none text-sm"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Activitate Nouă
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -280,10 +302,30 @@ export default function ActivitiesManagement() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {categories.map((cat) => {
+                    {categories.filter(cat => {
+                        if (!searchQuery) return true;
+                        const query = searchQuery.toLowerCase();
+                        if ((cat.name || '').toLowerCase().includes(query)) return true;
+                        return cat.activities.some(a => 
+                            (a.name || '').toLowerCase().includes(query) || 
+                            (a.description || '').toLowerCase().includes(query)
+                        );
+                    }).map((cat) => {
                         const catKey = cat.id || '__uncategorized'
-                        const isExpanded = expandedCategories[catKey]
+                        // Auto-expand if searching to show matching children immediately
+                        const isExpanded = searchQuery ? true : expandedCategories[catKey]
                         const catColor = cat.color || '#94a3b8'
+
+                        const query = searchQuery.toLowerCase();
+                        const categoryMatches = (cat.name || '').toLowerCase().includes(query);
+                        
+                        // If category name matches the query, show all its items.
+                        // Otherwise, only show items that matched the query.
+                        const filteredActivities = categoryMatches && searchQuery ? cat.activities : cat.activities.filter(a => {
+                            if (!searchQuery) return true;
+                            return (a.name || '').toLowerCase().includes(query) || 
+                                   (a.description || '').toLowerCase().includes(query);
+                        });
 
                         return (
                             <div key={catKey} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -339,9 +381,9 @@ export default function ActivitiesManagement() {
                                 {/* Activities Table */}
                                 {isExpanded && (
                                     <div className="border-t border-slate-200">
-                                        {cat.activities.length === 0 ? (
+                                        {filteredActivities.length === 0 ? (
                                             <div className="px-6 py-8 text-center text-slate-400 text-sm">
-                                                Nicio activitate în această categorie
+                                                Nicio activitate potrivită în această categorie.
                                             </div>
                                         ) : (
                                             <table className="w-full">
@@ -356,7 +398,7 @@ export default function ActivitiesManagement() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
-                                                    {cat.activities.map((activity) => (
+                                                    {filteredActivities.map((activity) => (
                                                         <tr key={activity.id} className="hover:bg-slate-50 transition-colors">
                                                             <td className="px-6 py-3">
                                                                 <div className="font-medium text-slate-900 text-sm">{activity.name}</div>
@@ -391,14 +433,14 @@ export default function ActivitiesManagement() {
                                                                 <div className="flex items-center justify-end gap-1">
                                                                     <button
                                                                         onClick={() => handleEditActivity(activity)}
-                                                                        className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                        className="p-1.5 hover:bg-blue-50 rounded-full border border-slate-200 transition-colors"
                                                                         title="Editează"
                                                                     >
                                                                         <Edit2 className="w-3.5 h-3.5 text-blue-600" />
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleToggleActive(activity.id, activity.is_active)}
-                                                                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                                                                        className="p-1.5 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors"
                                                                         title={activity.is_active ? 'Dezactivează' : 'Activează'}
                                                                     >
                                                                         {activity.is_active ? (
@@ -409,7 +451,7 @@ export default function ActivitiesManagement() {
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleDeleteActivity(activity.id)}
-                                                                        className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                                                        className="p-1.5 hover:bg-red-50 rounded-full border border-slate-200 transition-colors"
                                                                         title="Șterge"
                                                                     >
                                                                         <Trash2 className="w-3.5 h-3.5 text-red-600" />
@@ -637,7 +679,7 @@ export default function ActivitiesManagement() {
 
 function StatsCard({ label, value, icon: Icon, color }) {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
+        <div className="bg-white rounded-3xl border border-slate-300 shadow-sm p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center gap-4">
                 <div className={`p-3 bg-gradient-to-br ${color} rounded-xl`}>
                     <Icon className="w-6 h-6 text-white" />

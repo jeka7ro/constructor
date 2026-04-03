@@ -49,6 +49,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    employee_code: Optional[str] = Field(None, min_length=3, max_length=20)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     full_name: Optional[str] = Field(None, min_length=2, max_length=200)
@@ -369,9 +370,9 @@ def get_users_stats(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Get user statistics"""
-    total_users = db.query(func.count(User.id)).scalar()
+    total_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
     active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
-    inactive_users = total_users - active_users
+    inactive_users = db.query(func.count(User.id)).filter(User.is_active == False).scalar()
     users_by_role = db.query(Role.name, func.count(User.id).label('count')).join(User).group_by(Role.name).all()
     return {
         "total_users": total_users,
@@ -637,9 +638,14 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
             raise HTTPException(status_code=400, detail="Invalid role ID")
         user.role_id = user_data.role_id
 
-    for field in ['is_active', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address']:
+    for field in ['employee_code', 'is_active', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address']:
         val = getattr(user_data, field, None)
         if val is not None:
+            if field == 'employee_code':
+                # Check uniqueness manually to give a nice error message
+                existing = db.query(User).filter(User.employee_code == val, User.id != user_id).first()
+                if existing:
+                    raise HTTPException(status_code=400, detail="Codul de angajat este deja utilizat de altcineva.")
             setattr(user, field, val)
 
     # Handle birth_date separately - convert string to date object for SQLite

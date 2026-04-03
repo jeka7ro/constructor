@@ -16,14 +16,14 @@ const useViewPreferencesStore = create(
              * Get preferences for a specific page
              */
             getPagePreferences: (pageId) => {
-                const prefs = get().preferences[pageId]
-                return prefs || {
-                    viewMode: 'list', // 'list' | 'grid'
-                    pageSize: 20,
-                    currentPage: 1,
-                    sortBy: null,
-                    sortOrder: 'asc',
-                    filters: {}
+                const prefs = get().preferences[pageId] || {}
+                return {
+                    viewMode: prefs.viewMode || 'list',
+                    pageSize: prefs.pageSize || 20,
+                    currentPage: prefs.currentPage || 1,
+                    sortBy: prefs.sortBy || null,
+                    sortOrder: prefs.sortOrder || 'asc',
+                    filters: prefs.filters || {}
                 }
             },
 

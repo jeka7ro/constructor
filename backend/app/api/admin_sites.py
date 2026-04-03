@@ -167,7 +167,7 @@ def get_sites_stats(
     """
     Get construction sites statistics
     """
-    total_sites = db.query(func.count(ConstructionSite.id)).scalar()
+    total_sites = db.query(func.count(ConstructionSite.id)).filter(ConstructionSite.status != "suspended").scalar()
     active_sites = db.query(func.count(ConstructionSite.id)).filter(ConstructionSite.status == "active").scalar()
     completed_sites = db.query(func.count(ConstructionSite.id)).filter(ConstructionSite.status == "completed").scalar()
     suspended_sites = db.query(func.count(ConstructionSite.id)).filter(ConstructionSite.status == "suspended").scalar()

@@ -259,7 +259,13 @@ export default function ReportsPage() {
             </div>
 
             {/* Report Results */}
-            {preview && charts ? (
+            {loading && !preview ? (
+                <div className="flex flex-col items-center justify-center py-24 bg-white border border-slate-300 shadow-sm rounded-xl mb-6">
+                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+                    <h3 className="text-xl font-bold text-slate-700 mb-2">Se încarcă raportul...</h3>
+                    <p className="text-sm text-slate-500">Așteaptă puțin, prelucrăm pontajele din perioada selectată.</p>
+                </div>
+            ) : preview && charts ? (
                 <>
                     {/* Summary Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-6">
@@ -552,7 +558,7 @@ export default function ReportsPage() {
 
 function SummaryCard({ label, value, icon: Icon, color }) {
     return (
-        <div className={`rounded-xl p-3.5 border ${color}`}>
+        <div className={`rounded-2xl p-4 border-2 shadow-md dark:bg-slate-900 dark:border-slate-700 ${color}`}>
             <div className="flex items-center gap-2 mb-1">
                 <Icon className="w-4 h-4 opacity-70" />
             </div>

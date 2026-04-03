@@ -6,12 +6,12 @@ import { LayoutGrid, List } from 'lucide-react'
  */
 export default function ViewToggle({ viewMode, onViewModeChange, className = '' }) {
     return (
-        <div className={`inline-flex items-center bg-white border border-slate-200 rounded-lg p-1 ${className}`}>
+        <div className={`inline-flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-1 ${className}`}>
             <button
                 onClick={() => onViewModeChange('list')}
-                className={`p-2 rounded-md transition-all ${viewMode === 'list'
+                className={`p-2 rounded-xl transition-all ${viewMode === 'list'
                         ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                 title="List View"
             >
@@ -19,9 +19,9 @@ export default function ViewToggle({ viewMode, onViewModeChange, className = '' 
             </button>
             <button
                 onClick={() => onViewModeChange('grid')}
-                className={`p-2 rounded-md transition-all ${viewMode === 'grid'
+                className={`p-2 rounded-xl transition-all ${viewMode === 'grid'
                         ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                 title="Grid View"
             >
