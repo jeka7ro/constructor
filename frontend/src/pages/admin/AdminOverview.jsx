@@ -217,7 +217,7 @@ export default function AdminOverview() {
             </div>
 
             {/* Row 2: Weekly Comparison + Site Live Map */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
                 {/* Weekly Hours Chart — takes 2 cols */}
                 <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <div className="flex items-center justify-between mb-4">
@@ -318,7 +318,7 @@ export default function AdminOverview() {
             </div>
 
             {/* Row 3: Hourly Chart + Top Performers + Late Arrivals */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
                 {/* Hourly Activity */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
