@@ -2,7 +2,7 @@
 Admin API endpoints for user management
 Includes: CRUD, ID card upload with OCR (easyocr), Excel import/export, avatar extraction
 """
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
@@ -142,7 +142,7 @@ def build_user_response(user, role_name=None):
     )
 
 
-def extract_id_card_data(image_path: str) -> dict:
+def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
     """
     Extract data from Romanian ID card (Carte de Identitate) using EasyOCR.
     Extracts: Nume, Prenume, CNP, Data nașterii, Loc naștere, Serie+Număr, Domiciliu.
@@ -186,142 +186,149 @@ def extract_id_card_data(image_path: str) -> dict:
         except Exception as e:
             print(f"Avatar extraction failed: {e}")
         
-        # ===== Try OCR if easyocr is available =====
-        try:
-            import easyocr
-            import numpy as np
-
-            reader = easyocr.Reader(['ro', 'en'], gpu=False)
-            img_np = np.array(img)
-
-            # Run OCR
-            ocr_results = reader.readtext(img_np, detail=1)
-            
-            # Extract all text
-            texts = []
-            for (bbox, text, prob) in ocr_results:
-                texts.append(text.strip())
-            
-            full_text = '\n'.join(texts)
+    # ===== Try OCR if easyocr is available =====
+        full_text = ''
+        if raw_text:
+            full_text = raw_text.strip()
             result["raw_text"] = full_text
-            
-            # ===== Extract CNP (13 digits starting with 1,2,5,6,8) =====
-            cnp_match = re.search(r'\b([12568]\d{12})\b', full_text.replace(' ', ''))
-            if not cnp_match:
-                for t in texts:
-                    cleaned = t.replace(' ', '').replace('O', '0').replace('o', '0')
-                    m = re.search(r'([12568]\d{12})', cleaned)
-                    if m:
-                        cnp_match = m
-                        break
-            
-            if cnp_match:
-                result["cnp"] = cnp_match.group(1)
-                cnp = result["cnp"]
-                century = '19' if cnp[0] in '12' else '20' if cnp[0] in '56' else '19'
-                year = century + cnp[1:3]
-                month = cnp[3:5]
-                day = cnp[5:7]
-                try:
-                    result["birth_date"] = f"{year}-{month}-{day}"
-                except Exception:
-                    pass
-            
-            # ===== Extract Serie + Număr (pattern: XX 123456) =====
-            for t in texts:
-                series_match = re.search(r'\b([A-Z]{2})\s*(\d{6})\b', t)
-                if series_match:
-                    result["id_card_series"] = f"{series_match.group(1)} {series_match.group(2)}"
-                    break
-            
-            # ===== Extract names from MRZ line =====
-            mrz_surname = None
-            mrz_firstname = None
+        else:
+            try:
+                import easyocr
+                import numpy as np
+
+                reader = easyocr.Reader(['ro', 'en'], gpu=False)
+                img_np = np.array(img)
+
+                # Run OCR
+                ocr_results = reader.readtext(img_np, detail=1)
+                
+                # Extract all text
+                texts = []
+                for (bbox, text, prob) in ocr_results:
+                    texts.append(text.strip())
+                
+                full_text = '\n'.join(texts)
+                result["raw_text"] = full_text
+            except ImportError:
+                pass
+        
+        # Recreate list of strings from full_text for local logic 
+        texts = full_text.split('\n')
+        
+        # ===== Extract CNP (13 digits starting with 1,2,5,6,8) =====
+        cnp_search_text = full_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+        cnp_match = re.search(r'\b([12568]\d{12})\b', cnp_search_text)
+        if not cnp_match:
+            m = re.search(r'([12568]\d{12})', cnp_search_text)
+            if m:
+                cnp_match = m
+        
+        if cnp_match:
+            result["cnp"] = cnp_match.group(1)
+            cnp = result["cnp"]
+            century = '19' if cnp[0] in '12' else '20' if cnp[0] in '56' else '19'
+            year = century + cnp[1:3]
+            month = cnp[3:5]
+            day = cnp[5:7]
+            try:
+                # Robust birth date generation
+                # Only accept valid dates, silently ignore if bad OCR
+                from datetime import datetime as dt
+                dt.strptime(f"{year}-{month}-{day}", "%Y-%m-%d")
+                result["birth_date"] = f"{year}-{month}-{day}"
+            except Exception:
+                pass
+        
+        # ===== Extract Serie + Număr (pattern: XX 123456) =====
+        for t in texts:
+            series_match = re.search(r'\b([A-Z]{2})\s*(\d{6})\b', t)
+            if series_match:
+                result["id_card_series"] = f"{series_match.group(1)} {series_match.group(2)}"
+                break
+        
+        # ===== Extract names from MRZ line =====
+        mrz_surname = None
+        mrz_firstname = None
+        for t in texts:
+            cleaned = t.replace(' ', '').upper()
+            mrz_match = re.search(r'IDROU[A-Z]*?([A-Z]{2,})<<([A-Z]+)', cleaned)
+            if not mrz_match:
+                mrz_match = re.search(r'IDROU([A-ZĂÂÎȘȚ]{2,})<<([A-ZĂÂÎȘȚ]+)', cleaned)
+            if mrz_match:
+                mrz_surname = mrz_match.group(1).replace('<', '').strip()
+                mrz_firstname = mrz_match.group(2).replace('<', '').strip()
+                break
+        
+        if not mrz_surname:
             for t in texts:
                 cleaned = t.replace(' ', '').upper()
-                mrz_match = re.search(r'IDROU[A-Z]*?([A-Z]{2,})<<([A-Z]+)', cleaned)
-                if not mrz_match:
-                    mrz_match = re.search(r'IDROU([A-ZĂÂÎȘȚ]{2,})<<([A-ZĂÂÎȘȚ]+)', cleaned)
-                if mrz_match:
-                    mrz_surname = mrz_match.group(1).replace('<', '').strip()
-                    mrz_firstname = mrz_match.group(2).replace('<', '').strip()
-                    break
-            
-            if not mrz_surname:
-                for t in texts:
-                    cleaned = t.replace(' ', '').upper()
-                    if cleaned.startswith('IDROU') and '<<' in cleaned:
-                        after_idrou = cleaned[5:]
-                        parts = after_idrou.split('<<')
-                        name_parts = [p.replace('<', '').strip() for p in parts if p.replace('<', '').strip()]
-                        if len(name_parts) >= 2:
-                            mrz_surname = name_parts[0]
-                            mrz_firstname = name_parts[1]
-                            break
-                        elif len(name_parts) == 1 and len(name_parts[0]) > 3:
-                            mrz_surname = name_parts[0]
-                            break
+                if cleaned.startswith('IDROU') and '<<' in cleaned:
+                    after_idrou = cleaned[5:]
+                    parts = after_idrou.split('<<')
+                    name_parts = [p.replace('<', '').strip() for p in parts if p.replace('<', '').strip()]
+                    if len(name_parts) >= 2:
+                        mrz_surname = name_parts[0]
+                        mrz_firstname = name_parts[1]
+                        break
+                    elif len(name_parts) == 1 and len(name_parts[0]) > 3:
+                        mrz_surname = name_parts[0]
+                        break
 
-            if mrz_surname:
-                result["last_name"] = mrz_surname.title()
-            if mrz_firstname:
-                result["first_name"] = mrz_firstname.title()
-            
-            # ===== Fallback: Extract fields based on label detection =====
-            for i, text in enumerate(texts):
-                text_upper = text.upper().strip()
-                
-                if not result["last_name"] and ('NUME' in text_upper or 'SURNAME' in text_upper or text_upper == 'NUME/SURNAME') and 'PRENUME' not in text_upper:
-                    for j in range(i + 1, min(i + 3, len(texts))):
-                        candidate = texts[j].strip()
-                        candidate_upper = candidate.upper()
-                        if candidate_upper and not any(kw in candidate_upper for kw in ['PRENUME', 'FIRST', 'NAME', 'GIVEN', '/', 'LOC', 'DOMICILIU', 'CNP', 'SEX']):
-                            name_val = re.sub(r'[^A-ZĂÂÎȘȚa-zăâîșț\s-]', '', candidate).strip()
-                            if name_val and len(name_val) > 1:
-                                result["last_name"] = name_val.title()
-                                break
-                
-                if not result["first_name"] and ('PRENUME' in text_upper or 'FIRST NAME' in text_upper or 'GIVEN' in text_upper):
-                    for j in range(i + 1, min(i + 3, len(texts))):
-                        candidate = texts[j].strip()
-                        candidate_upper = candidate.upper()
-                        if candidate_upper and not any(kw in candidate_upper for kw in ['NUME', 'LOC', 'DOMICILIU', 'CNP', 'SEX', 'NATIONAL', 'CETĂȚENI']):
-                            name_val = re.sub(r'[^A-ZĂÂÎȘȚa-zăâîșț\s-]', '', candidate).strip()
-                            if name_val and len(name_val) > 1:
-                                result["first_name"] = name_val.title()
-                                break
-                
-                if 'LOC' in text_upper and ('NAȘTERE' in text_upper or 'NASTERE' in text_upper or 'BIRTH' in text_upper):
-                    for j in range(i + 1, min(i + 3, len(texts))):
-                        candidate = texts[j].strip()
-                        candidate_upper = candidate.upper()
-                        if candidate_upper and not any(kw in candidate_upper for kw in ['DOMICILIU', 'CNP', 'VALID', 'SERIE']):
-                            if len(candidate) > 2:
-                                result["birth_place"] = candidate.title()
-                                break
-                
-                if 'DOMICILIU' in text_upper or 'ADDRESS' in text_upper or 'DOMICILIUL' in text_upper:
-                    addr_parts = []
-                    for j in range(i + 1, min(i + 5, len(texts))):
-                        candidate = texts[j].strip()
-                        candidate_upper = candidate.upper()
-                        if any(kw in candidate_upper for kw in ['CNP', 'VALID', 'SERIE', 'IDROU', 'EMIS', 'CHIP']):
-                            break
-                        if len(candidate) > 2:
-                            addr_parts.append(candidate)
-                    if addr_parts:
-                        result["address"] = ', '.join(addr_parts)
-            
-            result["success"] = bool(result["cnp"] or result["last_name"] or result["first_name"])
-            result["message"] = "Date extrase cu succes din cartea de identitate" if result["success"] else "Nu s-au putut extrage date din imagine"
-            
-        except ImportError:
-            # OCR not available — avatar was still extracted above
-            result["success"] = bool(result["avatar_path"])
-            result["message"] = "Poza de profil a fost extrasă. Completează datele manual (OCR indisponibil pe server)."
+        if mrz_surname:
+            result["last_name"] = mrz_surname.title()
+        if mrz_firstname:
+            result["first_name"] = mrz_firstname.title()
         
+        # ===== Fallback: Extract fields based on label detection =====
+        for i, text in enumerate(texts):
+            text_upper = text.upper().strip()
+            
+            if not result["last_name"] and ('NUME' in text_upper or 'SURNAME' in text_upper or text_upper == 'NUME/SURNAME') and 'PRENUME' not in text_upper:
+                for j in range(i + 1, min(i + 3, len(texts))):
+                    candidate = texts[j].strip()
+                    candidate_upper = candidate.upper()
+                    if candidate_upper and not any(kw in candidate_upper for kw in ['PRENUME', 'FIRST', 'NAME', 'GIVEN', '/', 'LOC', 'DOMICILIU', 'CNP', 'SEX']):
+                        name_val = re.sub(r'[^A-ZĂÂÎȘȚa-zăâîșț\s-]', '', candidate).strip()
+                        if name_val and len(name_val) > 1:
+                            result["last_name"] = name_val.title()
+                            break
+            
+            if not result["first_name"] and ('PRENUME' in text_upper or 'FIRST NAME' in text_upper or 'GIVEN' in text_upper):
+                for j in range(i + 1, min(i + 3, len(texts))):
+                    candidate = texts[j].strip()
+                    candidate_upper = candidate.upper()
+                    if candidate_upper and not any(kw in candidate_upper for kw in ['NUME', 'LOC', 'DOMICILIU', 'CNP', 'SEX', 'NATIONAL', 'CETĂȚENI']):
+                        name_val = re.sub(r'[^A-ZĂÂÎȘȚa-zăâîșț\s-]', '', candidate).strip()
+                        if name_val and len(name_val) > 1:
+                            result["first_name"] = name_val.title()
+                            break
+            
+            if 'LOC' in text_upper and ('NAȘTERE' in text_upper or 'NASTERE' in text_upper or 'BIRTH' in text_upper):
+                for j in range(i + 1, min(i + 3, len(texts))):
+                    candidate = texts[j].strip()
+                    candidate_upper = candidate.upper()
+                    if candidate_upper and not any(kw in candidate_upper for kw in ['DOMICILIU', 'CNP', 'VALID', 'SERIE']):
+                        if len(candidate) > 2:
+                            result["birth_place"] = candidate.title()
+                            break
+            
+            if 'DOMICILIU' in text_upper or 'ADDRESS' in text_upper or 'DOMICILIUL' in text_upper:
+                addr_parts = []
+                for j in range(i + 1, min(i + 5, len(texts))):
+                    candidate = texts[j].strip()
+                    candidate_upper = candidate.upper()
+                    if any(kw in candidate_upper for kw in ['CNP', 'VALID', 'SERIE', 'IDROU', 'EMIS', 'CHIP']):
+                        break
+                    if len(candidate) > 2:
+                        addr_parts.append(candidate)
+                if addr_parts:
+                    result["address"] = ', '.join(addr_parts)
+        
+        result["success"] = bool(result["cnp"] or result["last_name"] or result["first_name"])
+        result["message"] = "Date extrase cu succes din cartea de identitate" if result["success"] else "Nu s-au putut extrage date din imagine"
+            
     except Exception as e:
-        result["message"] = f"Eroare procesare: {str(e)}"
+        result["message"] = f"Eroare procesare poză: {str(e)}"
 
     return result
 
@@ -662,13 +669,13 @@ def reset_user_pin(user_id: str, pin_data: UserPinReset, db: Session = Depends(g
 
 
 @router.post("/{user_id}/upload-id-card")
-async def upload_id_card(user_id: str, file: UploadFile = File(...), db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+async def upload_id_card(user_id: str, file: UploadFile = File(...), raw_text: Optional[str] = Form(None), db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     """Upload ID card image, run OCR extraction, and extract avatar photo"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    allowed = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
+    allowed = ('.jpg', '.jpeg', '.png', '.webp', '.bmp', '.pdf')
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in allowed:
         raise HTTPException(status_code=400, detail=f"Format neacceptat. Acceptăm: {', '.join(allowed)}")
@@ -689,7 +696,7 @@ async def upload_id_card(user_id: str, file: UploadFile = File(...), db: Session
         temp_path = tmp.name
 
     # Run OCR on temp file
-    ocr_result = extract_id_card_data(temp_path)
+    ocr_result = extract_id_card_data(temp_path, raw_text)
     
     # Clean up temp file
     try:
@@ -767,9 +774,9 @@ async def delete_contract(user_id: str, db: Session = Depends(get_db), current_a
 
 
 @router.post("/ocr/extract")
-async def ocr_extract_only(file: UploadFile = File(...), current_admin: Admin = Depends(get_current_admin)):
+async def ocr_extract_only(file: UploadFile = File(...), raw_text: Optional[str] = Form(None), current_admin: Admin = Depends(get_current_admin)):
     """Extract data from ID card image without saving to a user — used for pre-filling forms"""
-    allowed = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
+    allowed = ('.jpg', '.jpeg', '.png', '.webp', '.bmp', '.pdf')
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in allowed:
         raise HTTPException(status_code=400, detail=f"Format neacceptat")
@@ -782,7 +789,7 @@ async def ocr_extract_only(file: UploadFile = File(...), current_admin: Admin = 
         f.write(content)
 
     try:
-        ocr_result = extract_id_card_data(temp_path)
+        ocr_result = extract_id_card_data(temp_path, raw_text)
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)

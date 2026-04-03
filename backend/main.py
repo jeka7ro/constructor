@@ -53,9 +53,9 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting Pontaj Digital API...")
 
     # Start daily scheduler
-    t = threading.Thread(target=_daily_clockin_loop, daemon=True)
-    t.start()
-    print("📅 Daily auto-clock-in scheduler started")
+    # t = threading.Thread(target=_daily_clockin_loop, daemon=True)
+    # t.start()
+    print("📅 Daily auto-clock-in scheduler DISABLED explicitly by user")
 
     yield
     # Shutdown

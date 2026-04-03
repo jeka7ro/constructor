@@ -5,6 +5,7 @@ import api from '../../lib/api'
 import { Users, Plus, Search, Edit2, Trash2, Key, UserCheck, UserX, Loader2, Mail, Phone, Calendar, X, Save, Eye, Download, Upload, CreditCard, FileSpreadsheet, ScanLine, MapPin, Filter, XCircle, FileText, FileUp, FileDown } from 'lucide-react'
 import ViewToggle from '../../components/ViewToggle'
 import Pagination from '../../components/Pagination'
+import { useUIStore } from '../../store/uiStore'
 
 const PAGE_ID = 'admin-users'
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -26,12 +27,13 @@ const EMPTY_USER = {
 }
 
 export default function UsersManagement() {
+    const { showDialog, showToast } = useUIStore()
     const [users, setUsers] = useState([])
     const [totalUsers, setTotalUsers] = useState(0)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [roleFilter, setRoleFilter] = useState('')
-    const [statusFilter, setStatusFilter] = useState('')
+    const [statusFilter, setStatusFilter] = useState('true')
     const [stats, setStats] = useState(null)
     const [roles, setRoles] = useState([])
     const token = useAdminStore((state) => state.token)
@@ -151,19 +153,19 @@ export default function UsersManagement() {
 
     const handleSaveUser = async () => {
         if (!formData.last_name.trim()) {
-            alert('Numele este obligatoriu!')
+            showToast('Numele este obligatoriu!', 'error')
             return
         }
         if (!formData.first_name.trim()) {
-            alert('Prenumele este obligatoriu!')
+            showToast('Prenumele este obligatoriu!', 'error')
             return
         }
         if (!editingUser && !formData.employee_code.trim()) {
-            alert('Codul angajatului este obligatoriu!')
+            showToast('Codul angajatului este obligatoriu!', 'error')
             return
         }
         if (!editingUser && !formData.pin) {
-            alert('PIN-ul este obligatoriu!')
+            showToast('PIN-ul este obligatoriu!', 'error')
             return
         }
 
@@ -207,8 +209,9 @@ export default function UsersManagement() {
             setShowEditModal(false)
             fetchUsers()
             fetchStats()
+            showToast('Datele au fost salvate cu succes!', 'success')
         } catch (error) {
-            alert(error.response?.data?.detail || 'Eroare la salvare')
+            showToast(error.response?.data?.detail || 'Eroare la salvare', 'error')
         } finally {
             setSaving(false)
         }
@@ -225,14 +228,23 @@ export default function UsersManagement() {
     }
 
     const handleDelete = async (userId) => {
-        if (!confirm('Sigur doriți să ștergeți acest utilizator?')) return
-        try {
-            await api.delete(`/admin/users/${userId}`)
-            fetchUsers()
-            fetchStats()
-        } catch (error) {
-            console.error('Error deleting user:', error)
-        }
+        showDialog({
+            title: 'Ștergere Angajat',
+            message: 'Ești sigur că vrei să dezactivezi/ștergi acest angajat?',
+            type: 'danger',
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/users/${userId}`)
+                    fetchUsers()
+                    fetchStats()
+                    showToast('Angajat șters cu succes.', 'success')
+                } catch (error) {
+                    showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
+                    console.error('Error deleting user:', error)
+                }
+            }
+        })
     }
 
     const handleResetPin = (userId) => {
@@ -243,16 +255,16 @@ export default function UsersManagement() {
 
     const handleSavePin = async () => {
         if (!newPin || newPin.length < 4) {
-            alert('PIN-ul trebuie să aibă minim 4 caractere!')
+            showToast('PIN-ul trebuie să aibă minim 4 caractere!', 'error')
             return
         }
         try {
             setSaving(true)
             await api.post(`/admin/users/${pinUserId}/reset-pin`, { new_pin: newPin })
             setShowPinModal(false)
-            alert('PIN resetat cu succes!')
+            showToast('PIN resetat cu succes!', 'success')
         } catch (error) {
-            alert(error.response?.data?.detail || 'Eroare la resetarea PIN-ului')
+            showToast(error.response?.data?.detail || 'Eroare la resetarea PIN-ului', 'error')
         } finally {
             setSaving(false)
         }
@@ -273,17 +285,29 @@ export default function UsersManagement() {
 
     const handleScanIdCard = async () => {
         if (!idCardFile) {
-            alert('Selectează mai întâi o imagine cu cartea de identitate!')
+            showToast('Selectează mai întâi o imagine / document (PDF) cu cartea de identitate!', 'error')
             return
         }
         try {
             setOcrLoading(true)
+            
+            // Dynamic import to prevent Vite/Webpack from bundling massive libraries on initial load
+            const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
+            
+            // Client-side text extraction (handles images and PDF)
+            const extractedText = await extractTextFromImageOrPdf(idCardFile, (stage) => {
+                // optional: use progress in UI, e.g., showToast(`OCR: ${stage}`, 'info')
+            })
+
             const fd = new FormData()
             fd.append('file', idCardFile)
+            fd.append('raw_text', extractedText) // send the extracted text
+
             const resp = await api.post('/admin/users/ocr/extract', fd, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
             const ocr = resp.data
+            
             if (ocr.success) {
                 const cnpValue = ocr.cnp || formData.cnp
                 const autoPin = cnpValue && cnpValue.length >= 4 ? cnpValue.slice(-4) : ''
@@ -298,12 +322,12 @@ export default function UsersManagement() {
                     id_card_series: ocr.id_card_series || prev.id_card_series,
                     address: ocr.address || prev.address,
                 }))
-                alert('✅ Date extrase cu succes din cartea de identitate!')
+                showToast('Date extrase cu succes din cartea de identitate!', 'success')
             } else {
-                alert(`⚠️ ${ocr.message}`)
+                showToast(ocr.message, 'error')
             }
         } catch (error) {
-            alert('Eroare la scanarea cărții de identitate: ' + (error.response?.data?.detail || error.message))
+            showToast('Eroare la scanarea cărții de identitate: ' + (error.response?.data?.detail || error.message), 'error')
         } finally {
             setOcrLoading(false)
         }
@@ -412,50 +436,44 @@ export default function UsersManagement() {
 
             {/* Search and Filters */}
             <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex-1 min-w-[280px] bg-white rounded-xl border border-slate-200 p-4">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                            placeholder="Caută după nume sau cod angajat..."
-                            className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                        />
-                    </div>
+                <div className="flex-1 min-w-[280px] relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                        placeholder="Caută după nume sau cod angajat..."
+                        className="w-full pl-12 pr-4 py-3 border border-slate-200 bg-white rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all shadow-sm"
+                    />
                 </div>
 
                 {/* Role Filter */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4">
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                        className="px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm min-w-[160px]"
-                    >
-                        <option value="">Toate rolurile</option>
-                        {roles.map(role => (
-                            <option key={role.id} value={role.id}>{role.name}</option>
-                        ))}
-                    </select>
-                </div>
+                <select
+                    value={roleFilter}
+                    onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                    className="px-4 py-3 border border-slate-200 bg-white shadow-sm rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm min-w-[160px]"
+                >
+                    <option value="">Toate rolurile</option>
+                    {roles.map(role => (
+                        <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                </select>
 
                 {/* Status Filter */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4">
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                        className="px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm min-w-[140px]"
-                    >
-                        <option value="">Toți</option>
-                        <option value="true">Activi</option>
-                        <option value="false">Inactivi</option>
-                    </select>
-                </div>
+                <select
+                    value={statusFilter}
+                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                    className="px-4 py-3 border border-slate-200 bg-white shadow-sm rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm min-w-[140px]"
+                >
+                    <option value="">Toți</option>
+                    <option value="true">Activi</option>
+                    <option value="false">Inactivi</option>
+                </select>
 
                 {/* Clear Filters */}
-                {(roleFilter || statusFilter || search) && (
+                {(roleFilter || statusFilter !== 'true' || search) && (
                     <button
-                        onClick={() => { setRoleFilter(''); setStatusFilter(''); setSearch(''); setCurrentPage(PAGE_ID, 1) }}
+                        onClick={() => { setRoleFilter(''); setStatusFilter('true'); setSearch(''); setCurrentPage(PAGE_ID, 1) }}
                         className="p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors border border-red-200"
                         title="Resetează filtrele"
                     >

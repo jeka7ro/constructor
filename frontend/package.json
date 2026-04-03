@@ -14,11 +14,13 @@
         "date-fns": "^3.0.6",
         "leaflet": "^1.9.4",
         "lucide-react": "^0.309.0",
+        "pdfjs-dist": "^4.4.168",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-leaflet": "^4.2.1",
         "react-router-dom": "^6.21.0",
         "recharts": "^3.7.0",
+        "tesseract.js": "^7.0.0",
         "zustand": "^4.4.7"
     },
     "devDependencies": {

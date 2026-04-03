@@ -25,6 +25,8 @@ const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 const SitePhotosPage = lazy(() => import('./pages/admin/SitePhotosPage'))
 const TeamsManagement = lazy(() => import('./pages/admin/TeamsManagement'))
 const NotificationsPage = lazy(() => import('./pages/admin/NotificationsPage'))
+import { DialogOverlay } from './components/ui/DialogOverlay'
+import { ToastOverlay } from './components/ui/ToastOverlay'
 
 // Loading fallback for lazy-loaded pages
 function PageLoader() {
@@ -43,6 +45,8 @@ function App() {
 
     return (
         <Router>
+            <DialogOverlay />
+            <ToastOverlay />
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     {/* Admin Routes - MUST BE FIRST to prevent employee wildcard from catching them */}

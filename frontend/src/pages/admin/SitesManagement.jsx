@@ -10,6 +10,7 @@ import ViewToggle from '../../components/ViewToggle'
 import Pagination from '../../components/Pagination'
 import PhotoUpload from '../../components/PhotoUpload'
 import PhotoGallery from '../../components/PhotoGallery'
+import { useUIStore } from '../../store/uiStore'
 
 const PAGE_ID = 'admin-sites'
 
@@ -29,6 +30,7 @@ const EMPTY_SITE = {
 }
 
 export default function SitesManagement() {
+    const { showDialog, showToast } = useUIStore()
     const [sites, setSites] = useState([])
     const [totalSites, setTotalSites] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -59,6 +61,7 @@ export default function SitesManagement() {
             const response = await api.get('/admin/sites/', {
                 params: {
                     search,
+                    status: 'active',
                     page: preferences.currentPage,
                     page_size: preferences.pageSize
                 }
@@ -108,7 +111,7 @@ export default function SitesManagement() {
 
     const handleSaveSite = async () => {
         if (!formData.name.trim()) {
-            alert('Numele proiectului este obligatoriu!')
+            showToast('Numele proiectului este obligatoriu!', 'error')
             return
         }
 
@@ -131,22 +134,31 @@ export default function SitesManagement() {
             setShowEditModal(false)
             fetchSites()
             fetchStats()
+            showToast('Proiect salvat cu succes!', 'success')
         } catch (error) {
-            alert(error.response?.data?.detail || 'Eroare la salvare')
+            showToast(error.response?.data?.detail || 'Eroare la salvare', 'error')
         } finally {
             setSaving(false)
         }
     }
 
     const handleDeleteSite = async (siteId) => {
-        if (!confirm('Sigur doriți să ștergeți acest proiect?')) return
-        try {
-            await api.delete(`/admin/sites/${siteId}`)
-            fetchSites()
-            fetchStats()
-        } catch (error) {
-            alert(error.response?.data?.detail || 'Eroare la ștergere')
-        }
+        showDialog({
+            title: 'Ștergere Proiect (Șantier)',
+            message: 'Sigur doriți să suspendați temporar sau să ștergeți acest proiect?',
+            type: 'danger',
+            confirmText: 'Șterge',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/sites/${siteId}`)
+                    fetchSites()
+                    fetchStats()
+                    showToast('Proiect sters cu succes.', 'success')
+                } catch (error) {
+                    showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
+                }
+            }
+        })
     }
 
     const handlePhotoClick = (site) => {
