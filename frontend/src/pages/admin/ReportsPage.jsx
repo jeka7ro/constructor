@@ -31,7 +31,12 @@ export default function ReportsPage() {
         setDefaultDates()
     }, [])
 
-    // NO auto-load — user clicks "Generează Raport" manually
+    // Auto-load report after dates are set
+    useEffect(() => {
+        if (dateFrom && dateTo) {
+            handlePreview()
+        }
+    }, [dateFrom, dateTo])
 
     const setDefaultDates = () => {
         const today = new Date()
