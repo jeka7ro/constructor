@@ -19,6 +19,21 @@
   html {
     scroll-behavior: smooth;
   }
+
+  /* ─── Dark Mode: Global text color overrides ─── */
+  /* Only text colors — backgrounds are handled per-component with dark: classes */
+  .dark .text-slate-900 { color: #f1f5f9 !important; }
+  .dark .text-slate-800 { color: #e2e8f0 !important; }
+  .dark .text-slate-700 { color: #cbd5e1 !important; }
+  .dark .text-slate-600 { color: #94a3b8 !important; }
+  .dark .text-slate-500 { color: #64748b !important; }
+
+  /* Dark dividers */
+  .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #334155 !important; }
+
+  /* Dark table row hover */
+  .dark .hover\:bg-blue-50\/50:hover { background-color: rgba(30, 58, 92, 0.4) !important; }
+  .dark .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
 }
 
 @layer components {

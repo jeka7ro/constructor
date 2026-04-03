@@ -32,6 +32,16 @@ export default function AdminOverview() {
     // Live clock — use ref to avoid re-rendering charts every second
     const nowRef = useRef(Date.now())
     const [clockTick, setClockTick] = useState(0)
+
+    // Dark mode detection for Recharts (which uses inline styles, not Tailwind)
+    const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
+    useEffect(() => {
+        const obs = new MutationObserver(() => {
+            setIsDark(document.documentElement.classList.contains('dark'))
+        })
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+        return () => obs.disconnect()
+    }, [])
     useEffect(() => {
         const t = setInterval(() => {
             nowRef.current = Date.now()
@@ -209,9 +219,9 @@ export default function AdminOverview() {
             {/* Row 2: Weekly Comparison + Site Live Map */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 {/* Weekly Hours Chart — takes 2 cols */}
-                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-lg p-5">
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-blue-500" />
                             Ore Lucrate — Ultimele 7 Zile
                         </h3>
@@ -225,12 +235,12 @@ export default function AdminOverview() {
                     <div style={{ width: '100%', height: 250 }}>
                         <ResponsiveContainer>
                             <ComposedChart data={daily} barSize={36}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
                                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                 <YAxis yAxisId="left" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="h" />
                                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="" hide />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                                    contentStyle={{ borderRadius: '12px', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', backgroundColor: isDark ? '#1e293b' : '#fff', color: isDark ? '#e2e8f0' : '#1e293b' }}
                                     formatter={(value, name) => [name === 'hours' ? `${value}h` : value, name === 'hours' ? 'Ore' : 'Muncitori']}
                                     labelFormatter={(label) => `Data: ${label}`}
                                 />
@@ -246,10 +256,10 @@ export default function AdminOverview() {
                         </ResponsiveContainer>
                     </div>
                     <div className="flex items-center gap-6 mt-2 px-2">
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                             <div className="w-3 h-3 rounded bg-gradient-to-br from-blue-500 to-indigo-600" /> Ore lucrate
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                             <div className="w-3 h-0.5 bg-amber-500 rounded" style={{ width: 16 }} /> Muncitori
                         </div>
                     </div>
@@ -318,11 +328,11 @@ export default function AdminOverview() {
                     <div style={{ width: '100%', height: 200 }}>
                         <ResponsiveContainer>
                             <AreaChart data={chartData.hourly || []}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
                                 <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                                    contentStyle={{ borderRadius: '12px', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', backgroundColor: isDark ? '#1e293b' : '#fff', color: isDark ? '#e2e8f0' : '#1e293b' }}
                                     formatter={(value) => [value, 'Muncitori']}
                                 />
                                 <defs>
@@ -350,7 +360,7 @@ export default function AdminOverview() {
                     ) : (
                         <div className="space-y-2">
                             {topPerformers.map((w, idx) => (
-                                <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-amber-100 text-amber-700' :
                                         idx === 1 ? 'bg-slate-200 text-slate-600' :
                                             idx === 2 ? 'bg-orange-100 text-orange-600' :
@@ -360,8 +370,8 @@ export default function AdminOverview() {
                                     </div>
                                     <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-8 h-8" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-slate-800 truncate">{w.worker_name}</p>
-                                        <p className="text-[11px] text-slate-500">{w.site_name}</p>
+                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{w.worker_name}</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{w.site_name}</p>
                                     </div>
                                     <div className="text-right">
                                         <span className="text-sm font-bold text-blue-600">{formatTime(w.live_hours)}</span>
@@ -475,11 +485,11 @@ export default function AdminOverview() {
                     <div style={{ width: '100%', height: 220 }}>
                         <ResponsiveContainer>
                             <BarChart data={daily} barSize={28}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
                                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                                    contentStyle={{ borderRadius: '12px', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', backgroundColor: isDark ? '#1e293b' : '#fff', color: isDark ? '#e2e8f0' : '#1e293b' }}
                                     formatter={(value) => [value, 'Muncitori']}
                                 />
                                 <defs>
@@ -729,9 +739,9 @@ export default function AdminOverview() {
                                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ultimele Pontaje</h3>
                                     <div className="space-y-2">
                                         {workerDetail.history.slice(0, 7).map((entry, i) => (
-                                            <div key={i} className="bg-white border border-slate-200 rounded-xl p-3">
+                                            <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-sm font-semibold text-slate-900">
+                                                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                                         {new Date(entry.date).toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric', month: 'short' })}
                                                     </span>
                                                     <span className="text-sm font-bold text-blue-600">{formatTime(entry.worked_hours)}</span>
