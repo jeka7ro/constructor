@@ -37,25 +37,31 @@ export default function AdminLogin() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <div 
+            className="min-h-screen flex items-center justify-center p-4 relative bg-slate-900"
+            style={{
+                backgroundImage: `linear-gradient(to bottom right, rgba(15, 23, 42, 0.6), rgba(30, 58, 138, 0.6), rgba(49, 46, 129, 0.75)), url('/login_bg.png')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center 20%',
+                backgroundAttachment: 'fixed',
+                backgroundRepeat: 'no-repeat'
+            }}
+        >
             {/* Decorative background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"></div>
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="w-full max-w-md relative z-10">
+            <div className="w-full max-w-md relative z-10 mt-8">
                 {/* Logo & Title */}
-                <div className="text-center mb-8 fade-in">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/50">
-                        <Shield className="w-8 h-8 text-white" strokeWidth={2.5} />
+                <div className="text-center mb-6 fade-in">
+                    <div className="inline-flex items-center justify-center w-32 h-32 mb-2 drop-shadow-[0_10px_25px_rgba(59,130,246,0.5)]">
+                        <img src="/favicon.png" alt="Logo Elephant" className="w-full h-full object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">
-                        Admin Portal
+                        Smart Timesheet
                     </h1>
-                    <p className="text-blue-200">
-                        Pontaj Digital - Panou de Administrare
-                    </p>
                 </div>
 
                 {/* Login Card */}
@@ -156,15 +162,22 @@ export default function AdminLogin() {
                     {/* Back to Main App */}
                     <div className="mt-6 text-center">
                         <a href="/" className="text-sm text-blue-200 hover:text-white transition-colors font-medium">
-                            ← Înapoi la aplicație
+                            ← Acces muncitori
                         </a>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <p className="text-center mt-6 text-sm text-blue-200/70 fade-in stagger-2">
-                    © 2024 Pontaj Digital. Acces restricționat.
-                </p>
+                <div className="mt-8 text-center flex flex-col items-center justify-center fade-in stagger-2 gap-3">
+                    <p className="text-sm text-blue-200/90 font-medium tracking-wide">
+                        © 2025 Pontaj Digital.<br className="sm:hidden" />
+                        <span className="hidden sm:inline"> Acces restricționat. | </span>
+                        O soluție digitală de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
+                    </p>
+                    <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-70 hover:opacity-100 transition-all transform hover:scale-105">
+                        <img src="/getapp_smart_timesheet_white.png" alt="GetApp" className="h-16 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by GetApp.ro</span>' }} />
+                    </a>
+                </div>
             </div>
         </div>
     )

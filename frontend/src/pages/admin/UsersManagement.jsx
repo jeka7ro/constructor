@@ -58,6 +58,7 @@ export default function UsersManagement() {
     const [ocrLoading, setOcrLoading] = useState(false)
     const [avatarCropImage, setAvatarCropImage] = useState(null)
     const [importing, setImporting] = useState(false)
+    const [deleteModalData, setDeleteModalData] = useState(null)
     const [contractFile, setContractFile] = useState(null)
     const [uploadingContract, setUploadingContract] = useState(false)
     const contractInputRef = useRef(null)
@@ -238,24 +239,35 @@ export default function UsersManagement() {
         }
     }
 
-    const handleDelete = async (userId) => {
-        showDialog({
-            title: 'Ștergere Angajat',
-            message: 'Ești sigur că vrei să dezactivezi/ștergi acest angajat?',
-            type: 'danger',
-            confirmText: 'Șterge',
-            onConfirm: async () => {
-                try {
-                    await api.delete(`/admin/users/${userId}`)
-                    fetchUsers()
-                    fetchStats()
-                    showToast('Angajat șters cu succes.', 'success')
-                } catch (error) {
-                    showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
-                    console.error('Error deleting user:', error)
-                }
-            }
-        })
+    const handleDelete = (userId) => {
+        const user = users.find(u => u.id === userId)
+        if (user) setDeleteModalData(user)
+    }
+
+    const executeDelete = async (hardDelete) => {
+        if (!deleteModalData) return
+        try {
+            await api.delete(`/admin/users/${deleteModalData.id}`, { params: { hard_delete: hardDelete } })
+            setDeleteModalData(null)
+            fetchUsers()
+            fetchStats()
+            showToast(hardDelete ? 'Angajat șters definitiv.' : 'Angajat mutat în arhivă.', 'success')
+        } catch (error) {
+            showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
+            console.error('Error deleting user:', error)
+        }
+    }
+
+    const handleRestore = async (userId) => {
+        try {
+            await api.put(`/admin/users/${userId}`, { is_active: true })
+            fetchUsers()
+            fetchStats()
+            showToast('Angajat restaurat în lista activă.', 'success')
+        } catch (error) {
+            console.error('Error restoring user:', error)
+            showToast('Eroare la restaurare', 'error')
+        }
     }
 
     const handleResetPin = (userId) => {
@@ -429,13 +441,31 @@ export default function UsersManagement() {
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Tabs */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner mb-2 border border-slate-200 dark:border-slate-700">
+                <button 
+                  onClick={() => { setStatusFilter('true'); setCurrentPage(PAGE_ID, 1) }}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${statusFilter !== 'false' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  Angajați Activi
+                </button>
+                <button 
+                  onClick={() => { setStatusFilter('false'); setCurrentPage(PAGE_ID, 1) }}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${statusFilter === 'false' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                >
+                  <UserX className="w-4 h-4" />
+                  Arhivă (Inactivi)
+                </button>
+            </div>
+
+            {/* Stats Cards - Optional visibility based on preference or keep them small if needed, for now let's just keep the overall counts */}
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <StatCard label="Total" value={(stats.total_users || 0) + (stats.inactive_users || 0)} icon={Users} color="from-blue-500 to-indigo-600" onClick={() => {setStatusFilter(''); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === ''} />
-                    <StatCard label="Activi" value={stats.total_users || 0} icon={UserCheck} color="from-emerald-500 to-green-600" onClick={() => {setStatusFilter('true'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'true'} />
-                    <StatCard label="Inactivi" value={stats.inactive_users || 0} icon={UserX} color="from-slate-500 to-slate-600" onClick={() => {setStatusFilter('false'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'false'} />
+                    <StatCard label="Total Instalați" value={(stats.total_users || 0) + (stats.inactive_users || 0)} icon={Users} color="from-blue-500 to-indigo-600" />
+                    <StatCard label="Activi Acum" value={stats.total_users || 0} icon={UserCheck} color="from-emerald-500 to-green-600" />
                     <StatCard label="Roluri" value={stats.users_by_role?.length || 0} icon={Key} color="from-violet-500 to-purple-600" />
+                    <StatCard label="În arhivă" value={stats.inactive_users || 0} icon={UserX} color="from-slate-500 to-slate-600" />
                 </div>
             )}
 
@@ -1043,6 +1073,50 @@ export default function UsersManagement() {
                     setAvatarCropImage(null)
                 }}
             />
+
+            {/* =================== DELETE / ARCHIVE MODAL =================== */}
+            {deleteModalData && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDeleteModalData(null)}>
+                    <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-slate-200">
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                                <Trash2 className="w-6 h-6 text-red-500" />
+                                Ștergere Angajat: {deleteModalData.last_name} {deleteModalData.first_name}
+                            </h2>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-slate-600">
+                                Ai ales să elimini acest angajat din lista curentă. Te rugăm să alegi cum dorești să fie procesat:
+                            </p>
+                            
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => executeDelete(false)}>
+                                <h3 className="font-bold text-blue-900 flex items-center gap-2 mb-1">
+                                    <UserX className="w-5 h-5 text-blue-700" />
+                                    Mută în Arhivă (Recomandat)
+                                </h3>
+                                <p className="text-sm text-blue-800/80">
+                                    Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.
+                                </p>
+                            </div>
+
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 cursor-pointer hover:bg-red-100 transition-colors" onClick={() => executeDelete(true)}>
+                                <h3 className="font-bold text-red-900 flex items-center gap-2 mb-1">
+                                    <Trash2 className="w-5 h-5 text-red-700" />
+                                    Șterge Definitiv
+                                </h3>
+                                <p className="text-sm text-red-800/80">
+                                    <strong>Atenție!</strong> Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-200 flex justify-end">
+                            <button onClick={() => setDeleteModalData(null)} className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
+                                Anulează
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

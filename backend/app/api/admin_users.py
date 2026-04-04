@@ -804,13 +804,19 @@ async def ocr_extract_only(file: UploadFile = File(...), raw_text: Optional[str]
 
 
 @router.delete("/{user_id}")
-def delete_user(user_id: str, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+def delete_user(user_id: str, hard_delete: bool = False, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_active = False
-    db.commit()
-    return {"message": "Utilizator dezactivat cu succes"}
+        
+    if hard_delete:
+        db.delete(user)
+        db.commit()
+        return {"message": "Utilizator șters definitiv din sistem"}
+    else:
+        user.is_active = False
+        db.commit()
+        return {"message": "Utilizator arhivat cu succes (mutat în Arhivă)"}
 
 
 @router.post("/{user_id}/upload-avatar")
