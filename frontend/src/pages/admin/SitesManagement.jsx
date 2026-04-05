@@ -35,12 +35,15 @@ export default function SitesManagement() {
     const [totalSites, setTotalSites] = useState(0)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
-    const [statusFilter, setStatusFilter] = useState('') // New status filter
+    const [statusFilter, setStatusFilter] = useState('active') // Default to active sites
     const [stats, setStats] = useState(null)
     const [selectedSite, setSelectedSite] = useState(null) // For photo modal
     const [showPhotoModal, setShowPhotoModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [editingSite, setEditingSite] = useState(null)
+    const [activeModalTab, setActiveModalTab] = useState('info')
+    const [teams, setTeams] = useState([])
+    const [selectedTeamIds, setSelectedTeamIds] = useState([])
     const [formData, setFormData] = useState(EMPTY_SITE)
     const [saving, setSaving] = useState(false)
     const token = useAdminStore((state) => state.token)
@@ -57,7 +60,18 @@ export default function SitesManagement() {
     useEffect(() => {
         fetchSites()
         fetchStats()
+        fetchTeams()
     }, [search, statusFilter, preferences.currentPage, preferences.pageSize])
+
+
+    const fetchTeams = async () => {
+        try {
+            const response = await api.get('/admin/teams/')
+            setTeams(response.data.teams || [])
+        } catch (error) {
+            console.error('Error fetching teams:', error)
+        }
+    }
 
     const fetchSites = async () => {
         try {
@@ -91,6 +105,10 @@ export default function SitesManagement() {
     const handleAddSite = () => {
         setEditingSite(null)
         setFormData(EMPTY_SITE)
+        setActiveModalTab('info')
+        setSelectedTeamIds([])
+        setActiveModalTab('info')
+        setSelectedTeamIds(site.team_ids || [])
         setShowEditModal(true)
     }
 
@@ -110,6 +128,8 @@ export default function SitesManagement() {
             work_end_time: site.work_end_time || '16:00',
             max_overtime_minutes: site.max_overtime_minutes ?? 120
         })
+        setActiveModalTab('info')
+        setSelectedTeamIds(site.team_ids || [])
         setShowEditModal(true)
     }
 
@@ -129,10 +149,16 @@ export default function SitesManagement() {
                 organization_id: formData.organization_id || 'aa8a486f-b60f-4f68-b929-8340370fe8a7'
             }
 
+            let currentSiteId = editingSite?.id;
             if (editingSite) {
                 await api.put(`/admin/sites/${editingSite.id}`, payload)
             } else {
-                await api.post('/admin/sites/', payload)
+                const res = await api.post('/admin/sites/', payload)
+                currentSiteId = res.data.id
+            }
+
+            if (currentSiteId) {
+                await api.put(`/admin/sites/${currentSiteId}/teams`, { team_ids: selectedTeamIds })
             }
 
             setShowEditModal(false)
@@ -515,7 +541,23 @@ export default function SitesManagement() {
                             </button>
                         </div>
 
+                                                <div className="flex border-b border-slate-200">
+                            <button
+                                onClick={() => setActiveModalTab('info')}
+                                className={`px-6 py-4 text-sm font-semibold transition-colors ${activeModalTab === 'info' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Informații
+                            </button>
+                            <button
+                                onClick={() => setActiveModalTab('teams')}
+                                className={`px-6 py-4 text-sm font-semibold transition-colors ${activeModalTab === 'teams' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Echipe Alocate
+                            </button>
+                        </div>
+
                         <div className="p-6 space-y-5">
+                            <div className={activeModalTab !== 'info' ? 'hidden' : ''}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Nume Proiect *</label>
@@ -650,6 +692,39 @@ export default function SitesManagement() {
                                     </div>
                                 </div>
                                 <p className="text-xs text-slate-400 mt-2">Pontajul se poate face cu max 30 min înainte. Overtime fără aprobare: {formData.max_overtime_minutes || 120} minute.</p>
+                            </div>
+                            </div>
+
+                            <div className={activeModalTab !== 'teams' ? 'hidden' : ''}>
+                                <div className="space-y-4">
+                                    <p className="text-sm text-slate-500 mb-4">
+                                        Bifează echipele care lucrează pe acest șantier. Orice modificare va actualiza forța de muncă din aplicație.
+                                    </p>
+                                    <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {teams.map(team => (
+                                            <label key={team.id} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors ${selectedTeamIds.includes(team.id) ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                                                <div className="flex items-center gap-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedTeamIds.includes(team.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) setSelectedTeamIds([...selectedTeamIds, team.id])
+                                                            else setSelectedTeamIds(selectedTeamIds.filter(id => id !== team.id))
+                                                        }}
+                                                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    />
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-900">{team.name}</p>
+                                                        <p className="text-xs text-slate-500 mt-1">Șef: {team.team_leader_name} · {team.member_count} Muncitori</p>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        ))}
+                                        {teams.length === 0 && (
+                                            <p className="text-sm text-slate-400 text-center py-6">Nu există echipe create în sistem.</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

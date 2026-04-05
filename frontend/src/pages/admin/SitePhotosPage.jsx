@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import {
+import { useTranslation } from 'react-i18next'
     Camera, Trash2, ChevronLeft, ChevronRight, Building2,
     User, Calendar, Loader2, Image as ImageIcon, X, Filter,
     Grid3X3, List, Check, Download, Edit3, MessageSquare, CheckSquare, Square
@@ -10,6 +11,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SitePhotosPage() {
+    const { t } = useTranslation()
     const { openDialog } = useUIStore()
     const [photos, setPhotos] = useState([])
     const [loading, setLoading] = useState(true)
@@ -49,8 +51,8 @@ export default function SitePhotosPage() {
     const handleDelete = async (id) => {
         openDialog({
             type: 'danger',
-            title: 'Șterge Poză',
-            message: 'Sigur vrei să ștergi această poză? Acțiunea este ireversibilă.',
+            title: t('common.delete_photo'),
+            message: t('photos.delete_single_confirm'),
             confirmText: 'Șterge',
             onConfirm: async () => {
                 try {
@@ -67,7 +69,7 @@ export default function SitePhotosPage() {
         openDialog({
             type: 'danger',
             title: 'Șterge Poze Selectate',
-            message: `Ștergi ${selected.size} ${selected.size === 1 ? 'poză' : 'poze'} selectate? Acțiunea este ireversibilă.`,
+            message: t('photos.delete_multiple_confirm', { count: selected.size }),
             confirmText: 'Șterge',
             onConfirm: async () => {
                 try {
@@ -225,8 +227,8 @@ export default function SitePhotosPage() {
                         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <ImageIcon className="w-8 h-8 text-slate-400" />
                         </div>
-                        <p className="text-lg font-semibold text-slate-600">Nicio poză încă</p>
-                        <p className="text-sm text-slate-400 mt-1">Pozele adăugate de echipă vor apărea aici</p>
+                        <p className="text-lg font-semibold text-slate-600">{t('photos.no_photos_yet')}</p>
+                        <p className="text-sm text-slate-400 mt-1">{t('photos.no_photos_yet_desc')}</p>
                     </div>
                 ) : viewMode === 'grid' ? (
                     /* ─── GRID VIEW ─── */
@@ -246,7 +248,7 @@ export default function SitePhotosPage() {
                                     </button>
                                     {/* Actions */}
                                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={(e) => { e.stopPropagation(); handleDownload(photo) }} className="p-1.5 bg-white/90 hover:bg-white text-slate-600 rounded-lg shadow-sm" title="Descarcă">
+                                        <button onClick={(e) => { e.stopPropagation(); handleDownload(photo) }} className="p-1.5 bg-white/90 hover:bg-white text-slate-600 rounded-lg shadow-sm" title={t('common.download')}>
                                             <Download className="w-3.5 h-3.5" />
                                         </button>
                                         <button onClick={(e) => { e.stopPropagation(); startEdit(photo) }} className="p-1.5 bg-white/90 hover:bg-white text-slate-600 rounded-lg shadow-sm" title="Editează">
@@ -353,7 +355,7 @@ export default function SitePhotosPage() {
                                                     onClick={() => startEdit(photo)}
                                                     className={`text-sm cursor-pointer hover:text-violet-600 ${photo.description ? 'text-slate-700' : 'text-slate-400 italic'}`}
                                                 >
-                                                    {photo.description || 'Adaugă descriere...'}
+                                                    {photo.description || t('photos.add_description') + '...'}
                                                 </span>
                                             )}
                                         </td>
@@ -368,7 +370,7 @@ export default function SitePhotosPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-1">
-                                                <button onClick={() => handleDownload(photo)} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Descarcă">
+                                                <button onClick={() => handleDownload(photo)} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title={t('common.download')}>
                                                     <Download className="w-4 h-4" />
                                                 </button>
                                                 <button onClick={() => startEdit(photo)} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Editează">

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 import { Calendar, Clock, Building2, Plus, Trash2, Save, Send, Loader2, X } from 'lucide-react'
 
 export default function TimesheetForm() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { id } = useParams()
     const isEdit = !!id
@@ -138,9 +140,9 @@ export default function TimesheetForm() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                        {isEdit ? '✏️ Editează Pontaj' : '📝 Pontaj Nou'}
+                        {isEdit ? isEdit ? `✏️ ${t('timesheets.edit_timesheet')}` : `📝 ${t('timesheets.new_timesheet')}`}
                     </h1>
-                    <p className="text-slate-600">Completează detaliile pontajului tău</p>
+                    <p className="text-slate-600">{t('timesheets.complete_details')}</p>
                 </div>
                 <button
                     onClick={() => navigate('/timesheets')}
@@ -188,7 +190,7 @@ export default function TimesheetForm() {
                                     disabled={isEdit}
                                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-100"
                                 >
-                                    <option value="">Selectează șantier</option>
+                                    <option value="">{t('timesheets.select_site')}</option>
                                     {sites.map(site => (
                                         <option key={site.id} value={site.id}>{site.name}</option>
                                     ))}
@@ -226,7 +228,7 @@ export default function TimesheetForm() {
                             {/* Break Duration */}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Pauză (minute)
+                                    {t('timesheets.table.break_minutes')}
                                 </label>
                                 <input
                                     type="number"
@@ -243,7 +245,7 @@ export default function TimesheetForm() {
                     {/* Activities Card */}
                     <div className="bg-white rounded-xl border border-slate-200 p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-slate-900">Activități</h2>
+                            <h2 className="text-lg font-semibold text-slate-900">{t('activities.title')}</h2>
                             <button
                                 onClick={addActivity}
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -255,7 +257,7 @@ export default function TimesheetForm() {
 
                         {formData.activities.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">
-                                Nu ai adăugat activități. Apasă butonul de mai sus pentru a adăuga.
+                                Nu ai adăugat {t('activities.title').toLowerCase()}. Apasă butonul de mai sus pentru a adăuga.
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -267,7 +269,7 @@ export default function TimesheetForm() {
                                                 onChange={(e) => updateActivity(index, 'activity_id', e.target.value)}
                                                 className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                             >
-                                                <option value="">Selectează activitate</option>
+                                                <option value="">{t('activities.select')}</option>
                                                 {activities.map(act => (
                                                     <option key={act.id} value={act.id}>
                                                         {act.name} ({act.unit_type})
@@ -306,7 +308,7 @@ export default function TimesheetForm() {
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             rows="3"
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            placeholder="Adaugă notițe despre pontaj..."
+                            placeholder={`${t('timesheets.add_notes')}...`}
                         />
                     </div>
 

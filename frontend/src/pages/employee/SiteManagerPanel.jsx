@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 import { Users, Coffee, Clock, CheckCircle, Building2, RefreshCw, MapPin, ChevronDown, ChevronUp, Camera, X, Image, Loader2, Trash2 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export default function SiteManagerPanel() {
+    const { t } = useTranslation()
     const [teams, setTeams] = useState([])
     const [teamStatuses, setTeamStatuses] = useState({})
     const [loading, setLoading] = useState(true)
@@ -153,7 +155,7 @@ export default function SiteManagerPanel() {
 
         const siteId = getSiteIdForUpload()
         if (!siteId) {
-            alert('Nu s-a găsit niciun șantier. Contactați administratorul.')
+            alert(t('errors.no_site_found'))
             return
         }
 
@@ -171,8 +173,8 @@ export default function SiteManagerPanel() {
             await fetchPhotos()
         } catch (err) {
             console.error('Upload error:', err)
-            const detail = err.response?.data?.detail || err.message || 'Eroare necunoscută'
-            alert(`Eroare la încărcare: ${detail}`)
+            const detail = err.response?.data?.detail || err.message || t('errors.unknown_error')
+            alert(`${t('errors.upload_error')}: ${detail}`)
         } finally {
             setUploading(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -180,7 +182,7 @@ export default function SiteManagerPanel() {
     }
 
     const handleDeletePhoto = async (photoId) => {
-        if (!confirm('Ștergeți această poză?')) return
+        if (!confirm(t('common.delete_confirm'))) return
         try {
             await api.delete(`/site-photos/${photoId}`)
             fetchPhotos()
@@ -204,27 +206,27 @@ export default function SiteManagerPanel() {
         if (member.check_out_time && !member.is_on_break) {
             return (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
-                    <CheckCircle className="w-3 h-3" /> Terminat
+                    <CheckCircle className="w-3 h-3" /> {t('timesheets.status.finished')}
                 </span>
             )
         }
         if (member.is_on_break) {
             return (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-100 text-orange-700">
-                    <Coffee className="w-3 h-3" /> Pauză
+                    <Coffee className="w-3 h-3" /> {t('timesheets.status.break')}
                 </span>
             )
         }
         if (member.check_in_time) {
             return (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Activ
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> {t('timesheets.status.working')}
                 </span>
             )
         }
         return (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">
-                Nepontat
+                {t('timesheets.status.not_clocked_in')}
             </span>
         )
     }
@@ -234,7 +236,7 @@ export default function SiteManagerPanel() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">Se încarcă datele șantierului...</p>
+                    <p className="text-sm text-slate-500">{t('timesheets.loading_site_data')}</p>
                 </div>
             </div>
         )
@@ -247,9 +249,9 @@ export default function SiteManagerPanel() {
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                         <Building2 className="w-5 h-5 text-blue-600" />
-                        Monitorizare Șantier
+                        {t('timesheets.site_monitor')}
                     </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">{teams.length} echip{teams.length !== 1 ? 'e' : 'ă'} pe șantier</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{t('teams.teams_on_site', { count: teams.length })}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {lastRefresh && (
@@ -267,19 +269,19 @@ export default function SiteManagerPanel() {
             <div className="grid grid-cols-4 gap-2">
                 <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-3 text-white text-center">
                     <div className="text-xl font-bold">{activeWorkers.length}</div>
-                    <div className="text-[10px] opacity-80">Activi</div>
+                    <div className="text-[10px] opacity-80">{t('timesheets.kpi.active_now')}</div>
                 </div>
                 <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-3 text-white text-center">
                     <div className="text-xl font-bold">{breakWorkers.length}</div>
-                    <div className="text-[10px] opacity-80">Pauză</div>
+                    <div className="text-[10px] opacity-80">{t('timesheets.kpi.on_break')}</div>
                 </div>
                 <div className="bg-gradient-to-br from-slate-400 to-slate-500 rounded-xl p-3 text-white text-center">
                     <div className="text-xl font-bold">{finishedWorkers.length}</div>
-                    <div className="text-[10px] opacity-80">Terminat</div>
+                    <div className="text-[10px] opacity-80">{t('timesheets.kpi.finished')}</div>
                 </div>
                 <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-3 text-white text-center">
                     <div className="text-xl font-bold">{formatHours(totalHours)}</div>
-                    <div className="text-[10px] opacity-80">Total Ore</div>
+                    <div className="text-[10px] opacity-80">{t('timesheets.kpi.hours_worked')}</div>
                 </div>
             </div>
 
@@ -293,7 +295,7 @@ export default function SiteManagerPanel() {
                             className="flex items-center gap-2 text-sm font-bold text-slate-700"
                         >
                             <Camera className="w-4 h-4 text-blue-500" />
-                            Poze Șantier
+                            {t('timesheets.site_photos')}
                             {photos.length > 0 && <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full font-semibold">{photos.length}</span>}
                             {photosExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                         </button>
@@ -312,7 +314,7 @@ export default function SiteManagerPanel() {
                                 className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl text-xs font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-50"
                             >
                                 {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                                {uploading ? 'Se încarcă...' : '📸 Adaugă'}
+                                {uploading ? t('common.loading') : t('common.add_photo')}
                             </button>
                         </div>
                     </div>
@@ -331,7 +333,7 @@ export default function SiteManagerPanel() {
                                         >
                                             <img
                                                 src={photo.photo_path?.startsWith('http') ? photo.photo_path : `${API_BASE}${photo.photo_path}`}
-                                                alt={'Poză șantier'}
+                                                alt={t('timesheets.site_photo')}
                                                 className="w-full h-full object-cover"
                                                 loading="lazy"
                                             />
@@ -352,7 +354,7 @@ export default function SiteManagerPanel() {
                             ) : (
                                 <div className="text-center py-4 text-slate-400">
                                     <Image className="w-8 h-8 mx-auto mb-1 text-slate-300" />
-                                    <p className="text-xs">Nicio poză încărcată azi</p>
+                                    <p className="text-xs">{t('timesheets.no_photos_today')}</p>
                                 </div>
                             )}
                         </div>
@@ -366,7 +368,7 @@ export default function SiteManagerPanel() {
                     <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
                         <img
                             src={selectedPhoto.photo_path?.startsWith('http') ? selectedPhoto.photo_path : `${API_BASE}${selectedPhoto.photo_path}`}
-                            alt={selectedPhoto.description || 'Poză șantier'}
+                            alt={selectedPhoto.description || t('timesheets.site_photo')}
                             className="w-full rounded-2xl"
                         />
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-2xl">
@@ -392,8 +394,8 @@ export default function SiteManagerPanel() {
             {teams.length === 0 ? (
                 <div className="bg-white rounded-2xl p-8 text-center border border-slate-200">
                     <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <p className="text-slate-600 font-medium">Nicio echipă pe șantier</p>
-                    <p className="text-xs text-slate-400 mt-1">Echipele vor apărea când sunt create</p>
+                    <p className="text-slate-600 font-medium">{t('teams.no_teams_site')}</p>
+                    <p className="text-xs text-slate-400 mt-1">{t('teams.no_teams_site_desc')}</p>
                 </div>
             ) : (
                 teams.map(team => {
@@ -418,7 +420,7 @@ export default function SiteManagerPanel() {
                                     <div className="text-left">
                                         <div className="font-semibold text-slate-900 text-sm">{team.name}</div>
                                         <div className="text-xs text-slate-500">
-                                            Șef: {team.team_leader_name} • {members.length} membr{members.length !== 1 ? 'i' : 'u'}
+                                            {t('teams.team_leader_label')}: {team.team_leader_name} • {members.length} {t('teams.members_count', { count: members.length })}
                                         </div>
                                     </div>
                                 </div>
@@ -447,7 +449,7 @@ export default function SiteManagerPanel() {
                                 <div className="border-t border-slate-100">
                                     {members.length === 0 ? (
                                         <div className="p-4 text-center text-sm text-slate-400">
-                                            Niciun membru în echipă
+                                            {t('teams.no_members')}
                                         </div>
                                     ) : (
                                         <div className="divide-y divide-slate-100">
@@ -484,7 +486,7 @@ export default function SiteManagerPanel() {
                                     {members.length > 0 && (
                                         <div className="bg-slate-50 px-4 py-2 flex items-center justify-between text-xs">
                                             <span className="text-slate-500">
-                                                Total ore echipă: <strong className="text-slate-700">
+                                                {t('teams.total_hours_team')}: <strong className="text-slate-700">
                                                     {formatHours(members.reduce((sum, m) => sum + getLiveHours(m), 0))}
                                                 </strong>
                                             </span>

@@ -62,6 +62,8 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     email: Optional[str] = None
     address: Optional[str] = None
+    site_id: Optional[str] = None
+    hourly_rate: Optional[float] = None  # Tarif orar — confidential, admin-only
 
 
 class UserPinReset(BaseModel):
@@ -88,7 +90,10 @@ class UserResponse(BaseModel):
     address: Optional[str] = None
     avatar_path: Optional[str] = None
     id_card_path: Optional[str] = None
+    site_id: Optional[str] = None
+    site_name: Optional[str] = None
     contract_path: Optional[str] = None
+    hourly_rate: Optional[float] = None  # Tarif orar — confidential
 
     class Config:
         from_attributes = True
@@ -139,7 +144,10 @@ def build_user_response(user, role_name=None):
         address=user.address,
         avatar_path=user.avatar_path,
         id_card_path=user.id_card_path,
-        contract_path=getattr(user, 'contract_path', None)
+        site_id=getattr(user, 'site_id', None),
+        site_name=user.site.name if getattr(user, 'site', None) else None,
+        contract_path=getattr(user, 'contract_path', None),
+        hourly_rate=float(user.hourly_rate) if user.hourly_rate is not None else None,
     )
 
 
@@ -647,6 +655,13 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
                 if existing:
                     raise HTTPException(status_code=400, detail="Codul de angajat este deja utilizat de altcineva.")
             setattr(user, field, val)
+
+    # hourly_rate — handle separately (0.0 is a valid value)
+    if user_data.hourly_rate is not None:
+        user.hourly_rate = user_data.hourly_rate
+
+    if user_data.site_id is not None:
+        user.site_id = user_data.site_id if user_data.site_id != "" else None
 
     # Handle birth_date separately - convert string to date object for SQLite
     if user_data.birth_date is not None:

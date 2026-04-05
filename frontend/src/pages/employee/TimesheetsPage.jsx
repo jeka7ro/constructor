@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 import { Calendar, Plus, Clock, CheckCircle, XCircle, FileText, Loader2 } from 'lucide-react'
 
 export default function TimesheetsPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [timesheets, setTimesheets] = useState([])
     const [loading, setLoading] = useState(true)
@@ -54,7 +56,7 @@ export default function TimesheetsPage() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">📋 Pontajele Mele</h1>
-                    <p className="text-slate-600">Gestionează pontajele tale zilnice</p>
+                    <p className="text-slate-600">{t('timesheets.manage_daily')}</p>
                 </div>
                 <button
                     onClick={() => navigate('/timesheets/new')}
@@ -93,7 +95,7 @@ export default function TimesheetsPage() {
                         Nu ai pontaje
                     </h3>
                     <p className="text-slate-500 mb-4">
-                        Creează primul tău pontaj pentru a începe
+                        {t('timesheets.create_first_start')}
                     </p>
                     <button
                         onClick={() => navigate('/timesheets/new')}
@@ -136,11 +138,11 @@ export default function TimesheetsPage() {
 
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-slate-500">
-                                    {ts.activities_count} {ts.activities_count === 1 ? 'activitate' : 'activități'}
+                                    {ts.activities_count} {ts.activities_count === 1 ? 'activitate' : '{t('activities.title').toLowerCase()}'}
                                 </span>
                                 {ts.status === 'DRAFT' && (
                                     <span className="text-blue-600 font-medium">
-                                        Editează →
+                                        {t('common.edit')} →
                                     </span>
                                 )}
                             </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../lib/api'
 import { Calendar, Clock, Users, Coffee, Building2, Activity, RefreshCw, CheckCircle, Loader2, Timer, Image, X, ChevronLeft, ChevronRight, Phone, Mail, MapPin, FileText, ArrowLeft, FileDown, FileSpreadsheet } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
@@ -13,15 +14,16 @@ function startOfWeek(d) {
 }
 
 const PERIOD_PRESETS = [
-    { key: 'today', label: 'Azi', get: () => { const t = new Date(); return { from: toISO(t), to: toISO(t) } } },
-    { key: 'yesterday', label: 'Ieri', get: () => { const d = new Date(); d.setDate(d.getDate() - 1); return { from: toISO(d), to: toISO(d) } } },
-    { key: 'week', label: 'Săpt. curentă', get: () => { const now = new Date(); return { from: toISO(startOfWeek(now)), to: toISO(now) } } },
-    { key: 'month', label: 'Luna curentă', get: () => { const now = new Date(); return { from: toISO(new Date(now.getFullYear(), now.getMonth(), 1)), to: toISO(now) } } },
-    { key: 'year', label: 'Anul curent', get: () => { const now = new Date(); return { from: `${now.getFullYear()}-01-01`, to: toISO(now) } } },
-    { key: 'lastyear', label: 'Anul trecut', get: () => { const y = new Date().getFullYear() - 1; return { from: `${y}-01-01`, to: `${y}-12-31` } } },
+    { key: 'today', label: 'timesheets.period.today', get: () => { const t = new Date(); return { from: toISO(t), to: toISO(t) } } },
+    { key: 'yesterday', label: 'timesheets.period.yesterday', get: () => { const d = new Date(); d.setDate(d.getDate() - 1); return { from: toISO(d), to: toISO(d) } } },
+    { key: 'week', label: 'timesheets.period.week', get: () => { const now = new Date(); return { from: toISO(startOfWeek(now)), to: toISO(now) } } },
+    { key: 'month', label: 'timesheets.period.month', get: () => { const now = new Date(); return { from: toISO(new Date(now.getFullYear(), now.getMonth(), 1)), to: toISO(now) } } },
+    { key: 'year', label: 'timesheets.period.year', get: () => { const now = new Date(); return { from: `${now.getFullYear()}-01-01`, to: toISO(now) } } },
+    { key: 'lastyear', label: 'timesheets.period.last_year', get: () => { const y = new Date().getFullYear() - 1; return { from: `${y}-01-01`, to: `${y}-12-31` } } },
 ]
 
 export default function TimesheetApprovalPage() {
+    const { t } = useTranslation()
     const [workers, setWorkers] = useState([])
     const [loading, setLoading] = useState(true)
     const today = new Date().toISOString().split('T')[0]
@@ -204,8 +206,8 @@ export default function TimesheetApprovalPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">📋 Pontaje</h1>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Monitorizare live ture și activități</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('timesheets.title')}</h1>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('timesheets.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -230,7 +232,7 @@ export default function TimesheetApprovalPage() {
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg text-sm font-semibold hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
                     >
                         <FileDown className="w-4 h-4" />
-                        Export
+                        {t('common.export')}
                         <FileSpreadsheet className="w-4 h-4" />
                     </button>
                     <button onClick={fetchWorkers} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
@@ -252,15 +254,15 @@ export default function TimesheetApprovalPage() {
                                 onClick={() => handlePreset(preset)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activePeriod === preset.key ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     }`}
-                            >{preset.label}</button>
+                            >{t(preset.label)}</button>
                         ))}
                     </div>
                     <div className="h-6 w-px bg-slate-200 mx-1" />
                     <div className="flex items-center gap-2">
-                        <label className="text-xs text-slate-500 font-medium">De la:</label>
+                        <label className="text-xs text-slate-500 font-medium">{t('timesheets.from')}:</label>
                         <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setActivePeriod('custom') }}
                             className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
-                        <label className="text-xs text-slate-500 font-medium">Până la:</label>
+                        <label className="text-xs text-slate-500 font-medium">{t('timesheets.to')}:</label>
                         <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setActivePeriod('custom') }}
                             className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
                     </div>
@@ -269,12 +271,12 @@ export default function TimesheetApprovalPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                <KPICard label="Total Muncitori" value={workers.length} icon={Users} color="bg-gradient-to-br from-blue-500 to-blue-600" />
-                <KPICard label="Activi Acum" value={activeCount} icon={Timer} color="bg-gradient-to-br from-green-500 to-green-600" pulse={activeCount > 0} />
-                <KPICard label="În Pauză" value={breakCount} icon={Coffee} color="bg-gradient-to-br from-orange-400 to-orange-500" />
-                <KPICard label="Terminat" value={finishedCount} icon={CheckCircle} color="bg-gradient-to-br from-slate-400 to-slate-500" />
-                <KPICard label="Ore Lucrate" value={formatHours(totalWorked)} icon={Clock} color="bg-gradient-to-br from-indigo-500 to-indigo-600" isText />
-                <KPICard label="Ore Pauză" value={formatHours(totalBreak)} icon={Coffee} color="bg-gradient-to-br from-amber-400 to-amber-500" isText />
+                <KPICard label={t('timesheets.kpi.total_workers')} value={workers.length} icon={Users} color="bg-gradient-to-br from-blue-500 to-blue-600" />
+                <KPICard label={t('timesheets.kpi.active_now')} value={activeCount} icon={Timer} color="bg-gradient-to-br from-green-500 to-green-600" pulse={activeCount > 0} />
+                <KPICard label={t('timesheets.kpi.on_break')} value={breakCount} icon={Coffee} color="bg-gradient-to-br from-orange-400 to-orange-500" />
+                <KPICard label={t('timesheets.kpi.finished')} value={finishedCount} icon={CheckCircle} color="bg-gradient-to-br from-slate-400 to-slate-500" />
+                <KPICard label={t('timesheets.kpi.hours_worked')} value={formatHours(totalWorked)} icon={Clock} color="bg-gradient-to-br from-indigo-500 to-indigo-600" isText />
+                <KPICard label={t('timesheets.kpi.break_hours')} value={formatHours(totalBreak)} icon={Coffee} color="bg-gradient-to-br from-amber-400 to-amber-500" isText />
             </div>
 
             {/* Site Photos */}
@@ -282,7 +284,7 @@ export default function TimesheetApprovalPage() {
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 mb-6">
                     <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                         <Image className="w-4 h-4 text-blue-500" />
-                        Poze Șantier ({photos.length})
+                        {t('timesheets.site_photos')} ({photos.length})
                     </h3>
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                         {photos.map(photo => (
@@ -328,27 +330,27 @@ export default function TimesheetApprovalPage() {
                 <table className="w-full">
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
-                            {isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Zile</th>}
-                            {!isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Check-in</th>}
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Timp Șantier</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Pauză</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Tură</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Activități</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.employee_col')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.site')}</th>
+                            {isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.days')}</th>}
+                            {!isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.check_in')}</th>}
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.time_on_site')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.kpi.on_break')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.total_shift')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.status')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.activities')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {loading && workers.length === 0 ? (
                             <tr><td colSpan={9} className="px-4 py-12 text-center">
                                 <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
-                                <p className="text-sm text-slate-500">Se încarcă...</p>
+                                <p className="text-sm text-slate-500">{t('common.loading')}</p>
                             </td></tr>
                         ) : workers.length === 0 ? (
                             <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">
                                 <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                <p className="text-sm">Niciun muncitor pentru perioada selectată</p>
+                                <p className="text-sm">{t('timesheets.no_workers')}</p>
                             </td></tr>
                         ) : (
                             workers.map((w, idx) => {
@@ -458,7 +460,7 @@ export default function TimesheetApprovalPage() {
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-blue-500" />
-                                    Activități — {activityPopup.worker_name}
+                                    {t('dashboard.activities')} — {activityPopup.worker_name}
                                 </h4>
                                 <button onClick={() => setActivityPopup(null)} className="p-1 hover:bg-slate-100 rounded-lg">
                                     <X className="w-4 h-4 text-slate-400" />
@@ -481,7 +483,7 @@ export default function TimesheetApprovalPage() {
                         <span className="text-xs text-slate-500 dark:text-slate-400">
                             {workers.length} muncitor{workers.length !== 1 ? 'i' : ''} • {activeCount} activ{activeCount !== 1 ? 'i' : ''} • {finishedCount} terminat{finishedCount !== 1 ? 'e' : ''}
                         </span>
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Total ore lucrate: {formatHours(totalWorked)}</span>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('timesheets.total_hours_worked')}: {formatHours(totalWorked)}</span>
                     </div>
                 )}
             </div>
@@ -493,7 +495,7 @@ export default function TimesheetApprovalPage() {
                     <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto animate-slide-in-right">
                         <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
                             <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
-                                <ArrowLeft className="w-4 h-4" /> Înapoi
+                                <ArrowLeft className="w-4 h-4" /> {t('common.back')}
                             </button>
                             <button onClick={closeWorkerDetail} className="p-1.5 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
@@ -510,14 +512,14 @@ export default function TimesheetApprovalPage() {
                                         <p className="text-sm text-slate-500 dark:text-slate-400">{workerDetail.worker.employee_code} • {workerDetail.worker.role_name}</p>
                                         <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${workerDetail.worker.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                             }`}>
-                                            {workerDetail.worker.is_active ? '● Activ' : '● Inactiv'}
+                                            {workerDetail.worker.is_active ? ('● ' + t('common.active')) : ('● ' + t('common.inactive'))}
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Personal Info */}
                                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-3">
-                                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Informații Personale</h3>
+                                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('timesheets.personal_info')}</h3>
                                     {workerDetail.worker.phone && (
                                         <div className="flex items-center gap-3 text-sm">
                                             <Phone className="w-4 h-4 text-slate-400" />
@@ -539,7 +541,7 @@ export default function TimesheetApprovalPage() {
                                     {workerDetail.worker.birth_date && workerDetail.worker.birth_date !== 'None' && (
                                         <div className="flex items-center gap-3 text-sm">
                                             <Calendar className="w-4 h-4 text-slate-400" />
-                                            <span className="text-slate-700">Naștere: {new Date(workerDetail.worker.birth_date).toLocaleDateString('ro-RO')}</span>
+                                            <span className="text-slate-700">{t('timesheets.birth_date')}: {new Date(workerDetail.worker.birth_date).toLocaleDateString('ro-RO')}</span>
                                         </div>
                                     )}
                                     {workerDetail.worker.cnp && (
@@ -554,19 +556,19 @@ export default function TimesheetApprovalPage() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
                                         <div className="text-2xl font-bold text-blue-600">{workerDetail.summary.total_days}</div>
-                                        <div className="text-xs text-blue-500 mt-1">Zile lucrate</div>
+                                        <div className="text-xs text-blue-500 mt-1">{t('timesheets.days_worked')}</div>
                                     </div>
                                     <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
                                         <div className="text-2xl font-bold text-indigo-600">{formatHours(workerDetail.summary.total_hours)}</div>
-                                        <div className="text-xs text-indigo-500 mt-1">Total ore</div>
+                                        <div className="text-xs text-indigo-500 mt-1">{t('timesheets.total_hours')}</div>
                                     </div>
                                 </div>
 
                                 {/* Timesheet History */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Istoric Pontaje</h3>
+                                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{t('timesheets.history')}</h3>
                                     {workerDetail.history.length === 0 ? (
-                                        <p className="text-sm text-slate-400 text-center py-4">Niciun pontaj găsit</p>
+                                        <p className="text-sm text-slate-400 text-center py-4">{t('timesheets.no_records')}</p>
                                     ) : (
                                         <div className="space-y-2">
                                             {workerDetail.history.map((entry, i) => (
@@ -607,7 +609,7 @@ export default function TimesheetApprovalPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center py-20 text-slate-400"><p>Eroare la încărcarea datelor</p></div>
+                            <div className="flex items-center justify-center py-20 text-slate-400"><p>{t('common.errors.load_failed')}</p></div>
                         )}
                     </div>
                 </div>
@@ -662,11 +664,12 @@ function KPICard({ label, value, icon: Icon, color, pulse, isText }) {
 }
 
 function StatusBadge({ status, is_on_break }) {
+    const { t } = useTranslation()
     if (status === 'pauză' || is_on_break) {
-        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200"><Coffee className="w-3 h-3" /> Pauză</span>
+        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200"><Coffee className="w-3 h-3" /> {t('timesheets.status.break')}</span>
     }
     if (status === 'terminat') {
-        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200"><CheckCircle className="w-3 h-3" /> Terminat</span>
+        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200"><CheckCircle className="w-3 h-3" /> {t('timesheets.status.finished')}</span>
     }
-    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Lucrează</span>
+    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> {t('timesheets.status.working')}</span>
 }

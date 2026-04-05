@@ -39,6 +39,7 @@ class User(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     role_id = Column(String(36), ForeignKey("roles.id", ondelete="RESTRICT"), nullable=False)
+    site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
     
     # Login credentials
     employee_code = Column(String(50), nullable=False, unique=True)
@@ -65,13 +66,18 @@ class User(Base):
     # Contract
     contract_path = Column(String(500))  # Path to work contract (PDF/JPG)
     
+    # Financial (admin-only visibility)
+    hourly_rate = Column(Numeric(8, 2), nullable=True)  # Tarif orar in Lei
+    
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     organization = relationship("Organization")
+    # Relationships
     role = relationship("Role")
+    site = relationship("ConstructionSite")
 
 class Site(Base):
     __tablename__ = "sites"
@@ -359,3 +365,56 @@ class SitePhoto(Base):
     
     site = relationship("ConstructionSite")
     uploaded_by = relationship("User")
+
+
+# =================== FLEET MANAGEMENT ===================
+
+class Vehicle(Base):
+    """Fleet vehicles and machinery"""
+    __tablename__ = "vehicles"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)  # ex: "VW Transporter BV-12-XYZ", "Excavator Volvo"
+    plate_number = Column(String(20), nullable=True)  # Numar inmatriculare
+    type = Column(String(50), default="van", nullable=False)  # car, van, truck, excavator, generator, other
+    year = Column(Integer, nullable=True)
+    status = Column(String(20), default="active", nullable=False)  # active, service, inactive
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization")
+
+
+class VehicleSiteAssignment(Base):
+    """Many-to-Many: Vehicle assigned to Construction Site(s)"""
+    __tablename__ = "vehicle_site_assignments"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_id = Column(String(36), ForeignKey("vehicles.id", ondelete="CASCADE"), nullable=False)
+    site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="CASCADE"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    vehicle = relationship("Vehicle")
+    site = relationship("ConstructionSite")
+
+
+class VehicleUserAssignment(Base):
+    """Many-to-Many: Vehicle assigned to User (driver/operator)"""
+    __tablename__ = "vehicle_user_assignments"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_id = Column(String(36), ForeignKey("vehicles.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    assigned_date = Column(Date, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    vehicle = relationship("Vehicle")
+    user = relationship("User")

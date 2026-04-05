@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 import { HardHat, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
+    const { t } = useTranslation()
     const [employeeCode, setEmployeeCode] = useState('')
     const [pin, setPin] = useState('')
     const [loading, setLoading] = useState(false)
@@ -145,7 +147,7 @@ export default function Login() {
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 className="w-4.5 h-4.5 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 cursor-pointer"
                             />
-                            <span className="text-sm text-slate-600 font-medium">Ține-mă minte</span>
+                            <span className="text-sm text-slate-600 font-medium">{t('auth.remember_me')}</span>
                         </label>
 
                         {/* Error Message */}
@@ -170,7 +172,7 @@ export default function Login() {
                             {loading ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span>Se autentifică...</span>
+                                    <span>{t('auth.authenticating')}...</span>
                                 </>
                             ) : (
                                 <>
@@ -194,7 +196,7 @@ export default function Login() {
                     <p className="text-sm text-blue-200/90 font-medium tracking-wide">
                         © 2025 Pontaj Digital.<br className="sm:hidden" />
                         <span className="hidden sm:inline"> Toate drepturile rezervate. | </span>
-                        O soluție digitală de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
+                        O soluție digitală de {t('common.solution_by')} <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
                     </p>
                     <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-80 hover:opacity-100 transition-all transform hover:scale-105">
                         <img src="/getapp_smart_timesheet_white.png" alt="GetApp" className="h-16 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by GetApp.ro</span>' }} />

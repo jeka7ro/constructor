@@ -7,6 +7,8 @@ import {
     X, Phone, Mail, FileText, ArrowLeft
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import SiteMap from '../../components/SiteMap'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area, PieChart, Pie, Cell, Legend, ComposedChart, Line
@@ -16,6 +18,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function AdminOverview() {
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const [stats, setStats] = useState({ total_users: 0, total_sites: 0, pending: 0, total_hours_week: 0 })
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
     const [loading, setLoading] = useState(true)
@@ -182,8 +185,8 @@ export default function AdminOverview() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        📊 Command Center
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        {t('dashboard.title')}
                     </h1>
                     <p className="text-sm text-slate-500">
                         {new Date().toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -194,7 +197,7 @@ export default function AdminOverview() {
                 <div className="flex items-center gap-2">
                     {lastRefresh && (
                         <span className="text-xs text-slate-400">
-                            Actualizat: {lastRefresh.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            {t('admin.updated_at')}: {lastRefresh.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </span>
                     )}
                     <button
@@ -208,12 +211,17 @@ export default function AdminOverview() {
 
             {/* KPI Row */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-                <KPICard label="Angajați" value={stats.total_users} icon={Users} gradient="from-[#0f172a] to-[#1e3a5f]" onClick={() => navigate('/admin/users')} />
-                <KPICard label="Șantiere" value={stats.total_sites} icon={Building2} gradient="from-[#1e3a5f] to-[#1e40af]" onClick={() => navigate('/admin/sites')} />
-                <KPICard label="Lucrează Acum" value={activeCount} icon={Timer} gradient="from-[#0f172a] to-[#164e63]" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                <KPICard label="În Pauză" value={breakCount} icon={Coffee} gradient="from-[#1e3a5f] to-[#7c3aed]" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                <KPICard label="Ore Azi (Live)" value={formatTime(totalHoursToday)} icon={Clock} gradient="from-[#0f172a] to-[#1e40af]" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                <KPICard label="Ore Săptămâna" value={`${stats.total_hours_week}h`} icon={TrendingUp} gradient="from-[#1e3a5f] to-[#0f172a]" isText onClick={() => navigate('/admin/reports')} />
+                <KPICard label={t('dashboard.employees')} value={stats.total_users} icon={Users} gradient="from-[#0f172a] to-[#1e3a5f]" onClick={() => navigate('/admin/users')} />
+                <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} gradient="from-[#1e3a5f] to-[#1e40af]" onClick={() => navigate('/admin/sites')} />
+                <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} gradient="from-[#0f172a] to-[#164e63]" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} gradient="from-[#1e3a5f] to-[#7c3aed]" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} gradient="from-[#0f172a] to-[#1e40af]" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                <KPICard label={t('dashboard.hours_week')} value={`${stats.total_hours_week}h`} icon={TrendingUp} gradient="from-[#1e3a5f] to-[#0f172a]" isText onClick={() => navigate('/admin/reports')} />
+            </div>
+
+            {/* Live Site Map — full width below KPIs */}
+            <div className="mb-6">
+                <SiteMap />
             </div>
 
             {/* Row 2: Weekly Comparison + Site Live Map */}
@@ -223,12 +231,12 @@ export default function AdminOverview() {
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-blue-500" />
-                            Ore Lucrate — Ultimele 7 Zile
+                            {t('dashboard.weekly_chart')}
                         </h3>
                         <div className="flex items-center gap-2">
                             <span className={`text-xs font-semibold flex items-center gap-1 ${weekChange >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                                 {weekChange >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                                {Math.abs(weekChange).toFixed(0)}% vs săpt. trecută
+                                {Math.abs(weekChange).toFixed(0)}% {t('dashboard.vs_last_week')}
                             </span>
                         </div>
                     </div>
@@ -257,10 +265,10 @@ export default function AdminOverview() {
                     </div>
                     <div className="flex items-center gap-6 mt-2 px-2">
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                            <div className="w-3 h-3 rounded bg-gradient-to-br from-blue-500 to-indigo-600" /> Ore lucrate
+                            <div className="w-3 h-3 rounded bg-gradient-to-br from-blue-500 to-indigo-600" /> {t('dashboard.hours_worked')}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                            <div className="w-3 h-0.5 bg-amber-500 rounded" style={{ width: 16 }} /> Muncitori
+                            <div className="w-3 h-0.5 bg-amber-500 rounded" style={{ width: 16 }} /> {t('dashboard.workers')}
                         </div>
                     </div>
                 </div>
@@ -269,13 +277,13 @@ export default function AdminOverview() {
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col" style={{height: '360px'}}>
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <MapPin className="w-4 h-4 text-emerald-500" />
-                        Șantiere Live
+                        {t('dashboard.live_sites')}
                     </h3>
                     {siteList.length === 0 ? (
                         <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">
                             <div className="text-center">
                                 <Building2 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                <p>Niciun muncitor azi</p>
+                                <p>{t('dashboard.no_workers_today')}</p>
                             </div>
                         </div>
                     ) : (
@@ -323,7 +331,7 @@ export default function AdminOverview() {
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <Activity className="w-4 h-4 text-green-500" />
-                        Activitate pe Ore — Azi
+                        {t('dashboard.hourly_activity')}
                     </h3>
                     <div className="flex-1 min-h-[180px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -333,7 +341,7 @@ export default function AdminOverview() {
                                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', backgroundColor: isDark ? '#1e293b' : '#fff', color: isDark ? '#e2e8f0' : '#1e293b' }}
-                                    formatter={(value) => [value, 'Muncitori']}
+                                    formatter={(value) => [value, t('dashboard.workers')]}
                                 />
                                 <defs>
                                     <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
@@ -351,11 +359,11 @@ export default function AdminOverview() {
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <Trophy className="w-4 h-4 text-amber-500" />
-                        Top Performeri — Azi
+                        {t('dashboard.top_performers_today')}
                     </h3>
                     {topPerformers.length === 0 ? (
                         <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">
-                            <p>Niciun muncitor azi</p>
+                            <p>{t('dashboard.no_workers_today')}</p>
                         </div>
                     ) : (
                         <div className="space-y-2 overflow-y-auto flex-1">
@@ -367,7 +375,7 @@ export default function AdminOverview() {
                                         idx === 2 ? 'bg-orange-100 text-orange-600' :
                                         'bg-slate-100 text-slate-500'
                                     }`}>
-                                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                        {`#${idx + 1}`}
                                     </div>
                                     <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-8 h-8" />
                                     <div className="flex-1 min-w-0">
@@ -391,7 +399,7 @@ export default function AdminOverview() {
                         <div>
                             <h3 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
-                                Sosiri Târzii ({lateArrivals.length})
+                                {t('dashboard.late_arrivals')} ({lateArrivals.length})
                             </h3>
                             <div className="space-y-2">
                                 {lateArrivals.slice(0, 4).map(w => (
@@ -413,7 +421,7 @@ export default function AdminOverview() {
                         <div className="flex-1">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                                 <Zap className="w-4 h-4 text-violet-500" />
-                                Producție Azi
+                                {t('dashboard.production_today')}
                             </h3>
                             <div className="space-y-2 overflow-y-auto">
                                 {(chartData.activities || []).slice(0, 8).map((act, i) => (
@@ -430,8 +438,8 @@ export default function AdminOverview() {
                         <div className="flex items-center justify-center flex-1 text-center">
                             <div>
                                 <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Totul în regulă!</p>
-                                <p className="text-xs text-slate-400 mt-1">Nicio alertă sau sosire târzie</p>
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('dashboard.all_ok')}</p>
+                                <p className="text-xs text-slate-400 mt-1">{t('dashboard.no_alerts')}</p>
                             </div>
                         </div>
                     )}
@@ -441,9 +449,9 @@ export default function AdminOverview() {
             {/* Site Distribution Pie + Workers per Day */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-orange-500" />
-                        Distribuție pe Șantiere — Azi
+                        {t('dashboard.site_distribution')}
                     </h3>
                     {(chartData.sites || []).length > 0 ? (
                         <div style={{ width: '100%', height: 220 }}>
@@ -472,16 +480,16 @@ export default function AdminOverview() {
                         <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
                             <div className="text-center">
                                 <Building2 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                <p>Niciun muncitor pe șantier azi</p>
+                                <p>{t('dashboard.no_workers_today')}</p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                         <Users className="w-4 h-4 text-violet-500" />
-                        Muncitori pe Zi — Ultimele 7 Zile
+                        {t('dashboard.workers_per_day')}
                     </h3>
                     <div style={{ width: '100%', height: 220 }}>
                         <ResponsiveContainer>
@@ -491,7 +499,7 @@ export default function AdminOverview() {
                                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', backgroundColor: isDark ? '#1e293b' : '#fff', color: isDark ? '#e2e8f0' : '#1e293b' }}
-                                    formatter={(value) => [value, 'Muncitori']}
+                                    formatter={(value) => [value, t('dashboard.workers')]}
                                 />
                                 <defs>
                                     <linearGradient id="violetGrad" x1="0" y1="0" x2="0" y2="1">
@@ -513,12 +521,12 @@ export default function AdminOverview() {
                 const tableHead = (
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Muncitor</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Șantier</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Check-in</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Ore lucrate</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Activități</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.worker')}</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.site')}</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.check_in')}</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.hours_worked')}</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.status')}</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.activities')}</th>
                         </tr>
                     </thead>
                 )
@@ -547,7 +555,7 @@ export default function AdminOverview() {
                                 {formatTime(getLiveHours(worker))}
                             </span>
                             {worker.status !== 'terminat' && !worker.gps_lost && worker.status !== 'gps_pierdut' && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
-                            {worker.break_hours > 0 && <span className="text-xs text-orange-500 ml-2">(pauză: {formatTime(worker.break_hours)})</span>}
+                            {worker.break_hours > 0 && <span className="text-xs text-orange-500 ml-2">({t('dashboard.break')}: {formatTime(worker.break_hours)})</span>}
                         </td>
                         <td className="px-5 py-3">
                             <StatusBadge status={worker.status} is_on_break={worker.is_on_break} is_outside_geofence={worker.is_outside_geofence} gps_lost={worker.gps_lost} />
@@ -561,7 +569,7 @@ export default function AdminOverview() {
                                     </span>
                                     <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72">
                                         <div className="bg-slate-900 text-white rounded-xl p-3 shadow-xl border border-slate-700">
-                                            <div className="text-[11px] font-semibold text-slate-400 uppercase mb-2">Activități raportate</div>
+                                            <div className="text-[11px] font-semibold text-slate-400 uppercase mb-2">{t('dashboard.reported_activities')}</div>
                                             <div className="space-y-1.5">
                                                 {worker.activities.map((act, i) => (
                                                     <div key={i} className="flex items-center justify-between text-sm">
@@ -583,14 +591,14 @@ export default function AdminOverview() {
                         {/* Active Workers */}
                         <div id="live-workers-table" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-4 scroll-mt-6">
                             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                                <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                    Muncitori Activi — Live
+                                    {t('dashboard.live_workers_title')}
                                 </h3>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xs text-slate-400">{liveWorkers.length} muncitor{liveWorkers.length !== 1 ? 'i' : ''}</span>
+                                    <span className="text-xs text-slate-400">{liveWorkers.length} {t('dashboard.workers').toLowerCase()}</span>
                                     <button onClick={() => navigate('/admin/timesheets')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
-                                        <Eye className="w-3 h-3" /> Pontaje
+                                        <Eye className="w-3 h-3" /> {t('nav.timesheets')}
                                     </button>
                                     <button onClick={fetchActiveWorkers} disabled={workersLoading} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
                                         <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${workersLoading ? 'animate-spin' : ''}`} />
@@ -600,8 +608,8 @@ export default function AdminOverview() {
                             {liveWorkers.length === 0 ? (
                                 <div className="px-5 py-8 text-center text-slate-400">
                                     <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                    <p className="font-medium text-slate-500">Niciun muncitor activ acum</p>
-                                    <p className="text-xs mt-1">Vor apărea când fac check-in</p>
+                                    <p className="font-medium text-slate-500">{t('dashboard.no_active_workers')}</p>
+                                    <p className="text-xs mt-1">{t('dashboard.will_appear_on_checkin')}</p>
                                 </div>
                             ) : (
                                 <table className="w-full">
@@ -616,9 +624,9 @@ export default function AdminOverview() {
                             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-6">
                                 <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                                     <h3 className="text-sm font-bold text-slate-500 flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4 text-slate-400" /> Terminat Azi
+                                        <CheckCircle className="w-4 h-4 text-slate-400" /> {t('dashboard.finished_today')}
                                     </h3>
-                                    <span className="text-xs text-slate-400">{doneWorkers.length} muncitor{doneWorkers.length !== 1 ? 'i' : ''}</span>
+                                    <span className="text-xs text-slate-400">{doneWorkers.length} {t('dashboard.workers').toLowerCase()}</span>
                                 </div>
                                 <table className="w-full">
                                     {tableHead}
@@ -632,10 +640,10 @@ export default function AdminOverview() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <QuickAction icon={Clock} title="Pontaje" desc="Vezi pontajele live" color="bg-blue-500" onClick={() => navigate('/admin/timesheets')} />
-                <QuickAction icon={BarChart3} title="Rapoarte" desc="Generează raport Excel" color="bg-indigo-500" onClick={() => navigate('/admin/reports')} />
-                <QuickAction icon={Activity} title="Activități" desc="Gestionează catalogul" color="bg-violet-500" onClick={() => navigate('/admin/activities')} />
-                <QuickAction icon={Users} title="Utilizatori" desc={`${stats.total_users} angajați`} color="bg-slate-600" onClick={() => navigate('/admin/users')} />
+                <QuickAction icon={Clock} title={t('nav.timesheets')} desc={t('dashboard.view_timesheets')} color="bg-blue-500" onClick={() => navigate('/admin/timesheets')} />
+                <QuickAction icon={BarChart3} title={t('nav.reports')} desc={t('dashboard.generate_report')} color="bg-indigo-500" onClick={() => navigate('/admin/reports')} />
+                <QuickAction icon={Activity} title={t('nav.activities')} desc={t('dashboard.manage_catalog')} color="bg-violet-500" onClick={() => navigate('/admin/activities')} />
+                <QuickAction icon={Users} title={t('nav.users')} desc={`${stats.total_users} ${t('users.total_label')}`} color="bg-slate-600" onClick={() => navigate('/admin/users')} />
             </div>
 
             {/* Worker Detail Drawer */}
@@ -645,7 +653,7 @@ export default function AdminOverview() {
                     <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.25s ease-out' }}>
                         <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
                             <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
-                                <ArrowLeft className="w-4 h-4" /> Înapoi
+                                <ArrowLeft className="w-4 h-4" /> {t('common.back')}
                             </button>
                             <button onClick={closeWorkerDetail} className="p-1.5 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
@@ -682,15 +690,15 @@ export default function AdminOverview() {
 
                                 {/* Today's Shift Summary */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tura de Azi</h3>
+                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('dashboard.todays_shift')}</h3>
                                     <div className="grid grid-cols-3 gap-3">
                                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
                                             <div className="text-lg font-bold text-blue-600">{formatTime(getLiveHours(selectedWorker))}</div>
-                                            <div className="text-[10px] text-blue-500 mt-0.5">Ore lucrate</div>
+                                            <div className="text-[10px] text-blue-500 mt-0.5">{t('dashboard.hours_worked')}</div>
                                         </div>
                                         <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
                                             <div className="text-lg font-bold text-orange-600">{formatTime(selectedWorker.break_hours || 0)}</div>
-                                            <div className="text-[10px] text-orange-500 mt-0.5">Pauză</div>
+                                            <div className="text-[10px] text-orange-500 mt-0.5">{t('dashboard.break')}</div>
                                         </div>
                                         <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-center">
                                             <div className="text-lg font-bold text-slate-700">
@@ -704,7 +712,7 @@ export default function AdminOverview() {
                                 {/* Today's Activities */}
                                 {selectedWorker.activities && selectedWorker.activities.length > 0 && (
                                     <div>
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Activități Raportate Azi</h3>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('dashboard.reported_activities_today')}</h3>
                                         <div className="space-y-2">
                                             {selectedWorker.activities.map((act, i) => (
                                                 <div key={i} className="flex items-center justify-between bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
@@ -727,17 +735,17 @@ export default function AdminOverview() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
                                         <div className="text-2xl font-bold text-indigo-600">{workerDetail.summary.total_days}</div>
-                                        <div className="text-xs text-indigo-500 mt-1">Zile lucrate (total)</div>
+                                        <div className="text-xs text-indigo-500 mt-1">{t('dashboard.total_days_worked')}</div>
                                     </div>
                                     <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center">
                                         <div className="text-2xl font-bold text-emerald-600">{formatTime(workerDetail.summary.total_hours)}</div>
-                                        <div className="text-xs text-emerald-500 mt-1">Ore totale</div>
+                                        <div className="text-xs text-emerald-500 mt-1">{t('reports.total_hours')}</div>
                                     </div>
                                 </div>
 
                                 {/* Recent History */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ultimele Pontaje</h3>
+                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('dashboard.recent_timesheets')}</h3>
                                     <div className="space-y-2">
                                         {workerDetail.history.slice(0, 7).map((entry, i) => (
                                             <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
@@ -796,19 +804,20 @@ function AvatarImg({ path, name, size = 'w-8 h-8', textSize = 'text-xs' }) {
 }
 
 function StatusBadge({ status, is_on_break, is_outside_geofence, gps_lost }) {
+    const { t } = useTranslation()
     if (status === 'geofence' || is_outside_geofence) {
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700"><ShieldAlert className="w-3 h-3" /> În afara zonei</span>
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700"><ShieldAlert className="w-3 h-3" /> {t('dashboard.outside_zone')}</span>
     }
     if (status === 'gps_pierdut' || gps_lost) {
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"><WifiOff className="w-3 h-3" /> GPS pierdut</span>
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"><WifiOff className="w-3 h-3" /> {t('dashboard.gps_lost')}</span>
     }
     if (status === 'pauză' || is_on_break) {
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700"><Coffee className="w-3 h-3" /> Pauză</span>
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700"><Coffee className="w-3 h-3" /> {t('dashboard.on_break_status')}</span>
     }
     if (status === 'terminat') {
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600"><CheckCircle className="w-3 h-3" /> Terminat</span>
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600"><CheckCircle className="w-3 h-3" /> {t('dashboard.done')}</span>
     }
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Lucrează</span>
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> {t('dashboard.working')}</span>
 }
 
 function KPICard({ label, value, icon: Icon, gradient, onClick, pulse, isText }) {

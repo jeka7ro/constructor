@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminStore } from '../../store/adminStore'
 import { useUIStore } from '../../store/uiStore'
+import { useTranslation } from 'react-i18next'
 import {
     Users, Plus, Search, Trash2, Edit3, Building2,
     Loader2, UserPlus, X, Check, ChevronDown, Shield
 } from 'lucide-react'
 
 export default function TeamsManagement() {
+    const { t } = useTranslation()
     const { token } = useAdminStore()
     const { openDialog } = useUIStore()
     const [teams, setTeams] = useState([])
     const [loading, setLoading] = useState(true)
     const [users, setUsers] = useState([])
+    const [sites, setSites] = useState([])
     const [showCreate, setShowCreate] = useState(false)
     const [editTeam, setEditTeam] = useState(null)
     const [expandedTeam, setExpandedTeam] = useState(null)
@@ -19,15 +22,22 @@ export default function TeamsManagement() {
     // Create form
     const [newName, setNewName] = useState('')
     const [newLeader, setNewLeader] = useState('')
+    const [newSite, setNewSite] = useState('')
     const [newMembers, setNewMembers] = useState([])
     const [searchQ, setSearchQ] = useState('')
     const [saving, setSaving] = useState(false)
 
-    const api = useCallback((url, opts = {}) => {
-        return fetch(`/api${url}`, {
+    const api = useCallback(async (url, opts = {}) => {
+        const r = await fetch(`/api${url}`, {
             ...opts,
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers },
-        }).then(r => r.json())
+        })
+        if (!r.ok) {
+            const text = await r.text()
+            try { throw new Error(JSON.parse(text).detail || 'Eroare') }
+            catch (e) { throw new Error(text || 'Eroare') }
+        }
+        return r.json()
     }, [token])
 
     const fetchTeams = useCallback(async () => {
@@ -46,10 +56,18 @@ export default function TeamsManagement() {
         } catch (e) { console.error(e) }
     }, [api])
 
+    const fetchSites = useCallback(async () => {
+        try {
+            const data = await api('/admin/sites/')
+            setSites(data.sites || [])
+        } catch (e) { console.error(e) }
+    }, [api])
+
     useEffect(() => {
         fetchTeams()
         fetchUsers()
-    }, [fetchTeams, fetchUsers])
+        fetchSites()
+    }, [fetchTeams, fetchUsers, fetchSites])
 
     const handleCreate = async () => {
         if (!newName.trim() || !newLeader) return
@@ -57,11 +75,12 @@ export default function TeamsManagement() {
         try {
             await api('/admin/teams/', {
                 method: 'POST',
-                body: JSON.stringify({ name: newName, team_leader_id: newLeader, member_ids: newMembers })
+                body: JSON.stringify({ name: newName, team_leader_id: newLeader, site_id: newSite || null, member_ids: newMembers })
             })
             setShowCreate(false)
             setNewName('')
             setNewLeader('')
+            setNewSite('')
             setNewMembers([])
             fetchTeams()
         } catch (e) { console.error(e) }
@@ -82,9 +101,9 @@ export default function TeamsManagement() {
     const handleDelete = async (teamId) => {
         openDialog({
             type: 'danger',
-            title: 'Șterge Echipă',
-            message: 'Sigur vrei să ștergi această echipă? Membrii nu vor fi afectați.',
-            confirmText: 'Șterge',
+            title: t('teams.delete.title'),
+            message: t('teams.delete.message'),
+            confirmText: t('common.delete'),
             onConfirm: async () => {
                 try {
                     await api(`/admin/teams/${teamId}`, { method: 'DELETE' })
@@ -122,7 +141,7 @@ export default function TeamsManagement() {
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
                             <Users className="w-5 h-5 text-white" />
                         </div>
-                        Echipe
+                        {t('teams.title')}
                         <span className="text-base font-normal text-slate-400">({teams.length})</span>
                     </h1>
                 </div>
@@ -131,7 +150,7 @@ export default function TeamsManagement() {
                     className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
                 >
                     <Plus className="w-4 h-4" />
-                    Echipă Nouă
+                    {t('teams.new_team')}
                 </button>
             </div>
 
@@ -140,7 +159,7 @@ export default function TeamsManagement() {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900">Echipă Nouă</h2>
+                            <h2 className="text-lg font-bold text-slate-900">{t('teams.new_team')}</h2>
                             <button onClick={() => setShowCreate(false)} className="p-1 hover:bg-slate-100 rounded-lg">
                                 <X className="w-5 h-5 text-slate-500" />
                             </button>
@@ -148,21 +167,21 @@ export default function TeamsManagement() {
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Nume echipă</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.team_name')}</label>
                                 <input
                                     type="text" value={newName} onChange={e => setNewName(e.target.value)}
-                                    placeholder="ex: Echipa electricieni"
+                                    placeholder={t('teams.placeholders.name')}
                                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Șef Echipă</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.team_leader_label')}</label>
                                 <select
                                     value={newLeader} onChange={e => setNewLeader(e.target.value)}
                                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
                                 >
-                                    <option value="">Alege șef echipă...</option>
+                                    <option value="">{t('teams.choose_leader')}</option>
                                     {leaders.map(u => (
                                         <option key={u.id} value={u.id}>{u.full_name} ({u.role_name})</option>
                                     ))}
@@ -170,17 +189,30 @@ export default function TeamsManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Membri ({newMembers.length})</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Șantier (Opțional)</label>
+                                <select
+                                    value={newSite} onChange={e => setNewSite(e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                                >
+                                    <option value="">Fără șantier alocat</option>
+                                    {sites.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.members')} ({newMembers.length})</label>
                                 <div className="relative mb-2">
                                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                                     <input
-                                        type="text" placeholder="Caută muncitor..." value={searchQ}
+                                        type="text" placeholder={t('teams.search_worker')} value={searchQ}
                                         onChange={e => setSearchQ(e.target.value)}
                                         className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 outline-none"
                                     />
                                 </div>
                                 <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg">
-                                    {workers.map(w => (
+                                    {workers.filter(w => w.id !== newLeader).map(w => (
                                         <label key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0">
                                             <input
                                                 type="checkbox"
@@ -203,12 +235,12 @@ export default function TeamsManagement() {
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => setShowCreate(false)}
                                     className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
-                                >Anulează</button>
+                                >{t('common.cancel')}</button>
                                 <button onClick={handleCreate}
                                     disabled={!newName.trim() || !newLeader || saving}
                                     className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 transition-all"
                                 >
-                                    {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Creează'}
+                                    {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('teams.create')}
                                 </button>
                             </div>
                         </div>
@@ -224,8 +256,8 @@ export default function TeamsManagement() {
             ) : teams.length === 0 ? (
                 <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-16 text-center">
                     <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-lg font-semibold text-slate-600">Nicio echipă</p>
-                    <p className="text-sm text-slate-400 mt-1">Creează prima echipă.</p>
+                    <p className="text-lg font-semibold text-slate-600">{t('teams.no_teams')}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('teams.no_teams_hint')}</p>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -261,7 +293,7 @@ export default function TeamsManagement() {
                                                 <Shield className="w-3 h-3" />
                                                 {team.team_leader_name}
                                             </span>
-                                            <span>{team.member_count} membri</span>
+                                            <span>{team.member_count} {t('teams.members_short')}</span>
                                             {team.site_name && (
                                                 <span className="flex items-center gap-1">
                                                     <Building2 className="w-3 h-3" />
@@ -273,7 +305,7 @@ export default function TeamsManagement() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className={`text-xs px-2 py-1 rounded-full font-semibold ${team.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {team.is_active ? 'Activă' : 'Inactivă'}
+                                        {team.is_active ? t('teams.active_f') : t('teams.inactive_f')}
                                     </span>
                                     <button
                                         onClick={e => { e.stopPropagation(); setEditTeam(team.id) }}
@@ -294,8 +326,21 @@ export default function TeamsManagement() {
                             {/* Expanded - Members */}
                             {expandedTeam === team.id && (
                                 <div className="border-t border-slate-100 p-4">
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Șantier Alocat</label>
+                                        <select
+                                            value={team.site_id || ''}
+                                            onChange={e => handleUpdate(team.id, { site_id: e.target.value || null })}
+                                            className="w-full max-w-sm px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 transition-colors"
+                                        >
+                                            <option value="">Fără șantier alocat</option>
+                                            {sites.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <div className="flex items-center justify-between mb-3">
-                                        <h4 className="text-sm font-bold text-slate-700">Membri ({team.member_count})</h4>
+                                        <h4 className="text-sm font-bold text-slate-700">{t('teams.members')} ({team.member_count})</h4>
                                         <AddMemberButton
                                             team={team}
                                             users={users}
@@ -306,7 +351,7 @@ export default function TeamsManagement() {
                                         />
                                     </div>
                                     {team.members.length === 0 ? (
-                                        <p className="text-sm text-slate-400 text-center py-4">Niciun membru</p>
+                                        <p className="text-sm text-slate-400 text-center py-4">{t('teams.no_members')}</p>
                                     ) : (
                                         <div className="space-y-1">
                                             {team.members.map(m => (
@@ -340,6 +385,7 @@ export default function TeamsManagement() {
 
 // Inline add-member dropdown
 function AddMemberButton({ team, users, onAdd }) {
+    const { t } = useTranslation()
     const [open, setOpen] = useState(false)
     const [q, setQ] = useState('')
     const existingIds = team.members.map(m => m.user_id)
@@ -355,14 +401,14 @@ function AddMemberButton({ team, users, onAdd }) {
                 className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors"
             >
                 <UserPlus className="w-3.5 h-3.5" />
-                Adaugă
+                {t('common.add')}
             </button>
             {open && (
                 <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-10 overflow-hidden">
                     <div className="p-2">
                         <input
                             type="text" value={q} onChange={e => setQ(e.target.value)}
-                            placeholder="Caută..." autoFocus
+                            placeholder={t('common.search')} autoFocus
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 outline-none"
                         />
                     </div>
@@ -381,7 +427,7 @@ function AddMemberButton({ team, users, onAdd }) {
                             </button>
                         ))}
                         {available.length === 0 && (
-                            <p className="text-xs text-slate-400 text-center py-3">Niciun muncitor disponibil</p>
+                            <p className="text-xs text-slate-400 text-center py-3">{t('teams.no_workers')}</p>
                         )}
                     </div>
                 </div>

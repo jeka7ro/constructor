@@ -1,16 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import api from '../../lib/api'
 import { Shield, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function AdminLogin() {
+    const { t } = useTranslation()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
+
+    // Load saved credentials on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('pontaj_admin_saved_login')
+        if (saved) {
+            try {
+                const { email: savedEmail, password: savedPassword } = JSON.parse(saved)
+                setEmail(savedEmail || '')
+                setPassword(savedPassword || '')
+                setRememberMe(true)
+            } catch (e) { }
+        }
+    }, [])
 
     const navigate = useNavigate()
     const setAuth = useAdminStore((state) => state.setAuth)
@@ -27,6 +42,14 @@ export default function AdminLogin() {
             })
 
             const { access_token, admin } = response.data
+            
+            // Save or clear credentials
+            if (rememberMe) {
+                localStorage.setItem('pontaj_admin_saved_login', JSON.stringify({ email, password }))
+            } else {
+                localStorage.removeItem('pontaj_admin_saved_login')
+            }
+
             setAuth(admin, access_token)
             navigate('/admin/dashboard')
         } catch (err) {

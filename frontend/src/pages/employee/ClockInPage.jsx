@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 import {
     Clock, Play, Square, Coffee, MapPin, Loader2, Timer, Calendar,
     ClipboardList, Plus, Trash2, CheckCircle, CheckCircle2, AlertCircle, ShieldAlert,
@@ -70,6 +71,7 @@ function calcDistance(lat1, lon1, lat2, lon2) {
 }
 
 export default function ClockInPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, setAuth, accessToken, refreshToken, logout } = useAuthStore()
 
@@ -381,7 +383,7 @@ export default function ClockInPage() {
             setChangeSiteId(null)
             await fetchActiveShift()
         } catch (error) {
-            setErrorMessage(error.response?.data?.detail || 'Eroare la schimbarea șantierului')
+            setErrorMessage(error.response?.data?.detail || t('errors.change_site'))
         } finally {
             setLoading(false)
         }
@@ -412,7 +414,7 @@ export default function ClockInPage() {
             setLastAddedActivityId(activity.id)
             setTimeout(() => setLastAddedActivityId(null), 1500)
         } catch (error) {
-            setErrorMessage(error.response?.data?.detail || 'Eroare la adăugarea activității')
+            setErrorMessage(error.response?.data?.detail || t('errors.add_activity'))
         }
     }
 
@@ -421,13 +423,13 @@ export default function ClockInPage() {
             await api.delete(`/timesheets/activities/${lineId}`)
             await fetchAddedActivities(activeShift.timesheet_id)
         } catch (error) {
-            setErrorMessage(error.response?.data?.detail || 'Eroare la ștergerea activității')
+            setErrorMessage(error.response?.data?.detail || t('errors.delete_activity'))
         }
     }
 
     const requestLocation = () => {
         if (!navigator.geolocation) {
-            setLocationError('Geolocation nu este suportată de browser')
+            setLocationError(t('errors.geo_not_supported'))
             return
         }
 
@@ -441,7 +443,7 @@ export default function ClockInPage() {
                 setLocationError(null)
             },
             (error) => {
-                setLocationError('Nu s-a putut obține locația. Verifică permisiunile.')
+                setLocationError(t('errors.geo_permission'))
                 console.error('Geolocation error:', error)
             },
             {
@@ -454,7 +456,7 @@ export default function ClockInPage() {
 
     const handleClockIn = async () => {
         if (!selectedSite) {
-            setErrorMessage('Selectează un șantier')
+            setErrorMessage(t('errors.select_site'))
             return
         }
 
@@ -475,7 +477,7 @@ export default function ClockInPage() {
             const shiftData = await fetchActiveShift()
             setSelfDeclaration(false)
         } catch (error) {
-            setErrorMessage(error.response?.data?.detail || 'Eroare la clock-in')
+            setErrorMessage(error.response?.data?.detail || t('errors.clock_in'))
         } finally {
             setLoading(false)
         }
@@ -503,7 +505,7 @@ export default function ClockInPage() {
             setActiveShift(null)
             setAddedActivities([])
         } catch (error) {
-            setClockOutResult({ error: error.response?.data?.detail || 'Eroare la clock-out' })
+            setClockOutResult({ error: error.response?.data?.detail || t('errors.clock_out') })
         } finally {
             setLoading(false)
         }
@@ -512,7 +514,7 @@ export default function ClockInPage() {
     const handleStartBreak = async () => {
         // Prevent second break
         if (activeShift && activeShift.break_hours > 0 && !activeShift.is_on_break) {
-            setBreakMessage('Ai avut deja pauză de masă astăzi. Nu poți lua o a doua pauză în aceeași zi.')
+            setBreakMessage(t('errors.second_break'))
             return
         }
 
@@ -530,7 +532,7 @@ export default function ClockInPage() {
 
             await fetchActiveShift()
         } catch (error) {
-            setBreakMessage(error.response?.data?.detail || 'Eroare la începerea pauzei')
+            setBreakMessage(error.response?.data?.detail || t('errors.start_break'))
         } finally {
             setLoading(false)
         }
@@ -542,7 +544,7 @@ export default function ClockInPage() {
             await api.post('/timesheets/end-break')
             await fetchActiveShift()
         } catch (error) {
-            setBreakMessage(error.response?.data?.detail || 'Eroare la încheierea pauzei')
+            setBreakMessage(error.response?.data?.detail || t('errors.end_break'))
         } finally {
             setLoading(false)
         }
@@ -617,7 +619,7 @@ export default function ClockInPage() {
                             {user?.full_name?.charAt(0) || '?'}
                         </div>
                         <div>
-                            <div className="font-semibold">{user?.full_name || 'Angajat'}</div>
+                            <div className="font-semibold">{user?.full_name || t('users.employee')}</div>
                             <div className="text-xs text-blue-100">{user?.role?.name || 'Angajat'}</div>
                         </div>
                     </div>
@@ -625,14 +627,14 @@ export default function ClockInPage() {
                         <button
                             onClick={() => navigate('/history')}
                             className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                            title="Istoricul Meu"
+                            title={t('common.my_history')}
                         >
                             <Calendar className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => { logout(); navigate('/login'); }}
                             className="p-2 hover:bg-red-500/30 rounded-lg transition-colors"
-                            title="Deconectare"
+                            title={t('common.logout')}
                         >
                             <LogOut className="w-5 h-5" />
                         </button>
@@ -652,7 +654,7 @@ export default function ClockInPage() {
                                 }`}
                         >
                             <Clock className="w-4 h-4" />
-                            Pontaj
+                            {t('timesheets.clock_in')}
                         </button>
                         <button
                             onClick={() => setActiveTab('echipa')}
@@ -724,7 +726,7 @@ export default function ClockInPage() {
                                     position={[location.latitude, location.longitude]}
                                     icon={userIcon}
                                 >
-                                    <Popup>Locația ta</Popup>
+                                    <Popup>{t('common.your_location')}</Popup>
                                 </Marker>
                             )}
 
@@ -758,12 +760,12 @@ export default function ClockInPage() {
                             {geofenceStatus.isWithin ? (
                                 <>
                                     <CheckCircle className="w-5 h-5" />
-                                    Ești pe șantier — {geofenceStatus.distance}m distanță ✓
+                                    {t('timesheets.on_site')} — {geofenceStatus.distance}m distanță ✓
                                 </>
                             ) : (
                                 <>
                                     <XCircle className="w-5 h-5" />
-                                    Nu ești pe șantier — {geofenceStatus.distance}m distanță
+                                    {t('timesheets.not_on_site')} — {geofenceStatus.distance}m distanță
                                 </>
                             )}
                         </div>
@@ -779,8 +781,8 @@ export default function ClockInPage() {
                                 className="mt-1 w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500"
                             />
                             <div>
-                                <p className="text-sm font-semibold text-amber-800">Declar pe proprie răspundere</p>
-                                <p className="text-xs text-amber-600 mt-0.5">Confirm că mă aflu pe șantier, deși GPS-ul arată altfel. Această declarație va fi trimisă șefului de echipă.</p>
+                                <p className="text-sm font-semibold text-amber-800">{t('timesheets.self_declaration')}</p>
+                                <p className="text-xs text-amber-600 mt-0.5">{t('timesheets.self_declaration_desc')}</p>
                             </div>
                         </label>
                     )}
@@ -804,7 +806,7 @@ export default function ClockInPage() {
                     {location && !activeShift && !geofenceStatus && (
                         <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
                             <MapPin className="w-5 h-5 text-green-600" />
-                            <p className="text-sm text-green-800">Locație GPS activă ✓</p>
+                            <p className="text-sm text-green-800">{t('timesheets.gps_active')}</p>
                         </div>
                     )}
 
@@ -813,8 +815,8 @@ export default function ClockInPage() {
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
                             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-medium text-amber-800">GPS indisponibil</p>
-                                <p className="text-xs text-amber-600 mt-0.5">Poți începe tura fără GPS, dar locația nu va fi verificată.</p>
+                                <p className="text-sm font-medium text-amber-800">{t('timesheets.gps_unavailable')}</p>
+                                <p className="text-xs text-amber-600 mt-0.5">{t('timesheets.gps_unavailable_desc')}</p>
                             </div>
                         </div>
                     )}
@@ -835,21 +837,21 @@ export default function ClockInPage() {
                                 <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-2xl shadow-lg p-4 text-white text-center">
                                     <div className="flex items-center justify-center gap-2 mb-1 animate-pulse">
                                         <ShieldAlert className="w-6 h-6" />
-                                        <span className="font-bold text-sm">⏸ CRONOMETRU OPRIT</span>
+                                        <span className="font-bold text-sm">⏸ {t('timesheets.timer_stopped')}</span>
                                     </div>
                                     <p className="text-xs text-white/90">
-                                        Ești în afara razei de {activeShift.site_geofence_radius || 300}m de șantier
-                                        {geofencePing?.distance ? ` (${Math.round(geofencePing.distance)}m distanță)` : ''}.
-                                        Orele nu se mai numără până când revii.
+                                        {t('timesheets.outside_radius')} {activeShift.site_geofence_radius || 300}m de șantier
+                                        {geofencePing?.distance ? ` (${Math.round(geofencePing.distance)}m {t('timesheets.distance').toLowerCase()})` : ''}.
+                                        {t('timesheets.timer_stopped_desc')}
                                     </p>
                                     {geofencePauseTime > 0 && (
                                         <p className="text-xs text-white/70 mt-1">
-                                            Timp pierdut azi: {formatTime(geofencePauseTime / 3600)}
+                                            {t('timesheets.time_lost_today')}: {formatTime(geofencePauseTime / 3600)}
                                         </p>
                                     )}
                                     <div className="mt-3 pt-3 border-t border-white/20">
                                         <p className="text-xs text-white/80 font-medium">
-                                            💡 Poți adăuga activități și închide ziua de mai jos
+                                            💡 {t('timesheets.timer_stopped_hint')}
                                         </p>
                                     </div>
                                 </div>
@@ -860,15 +862,15 @@ export default function ClockInPage() {
                                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl shadow-lg p-4 text-white text-center">
                                     <div className="flex items-center justify-center gap-2 mb-1">
                                         <AlertCircle className="w-6 h-6" />
-                                        <span className="font-bold text-sm">📡 GPS PIERDUT</span>
+                                        <span className="font-bold text-sm">📡 {t('timesheets.gps_lost')}</span>
                                     </div>
                                     <p className="text-xs text-white/90">
-                                        Semnal GPS slab sau indisponibil.
-                                        Cronometrul continuă să numere.
+                                        {t('timesheets.gps_lost_desc')}
+                                        {t('timesheets.timer_continues')}
                                     </p>
                                     <div className="mt-3 pt-3 border-t border-white/20">
                                         <p className="text-xs text-white/80 font-medium">
-                                            💡 Poți închide ziua sau reactiva GPS-ul din setările browserului
+                                            💡 {t('timesheets.gps_lost_hint')}
                                         </p>
                                     </div>
                                 </div>
@@ -879,7 +881,7 @@ export default function ClockInPage() {
                                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-lg p-3 text-white text-center">
                                     <div className="flex items-center justify-center gap-2">
                                         <ShieldCheck className="w-5 h-5" />
-                                        <span className="font-semibold text-sm">✅ Ai revenit pe șantier — cronometrul a repornit</span>
+                                        <span className="font-semibold text-sm">✅ {t('timesheets.returned_to_site')}</span>
                                     </div>
                                 </div>
                             )}
@@ -888,10 +890,10 @@ export default function ClockInPage() {
                             <div className={`bg-white rounded-2xl shadow-lg p-6 text-center ${activeShift.is_outside_geofence ? 'opacity-60' : ''}`}>
                                 <div className="text-sm text-slate-600 mb-2">
                                     {activeShift.is_outside_geofence
-                                        ? '🚫 Cronometru oprit — În afara șantierului'
+                                        ? '🚫 {t('timesheets.timer_stopped_outside')}'
                                         : activeShift.is_on_break
-                                            ? '⏸ Cronometru oprit — Pauză'
-                                            : '⏱ Timp lucrat'
+                                            ? '⏸ {t('timesheets.timer_stopped_break')}'
+                                            : '⏱ {t('timesheets.time_worked')}'
                                     }
                                 </div>
                                 <div className={`text-4xl font-bold mb-1 ${activeShift.is_outside_geofence ? 'text-red-500'
@@ -904,12 +906,12 @@ export default function ClockInPage() {
                                     📍 {activeShift.site_name}
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
-                                    <span>Check-in: {new Date(activeShift.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span>{t('timesheets.check_in')}: {new Date(activeShift.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}</span>
                                     {(breakTime > 0 || activeShift.break_hours > 0) && (
-                                        <span>☕ Pauze: {formatTime(breakTime || activeShift.break_hours || 0)}</span>
+                                        <span>☕ {t('timesheets.breaks')}: {formatTime(breakTime || activeShift.break_hours || 0)}</span>
                                     )}
                                     {geofencePauseTime > 0 && (
-                                        <span>🚫 Afara: {formatTime(geofencePauseTime / 3600)}</span>
+                                        <span>🚫 {t('timesheets.outside')}: {formatTime(geofencePauseTime / 3600)}</span>
                                     )}
                                 </div>
                             </div>
@@ -922,7 +924,7 @@ export default function ClockInPage() {
                                     </div>
                                     <div>
                                         <div className="text-sm font-semibold text-slate-800">{teamInfo.team_name}</div>
-                                        <div className="text-xs text-slate-500">Șef: {teamInfo.team_leader_name}</div>
+                                        <div className="text-xs text-slate-500">{t('teams.team_leader_label')}: {teamInfo.team_leader_name}</div>
                                     </div>
                                 </div>
                             )}
@@ -931,11 +933,11 @@ export default function ClockInPage() {
                             {activeShift.is_on_break ? (
                                 <div className="bg-gradient-to-r from-orange-400 to-amber-500 rounded-2xl shadow-lg p-5 text-white text-center">
                                     <Coffee className="w-7 h-7 mx-auto mb-1" />
-                                    <div className="font-semibold text-sm mb-1">PAUZĂ DE MASĂ</div>
+                                    <div className="font-semibold text-sm mb-1">{t('timesheets.lunch_break_btn')}</div>
                                     <div className="text-2xl font-bold">{formatTime(breakTime)}</div>
                                     {activeShift.break_start_time && (
                                         <div className="text-xs text-white/80 mt-1">
-                                            Începută la {new Date(activeShift.break_start_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                                            {t('timesheets.started_at')} {new Date(activeShift.break_start_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     )}
                                     <button
@@ -943,7 +945,7 @@ export default function ClockInPage() {
                                         disabled={loading}
                                         className="mt-3 w-full bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
                                     >
-                                        ÎNCHEIE PAUZA
+                                        {t('timesheets.end_break')}
                                     </button>
                                 </div>
                             ) : activeShift.break_hours > 0 ? (
@@ -952,11 +954,11 @@ export default function ClockInPage() {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Coffee className="w-5 h-5 text-orange-500" />
-                                            <span className="text-sm font-semibold text-orange-800">Pauză de masă luată</span>
+                                            <span className="text-sm font-semibold text-orange-800">{t('timesheets.break_taken')}</span>
                                         </div>
                                         <span className="text-sm font-bold text-orange-700">{formatTime(activeShift.break_hours)}</span>
                                     </div>
-                                    <p className="text-xs text-orange-600 mt-1">Nu mai poți lua o a doua pauză în aceeași zi.</p>
+                                    <p className="text-xs text-orange-600 mt-1">{t('errors.second_break')}</p>
                                 </div>
                             ) : (
                                 <button
@@ -965,7 +967,7 @@ export default function ClockInPage() {
                                     className="w-full bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 shadow transition-all text-sm"
                                 >
                                     <Coffee className="w-5 h-5" />
-                                    PAUZĂ DE MASĂ
+                                    {t('timesheets.lunch_break')}
                                 </button>
                             )}
 
@@ -977,7 +979,7 @@ export default function ClockInPage() {
                                     className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 shadow transition-all text-sm"
                                 >
                                     <ArrowLeftRight className="w-5 h-5" />
-                                    SCHIMBĂ ȘANTIERUL
+                                    {t('timesheets.change_site')}
                                 </button>
                             )}
 
@@ -986,7 +988,7 @@ export default function ClockInPage() {
                                 <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <ClipboardList className="w-5 h-5 text-blue-500" />
-                                        <span className="font-semibold text-slate-800">Activități</span>
+                                        <span className="font-semibold text-slate-800">{t('activities.title')}</span>
                                     </div>
                                     <button
                                         onClick={() => setShowActivityPicker(!showActivityPicker)}
@@ -1016,7 +1018,7 @@ export default function ClockInPage() {
                                     </div>
                                 ) : (
                                     <div className="p-6 text-center text-sm text-slate-400">
-                                        Nicio activitate adăugată încă
+                                        {t('activities.no_activities_added')}
                                     </div>
                                 )}
 
@@ -1054,7 +1056,7 @@ export default function ClockInPage() {
                                                                                 {act.description && (
                                                                                     <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{act.description}</div>
                                                                                 )}
-                                                                                <div className="text-xs text-slate-400 mt-1">Unitate: {act.unit_type}</div>
+                                                                                <div className="text-xs text-slate-400 mt-1">{t('activities.unit_type')}: {act.unit_type}</div>
                                                                             </div>
                                                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                                                 <input
@@ -1074,7 +1076,7 @@ export default function ClockInPage() {
                                                                                         }`}
                                                                                     style={lastAddedActivityId !== act.id ? { backgroundColor: cat.color } : {}}
                                                                                 >
-                                                                                    {lastAddedActivityId === act.id ? '✓' : 'Adaugă'}
+                                                                                    {lastAddedActivityId === act.id ? '✓' : t('common.add')}
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -1086,7 +1088,7 @@ export default function ClockInPage() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="p-4 text-center text-sm text-slate-400">Nu sunt activități configurate</div>
+                                            <div className="p-4 text-center text-sm text-slate-400">{t('activities.no_activities_configured')}</div>
                                         )}
                                     </div>
                                 )}
@@ -1099,7 +1101,7 @@ export default function ClockInPage() {
                                 className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-6 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg transition-all"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Square className="w-5 h-5" />}
-                                ÎNCHEIE TURA
+                                {t('timesheets.clock_out')}
                             </button>
                         </>
                     ) : hadPreviousShift ? (
@@ -1109,15 +1111,15 @@ export default function ClockInPage() {
                                 <CheckCircle className="w-8 h-8 text-green-600" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Tura încheiată ✅</h3>
-                                <p className="text-sm text-slate-500 mt-1">Ai terminat tura pentru astăzi.</p>
+                                <h3 className="text-lg font-bold text-slate-900">{t('timesheets.shift_ended')} ✅</h3>
+                                <p className="text-sm text-slate-500 mt-1">{t('timesheets.shift_ended_desc')}</p>
                             </div>
                             <button
                                 onClick={() => navigate('/history')}
                                 className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all"
                             >
                                 <Calendar className="w-5 h-5" />
-                                Vezi ce ai lucrat azi
+                                {t('timesheets.view_history_today')}
                             </button>
                         </div>
                     ) : (
@@ -1125,14 +1127,14 @@ export default function ClockInPage() {
                             {/* Site Selection */}
                             <div className="bg-white rounded-2xl shadow-lg p-4">
                                 <label className="block text-sm font-semibold text-slate-700 mb-3">
-                                    📍 Selectează Șantierul
+                                    📍 {t('timesheets.select_site')}
                                 </label>
                                 <select
                                     value={selectedSite || ''}
                                     onChange={(e) => setSelectedSite(e.target.value)}
                                     className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-base font-medium text-slate-800 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all appearance-none"
                                 >
-                                    <option value="">Alege șantier...</option>
+                                    <option value="">{t('timesheets.choose_site')}...</option>
                                     {sites.map((site) => (
                                         <option key={site.id} value={site.id}>
                                             {site.name}
@@ -1169,7 +1171,7 @@ export default function ClockInPage() {
                                     ) : (
                                         <>
                                             <Play className="w-6 h-6" />
-                                            <span>ÎNCEPE TURA</span>
+                                            <span>{t('timesheets.start_shift')}</span>
                                         </>
                                     )}
                                 </button>
@@ -1189,8 +1191,8 @@ export default function ClockInPage() {
                             <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <ArrowLeftRight className="w-7 h-7 text-indigo-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900">Schimbă Șantierul</h3>
-                            <p className="text-sm text-slate-500 mt-1">Segmentul curent se va închide și se va deschide unul nou.</p>
+                            <h3 className="text-lg font-bold text-slate-900">{t('timesheets.change_site_modal')}</h3>
+                            <p className="text-sm text-slate-500 mt-1">{t('timesheets.change_site_desc')}</p>
                         </div>
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                             {sites.filter(s => s.id !== activeShift?.site_id).map(site => (
@@ -1209,7 +1211,7 @@ export default function ClockInPage() {
                             onClick={() => setShowSiteChange(false)}
                             className="w-full mt-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors"
                         >
-                            Anulează
+                            {t('common.cancel')}
                         </button>
                     </div>
                 </div>
@@ -1222,9 +1224,9 @@ export default function ClockInPage() {
                             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Square className="w-8 h-8 text-red-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">Închei tura?</h3>
-                            <p className="text-slate-600 text-sm">Confirmă că vrei să închei tura de lucru.</p>
-                            <p className="text-red-500 text-xs font-semibold mt-2">⚠️ Nu vei putea reveni la tura de astăzi după închidere.</p>
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">{t('timesheets.clock_out_confirm')}</h3>
+                            <p className="text-slate-600 text-sm">{t('timesheets.clock_out_confirm_desc')}</p>
+                            <p className="text-red-500 text-xs font-semibold mt-2">⚠️ {t('timesheets.clock_out_warning')}</p>
                         </div>
                         <div className="flex gap-3">
                             <button
@@ -1253,7 +1255,7 @@ export default function ClockInPage() {
                                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <XCircle className="w-8 h-8 text-red-600" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-900 mb-2">Eroare</h3>
+                                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t('common.error')}</h3>
                                     <p className="text-slate-600 text-sm">{clockOutResult.error}</p>
                                 </>
                             ) : (
@@ -1261,31 +1263,31 @@ export default function ClockInPage() {
                                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <CheckCircle className="w-8 h-8 text-green-600" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-slate-900 mb-2">Tură încheiată!</h3>
+                                    <h3 className="text-xl font-bold text-slate-900 mb-2">{t('timesheets.shift_ended_success')}</h3>
                                     <div className="space-y-2 text-sm text-left">
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                            <span className="text-slate-600">⏱ Ore lucrate</span>
+                                            <span className="text-slate-600">⏱ {t('timesheets.hours_worked_label')}</span>
                                             <span className="font-bold text-blue-600">{formatHoursMinutes(clockOutResult.worked_hours)}</span>
                                         </div>
                                         {clockOutResult.break_hours > 0 && (
                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                <span className="text-slate-600">☕ Pauză de masă</span>
+                                                <span className="text-slate-600">☕ {t('timesheets.lunch_break_label')}</span>
                                                 <span className="font-bold text-orange-600">{formatHoursMinutes(clockOutResult.break_hours)}</span>
                                             </div>
                                         )}
                                         {clockOutResult.geofence_pause_hours > 0 && (
                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                <span className="text-slate-600">🚫 Afara din zonă</span>
+                                                <span className="text-slate-600">🚫 {t('timesheets.outside_zone_label')}</span>
                                                 <span className="font-bold text-red-500">{formatHoursMinutes(clockOutResult.geofence_pause_hours)}</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                            <span className="text-slate-600">📊 Total (cu pauză)</span>
+                                            <span className="text-slate-600">📊 {t('timesheets.total_with_break')}</span>
                                             <span className="font-bold text-slate-900">{formatHoursMinutes(clockOutResult.total_hours)}</span>
                                         </div>
                                         {clockOutResult.activities && clockOutResult.activities.length > 0 && (
                                             <div className="pt-2">
-                                                <p className="text-xs font-semibold text-slate-700 mb-1">📋 Activități înregistrate:</p>
+                                                <p className="text-xs font-semibold text-slate-700 mb-1">📋 {t('activities.recorded_activities')}</p>
                                                 {clockOutResult.activities.map((act, i) => (
                                                     <div key={i} className="flex justify-between text-xs py-1">
                                                         <span className="text-slate-600">{act.activity_name || act.name}</span>
@@ -1315,14 +1317,14 @@ export default function ClockInPage() {
                             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Coffee className="w-8 h-8 text-orange-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">Pauză</h3>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">{t('timesheets.status.break')}</h3>
                             <p className="text-slate-600 text-sm">{breakMessage}</p>
                         </div>
                         <button
                             onClick={() => setBreakMessage(null)}
                             className="w-full px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors"
                         >
-                            Am înțeles
+                            {t('common.understood')}
                         </button>
                     </div>
                 </div>

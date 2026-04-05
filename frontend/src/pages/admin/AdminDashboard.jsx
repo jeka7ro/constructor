@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Outlet, NavLink } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
+import LanguageSelector from '../../components/LanguageSelector'
 import {
-    LayoutDashboard, Users, Building2, FileText, Settings, LogOut, Shield,
-    Menu, ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon
+    LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -12,6 +14,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 export default function AdminDashboard() {
     const { admin, logout } = useAdminStore()
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [showNotifications, setShowNotifications] = useState(false)
     const [notifications, setNotifications] = useState([])
@@ -54,16 +57,17 @@ export default function AdminDashboard() {
     const unreadCount = Math.max(0, notifCount - lastSeenCount)
 
     const navItems = [
-        { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/admin/users', icon: Users, label: 'Utilizatori' },
-        { path: '/admin/sites', icon: Building2, label: 'Șantiere' },
-        { path: '/admin/timesheets', icon: Clock, label: 'Pontaje' },
-        { path: '/admin/activities', icon: Activity, label: 'Activități' },
-        { path: '/admin/reports', icon: FileText, label: 'Rapoarte' },
-        { path: '/admin/site-photos', icon: Camera, label: 'Poze Șantier' },
-        { path: '/admin/teams', icon: Users, label: 'Echipe' },
-        { path: '/admin/settings', icon: Settings, label: 'Setări' },
-        { path: '/admin/notifications', icon: Bell, label: 'Notificări' },
+        { path: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+        { path: '/admin/users', icon: Users, label: t('nav.users') },
+        { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
+        { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
+        { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
+        { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
+        { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
+        { path: '/admin/teams', icon: Users, label: t('nav.teams') },
+        { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
+        { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
+        { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
     ]
 
     const [darkMode, setDarkMode] = useState(() => {
@@ -92,7 +96,7 @@ export default function AdminDashboard() {
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
                     className="absolute -right-3.5 top-7 w-7 h-7 bg-blue-600 border-2 border-slate-900 rounded-full flex items-center justify-center text-white hover:bg-blue-500 shadow-[0_0_10px_rgba(37,99,235,0.5)] z-[60] transition-transform duration-200 hover:scale-110"
-                    title={sidebarOpen ? "Restrânge meniul" : "Extinde meniul"}
+                    title={sidebarOpen ? t('admin.collapse_menu') : t('admin.expand_menu')}
                 >
                     {sidebarOpen ? <ChevronLeft className="w-4 h-4 ml-[-1px]" /> : <ChevronRight className="w-4 h-4 mr-[-1px]" />}
                 </button>
@@ -100,7 +104,7 @@ export default function AdminDashboard() {
                 <div className={`h-20 flex items-center border-b border-white/10 shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'}`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-2 w-full' : 'justify-center'}`}>
                         <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-20 h-20 ml-2' : 'w-14 h-14'}`}>
-                            <img src="/log_elef.png" alt="Elefant Logo" className={`w-full h-full object-contain origin-center transition-transform ${sidebarOpen ? 'scale-[2.0] translate-y-1' : 'scale-[1.3]'}`} />
+                            <img src="/log_elef.png" alt="Elefant Logo" className={`w-full h-full object-contain origin-center transition-transform pointer-events-none select-none ${sidebarOpen ? 'scale-[2.0] translate-y-1' : 'scale-[1.3]'}`} />
                         </div>
                         {sidebarOpen && (
                             <div className="flex-1 min-w-0 pl-6 pr-2">
@@ -163,43 +167,27 @@ export default function AdminDashboard() {
                 {/* Header Bar */}
                 <header className={`h-20 bg-slate-900 border-b border-white/10 px-6 flex items-center justify-between sticky top-0 z-40 text-white shadow-sm transition-colors shadow-slate-900/10`}>
                     <div className="flex items-center gap-4">
-                         <span className={`font-bold text-lg hidden sm:block tracking-tight text-white/90`}>Admin System</span>
+                         <span className={`font-bold text-lg hidden sm:block tracking-tight text-white/90`}>{t('admin.admin_system')}</span>
                     </div>
 
                     <div className="flex items-center gap-5">
+                        {/* Language Selector */}
+                        <LanguageSelector variant="dark" />
+
+                        <div className="w-[1px] h-5 bg-white/20"></div>
+
                         {/* Theme Toggle Button & Notifications */}
                         <div className="flex items-center gap-2">
-                           {/* macOS Tahoe-style Toggle with clear icons */}
-                           <button 
-                               onClick={() => setDarkMode(!darkMode)} 
-                               title={darkMode ? 'Comută la Modul Luminos' : 'Comută la Modul Întunecat'}
-                               className={`relative flex items-center w-[84px] h-9 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 border ${
-                                   darkMode 
-                                       ? 'bg-slate-800 border-slate-600 shadow-inner shadow-black/40' 
-                                       : 'bg-slate-300/80 border-slate-400/40 shadow-inner'
-                               }`}
+                           {/* Compact icon-only theme toggle */}
+                           <button
+                               onClick={() => setDarkMode(!darkMode)}
+                               title={darkMode ? t('admin.light_mode') : t('admin.dark_mode')}
+                               className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
                            >
-                               {/* Sun icon - left side (light mode) */}
-                               <span className={`absolute left-2.5 transition-all duration-300 ${ darkMode ? 'opacity-30' : 'opacity-100' }`}>
-                                   <Sun className="w-4 h-4 text-amber-400" />
-                               </span>
-                               {/* Moon icon - right side (dark mode) */}
-                               <span className={`absolute right-2.5 transition-all duration-300 ${ darkMode ? 'opacity-100' : 'opacity-30' }`}>
-                                   <Moon className="w-4 h-4 text-blue-300" />
-                               </span>
-                               {/* Sliding knob */}
-                               <span
-                                   className={`absolute top-1 w-7 h-7 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-                                       darkMode 
-                                           ? 'translate-x-[46px] bg-slate-700 shadow-blue-900/40' 
-                                           : 'translate-x-[4px] bg-white shadow-black/20'
-                                   }`}
-                               >
-                                   {darkMode 
-                                       ? <Moon className="w-3.5 h-3.5 text-blue-400" />
-                                       : <Sun className="w-3.5 h-3.5 text-amber-500" />
-                                   }
-                               </span>
+                               {darkMode
+                                   ? <Moon className="w-4 h-4 text-blue-300" />
+                                   : <Sun className="w-4 h-4 text-amber-400" />
+                               }
                            </button>
                            <button className={`p-2.5 rounded-full transition-colors relative text-slate-300 hover:text-white hover:bg-white/10`} onClick={() => setShowNotifications(!showNotifications)}>
                                <Bell className="w-5 h-5" />
@@ -216,7 +204,7 @@ export default function AdminDashboard() {
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold leading-none">{admin?.full_name}</p>
                                 <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 font-medium flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
-                                    <LogOut className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform"/> Deconectare
+                                    <LogOut className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform"/> {t('admin.logout')}
                                 </button>
                             </div>
                             <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center font-bold text-white shadow-md cursor-pointer hover:shadow-lg transition-all border-2 border-white/20">
@@ -227,7 +215,7 @@ export default function AdminDashboard() {
                 </header>
 
                 {/* Main View Outlet */}
-                <main className={`flex-1 overflow-auto relative z-0 p-4 custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                <main className={`flex-1 overflow-auto relative p-4 custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                     <Outlet />
                 </main>
             </div>

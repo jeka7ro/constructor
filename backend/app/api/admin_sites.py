@@ -67,6 +67,9 @@ class SiteCreate(BaseModel):
     max_overtime_minutes: Optional[int] = Field(120, ge=0, le=480)
 
 
+class SiteTeamsUpdate(BaseModel):
+    team_ids: list[str]
+
 class SiteUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     address: Optional[str] = None
@@ -89,8 +92,26 @@ class SiteUpdate(BaseModel):
     max_overtime_minutes: Optional[int] = Field(None, ge=0, le=480)
 
 
-def site_to_dict(site) -> dict:
+def site_to_dict(site, db=None) -> dict:
     """Convert a ConstructionSite ORM object to a JSON-serializable dict."""
+    assigned_workers = 0
+    assigned_team_ids = []
+    if db:
+        from app.models import Team, TeamMember, User
+        from sqlalchemy import func
+        
+        # Combine direct users and team users to get total unique workers
+        direct_users = db.query(User.id).filter(User.site_id == site.id).all()
+        direct_ids = {u[0] for u in direct_users}
+        
+        team_users = db.query(TeamMember.user_id).join(Team, Team.id == TeamMember.team_id).filter(Team.site_id == site.id).all()
+        team_ids_set = {u[0] for u in team_users}
+        
+        assigned_workers = len(direct_ids.union(team_ids_set))
+        
+        teams_db = db.query(Team).filter(Team.site_id == site.id).all()
+        assigned_team_ids = [t.id for t in teams_db]
+
     return {
         "id": site.id,
         "name": site.name,
@@ -109,6 +130,9 @@ def site_to_dict(site) -> dict:
         "work_start_time": site.work_start_time.strftime('%H:%M') if site.work_start_time else "07:00",
         "work_end_time": site.work_end_time.strftime('%H:%M') if site.work_end_time else "16:00",
         "max_overtime_minutes": site.max_overtime_minutes if site.max_overtime_minutes is not None else 120,
+        "assigned_workers": assigned_workers,
+        "assigned_worker_ids": list(direct_ids.union(team_ids_set)) if db else [],
+        "team_ids": assigned_team_ids,
     }
 
 
@@ -151,7 +175,7 @@ def get_sites(
     sites = query.order_by(ConstructionSite.created_at.desc()).offset(offset).limit(page_size).all()
     
     return {
-        "sites": [site_to_dict(site) for site in sites],
+        "sites": [site_to_dict(site, db) for site in sites],
         "total": total,
         "page": page,
         "page_size": page_size
@@ -204,7 +228,7 @@ def get_site(
     if not site:
         raise HTTPException(status_code=404, detail="Construction site not found")
     
-    return site_to_dict(site)
+    return site_to_dict(site, db)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -252,7 +276,7 @@ def create_site(
     db.commit()
     db.refresh(new_site)
     
-    return site_to_dict(new_site)
+    return site_to_dict(new_site, db)
 
 
 @router.put("/{site_id}")
@@ -331,7 +355,7 @@ def update_site(
     db.commit()
     db.refresh(site)
     
-    return site_to_dict(site)
+    return site_to_dict(site, db)
 
 
 @router.delete("/{site_id}")
@@ -347,10 +371,107 @@ def delete_site(
     if not site:
         raise HTTPException(status_code=404, detail="Construction site not found")
     
-    # Soft delete
-    site.status = "suspended"
-    db.commit()
+    # Hybrid Delete Logic
+    from app.models import TimesheetSegment, Team, User
+    
+    has_timesheets = db.query(TimesheetSegment).filter(TimesheetSegment.site_id == site_id).first()
+    
+    if has_timesheets:
+        # Soft delete if there are timesheets to preserve history
+        site.status = "suspended"
+        db.commit()
+        return {"message": "Site suspended (cannot hard delete due to existing timesheets)"}
+    else:
+        # Hard delete: clear simple foreign keys first
+        db.query(Team).filter(Team.site_id == site_id).update({"site_id": None}, synchronize_session=False)
+        db.query(User).filter(User.site_id == site_id).update({"site_id": None}, synchronize_session=False)
+        
+        # Then safely delete the site
+        db.delete(site)
+        db.commit()
+        return {"message": "Site permanently deleted"}
     
     return {"message": "Site deleted successfully"}
 
 
+@router.get("/map-data/all")
+def get_map_data(
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """
+    Returns all active sites with GPS coordinates and live counts
+    for the Leaflet map dashboard.
+    """
+    from app.models import Timesheet, TimesheetSegment, VehicleSiteAssignment
+    from app.timezone import today_ro
+    import sqlalchemy
+
+    today = today_ro()
+    sites = db.query(ConstructionSite).filter(ConstructionSite.status == "active").all()
+    result = []
+
+    for site in sites:
+        # Count active workers today (segments with no check_out)
+        active_workers = db.execute(
+            sqlalchemy.text(
+                """
+                SELECT COUNT(DISTINCT ts.owner_user_id)
+                FROM timesheets ts
+                JOIN timesheet_segments seg ON seg.timesheet_id = ts.id
+                WHERE ts.date = :today
+                  AND seg.site_id = :site_id
+                  AND seg.check_out_time IS NULL
+                """
+            ),
+            {"today": today.isoformat(), "site_id": site.id}
+        ).scalar() or 0
+
+        # Count vehicles assigned to this site
+        vehicle_count = db.query(VehicleSiteAssignment).filter(
+            VehicleSiteAssignment.site_id == site.id,
+            VehicleSiteAssignment.is_active == True
+        ).count()
+
+        result.append({
+            "id": site.id,
+            "name": site.name,
+            "address": site.address,
+            "county": site.county,
+            "latitude": site.latitude,
+            "longitude": site.longitude,
+            "geofence_radius": site.geofence_radius or 100,
+            "status": site.status,
+            "active_workers": int(active_workers),
+            "vehicle_count": vehicle_count,
+            "panel_count": site.panel_count,
+            "system_power_kw": site.system_power_kw,
+            "client_name": site.client_name,
+        })
+
+    return result
+
+@router.put("/{site_id}/teams")
+def set_site_teams(
+    site_id: str,
+    data: SiteTeamsUpdate,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Assign teams to a site"""
+    site = db.query(ConstructionSite).filter(ConstructionSite.id == site_id).first()
+    if not site:
+        raise HTTPException(status_code=404, detail="Construction site not found")
+
+    from app.models import Team
+    
+    # Unassign all teams currently assigned to this site
+    db.query(Team).filter(Team.site_id == site_id).update({"site_id": None}, synchronize_session=False)
+    
+    # Assign the new ones
+    if data.team_ids:
+        db.query(Team).filter(Team.id.in_(data.team_ids)).update({"site_id": site_id}, synchronize_session=False)
+        
+    db.commit()
+    
+    return site_to_dict(site, db)

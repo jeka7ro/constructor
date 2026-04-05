@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models import Team, TeamMember, User, ConstructionSite, Role, Admin
 from app.api.admin_auth import get_current_admin
+from app.timezone import today_ro
 
 router = APIRouter(prefix="/admin/teams", tags=["admin-teams"])
 
@@ -92,7 +93,7 @@ def create_team(
 
     # Add members
     for uid in data.member_ids:
-        db.add(TeamMember(team_id=team.id, user_id=uid))
+        db.add(TeamMember(team_id=team.id, user_id=uid, joined_date=today_ro()))
 
     db.commit()
     db.refresh(team)
@@ -142,7 +143,7 @@ def set_team_members(
 
     # Add new ones
     for uid in member_ids:
-        db.add(TeamMember(team_id=team_id, user_id=uid))
+        db.add(TeamMember(team_id=team_id, user_id=uid, joined_date=today_ro()))
 
     db.commit()
     return team_to_dict(team, db)

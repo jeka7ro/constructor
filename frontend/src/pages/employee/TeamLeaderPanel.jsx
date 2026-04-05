@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 import { Users, Plus, Search, Coffee, MapPin, Clock, CheckCircle, XCircle, Loader2, UserPlus, Trash2, Building2, RefreshCw, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
 
 export default function TeamLeaderPanel() {
+    const { t } = useTranslation()
     const [teams, setTeams] = useState([])
     const [loading, setLoading] = useState(true)
     const [showCreateForm, setShowCreateForm] = useState(false)
@@ -132,7 +134,7 @@ export default function TeamLeaderPanel() {
             setShowCreateForm(false)
             fetchTeams()
         } catch (error) {
-            alert(error.response?.data?.detail || 'Eroare la creare echipă')
+            alert(error.response?.data?.detail || t('errors.create_team'))
         } finally {
             setCreating(false)
         }
@@ -190,14 +192,14 @@ export default function TeamLeaderPanel() {
                 return (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        Lucrează
+                        {t('timesheets.status.working')}
                     </span>
                 )
             case 'on_break':
                 return (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
                         <Coffee className="w-3 h-3" />
-                        În pauză
+                        {t('timesheets.status.break')}
                     </span>
                 )
             case 'finished':
@@ -237,8 +239,8 @@ export default function TeamLeaderPanel() {
             <div className="p-4">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-2xl p-8 text-center">
                     <Users className="w-16 h-16 text-blue-300 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">Nu ai nicio echipă</h2>
-                    <p className="text-slate-600 text-sm mb-6">Creează o echipă și adaugă muncitorii tăi</p>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t('teams.no_team_yet')}</h2>
+                    <p className="text-slate-600 text-sm mb-6">{t('common.create')} o echipă și adaugă muncitorii tăi</p>
 
                     {!showCreateForm ? (
                         <button
@@ -246,11 +248,11 @@ export default function TeamLeaderPanel() {
                             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                         >
                             <Plus className="w-5 h-5 inline mr-2" />
-                            Creează Echipă
+                            {t('teams.create_team')}
                         </button>
                     ) : (
                         <div className="bg-white rounded-xl p-6 max-w-md mx-auto text-left shadow-lg">
-                            <h3 className="font-bold text-slate-900 mb-4">Echipă Nouă</h3>
+                            <h3 className="font-bold text-slate-900 mb-4">{t('teams.new_team')}</h3>
                             <input
                                 type="text"
                                 placeholder="Numele echipei..."
@@ -261,12 +263,12 @@ export default function TeamLeaderPanel() {
 
                             {/* Search & select workers */}
                             <div className="mb-4">
-                                <label className="text-sm font-semibold text-slate-700 block mb-2">Adaugă muncitori:</label>
+                                <label className="text-sm font-semibold text-slate-700 block mb-2">{t('common.add')} muncitori:</label>
                                 <div className="relative mb-2">
                                     <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                                     <input
                                         type="text"
-                                        placeholder="Caută după nume..."
+                                        placeholder={`${t('users.search_name')}...`}
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
                                         className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -307,14 +309,14 @@ export default function TeamLeaderPanel() {
                                     onClick={() => { setShowCreateForm(false); setSelectedWorkers([]) }}
                                     className="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
                                 >
-                                    Anulează
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     onClick={handleCreateTeam}
                                     disabled={!newTeamName.trim() || creating}
                                     className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50"
                                 >
-                                    {creating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Creează'}
+                                    {creating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('common.create')}
                                 </button>
                             </div>
                         </div>
@@ -355,7 +357,7 @@ export default function TeamLeaderPanel() {
                                 <button
                                     onClick={() => { setEditingName(true); setEditName(team.name) }}
                                     className="p-1 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                                    title="Redenumește echipa"
+                                    title="{t('common.rename')} echipa"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" />
                                 </button>
@@ -366,7 +368,7 @@ export default function TeamLeaderPanel() {
                     <button
                         onClick={() => { setShowAddMembers(!showAddMembers); if (!showAddMembers) fetchAvailableWorkers() }}
                         className="p-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
-                        title="Adaugă membri"
+                        title={t('teams.add_members')}
                     >
                         <UserPlus className="w-5 h-5" />
                     </button>
@@ -376,7 +378,7 @@ export default function TeamLeaderPanel() {
             {/* Notifications */}
             {notifications.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-slate-700">🔔 Notificări</h3>
+                    <h3 className="text-sm font-bold text-slate-700">🔔 {t('common.notifications')}</h3>
                     {notifications.slice(0, 3).map(n => (
                         <div key={n.id} className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
                             <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
@@ -395,12 +397,12 @@ export default function TeamLeaderPanel() {
             {/* Add Members Panel */}
             {showAddMembers && (
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-lg">
-                    <h3 className="font-bold text-slate-900 mb-3">Adaugă muncitori</h3>
+                    <h3 className="font-bold text-slate-900 mb-3">{t('teams.add_workers')}</h3>
                     <div className="relative mb-3">
                         <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Caută după nume sau cod..."
+                            placeholder="{t('users.search_name_code')}..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -418,7 +420,7 @@ export default function TeamLeaderPanel() {
                                     className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
                                 >
                                     <Plus className="w-3 h-3 inline mr-1" />
-                                    Adaugă
+                                    {t('common.add')}
                                 </button>
                             </div>
                         ))}
@@ -450,7 +452,7 @@ export default function TeamLeaderPanel() {
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Caută rapid un muncitor..."
+                        placeholder={`${t('teams.search_worker_quick')}...`}
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -528,7 +530,7 @@ export default function TeamLeaderPanel() {
                                                                     )}
                                                                 </>
                                                             ) : (
-                                                                <>pauză: {formatHours(m.break_hours)}</>
+                                                                <>{t('timesheets.status.break').toLowerCase()}: {formatHours(m.break_hours)}</>
                                                             )}
                                                         </span>
                                                     )}
@@ -554,8 +556,8 @@ export default function TeamLeaderPanel() {
                                                     return (
                                                         <div className="mt-2 text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
                                                             <span className="font-medium">Timp șantier</span> ({formatHours(totalOnSite)})
-                                                            {breakH > 0 && <> − <span className="font-medium text-orange-500">Pauză</span> ({formatHours(breakH)})</>}
-                                                            {' '}= <span className="font-bold text-slate-900">Total tură {dateStr} = {formatHours(liveWorked)}</span>
+                                                            {breakH > 0 && <> − <span className="font-medium text-orange-500">{t('timesheets.status.break')}</span> ({formatHours(breakH)})</>}
+                                                            {' '}= <span className="font-bold text-slate-900">{t('timesheets.total_shift')} {dateStr} = {formatHours(liveWorked)}</span>
                                                         </div>
                                                     )
                                                 })()}
@@ -564,7 +566,7 @@ export default function TeamLeaderPanel() {
                                                 {m.activities && m.activities.length > 0 && (
                                                     <div className="mt-2 pt-2 border-t border-slate-100">
                                                         <div className="flex items-center justify-between mb-1">
-                                                            <p className="text-xs font-semibold text-slate-600">📋 Activități:</p>
+                                                            <p className="text-xs font-semibold text-slate-600">📋 {t('activities.title')}:</p>
                                                             {m.status === 'finished' && (
                                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 text-green-600 border border-green-200">
                                                                     <CheckCircle className="w-2.5 h-2.5" /> Aprobat
@@ -587,7 +589,7 @@ export default function TeamLeaderPanel() {
                 ) : (
                     <div className="bg-slate-50 rounded-xl p-6 text-center">
                         <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                        <p className="text-sm text-slate-500">Adaugă membri în echipă pentru a vedea statusul lor</p>
+                        <p className="text-sm text-slate-500">{t('teams.add_members')} pentru a vedea statusul lor</p>
                     </div>
                 )}
             </div>
@@ -595,7 +597,7 @@ export default function TeamLeaderPanel() {
             {/* Team Members Management */}
             {team.members && team.members.length > 0 && (
                 <div>
-                    <h3 className="font-bold text-slate-900 mb-3">👥 Membri Echipă ({team.members.length})</h3>
+                    <h3 className="font-bold text-slate-900 mb-3">👥 {t('teams.team_members')} ({team.members.length})</h3>
                     <div className="space-y-1">
                         {team.members.map(m => (
                             <div key={m.user_id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3">
@@ -606,7 +608,7 @@ export default function TeamLeaderPanel() {
                                 <button
                                     onClick={() => handleRemoveMember(team.id, m.user_id)}
                                     className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors"
-                                    title="Elimină din echipă"
+                                    title="{t('teams.remove_member')}"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>

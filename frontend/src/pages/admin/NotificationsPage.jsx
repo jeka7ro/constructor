@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../lib/api'
 import {
+import { useTranslation } from 'react-i18next'
     Bell, Loader2, RefreshCw, Filter, Calendar, Clock, User,
     LogIn, LogOut, Coffee, RotateCcw, ChevronLeft, ChevronRight,
     Building2, Search
@@ -30,6 +31,7 @@ function AvatarImg({ path, name, size = 'w-9 h-9' }) {
 }
 
 export default function NotificationsPage() {
+    const { t } = useTranslation()
     const [events, setEvents] = useState([])
     const [loading, setLoading] = useState(true)
     const [total, setTotal] = useState(0)

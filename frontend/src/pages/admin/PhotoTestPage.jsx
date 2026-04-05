@@ -4,8 +4,10 @@ import { useAdminStore } from '../../store/adminStore'
 import { Camera, ArrowLeft } from 'lucide-react'
 import PhotoUpload from '../../components/PhotoUpload'
 import PhotoGallery from '../../components/PhotoGallery'
+import { useTranslation } from 'react-i18next'
 
 export default function PhotoTestPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { admin } = useAdminStore()
     const [testTimesheetId, setTestTimesheetId] = useState('test-timesheet-123')

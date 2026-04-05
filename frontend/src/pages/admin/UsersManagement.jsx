@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAdminStore } from '../../store/adminStore'
 import useViewPreferencesStore from '../../store/viewPreferencesStore'
 import api from '../../lib/api'
@@ -24,10 +25,12 @@ const EMPTY_USER = {
     phone: '',
     email: '',
     address: '',
-    is_active: true
+    is_active: true,
+    hourly_rate: '',
 }
 
 export default function UsersManagement() {
+    const { t } = useTranslation()
     const { showDialog, showToast, openDialog } = useUIStore()
     const [users, setUsers] = useState([])
     const [totalUsers, setTotalUsers] = useState(0)
@@ -59,6 +62,13 @@ export default function UsersManagement() {
     const [avatarCropImage, setAvatarCropImage] = useState(null)
     const [importing, setImporting] = useState(false)
     const [deleteModalData, setDeleteModalData] = useState(null)
+    
+    // Site Assignment states
+    const [sites, setSites] = useState([])
+    const [showAssignSiteModal, setShowAssignSiteModal] = useState(false)
+    const [assignTargetUserId, setAssignTargetUserId] = useState(null)
+    const [assignSiteId, setAssignSiteId] = useState('')
+    const [assigningSite, setAssigningSite] = useState(false)
     const [contractFile, setContractFile] = useState(null)
     const [uploadingContract, setUploadingContract] = useState(false)
     const contractInputRef = useRef(null)
@@ -82,6 +92,7 @@ export default function UsersManagement() {
         fetchUsers()
         fetchStats()
         fetchRoles()
+        fetchSites()
     }, [search, roleFilter, statusFilter, preferences.currentPage, preferences.pageSize])
 
     const fetchUsers = async () => {
@@ -124,6 +135,35 @@ export default function UsersManagement() {
         }
     }
 
+    const fetchSites = async () => {
+        try {
+            const response = await api.get('/admin/sites/', { params: { page_size: 1000 } })
+            setSites(response.data.sites || [])
+        } catch (error) {
+            console.error('Error fetching sites:', error)
+        }
+    }
+
+    const handleAssignSiteClick = (user) => {
+        setAssignTargetUserId(user.id)
+        setAssignSiteId(user.site_id || '')
+        setShowAssignSiteModal(true)
+    }
+
+    const handleSaveSiteAssignment = async () => {
+        try {
+            setAssigningSite(true)
+            await api.put(`/admin/users/${assignTargetUserId}`, { site_id: assignSiteId })
+            showToast('Șantier atașat cu succes', 'success')
+            setShowAssignSiteModal(false)
+            fetchUsers()
+        } catch (error) {
+            showToast(error.response?.data?.detail || 'Eroare la atașarea șantierului', 'error')
+        } finally {
+            setAssigningSite(false)
+        }
+    }
+
     const handleAddUser = async () => {
         setEditingUser(null)
         setFormData(EMPTY_USER)
@@ -156,7 +196,8 @@ export default function UsersManagement() {
             phone: user.phone || '',
             email: user.email || '',
             address: user.address || '',
-            is_active: user.is_active
+            is_active: user.is_active,
+            hourly_rate: user.hourly_rate != null ? String(user.hourly_rate) : '',
         })
         setIdCardFile(null)
         setIdCardPreview(null)
@@ -165,19 +206,19 @@ export default function UsersManagement() {
 
     const handleSaveUser = async () => {
         if (!formData.last_name.trim()) {
-            showToast('Numele este obligatoriu!', 'error')
+            showToast(t('users.errors.last_name_required'), 'error')
             return
         }
         if (!formData.first_name.trim()) {
-            showToast('Prenumele este obligatoriu!', 'error')
+            showToast(t('users.errors.first_name_required'), 'error')
             return
         }
         if (!editingUser && !formData.employee_code.trim()) {
-            showToast('Codul angajatului este obligatoriu!', 'error')
+            showToast(t('users.errors.code_required'), 'error')
             return
         }
         if (!editingUser && !formData.pin) {
-            showToast('PIN-ul este obligatoriu!', 'error')
+            showToast(t('users.errors.pin_required'), 'error')
             return
         }
 
@@ -197,6 +238,9 @@ export default function UsersManagement() {
                 if (formData.phone !== (editingUser.phone || '')) updatePayload.phone = formData.phone || null
                 if (formData.email !== (editingUser.email || '')) updatePayload.email = formData.email || null
                 if (formData.address !== (editingUser.address || '')) updatePayload.address = formData.address || null
+                // hourly_rate: always send if present (0 is valid)
+                const hrVal = formData.hourly_rate !== '' ? parseFloat(formData.hourly_rate) : null
+                if (hrVal !== (editingUser.hourly_rate ?? null)) updatePayload.hourly_rate = hrVal
 
                 const resp = await api.put(`/admin/users/${editingUser.id}`, updatePayload)
                 savedUser = resp.data
@@ -221,9 +265,9 @@ export default function UsersManagement() {
             setShowEditModal(false)
             fetchUsers()
             fetchStats()
-            showToast('Datele au fost salvate cu succes!', 'success')
+            showToast(t('users.success.saved'), 'success')
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la salvare', 'error')
+            showToast(error.response?.data?.detail || t('users.errors.save_failed'), 'error')
         } finally {
             setSaving(false)
         }
@@ -251,9 +295,9 @@ export default function UsersManagement() {
             setDeleteModalData(null)
             fetchUsers()
             fetchStats()
-            showToast(hardDelete ? 'Angajat șters definitiv.' : 'Angajat mutat în arhivă.', 'success')
+            showToast(hardDelete ? t('users.success.deleted') : t('users.success.archived'), 'success')
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
+            showToast(error.response?.data?.detail || t('users.errors.delete_failed'), 'error')
             console.error('Error deleting user:', error)
         }
     }
@@ -263,10 +307,10 @@ export default function UsersManagement() {
             await api.put(`/admin/users/${userId}`, { is_active: true })
             fetchUsers()
             fetchStats()
-            showToast('Angajat restaurat în lista activă.', 'success')
+            showToast(t('users.success.restored'), 'success')
         } catch (error) {
             console.error('Error restoring user:', error)
-            showToast('Eroare la restaurare', 'error')
+            showToast(t('users.errors.restore_failed'), 'error')
         }
     }
 
@@ -288,19 +332,19 @@ export default function UsersManagement() {
     const handleBulkDelete = () => {
         if (selectedUserIds.length === 0) return
         showDialog({
-            title: 'Ștergere Multiplă',
-            message: `Ești sigur că vrei să dezactivezi/ștergi cei ${selectedUserIds.length} angajați selectați?`,
+            title: t('users.bulk_delete.title'),
+            message: t('users.bulk_delete.message', { count: selectedUserIds.length }),
             type: 'danger',
-            confirmText: 'Șterge Selecția',
+            confirmText: t('common.delete'),
             onConfirm: async () => {
                 try {
                     await Promise.all(selectedUserIds.map(id => api.delete(`/admin/users/${id}`)))
                     setSelectedUserIds([])
                     fetchUsers()
                     fetchStats()
-                    showToast('Angajații selectați au fost șterși.', 'success')
+                    showToast(t('users.success.bulk_deleted'), 'success')
                 } catch (error) {
-                    showToast('Eroare la ștergerea în masă', 'error')
+                    showToast(t('users.errors.bulk_delete_failed'), 'error')
                 }
             }
         })
@@ -308,16 +352,16 @@ export default function UsersManagement() {
 
     const handleSavePin = async () => {
         if (!newPin || newPin.length < 4) {
-            showToast('PIN-ul trebuie să aibă minim 4 caractere!', 'error')
+            showToast(t('users.errors.pin_length'), 'error')
             return
         }
         try {
             setSaving(true)
             await api.post(`/admin/users/${pinUserId}/reset-pin`, { new_pin: newPin })
             setShowPinModal(false)
-            showToast('PIN resetat cu succes!', 'success')
+            showToast(t('users.success.pin_reset'), 'success')
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la resetarea PIN-ului', 'error')
+            showToast(error.response?.data?.detail || t('users.errors.pin_reset_failed'), 'error')
         } finally {
             setSaving(false)
         }
@@ -338,7 +382,7 @@ export default function UsersManagement() {
 
     const handleScanIdCard = async () => {
         if (!idCardFile) {
-            showToast('Selectează mai întâi o imagine / document (PDF) cu cartea de identitate!', 'error')
+            showToast(t('users.errors.select_id_card'), 'error')
             return
         }
         try {
@@ -375,12 +419,12 @@ export default function UsersManagement() {
                     id_card_series: ocr.id_card_series || prev.id_card_series,
                     address: ocr.address || prev.address,
                 }))
-                showToast('Date extrase cu succes din cartea de identitate!', 'success')
+                showToast(t('users.success.ocr_extracted'), 'success')
             } else {
                 showToast(ocr.message, 'error')
             }
         } catch (error) {
-            showToast('Eroare la scanarea cărții de identitate: ' + (error.response?.data?.detail || error.message), 'error')
+            showToast(t('users.errors.ocr_failed') + (error.response?.data?.detail || error.message), 'error')
         } finally {
             setOcrLoading(false)
         }
@@ -398,7 +442,7 @@ export default function UsersManagement() {
             link.remove()
             window.URL.revokeObjectURL(url)
         } catch (error) {
-            openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'danger', title: t('common.export_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -415,13 +459,13 @@ export default function UsersManagement() {
             const result = resp.data
             let msg = `${result.message}`
             if (result.errors?.length) {
-                msg += `\n\nErori:\n${result.errors.join('\n')}`
+                msg += `\n\n${t('common.errors')}:\n${result.errors.join('\n')}`
             }
-            openDialog({ type: 'info', title: 'Import Finalizat', message: msg, confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'info', title: t('common.import_finished'), message: msg, confirmText: 'OK', cancelText: null })
             fetchUsers()
             fetchStats()
         } catch (error) {
-            openDialog({ type: 'danger', title: 'Eroare Import', message: 'Eroare la import: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'danger', title: t('common.import_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
         } finally {
             setImporting(false)
             if (importInputRef.current) importInputRef.current.value = ''
@@ -435,9 +479,9 @@ export default function UsersManagement() {
                 <div>
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-3">
                         <Users className="w-8 h-8 text-blue-600" />
-                        Gestionare Angajați
+                        {t('users.title')}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Administrează conturile angajaților și vizualizează starea lor actuală</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">{t('users.subtitle')}</p>
                 </div>
             </div>
 
@@ -448,24 +492,24 @@ export default function UsersManagement() {
                   className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${statusFilter !== 'false' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                 >
                   <UserCheck className="w-4 h-4" />
-                  Angajați Activi
+                  {t('users.active_tab')}
                 </button>
                 <button 
                   onClick={() => { setStatusFilter('false'); setCurrentPage(PAGE_ID, 1) }}
                   className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${statusFilter === 'false' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                 >
                   <UserX className="w-4 h-4" />
-                  Arhivă (Inactivi)
+                  {t('users.archive_tab')}
                 </button>
             </div>
 
             {/* Stats Cards - Optional visibility based on preference or keep them small if needed, for now let's just keep the overall counts */}
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <StatCard label="Total Instalați" value={(stats.total_users || 0) + (stats.inactive_users || 0)} icon={Users} color="from-blue-500 to-indigo-600" />
-                    <StatCard label="Activi Acum" value={stats.total_users || 0} icon={UserCheck} color="from-emerald-500 to-green-600" />
-                    <StatCard label="Roluri" value={stats.users_by_role?.length || 0} icon={Key} color="from-violet-500 to-purple-600" />
-                    <StatCard label="În arhivă" value={stats.inactive_users || 0} icon={UserX} color="from-slate-500 to-slate-600" />
+                    <StatCard label={t('users.total_installed')} value={(stats.total_users || 0) + (stats.inactive_users || 0)} icon={Users} color="from-blue-500 to-indigo-600" />
+                    <StatCard label={t('users.active_now')} value={stats.total_users || 0} icon={UserCheck} color="from-emerald-500 to-green-600" />
+                    <StatCard label={t('users.roles')} value={stats.users_by_role?.length || 0} icon={Key} color="from-violet-500 to-purple-600" />
+                    <StatCard label={t('users.archived')} value={stats.inactive_users || 0} icon={UserX} color="from-slate-500 to-slate-600" />
                 </div>
             )}
 
@@ -478,7 +522,7 @@ export default function UsersManagement() {
                             type="text"
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                            placeholder="Caută după nume..."
+                            placeholder={t('users.search_placeholder')}
                             className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
                         />
                     </div>
@@ -488,7 +532,7 @@ export default function UsersManagement() {
                         onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
                         className="px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
                     >
-                        <option value="">Toate</option>
+                        <option value="">{t('common.all')}</option>
                         {roles.map(role => (
                             <option key={role.id} value={role.id}>{role.name}</option>
                         ))}
@@ -503,20 +547,20 @@ export default function UsersManagement() {
                 <div className="flex items-center gap-2 flex-wrap">
                     <input type="file" ref={importInputRef} accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
                     <button onClick={() => importInputRef.current?.click()} disabled={importing} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-                        {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />} Import
+                        {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />} {t('common.import')}
                     </button>
                     <button onClick={handleExportExcel} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-                        <FileDown className="w-4 h-4" /> Export
+                        <FileDown className="w-4 h-4" /> {t('common.export')}
                     </button>
 
                     {selectedUserIds.length > 0 && (
                         <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap">
-                            <Trash2 className="w-4 h-4" /> Șterge ({selectedUserIds.length})
+                            <Trash2 className="w-4 h-4" /> {t('common.delete')} ({selectedUserIds.length})
                         </button>
                     )}
 
                     <button onClick={handleAddUser} className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap">
-                        <Plus className="w-5 h-5" /> Adaugă
+                        <Plus className="w-5 h-5" /> {t('common.add')}
                     </button>
                 </div>
             </div>
@@ -528,7 +572,7 @@ export default function UsersManagement() {
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                     </div>
                 ) : preferences.viewMode === 'list' ? (
-                    <UsersTable users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} onToggleSelectAll={handleToggleSelectAll} />
+                    <UsersTable users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} onAssignSite={handleAssignSiteClick} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} onToggleSelectAll={handleToggleSelectAll} />
                 ) : (
                     <UsersGrid users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
                 )}
@@ -536,8 +580,8 @@ export default function UsersManagement() {
                 {!loading && users.length === 0 && (
                     <div className="text-center py-12">
                         <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-600 font-medium">Nu există angajați</p>
-                        <p className="text-sm text-slate-500 mt-1">Adaugă primul angajat pentru a începe</p>
+                        <p className="text-slate-600 font-medium">{t('users.no_users')}</p>
+                        <p className="text-sm text-slate-500 mt-1">{t('users.no_users_hint')}</p>
                     </div>
                 )}
             </div>
@@ -597,7 +641,7 @@ export default function UsersManagement() {
                                     </div>
                                     <div>
                                         <h2 className="text-xl font-bold text-white">
-                                            {editingUser ? 'Editează Angajat' : 'Adaugă Angajat Nou'}
+                                            {editingUser ? t('users_modal.edit_employee') : t('users_modal.add_employee')}
                                         </h2>
                                         {editingUser && (
                                             <p className="text-blue-100 text-sm">{editingUser.full_name} • {editingUser.employee_code}</p>
@@ -725,7 +769,7 @@ export default function UsersManagement() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">CNP</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">{t('users_modal.cnp')}</label>
                                     <input
                                         type="text"
                                         value={formData.cnp}
@@ -745,7 +789,7 @@ export default function UsersManagement() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Serie Buletin</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">{t('users_modal.id_serial')}</label>
                                     <input
                                         type="text"
                                         value={formData.id_card_series}
@@ -757,7 +801,7 @@ export default function UsersManagement() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Data Nașterii</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">{t('users_modal.birth_date')}</label>
                                     <input
                                         type="date"
                                         value={formData.birth_date}
@@ -767,7 +811,7 @@ export default function UsersManagement() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Loc Naștere</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">{t('users_modal.birth_place')}</label>
                                     <input
                                         type="text"
                                         value={formData.birth_place}
@@ -807,6 +851,23 @@ export default function UsersManagement() {
                                         onChange={e => setFormData({ ...formData, address: e.target.value })}
                                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
                                         placeholder="Strada, Număr, Oraș"
+                                    />
+                                </div>
+
+                                {/* Hourly Rate — admin only, confidential */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                        Tarif Orar (Lei/h)
+                                        <span className="ml-2 text-xs font-normal text-slate-400">confidential</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.5"
+                                        value={formData.hourly_rate}
+                                        onChange={e => setFormData({ ...formData, hourly_rate: e.target.value })}
+                                        className="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                        placeholder="ex: 25.00"
                                     />
                                 </div>
 
@@ -910,7 +971,7 @@ export default function UsersManagement() {
                                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50"
                             >
                                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                {editingUser ? 'Salvează' : 'Creează Angajat'}
+                                {editingUser ? t('users_modal.save') : t('users_modal.create')}
                             </button>
                         </div>
                     </div>
@@ -1074,6 +1135,52 @@ export default function UsersManagement() {
                 }}
             />
 
+            {/* =================== ASSIGN SITE MODAL =================== */}
+            {showAssignSiteModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowAssignSiteModal(false)}>
+                    <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-orange-500" />
+                                Atașează Șantier
+                            </h2>
+                            <button onClick={() => setShowAssignSiteModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                <X className="w-5 h-5 text-slate-600" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">Selectează Șantierul</label>
+                            <select
+                                value={assignSiteId}
+                                onChange={e => setAssignSiteId(e.target.value)}
+                                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                            >
+                                <option value="">Niciun șantier (Anulează atașarea)</option>
+                                {sites.map(site => (
+                                    <option key={site.id} value={site.id}>{site.name}</option>
+                                ))}
+                            </select>
+                            <p className="mt-3 text-xs text-slate-500">
+                                Angajatul va fi transferat direct pe acest șantier, ocolind necesitatea asocierii într-o Echipă dedicată.
+                            </p>
+                        </div>
+                        <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
+                            <button onClick={() => setShowAssignSiteModal(false)} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
+                                Anulează
+                            </button>
+                            <button
+                                onClick={handleSaveSiteAssignment}
+                                disabled={assigningSite}
+                                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-amber-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {assigningSite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                Salvează
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* =================== DELETE / ARCHIVE MODAL =================== */}
             {deleteModalData && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDeleteModalData(null)}>
@@ -1135,7 +1242,8 @@ function InfoField({ label, value, icon, fullWidth }) {
     )
 }
 
-function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onView, selectedUserIds, onToggleSelect, onToggleSelectAll }) {
+function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onView, onAssignSite, selectedUserIds, onToggleSelect, onToggleSelectAll }) {
+    const { t } = useTranslation()
     const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
     const allSelected = users.length > 0 && selectedUserIds.length === users.length
     return (
@@ -1146,11 +1254,11 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                         <th className="px-6 py-4 text-left w-12">
                             <input type="checkbox" checked={allSelected} onChange={onToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Angajat</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rol</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Acțiuni</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('users.employee_col')}</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('common.phone')}</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('common.role')}</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('common.status')}</th>
+                        <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('common.actions')}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -1193,20 +1301,28 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                 </div>
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/40 dark:to-indigo-900/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
-                                    {user.role_name}
-                                </span>
+                                <div className="flex flex-col items-start gap-1.5">
+                                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/40 dark:to-indigo-900/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                                        {user.role_name}
+                                    </span>
+                                    {user.site_name && (
+                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                            <MapPin className="w-3 h-3" />
+                                            <span className="truncate max-w-[120px]">{user.site_name}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </td>
                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                 {user.is_active ? (
                                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
                                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                        Activ
+                                        {t('common.active')}
                                     </span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600">
                                         <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
-                                        Inactiv
+                                        {t('common.inactive')}
                                     </span>
                                 )}
                             </td>
@@ -1215,7 +1331,10 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                     <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Vizualizează">
                                         <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                     </button>
-                                    <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title={user.is_active ? 'Dezactivează' : 'Activează'}>
+                                    <button onClick={() => onAssignSite(user)} className="p-2 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Atașează Șantier">
+                                        <MapPin className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                    </button>
+                                    <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title={user.is_active ? t('users.deactivate') : t('users.activate')}>
                                         {user.is_active ? <UserX className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                                     </button>
                                     <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-full border border-slate-200 dark:border-slate-600 transition-colors" title="Resetează PIN">
@@ -1238,6 +1357,7 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
 }
 
 function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView, selectedUserIds, onToggleSelect }) {
+    const { t } = useTranslation()
     const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
@@ -1269,12 +1389,12 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                         {user.is_active ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
                                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                                Activ
+                                {t('common.active')}
                             </span>
                         ) : (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
                                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                                Inactiv
+                                {t('common.inactive')}
                             </span>
                         )}
                     </div>
@@ -1302,7 +1422,7 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                             <Eye className="w-4 h-4 text-blue-600" />
                         </button>
                         <button onClick={() => onToggleActive(user.id, user.is_active)} className="flex-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors border border-slate-200">
-                            {user.is_active ? 'Dezactivează' : 'Activează'}
+                            {user.is_active ? t('users.deactivate') : t('users.activate')}
                         </button>
                         <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-lg transition-colors" title="Resetează PIN">
                             <Key className="w-4 h-4 text-violet-600" />

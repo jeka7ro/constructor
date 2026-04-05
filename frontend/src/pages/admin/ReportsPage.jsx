@@ -5,6 +5,7 @@ import {
     FileDown, Calendar, Users, Building2, Loader2, Download, Eye,
     BarChart3, Clock, TrendingUp, Activity, Filter, PieChart as PieChartIcon
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend
@@ -13,6 +14,7 @@ import {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
 export default function ReportsPage() {
+    const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
     const [preview, setPreview] = useState(null)
     const [employees, setEmployees] = useState([])
@@ -123,8 +125,8 @@ export default function ReportsPage() {
 
         // By site
         const siteMap = {}
-        ts.forEach(t => {
-            const name = t.site_name || 'Necunoscut'
+        ts.forEach(tNode => {
+            const name = tNode.site_name || t('reports.unknown')
             if (!siteMap[name]) siteMap[name] = { name, hours: 0, count: 0 }
             siteMap[name].hours += t.hours_worked || 0
             siteMap[name].count++
@@ -162,31 +164,31 @@ export default function ReportsPage() {
         <div className="p-8 min-h-screen">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">📊 Rapoarte</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Analize și statistici detaliate pentru pontaje</p>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('reports.title')}</h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('reports.subtitle')}</p>
             </div>
 
             {/* Filters Card */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Filter className="w-5 h-5 text-blue-500" />
-                    <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">Filtre Raport</h2>
+                    <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('reports.filters')}</h2>
                 </div>
 
                 {/* Quick Filters */}
                 <div className="flex gap-2 mb-5 flex-wrap">
                     {[
-                        { label: 'Ultimele 7 zile', fn: () => setQuickFilter(7) },
-                        { label: 'Ultimele 30 zile', fn: () => setQuickFilter(30) },
+                        { label: t('reports.last_7_days'), fn: () => setQuickFilter(7) },
+                        { label: t('reports.last_30_days'), fn: () => setQuickFilter(30) },
                         {
-                            label: 'Luna curentă', fn: () => {
+                            label: t('timesheets.period.month'), fn: () => {
                                 const t = new Date()
                                 setDateFrom(new Date(t.getFullYear(), t.getMonth(), 1).toISOString().split('T')[0])
                                 setDateTo(t.toISOString().split('T')[0])
                             }
                         },
                         {
-                            label: 'Luna trecută', fn: () => {
+                            label: t('reports.last_month'), fn: () => {
                                 const t = new Date()
                                 const first = new Date(t.getFullYear(), t.getMonth() - 1, 1)
                                 const last = new Date(t.getFullYear(), t.getMonth(), 0)
@@ -205,25 +207,25 @@ export default function ReportsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> De la data
+                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('reports.from_date')}
                         </label>
                         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
                             className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> Până la data
+                            <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('reports.to_date')}
                         </label>
                         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
                             className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                            <Users className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> Angajat
+                            <Users className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('users.employee_col')}
                         </label>
                         <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}
                             className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
-                            <option value="">Toți angajații</option>
+                            <option value="">{t('reports.all_employees')}</option>
                             {employees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>
                             ))}
@@ -231,11 +233,11 @@ export default function ReportsPage() {
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                            <Building2 className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> Șantier
+                            <Building2 className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('common.site')}
                         </label>
                         <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}
                             className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
-                            <option value="">Toate șantierele</option>
+                            <option value="">{t('reports.all_sites')}</option>
                             {sites.map(site => (
                                 <option key={site.id} value={site.id}>{site.name}</option>
                             ))}
@@ -248,12 +250,12 @@ export default function ReportsPage() {
                     <button onClick={handlePreview} disabled={loading}
                         className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50">
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-                        Generează Raport
+                        {t('reports.generate')}
                     </button>
                     <button onClick={handleDownloadExcel} disabled={loading || !preview}
                         className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                         <Download className="w-4 h-4" />
-                        Descarcă Excel
+                        {t('reports.download_excel')}
                     </button>
                 </div>
             </div>
@@ -262,26 +264,26 @@ export default function ReportsPage() {
             {loading && !preview ? (
                 <div className="flex flex-col items-center justify-center py-24 rounded-xl mb-6">
                     <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Se încarcă raportul...</h3>
-                    <p className="text-sm text-slate-500">Așteaptă puțin, prelucrăm pontajele din perioada selectată.</p>
+                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">{t('reports.loading')}</h3>
+                    <p className="text-sm text-slate-500">{t('reports.loading_desc')}</p>
                 </div>
             ) : !preview ? (
                 <div className="flex flex-col items-center justify-center py-24 rounded-xl mb-6">
                     <BarChart3 className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400 mb-2">Niciun raport generat</h3>
-                    <p className="text-sm text-slate-400">Alege perioada şi apăsă „Generează Raport”.</p>
+                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400 mb-2">{t('reports.no_report')}</h3>
+                    <p className="text-sm text-slate-400">{t('reports.no_report_desc')}</p>
                 </div>
             ) : preview && charts ? (
                 <>
                     {/* Summary Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-6">
-                        <SummaryCard label="Înregistrări" value={charts.summaryCards.totalRecords} icon={BarChart3} color="text-blue-600 bg-blue-50 border-blue-100" />
-                        <SummaryCard label="Total Ore" value={`${Math.round(charts.summaryCards.totalHours * 10) / 10}h`} icon={Clock} color="text-indigo-600 bg-indigo-50 border-indigo-100" />
-                        <SummaryCard label="Angajați" value={charts.summaryCards.uniqueEmployees} icon={Users} color="text-emerald-600 bg-emerald-50 border-emerald-100" />
-                        <SummaryCard label="Șantiere" value={charts.summaryCards.uniqueSites} icon={Building2} color="text-orange-600 bg-orange-50 border-orange-100" />
-                        <SummaryCard label="Zile" value={charts.summaryCards.uniqueDays} icon={Calendar} color="text-violet-600 bg-violet-50 border-violet-100" />
-                        <SummaryCard label="Medie / Angajat" value={`${Math.round(charts.summaryCards.avgHoursPerEmployee * 10) / 10}h`} icon={TrendingUp} color="text-sky-600 bg-sky-50 border-sky-100" />
-                        <SummaryCard label="Medie / Zi" value={`${Math.round(charts.summaryCards.avgHoursPerDay * 10) / 10}h`} icon={Activity} color="text-pink-600 bg-pink-50 border-pink-100" />
+                        <SummaryCard label={t('reports.kpi.records')} value={charts.summaryCards.totalRecords} icon={BarChart3} color="text-blue-600 bg-blue-50 border-blue-100" />
+                        <SummaryCard label={t('timesheets.kpi.hours_worked')} value={`${Math.round(charts.summaryCards.totalHours * 10) / 10}h`} icon={Clock} color="text-indigo-600 bg-indigo-50 border-indigo-100" />
+                        <SummaryCard label={t('reports.kpi.employees')} value={charts.summaryCards.uniqueEmployees} icon={Users} color="text-emerald-600 bg-emerald-50 border-emerald-100" />
+                        <SummaryCard label={t('reports.kpi.sites')} value={charts.summaryCards.uniqueSites} icon={Building2} color="text-orange-600 bg-orange-50 border-orange-100" />
+                        <SummaryCard label={t('reports.kpi.days')} value={charts.summaryCards.uniqueDays} icon={Calendar} color="text-violet-600 bg-violet-50 border-violet-100" />
+                        <SummaryCard label={t('reports.kpi.avg_employee')} value={`${Math.round(charts.summaryCards.avgHoursPerEmployee * 10) / 10}h`} icon={TrendingUp} color="text-sky-600 bg-sky-50 border-sky-100" />
+                        <SummaryCard label={t('reports.kpi.avg_day')} value={`${Math.round(charts.summaryCards.avgHoursPerDay * 10) / 10}h`} icon={Activity} color="text-pink-600 bg-pink-50 border-pink-100" />
                     </div>
 
                     {/* Charts */}
@@ -290,7 +292,7 @@ export default function ReportsPage() {
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-500" />
-                                Ore pe Angajat
+                                {t('reports.charts.hours_employee')}
                             </h3>
                             <div style={{ width: '100%', height: Math.max(200, charts.byEmployee.length * 36) }}>
                                 <ResponsiveContainer>
@@ -300,7 +302,7 @@ export default function ReportsPage() {
                                         <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#e2e8f0' }}
-                                            formatter={(value) => [`${Math.round(value * 10) / 10}h`, 'Ore']}
+                                            formatter={(value) => [`${Math.round(value * 10) / 10}h`, t('reports.charts.hours_unit')]}
                                         />
                                         <defs>
                                             <linearGradient id="empGrad" x1="0" y1="0" x2="1" y2="0">
@@ -318,7 +320,7 @@ export default function ReportsPage() {
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-emerald-500" />
-                                Ore pe Zi
+                                {t('reports.charts.hours_day')}
                             </h3>
                             <div style={{ width: '100%', height: 250 }}>
                                 <ResponsiveContainer>
@@ -328,7 +330,7 @@ export default function ReportsPage() {
                                         <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="h" />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#e2e8f0' }}
-                                            formatter={(value, name) => [name === 'hours' ? `${value}h` : value, name === 'hours' ? 'Ore' : 'Muncitori']}
+                                            formatter={(value, name) => [name === 'hours' ? `${value}h` : value, name === 'hours' ? t('reports.charts.hours') : t('reports.charts.workers')]}
                                         />
                                         <defs>
                                             <linearGradient id="dayGrad" x1="0" y1="0" x2="0" y2="1">
@@ -346,7 +348,7 @@ export default function ReportsPage() {
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <PieChartIcon className="w-4 h-4 text-orange-500" />
-                                Distribuție pe Șantiere
+                                {t('reports.charts.site_distribution')}
                             </h3>
                             <div style={{ width: '100%', height: 250 }}>
                                 <ResponsiveContainer>
@@ -376,7 +378,7 @@ export default function ReportsPage() {
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-violet-500" />
-                                Clasament Angajați
+                                {t('reports.charts.employee_ranking')}
                             </h3>
                             <div className="space-y-2 max-h-[250px] overflow-y-auto">
                                 {charts.byEmployee.map((emp, i) => {
@@ -411,9 +413,9 @@ export default function ReportsPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="flex items-center border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                             {[
-                                { key: 'timesheets', label: 'Detalii Pontaj', icon: Clock },
-                                { key: 'bySite', label: 'Pe Șantiere', icon: Building2 },
-                                { key: 'byEmployee', label: 'Pe Angajați', icon: Users },
+                                { key: 'timesheets', label: t('reports.tabs.timesheets'), icon: Clock },
+                                { key: 'bySite', label: t('reports.tabs.by_site'), icon: Building2 },
+                                { key: 'byEmployee', label: t('reports.tabs.by_employee'), icon: Users },
                             ].map(tab => (
                                 <button
                                     key={tab.key}
@@ -430,8 +432,8 @@ export default function ReportsPage() {
                             ))}
                             <div className="flex-1" />
                             <div className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">
-                                <span className="font-semibold">{preview.total}</span> înregistrări •
-                                <span className="font-semibold ml-1">{preview.total_hours}</span> ore
+                                <span className="font-semibold">{preview.total}</span> {t('reports.records')} •
+                                <span className="font-semibold ml-1">{preview.total_hours}</span> {t('reports.charts.hours_unit')}
                             </div>
                         </div>
 
@@ -440,14 +442,14 @@ export default function ReportsPage() {
                                 <table className="w-full">
                                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Data</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Cod</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Rol</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Intrare</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Ieșire</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Ore</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.date')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.employee_col')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.code')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.role')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.site')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.check_in')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.check_out')}</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.hours')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -474,10 +476,10 @@ export default function ReportsPage() {
                                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                                         <tr>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Pontaje</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Ore</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Medie/Pontaj</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Grafic</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.timesheets')}</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.total_hours')}</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.avg_timesheet')}</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.chart')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -514,9 +516,9 @@ export default function ReportsPage() {
                                         <tr>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">#</th>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Zile lucrate</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.days_worked')}</th>
                                             <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Ore</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Medie/Zi</th>
+                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.avg_day')}</th>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Grafic</th>
                                         </tr>
                                     </thead>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
+import { useTranslation } from 'react-i18next'
 import {
     Plus, Edit2, Trash2, Loader2, Activity as ActivityIcon,
     CheckCircle, XCircle, ChevronDown, ChevronRight, Palette,
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react'
 
 export default function ActivitiesManagement() {
+    const { t } = useTranslation()
     const { openDialog } = useUIStore()
     const [categories, setCategories] = useState([])
     const [flatActivities, setFlatActivities] = useState([])
@@ -115,7 +117,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving category:', error)
-            openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la salvare categorie', confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'danger', title: t('common.error'), message: error.response?.data?.detail || t('activities.errors.save_category'), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -128,16 +130,16 @@ export default function ActivitiesManagement() {
     const handleDeleteCategory = async (catId) => {
         openDialog({
             type: 'danger',
-            title: 'Șterge Categorie',
-            message: 'Ștergi această categorie? Activitățile vor fi mutate la "Necategorizate".',
-            confirmText: 'Șterge',
+            title: t('activities.delete.category_title'),
+            message: t('activities.delete.category_message'),
+            confirmText: t('common.delete'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/activity-categories/${catId}`)
                     fetchData()
                 } catch (error) {
                     console.error('Error deleting category:', error)
-                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la ștergere categorie', confirmText: 'OK', cancelText: null })
+                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_category'), confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -165,7 +167,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving activity:', error)
-            openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la salvare activitate', confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.save_activity'), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -195,8 +197,8 @@ export default function ActivitiesManagement() {
     const handleDeleteActivity = async (id) => {
         openDialog({
             type: 'danger',
-            title: 'Șterge Activitate',
-            message: 'Ștergi această activitate? Dacă are pontaje asociate va fi dezactivată automat.',
+            title: t('activities.delete.activity_title'),
+            message: t('activities.delete.activity_message'),
             confirmText: 'Șterge',
             onConfirm: async () => {
                 try {
@@ -204,8 +206,8 @@ export default function ActivitiesManagement() {
                     if (response.data?.message?.includes('deactivated')) {
                         openDialog({
                             type: 'info',
-                            title: 'Activitate Dezactivată',
-                            message: 'Activitatea a fost DEZACTIVATĂ deoarece există pontaje care o folosesc. Nu mai este vizibilă pe șantier dar istoricul rămâne intact.',
+                            title: t('activities.deactivated.title'),
+                            message: t('activities.deactivated.message'),
                             confirmText: 'OK',
                             cancelText: null
                         })
@@ -213,7 +215,7 @@ export default function ActivitiesManagement() {
                     fetchData()
                 } catch (error) {
                     console.error('Error deleting activity:', error)
-                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || 'Eroare la ștergere', confirmText: 'OK', cancelText: null })
+                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_activity'), confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -244,8 +246,8 @@ export default function ActivitiesManagement() {
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">📋 Catalog Activități</h1>
-                    <p className="text-slate-600">Gestionează categoriile și activitățile disponibile pentru pontaje</p>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('activities.title')}</h1>
+                    <p className="text-slate-600">{t('activities.subtitle')}</p>
                 </div>
             </div>
 
@@ -257,7 +259,7 @@ export default function ActivitiesManagement() {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Caută categorie, activitate sau descriere..."
+                            placeholder={t('activities.search_placeholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-11 pr-4 py-3 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-2xl shadow-sm text-sm transition-all focus:bg-white placeholder:text-slate-400"
@@ -279,13 +281,13 @@ export default function ActivitiesManagement() {
                                     link.remove()
                                     window.URL.revokeObjectURL(url)
                                 } catch (error) {
-                                    openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
+                                    openDialog({ type: 'danger', title: t('common.export_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                                 }
                             }}
                             className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
                         >
                             <FileDown className="w-5 h-5" />
-                            Export
+                            {t('common.export')}
                         </button>
                         <button
                             onClick={() => {
@@ -296,14 +298,14 @@ export default function ActivitiesManagement() {
                             className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
                         >
                             <FolderPlus className="w-5 h-5" />
-                            Categorie Nouă
+                            {t('activities.new_category')}
                         </button>
                         <button
                             onClick={() => handleAddActivityToCategory('')}
                             className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold transition-all shadow-lg shadow-blue-600/30 flex-1 lg:flex-none text-sm"
                         >
                             <Plus className="w-5 h-5" />
-                            Activitate Nouă
+                            {t('activities.new_activity')}
                         </button>
                     </div>
                 </div>
@@ -311,10 +313,10 @@ export default function ActivitiesManagement() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <StatsCard label="Categorii" value={categoryList.length} icon={Layers} color="from-violet-500 to-violet-600" />
-                <StatsCard label="Total Activități" value={totalActivities} icon={ActivityIcon} color="from-blue-500 to-blue-600" />
-                <StatsCard label="Active" value={activeCount} icon={CheckCircle} color="from-green-500 to-green-600" />
-                <StatsCard label="Inactive" value={inactiveCount} icon={XCircle} color="from-slate-500 to-slate-600" />
+                <StatsCard label={t('activities.categories')} value={categoryList.length} icon={Layers} color="from-violet-500 to-violet-600" />
+                <StatsCard label={t('activities.total_activities')} value={totalActivities} icon={ActivityIcon} color="from-blue-500 to-blue-600" />
+                <StatsCard label={t('activities.active_count')} value={activeCount} icon={CheckCircle} color="from-green-500 to-green-600" />
+                <StatsCard label={t('activities.inactive_count')} value={inactiveCount} icon={XCircle} color="from-slate-500 to-slate-600" />
             </div>
 
             {/* Categories + Activities */}
@@ -368,14 +370,14 @@ export default function ActivitiesManagement() {
                                         />
                                         <h3 className="text-lg font-bold text-slate-900">{cat.name}</h3>
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                                            {cat.activities.length} activități
+                                            {cat.activities.length} {t('dashboard.activities')}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             onClick={() => handleAddActivityToCategory(cat.id)}
                                             className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Adaugă activitate în această categorie"
+                                            title={t('activities.add_cat_activity')}
                                         >
                                             <Plus className="w-4 h-4 text-blue-600" />
                                         </button>
@@ -384,7 +386,7 @@ export default function ActivitiesManagement() {
                                                 <button
                                                     onClick={() => handleEditCategory(cat)}
                                                     className="p-2 hover:bg-violet-50 rounded-lg transition-colors"
-                                                    title="Editează categoria"
+                                                    title={t('common.edit_category')}
                                                 >
                                                     <Edit2 className="w-4 h-4 text-violet-600" />
                                                 </button>
@@ -405,18 +407,18 @@ export default function ActivitiesManagement() {
                                     <div className="border-t border-slate-200">
                                         {filteredActivities.length === 0 ? (
                                             <div className="px-6 py-8 text-center text-slate-400 text-sm">
-                                                Nicio activitate potrivită în această categorie.
+                                                {t('activities.no_match')}
                                             </div>
                                         ) : (
                                             <table className="w-full">
                                                 <thead className="bg-slate-50/70">
                                                     <tr>
-                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Activitate</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Descriere</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">U.M.</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Reguli</th>
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Acțiuni</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('dashboard.activities')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.description')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('activities.unit_measure')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('activities.rules')}</th>
+                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.status')}</th>
+                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
@@ -442,12 +444,12 @@ export default function ActivitiesManagement() {
                                                                 {activity.is_active ? (
                                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700">
                                                                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                                                                        Activ
+                                                                        {t('common.active')}
                                                                     </span>
                                                                 ) : (
                                                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">
                                                                         <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                                                                        Inactiv
+                                                                        {t('common.inactive')}
                                                                     </span>
                                                                 )}
                                                             </td>
@@ -456,14 +458,14 @@ export default function ActivitiesManagement() {
                                                                     <button
                                                                         onClick={() => handleEditActivity(activity)}
                                                                         className="p-1.5 hover:bg-blue-50 rounded-full border border-slate-200 transition-colors"
-                                                                        title="Editează"
+                                                                        title={t('common.edit')}
                                                                     >
                                                                         <Edit2 className="w-3.5 h-3.5 text-blue-600" />
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleToggleActive(activity.id, activity.is_active)}
                                                                         className="p-1.5 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors"
-                                                                        title={activity.is_active ? 'Dezactivează' : 'Activează'}
+                                                                        title={activity.is_active ? t('users.deactivate') : t('users.activate')}
                                                                     >
                                                                         {activity.is_active ? (
                                                                             <XCircle className="w-3.5 h-3.5 text-slate-500" />
@@ -494,8 +496,8 @@ export default function ActivitiesManagement() {
                     {categories.length === 0 && !loading && (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
                             <Layers className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-slate-700 mb-2">Nicio categorie încă</h3>
-                            <p className="text-slate-500 mb-6">Creează prima categorie de activități pentru a organiza catalogul.</p>
+                            <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('activities.no_categories')}</h3>
+                            <p className="text-slate-500 mb-6">{t('activities.no_categories_hint')}</p>
                             <button
                                 onClick={() => {
                                     setEditingCategory(null)
@@ -505,7 +507,7 @@ export default function ActivitiesManagement() {
                                 className="inline-flex items-center gap-2 px-5 py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold transition-colors"
                             >
                                 <FolderPlus className="w-5 h-5" />
-                                Creează Categorie
+                                {t('activities.create_category')}
                             </button>
                         </div>
                     )}
@@ -517,22 +519,22 @@ export default function ActivitiesManagement() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
                         <h2 className="text-xl font-bold text-slate-900 mb-6">
-                            {editingCategory ? 'Editează Categorie' : 'Categorie Nouă'}
+                            {editingCategory ? t('activities.edit_category') : t('activities.new_category')}
                         </h2>
                         <form onSubmit={handleSaveCategory} className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Nume Categorie</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.category_name')}</label>
                                 <input
                                     type="text"
                                     value={categoryForm.name}
                                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
                                     className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                                    placeholder="ex: Structura metalică"
+                                    placeholder={t('activities.placeholders.name')}
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Culoare</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">{t('activities.color')}</label>
                                 <div className="flex items-center gap-3 mb-3">
                                     <div
                                         className="w-10 h-10 rounded-xl border-2 border-slate-200"
@@ -559,7 +561,7 @@ export default function ActivitiesManagement() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Ordine Sortare</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.sort_order')}</label>
                                 <input
                                     type="number"
                                     value={categoryForm.sort_order}
@@ -572,7 +574,7 @@ export default function ActivitiesManagement() {
                                     type="submit"
                                     className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all"
                                 >
-                                    {editingCategory ? 'Salvează' : 'Creează'}
+                                    {editingCategory ? t('common.save') : t('teams.create')}
                                 </button>
                                 <button
                                     type="button"
@@ -592,17 +594,17 @@ export default function ActivitiesManagement() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-bold text-slate-900 mb-6">
-                            {editingActivity ? 'Editează Activitate' : 'Activitate Nouă'}
+                            {editingActivity ? t('activities.edit_activity') : t('activities.new_activity')}
                         </h2>
                         <form onSubmit={handleSaveActivity} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Categorie</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.categories')}</label>
                                 <select
                                     value={activityForm.category_id}
                                     onChange={(e) => setActivityForm({ ...activityForm, category_id: e.target.value })}
                                     className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
-                                    <option value="">— Fără categorie —</option>
+                                    <option value="">{t('activities.no_category')}</option>
                                     {categoryList.map(cat => (
                                         <option key={cat.id} value={cat.id}>
                                             {cat.name}
@@ -611,7 +613,7 @@ export default function ActivitiesManagement() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Nume Activitate</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.activity_name')}</label>
                                 <input
                                     type="text"
                                     value={activityForm.name}
@@ -622,33 +624,33 @@ export default function ActivitiesManagement() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Descriere (opțional)</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.description_optional')}</label>
                                 <textarea
                                     value={activityForm.description}
                                     onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
                                     className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Descriere detaliată a activității..."
+                                    placeholder={`${t('activities.placeholders.desc')}...`}
                                     rows={2}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Unitate Măsură</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.unit_measure')}</label>
                                     <select
                                         value={activityForm.unit_type}
                                         onChange={(e) => setActivityForm({ ...activityForm, unit_type: e.target.value })}
                                         className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     >
-                                        <option value="buc">buc (bucăți)</option>
+                                        <option value="buc">{t('activities.units.buc')}</option>
                                         <option value="ore">ore</option>
                                         <option value="m">m (metri)</option>
-                                        <option value="m²">m² (metri pătrați)</option>
+                                        <option value="m²">{t('activities.units.sqm')}</option>
                                         <option value="buc/set">buc/set</option>
                                         <option value="kg">kg (kilograme)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Ordine Sortare</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.sort_order')}</label>
                                     <input
                                         type="number"
                                         value={activityForm.sort_order}
@@ -658,7 +660,7 @@ export default function ActivitiesManagement() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Reguli Cantitate (opțional)</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.quantity_rules')}</label>
                                 <input
                                     type="text"
                                     value={activityForm.quantity_rules}
@@ -674,14 +676,14 @@ export default function ActivitiesManagement() {
                                     onChange={(e) => setActivityForm({ ...activityForm, is_active: e.target.checked })}
                                     className="w-4 h-4 rounded border-slate-300 text-blue-600"
                                 />
-                                <label className="text-sm font-medium text-slate-700">Activitate activă</label>
+                                <label className="text-sm font-medium text-slate-700">{t('activities.is_active_label')}</label>
                             </div>
                             <div className="flex items-center gap-3 pt-3">
                                 <button
                                     type="submit"
                                     className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium transition-all"
                                 >
-                                    {editingActivity ? 'Salvează' : 'Adaugă'}
+                                    {editingActivity ? t('common.save') : t('common.add')}
                                 </button>
                                 <button
                                     type="button"

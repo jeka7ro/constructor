@@ -2,10 +2,12 @@ import { useState, useRef } from 'react'
 import { Save, Building2, Clock, Bell, Globe, Upload, Image, X } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
+import { useTranslation } from 'react-i18next'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SettingsPage() {
+    const { t } = useTranslation()
     const { openDialog } = useUIStore()
     const [settings, setSettings] = useState({
         // Organization

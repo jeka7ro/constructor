@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../store/authStore'
 import { Clock, Calendar, Users, Settings, TrendingUp, MapPin, Briefcase, ArrowRight, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 
 export default function Dashboard() {
+    const { t } = useTranslation()
     const { user, logout } = useAuthStore()
     const navigate = useNavigate()
 
@@ -37,14 +39,14 @@ export default function Dashboard() {
         {
             icon: MapPin,
             title: 'Clock In/Out',
-            description: 'Pontează cu GPS',
+            description: t('dashboard.clock_in_gps'),
             gradient: 'from-green-500 to-emerald-600',
             href: '/clock-in'
         },
         {
             icon: Clock,
             title: 'Pontaj Azi',
-            description: 'Completează pontajul zilnic',
+            description: t('dashboard.complete_daily'),
             gradient: 'from-blue-500 to-blue-600',
             href: '/today'
         },
@@ -58,13 +60,13 @@ export default function Dashboard() {
         {
             icon: Users,
             title: 'Echipa',
-            description: 'Gestionează echipa ta',
+            description: t('dashboard.manage_team'),
             gradient: 'from-violet-500 to-violet-600',
             href: '/team'
         },
         {
             icon: Settings,
-            title: 'Setări',
+            title: t('dashboard.settings'),
             description: 'Configurare cont',
             gradient: 'from-slate-500 to-slate-600',
             href: '/settings'
@@ -114,7 +116,7 @@ export default function Dashboard() {
                         Bună, {user?.full_name?.split(' ')[0]}! 👋
                     </h2>
                     <p className="text-slate-600">
-                        Bine ai venit înapoi. Iată ce se întâmplă astăzi.
+                        {t('dashboard.welcome_back')}
                     </p>
                 </div>
 
@@ -122,23 +124,23 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 slide-up stagger-1">
                     <StatCard
                         icon={<TrendingUp className="w-6 h-6" />}
-                        label="Ore Luna Curentă"
+                        label={t('dashboard.hours_this_month')}
                         value="160h"
-                        change="+12h vs luna trecută"
+                        change={t('dashboard.change_last_month')}
                         positive
                     />
                     <StatCard
                         icon={<Calendar className="w-6 h-6" />}
                         label="Zile Lucrate"
                         value="20"
-                        change="+2 săptămâna asta"
+                        change={t('dashboard.change_this_week')}
                         positive
                     />
                     <StatCard
                         icon={<MapPin className="w-6 h-6" />}
                         label="Șantiere Active"
                         value="3"
-                        change="Toate în desfășurare"
+                        change={t('dashboard.all_in_progress')}
                     />
                 </div>
 

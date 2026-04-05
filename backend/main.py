@@ -11,7 +11,7 @@ from pathlib import Path
 load_dotenv()
 
 # Import routers
-from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams
+from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles
 
 import threading
 
@@ -128,6 +128,7 @@ app.include_router(teams.router, prefix="/api", tags=["teams"])
 app.include_router(sites.router, prefix="/api", tags=["sites"])
 app.include_router(site_photos.router, prefix="/api", tags=["site-photos"])
 app.include_router(admin_teams.router, prefix="/api", tags=["admin-teams"])
+app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
 
 # Serve uploaded files (ID cards, etc.)
 uploads_dir = Path(__file__).parent / "uploads"
