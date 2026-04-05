@@ -138,7 +138,7 @@ export default function TimesheetsPage() {
 
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-slate-500">
-                                    {ts.activities_count} {ts.activities_count === 1 ? 'activitate' : '{t('activities.title').toLowerCase()}'}
+                                    {ts.activities_count} {ts.activities_count === 1 ? 'activitate' : t('activities.title').toLowerCase()}
                                 </span>
                                 {ts.status === 'DRAFT' && (
                                     <span className="text-blue-600 font-medium">

@@ -140,7 +140,7 @@ export default function TimesheetForm() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                        {isEdit ? isEdit ? `✏️ ${t('timesheets.edit_timesheet')}` : `📝 ${t('timesheets.new_timesheet')}`}
+                        {isEdit ? `✏️ ${t('timesheets.edit_timesheet')}` : `📝 ${t('timesheets.new_timesheet')}`}
                     </h1>
                     <p className="text-slate-600">{t('timesheets.complete_details')}</p>
                 </div>

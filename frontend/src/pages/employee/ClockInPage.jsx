@@ -890,10 +890,10 @@ export default function ClockInPage() {
                             <div className={`bg-white rounded-2xl shadow-lg p-6 text-center ${activeShift.is_outside_geofence ? 'opacity-60' : ''}`}>
                                 <div className="text-sm text-slate-600 mb-2">
                                     {activeShift.is_outside_geofence
-                                        ? '🚫 {t('timesheets.timer_stopped_outside')}'
+                                        ? `🚫 ${t('timesheets.timer_stopped_outside')}`
                                         : activeShift.is_on_break
-                                            ? '⏸ {t('timesheets.timer_stopped_break')}'
-                                            : '⏱ {t('timesheets.time_worked')}'
+                                            ? `⏸ ${t('timesheets.timer_stopped_break')}`
+                                            : `⏱ ${t('timesheets.time_worked')}`
                                     }
                                 </div>
                                 <div className={`text-4xl font-bold mb-1 ${activeShift.is_outside_geofence ? 'text-red-500'
