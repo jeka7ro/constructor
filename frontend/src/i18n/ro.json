@@ -539,7 +539,38 @@
     "recorded_activities": "Activități înregistrate:",
     "select": "Selectează activitate",
     "no_activities_added_hint": "Nu ai adăugat activități. Apasă butonul de mai sus pentru a adăuga.",
+    "subtitle": "Gestionează nomenclatorul de activități și norme de lucru",
+    "total_activities": "Total Activități",
+    "active_count": "Active",
+    "inactive_count": "Inactive",
+    "new_category": "Categorie Nouă",
     "new_activity": "Activitate Nouă",
+    "rules": "Normă / Reguli",
+    "add_cat_activity": "Adaugă activitate în categorie",
+    "no_match": "Nu s-a găsit nicio activitate care să corespundă",
+    "no_categories": "Nicio categorie definită",
+    "no_categories_hint": "Definește o categorie pentru a putea grupa activitățile",
+    "create_category": "Creează Categorie",
+    "edit_category": "Editează Categorie",
+    "category_name": "Nume Categorie",
+    "color": "Culoare",
+    "edit_activity": "Editează Activitate",
+    "delete": {
+      "category_title": "Șterge Categoria",
+      "category_message": "Sigur dorești să ștergi categoria? Această acțiune va șterge și activitățile asociate.",
+      "activity_title": "Șterge Activitatea",
+      "activity_message": "Sigur dorești să ștergi exclusiv această activitate?"
+    },
+    "deactivated": {
+      "title": "Activitate Inactivă",
+      "message": "Activitatea a fost marcată ca inactivă."
+    },
+    "errors": {
+      "save_category": "Eroare salvare categorie",
+      "delete_category": "Eroare ștergere categorie",
+      "save_activity": "Eroare salvare activitate",
+      "delete_activity": "Eroare ștergere activitate"
+    },
     "categories": "Categorii",
     "no_category": "Fără categorie",
     "description_optional": "Descriere (opțional)",

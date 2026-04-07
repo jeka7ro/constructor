@@ -23,6 +23,7 @@ export default function AdminOverview() {
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
     const [loading, setLoading] = useState(true)
     const [activeWorkers, setActiveWorkers] = useState([])
+    const [fleetAlerts, setFleetAlerts] = useState([])
     const [workersLoading, setWorkersLoading] = useState(true)
     const [lastRefresh, setLastRefresh] = useState(null)
     const refreshTimer = useRef(null)
@@ -63,11 +64,13 @@ export default function AdminOverview() {
     }
 
     useEffect(() => {
-        Promise.all([fetchStats(), fetchChartData(), fetchActiveWorkers()])
+        Promise.all([fetchStats(), fetchChartData(), fetchActiveWorkers(), fetchFleetAlerts()])
         refreshTimer.current = setInterval(() => {
+            fetchStats()
             fetchActiveWorkers()
             fetchChartData()
-        }, 30000)
+            fetchFleetAlerts()
+        }, 15000)
         return () => clearInterval(refreshTimer.current)
     }, [])
 
@@ -90,6 +93,13 @@ export default function AdminOverview() {
         try {
             const res = await api.get('/admin/dashboard-stats')
             setChartData(res.data)
+        } catch (e) { console.error(e) }
+    }
+
+    const fetchFleetAlerts = async () => {
+        try {
+            const res = await api.get('/admin/vehicles/expiring-documents')
+            setFleetAlerts(res.data)
         } catch (e) { console.error(e) }
     }
 
@@ -393,7 +403,34 @@ export default function AdminOverview() {
                 </div>
 
                 {/* Alerts + Production — single card, two sections */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col gap-5">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col gap-5 max-h-[500px] overflow-y-auto custom-scrollbar">
+                    
+                    {/* Fleet Expiry Alerts */}
+                    {fleetAlerts.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                Alerte Flotă (Documente)
+                            </h3>
+                            <div className="space-y-2">
+                                {fleetAlerts.map((a, i) => (
+                                    <div key={i} className={`flex flex-col gap-1 text-sm bg-${a.status === 'expired' ? 'red' : 'orange'}-50 dark:bg-slate-800 p-2.5 rounded-lg border border-${a.status === 'expired' ? 'red' : 'orange'}-200 dark:border-slate-700`}>
+                                        <div className="flex justify-between items-start">
+                                            <span className="font-bold text-slate-800 dark:text-white truncate" title={a.document_name}>{a.document_name}</span>
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${a.status === 'expired' ? 'bg-red-200 text-red-700' : 'bg-orange-200 text-orange-700'}`}>
+                                                {a.status === 'expired' ? 'Expirat' : `Expiră în ${a.days_left} zile`}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                            {a.vehicle_name} ({a.registration})
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {(lateArrivals.length > 0 || (chartData.activities || []).length > 0) && <div className="border-t border-slate-100 dark:border-slate-700 mt-4" />}
+                        </div>
+                    )}
+
                     {/* Late Arrivals */}
                     {lateArrivals.length > 0 && (
                         <div>
@@ -434,7 +471,7 @@ export default function AdminOverview() {
                                 ))}
                             </div>
                         </div>
-                    ) : lateArrivals.length === 0 && (
+                    ) : lateArrivals.length === 0 && fleetAlerts.length === 0 && (
                         <div className="flex items-center justify-center flex-1 text-center">
                             <div>
                                 <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />

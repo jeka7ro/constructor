@@ -64,6 +64,8 @@ class SiteCreate(BaseModel):
     # Work schedule
     work_start_time: Optional[str] = "07:00"   # HH:MM format
     work_end_time: Optional[str] = "16:00"     # HH:MM format
+    lunch_break_start: Optional[str] = "12:00"
+    lunch_break_end: Optional[str] = "13:00"
     max_overtime_minutes: Optional[int] = Field(120, ge=0, le=480)
 
 
@@ -89,6 +91,8 @@ class SiteUpdate(BaseModel):
     # Work schedule
     work_start_time: Optional[str] = None   # HH:MM format
     work_end_time: Optional[str] = None     # HH:MM format
+    lunch_break_start: Optional[str] = None
+    lunch_break_end: Optional[str] = None
     max_overtime_minutes: Optional[int] = Field(None, ge=0, le=480)
 
 
@@ -129,6 +133,8 @@ def site_to_dict(site, db=None) -> dict:
         "installation_type": site.installation_type,
         "work_start_time": site.work_start_time.strftime('%H:%M') if site.work_start_time else "07:00",
         "work_end_time": site.work_end_time.strftime('%H:%M') if site.work_end_time else "16:00",
+        "lunch_break_start": site.lunch_break_start.strftime('%H:%M') if site.lunch_break_start else "12:00",
+        "lunch_break_end": site.lunch_break_end.strftime('%H:%M') if site.lunch_break_end else "13:00",
         "max_overtime_minutes": site.max_overtime_minutes if site.max_overtime_minutes is not None else 120,
         "assigned_workers": assigned_workers,
         "assigned_worker_ids": list(direct_ids.union(team_ids_set)) if db else [],
@@ -269,6 +275,8 @@ def create_site(
         installation_type=site_data.installation_type,
         work_start_time=time.fromisoformat(site_data.work_start_time) if site_data.work_start_time else time(7, 0),
         work_end_time=time.fromisoformat(site_data.work_end_time) if site_data.work_end_time else time(16, 0),
+        lunch_break_start=time.fromisoformat(site_data.lunch_break_start) if site_data.lunch_break_start else time(12, 0),
+        lunch_break_end=time.fromisoformat(site_data.lunch_break_end) if site_data.lunch_break_end else time(13, 0),
         max_overtime_minutes=site_data.max_overtime_minutes if site_data.max_overtime_minutes is not None else 120
     )
     
@@ -349,6 +357,10 @@ def update_site(
         site.work_start_time = time.fromisoformat(site_data.work_start_time)
     if site_data.work_end_time is not None:
         site.work_end_time = time.fromisoformat(site_data.work_end_time)
+    if site_data.lunch_break_start is not None:
+        site.lunch_break_start = time.fromisoformat(site_data.lunch_break_start)
+    if site_data.lunch_break_end is not None:
+        site.lunch_break_end = time.fromisoformat(site_data.lunch_break_end)
     if site_data.max_overtime_minutes is not None:
         site.max_overtime_minutes = site_data.max_overtime_minutes
     

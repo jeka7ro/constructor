@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
-import { Loader2, X, Plus, Edit2, Trash2, Building2, Users } from 'lucide-react'
+import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink } from 'lucide-react'
 
 const VEHICLE_TYPES = ['car', 'van', 'truck', 'excavator', 'grader', 'compactor', 'pile_driver', 'concrete_mixer', 'tractor_trailer', 'forklift', 'telehandler', 'cherry_picker', 'crane_truck', 'crane', 'pickup_4x4', 'mobile_workshop', 'generator', 'other']
 const VEHICLE_STATUSES = ['active', 'service', 'inactive']
@@ -20,6 +20,7 @@ export default function FleetManagement() {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [success, setSuccess] = useState(null)
 
 
     // Modal state
@@ -30,12 +31,43 @@ export default function FleetManagement() {
 
     // Form state
     const [form, setForm] = useState({
-        name: '', plate_number: '', type: 'van', year: new Date().getFullYear(), status: 'active', notes: ''
+        name: '', plate_number: '', chassis_number: '', type: 'van', year: new Date().getFullYear(), status: 'active', notes: ''
     })
     const [selectedSiteIds, setSelectedSiteIds] = useState([])
     const [selectedUserIds, setSelectedUserIds] = useState([])
     const [siteSearch, setSiteSearch] = useState('')
     const [userSearch, setUserSearch] = useState('')
+    const [mainTab, setMainTab] = useState('cars') // 'cars' | 'equipment'
+    const CAR_TYPES = ['car', 'van', 'pickup_4x4', 'truck']
+    const [showLogModal, setShowLogModal] = useState(false)
+    const [logEquipment, setLogEquipment] = useState(null)
+    const [logForm, setLogForm] = useState({ date: new Date().toISOString().split('T')[0], site_id: '', operator_id: '', is_used: true, refueled: false, refuel_liters: '', notes: '' })
+    
+    // Document upload modal
+    const [showDocModal, setShowDocModal] = useState(false)
+    const [docFile, setDocFile] = useState(null)
+    const [docForm, setDocForm] = useState({ name: '', expiry_date: '' })
+    const [uploadingDoc, setUploadingDoc] = useState(false)
+
+    // Fleet report
+    const [reportData, setReportData] = useState([])
+    const [reportLoading, setReportLoading] = useState(false)
+    const [reportDateFrom, setReportDateFrom] = useState(() => {
+        const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]
+    })
+    const [reportDateTo, setReportDateTo] = useState(() => new Date().toISOString().split('T')[0])
+
+    const fetchReport = useCallback(async () => {
+        setReportLoading(true)
+        try {
+            const res = await api.get('/admin/vehicles/fleet-report', { params: { date_from: reportDateFrom, date_to: reportDateTo } })
+            setReportData(res.data || [])
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setReportLoading(false)
+        }
+    }, [reportDateFrom, reportDateTo])
 
     const filteredSites = sites.filter(s => (s.name || '').toLowerCase().includes(siteSearch.toLowerCase()) || (s.county || '').toLowerCase().includes(siteSearch.toLowerCase()))
     
@@ -57,6 +89,7 @@ export default function FleetManagement() {
         return `${u.first_name} ${u.last_name} ${u.employee_code}`.toLowerCase().includes(userSearch.toLowerCase());
     })
     const [deleteTarget, setDeleteTarget] = useState(null)
+    const [previewDoc, setPreviewDoc] = useState(null)
 
     const fetchAll = useCallback(async () => {
         setLoading(true)
@@ -81,19 +114,19 @@ export default function FleetManagement() {
 
     const openAdd = () => {
         setEditingVehicle(null)
-        setForm({ name: '', plate_number: '', type: 'van', year: new Date().getFullYear(), status: 'active', notes: '' })
+        setForm({ name: '', plate_number: '', chassis_number: '', type: mainTab === 'cars' ? 'van' : 'excavator', year: new Date().getFullYear(), status: 'active', notes: '' })
         setSelectedSiteIds([])
         setSelectedUserIds([])
         setActiveTab('info')
         setShowModal(true)
     }
 
-    const openEdit = (v) => {
+    const openEdit = (v, initialTab = 'info') => {
         setEditingVehicle(v)
-        setForm({ name: v.name, plate_number: v.plate_number || '', type: v.type || 'van', year: v.year || new Date().getFullYear(), status: v.status || 'active', notes: v.notes || '' })
+        setForm({ name: v.name, plate_number: v.plate_number || '', chassis_number: v.chassis_number || '', type: v.type || 'van', year: v.year || new Date().getFullYear(), status: v.status || 'active', notes: v.notes || '' })
         setSelectedSiteIds((v.site_ids || []))
         setSelectedUserIds((v.user_ids || []))
-        setActiveTab('info')
+        setActiveTab(initialTab)
         setShowModal(true)
     }
 
@@ -129,13 +162,60 @@ export default function FleetManagement() {
         setList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
     }
 
+    const handleSaveLog = async () => {
+        try {
+            await api.post(`/admin/vehicles/equipment-logs`, {
+                vehicle_id: logEquipment.id,
+                site_id: logForm.site_id || null,
+                operator_id: logForm.operator_id || null,
+                date: logForm.date,
+                is_used: logForm.is_used,
+                refueled: logForm.refueled,
+                refuel_liters: logForm.refueled ? parseFloat(logForm.refuel_liters || 0) : 0,
+                notes: logForm.notes
+            })
+            setShowLogModal(false)
+            setLogEquipment(null)
+            fetchAll()
+        } catch (e) {
+            setError('Eroare salvare pontaj utilaj: ' + (e.response?.data?.detail || e.message))
+        }
+    }
+
+    const handleUploadDoc = async () => {
+        if (!docFile || !editingVehicle) return
+        setUploadingDoc(true)
+        const fd = new FormData()
+        fd.append('file', docFile)
+        if (docForm.name) fd.append('custom_name', docForm.name)
+        if (docForm.expiry_date) fd.append('expiry_date', docForm.expiry_date)
+
+        try {
+            const res = await api.post(`/admin/vehicles/${editingVehicle.id}/upload-document`, fd, { headers: { 'Content-Type': 'multipart/form-data'} })
+            setEditingVehicle(res.data)
+            fetchAll()
+            setShowDocModal(false)
+            setDocFile(null)
+            setDocForm({ name: '', expiry_date: '' })
+            setSuccess('Document încărcat cu succes!')
+            setTimeout(() => setSuccess(null), 3500)
+        } catch (err) {
+            setError('Eroare incarcare document: ' + (err.response?.data?.detail || err.message))
+        } finally {
+            setUploadingDoc(false)
+        }
+    }
+
     const columns = [
         {
             key: 'name', label: t('common.name'), sortable: true,
             render: (v) => (
                 <div>
                     <p className="font-semibold text-slate-800 dark:text-slate-100">{v.name}</p>
-                    {v.plate_number && <p className="text-xs text-slate-400 font-mono mt-0.5">{v.plate_number}</p>}
+                    <div className="flex items-center gap-2 mt-0.5">
+                        {v.plate_number && <p className="text-xs text-slate-400 font-mono">{v.plate_number}</p>}
+                        {v.chassis_number && <p className="text-xs text-indigo-400 font-mono bg-indigo-50 dark:bg-indigo-900/10 px-1 rounded border border-indigo-100 dark:border-indigo-800/30">SN: {v.chassis_number}</p>}
+                    </div>
                 </div>
             )
         },
@@ -163,18 +243,45 @@ export default function FleetManagement() {
             key: 'user_ids', label: t('fleet.drivers'),
             render: (v) => {
                 const count = v.user_ids?.length || 0
-                return <span className="text-slate-500 dark:text-slate-400 text-sm">{count > 0 ? `${count} ${count === 1 ? t('users.driver') : t('users.drivers')}` : '—'}</span>
+                if (count === 0) return <span className="text-slate-500 dark:text-slate-400 text-sm">—</span>
+                if (count === 1) {
+                    const u = users.find(u => u.id === v.user_ids[0])
+                    return <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{u ? `${u.first_name} ${u.last_name}` : '—'}</span>
+                }
+                return <span className="text-slate-500 dark:text-slate-400 text-sm">{count} {t('users.drivers')}</span>
+            }
+        },
+        {
+            key: 'docs', label: 'Documente',
+            render: (v) => {
+                const docsCount = v.documents?.length || 0;
+                if (docsCount === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>;
+                return (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); openEdit(v, 'documents'); }} 
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2.5 py-1.5 rounded-full"
+                        title="Vezi documente"
+                    >
+                        <Paperclip className="w-3.5 h-3.5" />
+                        <span className="text-xs font-bold">{docsCount}</span>
+                    </button>
+                )
             }
         },
         {
             key: '_actions', label: t('common.actions'),
             render: (v) => (
-                <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(v)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        {t('common.edit')}
+                <div className="flex items-center gap-1.5">
+                    {!CAR_TYPES.includes(v.type) && (
+                        <button onClick={() => { setLogEquipment(v); setShowLogModal(true); setLogForm({ date: new Date().toISOString().split('T')[0], site_id: v.site_ids?.[0] || '', operator_id: v.user_ids?.[0] || '', is_used: true, refueled: false, refuel_liters: '', notes: '' }) }} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors" title="Pontaj Zilnic">
+                            <CalendarClock className="w-4 h-4" />
+                        </button>
+                    )}
+                    <button onClick={() => openEdit(v)} title={t('common.edit')} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </button>
-                    <button onClick={() => setDeleteTarget(v)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                        {t('common.delete')}
+                    <button onClick={() => setDeleteTarget(v)} title={t('common.delete')} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                        <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
             )
@@ -203,17 +310,128 @@ export default function FleetManagement() {
             </div>
 
             {error && (
-                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
-                    {error}
+                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm flex justify-between items-center">
+                    <span>{error}</span>
+                    <button onClick={() => setError(null)}><X className="w-4 h-4 opacity-70 hover:opacity-100" /></button>
                 </div>
             )}
 
-            <DataTable
-                columns={columns}
-                data={vehicles}
-                loading={loading}
-                defaultPageSize={25}
-            />
+            {success && (
+                <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-400 text-sm flex justify-between items-center shadow-sm">
+                    <span className="flex items-center gap-2"><CheckIcon className="w-5 h-5" /> {success}</span>
+                    <button onClick={() => setSuccess(null)}><X className="w-4 h-4 opacity-70 hover:opacity-100" /></button>
+                </div>
+            )}
+
+            {/* Main Tabs */}
+            <div className="flex items-center gap-4 mb-6 border-b border-slate-200 dark:border-slate-700">
+                <button
+                    onClick={() => setMainTab('cars')}
+                    className={`px-6 py-3 font-semibold text-sm transition-colors relative ${mainTab === 'cars' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    Parc Auto (Mașini)
+                    {mainTab === 'cars' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
+                </button>
+                <button
+                    onClick={() => setMainTab('equipment')}
+                    className={`px-6 py-3 font-semibold text-sm transition-colors relative ${mainTab === 'equipment' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    Utilaje
+                    {mainTab === 'equipment' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
+                </button>
+                <button
+                    onClick={() => { setMainTab('report'); fetchReport(); }}
+                    className={`flex items-center gap-1.5 px-6 py-3 font-semibold text-sm transition-colors relative ${mainTab === 'report' ? 'text-violet-600' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <BarChart2 className="w-4 h-4" />
+                    Raport Consum
+                    {mainTab === 'report' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600" />}
+                </button>
+            </div>
+
+            {mainTab !== 'report' && (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+                    <DataTable
+                        columns={columns}
+                        data={vehicles.filter(v => mainTab === 'cars' ? CAR_TYPES.includes(v.type) : !CAR_TYPES.includes(v.type))}
+                        loading={loading}
+                        defaultPageSize={25}
+                    />
+                </div>
+            )}
+
+            {/* Fleet Report Tab */}
+            {mainTab === 'report' && (
+                <div className="space-y-4">
+                    {/* Filters */}
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-wrap items-end gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">De la</label>
+                            <input type="date" value={reportDateFrom} onChange={e => setReportDateFrom(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">Până la</label>
+                            <input type="date" value={reportDateTo} onChange={e => setReportDateTo(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" />
+                        </div>
+                        <button onClick={fetchReport} disabled={reportLoading} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors">
+                            {reportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart2 className="w-4 h-4" />}
+                            Generează Raport
+                        </button>
+                    </div>
+
+                    {/* Report Table */}
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Vehicul / Utilaj</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Nr. Inmatriculare</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Tip</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Zile Lucrate</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Zile Inactive</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Motorină (L)</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Alimentari</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Ultimul Operator</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {reportLoading ? (
+                                    <tr><td colSpan={8} className="text-center py-10"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></td></tr>
+                                ) : reportData.length === 0 ? (
+                                    <tr><td colSpan={8} className="text-center py-10 text-slate-400 text-sm">Niciun log înregistrat în perioada selectată. Generează raportul de mai sus.</td></tr>
+                                ) : reportData.map(r => (
+                                    <tr key={r.vehicle_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-4 py-3 font-semibold text-slate-800 dark:text-white">{r.vehicle_name}</td>
+                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{r.registration}</td>
+                                        <td className="px-4 py-3 text-slate-500">{r.type}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className="inline-block bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-xs">{r.days_used}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className="inline-block bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full text-xs">{r.days_idle}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center font-bold text-violet-600 dark:text-violet-400">{r.total_fuel_liters > 0 ? `${r.total_fuel_liters} L` : '—'}</td>
+                                        <td className="px-4 py-3 text-center text-slate-600">{r.refuel_events || '—'}</td>
+                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{r.last_operator || '—'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            {reportData.length > 0 && (
+                                <tfoot className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <td colSpan={3} className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">TOTAL</td>
+                                        <td className="px-4 py-3 text-center font-bold text-emerald-700">{reportData.reduce((s, r) => s + r.days_used, 0)}</td>
+                                        <td className="px-4 py-3 text-center font-bold text-slate-500">{reportData.reduce((s, r) => s + r.days_idle, 0)}</td>
+                                        <td className="px-4 py-3 text-center font-bold text-violet-700">{reportData.reduce((s, r) => s + r.total_fuel_liters, 0).toFixed(1)} L</td>
+                                        <td className="px-4 py-3 text-center font-bold">{reportData.reduce((s, r) => s + r.refuel_events, 0)}</td>
+                                        <td />
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Add / Edit Modal */}
             {showModal && (
@@ -235,6 +453,7 @@ export default function FleetManagement() {
                                 { key: 'info', label: t('fleet.tab_info') },
                                 { key: 'sites', label: t('fleet.tab_sites') },
                                 { key: 'drivers', label: t('fleet.tab_drivers') },
+                                ...(editingVehicle && CAR_TYPES.includes(editingVehicle?.type) ? [{ key: 'documents', label: 'Documente' }] : [])
                             ].map(tab => (
                                 <button
                                     key={tab.key}
@@ -267,7 +486,7 @@ export default function FleetManagement() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                                {t('fleet.plate_number')}
+                                                {t('fleet.plate_number')} / Număr Inmatriculare
                                             </label>
                                             <input
                                                 value={form.plate_number}
@@ -276,6 +495,19 @@ export default function FleetManagement() {
                                                 className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                             />
                                         </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                                Serie Șasiu / Utilaj
+                                            </label>
+                                            <input
+                                                value={form.chassis_number}
+                                                onChange={e => setForm(f => ({ ...f, chassis_number: e.target.value.toUpperCase() }))}
+                                                placeholder="Serie identificare"
+                                                className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                                                 {t('fleet.year')}
@@ -299,7 +531,7 @@ export default function FleetManagement() {
                                                 onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                                                 className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                             >
-                                                {VEHICLE_TYPES.map(vt => (
+                                                {VEHICLE_TYPES.filter(vt => mainTab === 'cars' ? CAR_TYPES.includes(vt) : !CAR_TYPES.includes(vt)).map(vt => (
                                                     <option key={vt} value={vt}>{t(`fleet.types.${vt}`)}</option>
                                                 ))}
                                             </select>
@@ -335,25 +567,26 @@ export default function FleetManagement() {
                             {/* Sites Tab */}
                             {activeTab === 'sites' && (
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <div className="mb-3">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                                             {t('fleet.sites_desc')}
                                         </p>
-                                        <button 
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const allIds = filteredSites.map(s => s.id);
-                                                const hasAll = allIds.every(id => selectedSiteIds.includes(id));
-                                                if (hasAll) {
-                                                    setSelectedSiteIds(selectedSiteIds.filter(id => !allIds.includes(id)));
-                                                } else {
-                                                    setSelectedSiteIds([...new Set([...selectedSiteIds, ...allIds])]);
-                                                }
-                                            }}
-                                            className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                                        >
-                                            {filteredSites.length > 0 && filteredSites.every(s => selectedSiteIds.includes(s.id)) ? 'Deselectează Toate' : 'Selectează Toate'}
-                                        </button>
+                                        <label className="flex items-center gap-2 cursor-pointer w-fit">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredSites.length > 0 && filteredSites.every(s => selectedSiteIds.includes(s.id))}
+                                                onChange={(e) => {
+                                                    const allIds = filteredSites.map(s => s.id);
+                                                    if (e.target.checked) {
+                                                        setSelectedSiteIds([...new Set([...selectedSiteIds, ...allIds])]);
+                                                    } else {
+                                                        setSelectedSiteIds(selectedSiteIds.filter(id => !allIds.includes(id)));
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Selectează Toate</span>
+                                        </label>
                                     </div>
                                     <div className="relative mb-4">
                                         <input type="text" placeholder="Caută șantier..." value={siteSearch} onChange={e => setSiteSearch(e.target.value)} className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
@@ -387,25 +620,26 @@ export default function FleetManagement() {
                             {/* Drivers Tab */}
                             {activeTab === 'drivers' && (
                                 <div className="space-y-2">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <div className="mb-3">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                                             {t('fleet.drivers_desc')}
                                         </p>
-                                        <button 
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const allIds = filteredUsers.map(u => u.id);
-                                                const hasAll = allIds.every(id => selectedUserIds.includes(id));
-                                                if (hasAll) {
-                                                    setSelectedUserIds(selectedUserIds.filter(id => !allIds.includes(id)));
-                                                } else {
-                                                    setSelectedUserIds([...new Set([...selectedUserIds, ...allIds])]);
-                                                }
-                                            }}
-                                            className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                                        >
-                                            {filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.includes(u.id)) ? 'Deselectează Toți' : 'Selectează Toți'}
-                                        </button>
+                                        <label className="flex items-center gap-2 cursor-pointer w-fit">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.includes(u.id))}
+                                                onChange={(e) => {
+                                                    const allIds = filteredUsers.map(u => u.id);
+                                                    if (e.target.checked) {
+                                                        setSelectedUserIds([...new Set([...selectedUserIds, ...allIds])]);
+                                                    } else {
+                                                        setSelectedUserIds(selectedUserIds.filter(id => !allIds.includes(id)));
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Selectează Toți</span>
+                                        </label>
                                     </div>
                                     <div className="relative mb-4">
                                         <input type="text" placeholder="Caută șofer/operator..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
@@ -427,6 +661,58 @@ export default function FleetManagement() {
                                                 </div>
                                             </label>
                                         ))
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Documents Tab */}
+                            {activeTab === 'documents' && editingVehicle && (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-slate-800">Documente Mașină</h3>
+                                            <p className="text-xs text-slate-500">Adaugă taloane, chitanțe, asigurări.</p>
+                                        </div>
+                                        <button onClick={() => setShowDocModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
+                                            <UploadCloud className="w-4 h-4 text-blue-500" />
+                                            Adaugă Document
+                                        </button>
+                                    </div>
+                                    {editingVehicle.documents && editingVehicle.documents.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {editingVehicle.documents.map(doc => {
+                                                const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                                                const isExpiringSoon = !isExpired && doc.expiry_date && (new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+                                                return (
+                                                <div key={doc.id} className={`flex justify-between items-center p-3 border rounded-xl hover:bg-slate-50 transition-colors ${
+                                                    isExpired ? 'border-red-300 bg-red-50/50' : isExpiringSoon ? 'border-orange-300 bg-orange-50/50' : 'border-slate-200'
+                                                }`}>
+                                                    <div className="flex items-center gap-3">
+                                                        <FileText className={`w-5 h-5 ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-orange-500' : 'text-blue-500'}`} />
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <button type="button" onClick={() => setPreviewDoc({url: doc.url, name: doc.name})} className="text-sm font-medium text-slate-800 hover:text-blue-600 hover:underline">
+                                                                    {doc.name}
+                                                                </button>
+                                                                {isExpired && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Expirat</span>}
+                                                                {isExpiringSoon && <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded uppercase">Expiră curând</span>}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500">
+                                                                Adăugat: {doc.uploaded_at}
+                                                                {doc.expiry_date && <span className="ml-2 font-medium">| Expiră la: {doc.expiry_date}</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <button type="button" onClick={() => window.open(doc.url, "_blank")} title="Deschide într-o filă nouă" className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 transition-colors">
+                                                            <ExternalLink className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )})}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-6 text-sm text-slate-400">Niciun document încărcat.</div>
                                     )}
                                 </div>
                             )}
@@ -458,12 +744,160 @@ export default function FleetManagement() {
                         <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
                             {t('fleet.delete_confirm_msg')} <strong>{deleteTarget.name}</strong>? {t('common.cannot_be_undone')}
                         </p>
-                        <div className="flex justify-end gap-3">
-                            <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <div className="flex justify-end gap-3 flex-wrap">
+                            <button onClick={() => setDeleteTarget(null)} className="px-5 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                 {t('common.cancel')}
                             </button>
-                            <button onClick={handleDelete} className="px-4 py-2 text-sm font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors">
+                            <button onClick={() => handleDelete(deleteTarget.id)} className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
                                 {t('common.delete')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Document Preview Modal */}
+            {previewDoc && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8" onClick={() => setPreviewDoc(null)}>
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[85vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 px-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                            <h3 className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-500"/> {previewDoc.name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => window.open(previewDoc.url, '_blank')} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-blue-600 transition-colors" title="Deschide într-o filă nouă">
+                                    <ExternalLink className="w-5 h-5" />
+                                </button>
+                                <button onClick={() => setPreviewDoc(null)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-red-500 transition-colors" title="Închide">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-2 md:p-4">
+                            <iframe src={previewDoc.url} className="w-full h-full bg-white rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner block" title="Document Preview" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Daily Log Modal for Equipment */}
+            {showLogModal && logEquipment && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowLogModal(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Pontaj Zilnic Utilaj: {logEquipment.name}</h2>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dată</label>
+                                <input type="date" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Proiect / Șantier</label>
+                                <select value={logForm.site_id} onChange={e => setLogForm(f => ({ ...f, site_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400">
+                                    <option value="">-- Neselectat --</option>
+                                    {sites.filter(s => (logEquipment.site_ids || []).includes(s.id)).map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                                <div className="text-[11px] text-slate-400 mt-1">Poți selecta doar șantierele la care este alocat pe tab-ul general.</div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Operator</label>
+                                <select value={logForm.operator_id} onChange={e => setLogForm(f => ({ ...f, operator_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400">
+                                    <option value="">-- Neselectat --</option>
+                                    {users.filter(u => (logEquipment.user_ids || []).includes(u.id)).map(u => (
+                                        <option key={u.id} value={u.id}>{u.last_name} {u.first_name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+                                <input type="checkbox" checked={logForm.is_used} onChange={e => setLogForm(f => ({ ...f, is_used: e.target.checked }))} className="w-5 h-5 text-blue-600 rounded" />
+                                <span className="text-sm font-semibold text-slate-800">Utilajat A Fost Folosit</span>
+                            </label>
+
+                            <div className="flex gap-4 p-3 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                                <label className="flex items-center gap-3 cursor-pointer shrink-0">
+                                    <input type="checkbox" checked={logForm.refueled} onChange={e => setLogForm(f => ({ ...f, refueled: e.target.checked }))} className="w-5 h-5 text-emerald-600 rounded" />
+                                    <span className="text-sm font-semibold text-slate-800">Alimentat?</span>
+                                </label>
+                                {logForm.refueled && (
+                                    <div className="flex-1 flex gap-2 items-center">
+                                        <input type="number" min="0" step="0.1" value={logForm.refuel_liters} onChange={e => setLogForm(f => ({ ...f, refuel_liters: e.target.value }))} placeholder="0" className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm" />
+                                        <span className="text-xs font-bold text-slate-500">Litri</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Observații</label>
+                                <textarea value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} placeholder="Probleme tehnice, accidente..." rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"></textarea>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setShowLogModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
+                                Anulează
+                            </button>
+                            <button onClick={handleSaveLog} className="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                                Salvează Pontaj
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Document Upload Modal */}
+            {showDocModal && (
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={() => setShowDocModal(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Adaugă Document</h2>
+                            <button onClick={() => setShowDocModal(false)} className="p-1 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
+                        </div>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Alege Fișierul *</label>
+                                <div className="relative group cursor-pointer">
+                                    <input 
+                                        type="file" 
+                                        accept=".pdf,image/*" 
+                                        onChange={(e) => setDocFile(e.target.files[0])} 
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                    />
+                                    <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl transition-colors ${docFile ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}`}>
+                                        <UploadCloud className={`w-8 h-8 mb-2 ${docFile ? 'text-blue-600' : 'text-slate-400'}`} />
+                                        <p className={`text-sm font-bold text-center ${docFile ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                                            {docFile ? docFile.name : 'Apasă aici pentru a alege un document'}
+                                        </p>
+                                        {!docFile && <p className="text-xs text-slate-400 mt-1">PDF sau Imagine, maxim 10 MB</p>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Denumire Document (Opțional)</label>
+                                <input type="text" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: RCA Generali 2026" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                                <p className="text-[11px] text-slate-400 mt-1">Dacă lași gol, se va folosi numele original al fișierului.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dată Expirare (Opțional)</label>
+                                <input type="date" value={docForm.expiry_date} onChange={e => setDocForm(f => ({ ...f, expiry_date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                                <p className="text-[11px] text-slate-400 mt-1">Vei primi alerte cu 30 de zile înainte de expirare.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setShowDocModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
+                                Anulează
+                            </button>
+                            <button onClick={handleUploadDoc} disabled={uploadingDoc || !docFile} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
+                                {uploadingDoc && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Salvează Document
                             </button>
                         </div>
                     </div>

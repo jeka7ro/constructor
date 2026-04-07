@@ -83,8 +83,10 @@ export default function TeamsManagement() {
             setNewSite('')
             setNewMembers([])
             fetchTeams()
-        } catch (e) { console.error(e) }
-        finally { setSaving(false) }
+        } catch (e) {
+            console.error(e)
+            openDialog({ type: 'danger', title: 'Eroare', message: e.message || 'A apărut o eroare la crearea echipei', confirmText: 'OK', cancelText: null })
+        } finally { setSaving(false) }
     }
 
     const handleUpdate = async (teamId, updates) => {
@@ -95,7 +97,10 @@ export default function TeamsManagement() {
             })
             setEditTeam(null)
             fetchTeams()
-        } catch (e) { console.error(e) }
+        } catch (e) {
+            console.error(e)
+            openDialog({ type: 'danger', title: 'Eroare', message: e.message || 'A apărut o eroare la salvarea modificărilor', confirmText: 'OK', cancelText: null })
+        }
     }
 
     const handleDelete = async (teamId) => {

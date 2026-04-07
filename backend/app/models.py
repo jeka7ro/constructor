@@ -1,8 +1,8 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, Integer, Numeric, Date, Float, Time
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, Integer, Numeric, Date, Float, Time, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 import uuid
-from datetime import datetime, time
+from datetime import datetime, time, date
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -269,6 +269,8 @@ class ConstructionSite(Base):
     # Work schedule
     work_start_time = Column(Time, default=time(7, 0))   # Program start (default 07:00)
     work_end_time = Column(Time, default=time(16, 0))     # Program end (default 16:00)
+    lunch_break_start = Column(Time, default=time(12, 0))   # Break start (default 12:00)
+    lunch_break_end = Column(Time, default=time(13, 0))     # Break end (default 13:00)
     max_overtime_minutes = Column(Integer, default=120)    # Max overtime without approval (default 2h)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -377,14 +379,38 @@ class Vehicle(Base):
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(255), nullable=False)  # ex: "VW Transporter BV-12-XYZ", "Excavator Volvo"
     plate_number = Column(String(20), nullable=True)  # Numar inmatriculare
-    type = Column(String(50), default="van", nullable=False)  # car, van, truck, excavator, generator, other
+    chassis_number = Column(String(50), nullable=True) # Serie sasiu / utilaj
+    type = Column(String(50), default="car", nullable=False)  # car, van, truck, excavator, generator, other
     year = Column(Integer, nullable=True)
     status = Column(String(20), default="active", nullable=False)  # active, service, inactive
     notes = Column(Text, nullable=True)
+    documents = Column(JSON, nullable=True) # JSON list of document
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     organization = relationship("Organization")
+
+
+class EquipmentDailyLog(Base):
+    """Daily tracking for equipment (utilaje) use and refueling"""
+    __tablename__ = "equipment_daily_logs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_id = Column(String(36), ForeignKey("vehicles.id", ondelete="CASCADE"), nullable=False)
+    site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
+    operator_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    date = Column(Date, nullable=False, default=date.today)
+    
+    is_used = Column(Boolean, default=False)
+    refueled = Column(Boolean, default=False)
+    refuel_liters = Column(Float, nullable=True)
+    
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    vehicle = relationship("Vehicle")
+    site = relationship("ConstructionSite")
+    operator = relationship("User")
 
 
 class VehicleSiteAssignment(Base):

@@ -62,21 +62,23 @@ export default function ActivitiesManagement() {
 
             // Merge grouped categories with all activities
             const catMap = {}
+            for (const cat of (categoriesRes.data.categories || [])) {
+                catMap[cat.id] = { ...cat, activities: [] }
+            }
+            
             for (const cat of activeGrouped) {
-                catMap[cat.id || '__uncategorized'] = { ...cat, activities: [...cat.activities] }
+                const key = cat.id || '__uncategorized'
+                if (!catMap[key]) catMap[key] = { ...cat, activities: [] }
+                catMap[key].activities = [...catMap[key].activities, ...cat.activities]
             }
             for (const cat of inactiveGrouped) {
                 const key = cat.id || '__uncategorized'
-                if (catMap[key]) {
-                    // Add inactive activities that aren't already present
-                    const existingIds = new Set(catMap[key].activities.map(a => a.id))
-                    for (const act of cat.activities) {
-                        if (!existingIds.has(act.id)) {
-                            catMap[key].activities.push(act)
-                        }
+                if (!catMap[key]) catMap[key] = { ...cat, activities: [] }
+                const existingIds = new Set(catMap[key].activities.map(a => a.id))
+                for (const act of cat.activities) {
+                    if (!existingIds.has(act.id)) {
+                        catMap[key].activities.push(act)
                     }
-                } else {
-                    catMap[key] = { ...cat, activities: [...cat.activities] }
                 }
             }
 

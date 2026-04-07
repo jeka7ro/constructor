@@ -43,12 +43,48 @@ def _daily_clockin_loop():
         _scheduler_stop.wait(60)  # check every 60s
 
 
+def _run_migrations(engine):
+    """Auto-add any missing columns to keep DB in sync with models."""
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE construction_sites ADD COLUMN IF NOT EXISTS lunch_break_start VARCHAR(10);",
+        "ALTER TABLE construction_sites ADD COLUMN IF NOT EXISTS lunch_break_end VARCHAR(10);",
+        "ALTER TABLE construction_sites ADD COLUMN IF NOT EXISTS max_overtime_minutes INTEGER DEFAULT 0;",
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS chassis_number VARCHAR(100);",
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS documents JSONB;",
+        """CREATE TABLE IF NOT EXISTS equipment_daily_logs (
+            id VARCHAR(36) PRIMARY KEY,
+            vehicle_id VARCHAR(36) NOT NULL,
+            site_id VARCHAR(36),
+            operator_id VARCHAR(36),
+            date DATE NOT NULL,
+            is_used BOOLEAN DEFAULT TRUE,
+            refueled BOOLEAN DEFAULT FALSE,
+            refuel_liters FLOAT DEFAULT 0,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        );""",
+    ]
+    try:
+        with engine.connect() as conn:
+            for sql in migrations:
+                try:
+                    conn.execute(text(sql))
+                except Exception:
+                    pass
+            conn.commit()
+        print("✅ DB migrations applied.")
+    except Exception as e:
+        print(f"⚠️  Migration warning: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup — auto-create tables (needed for fresh PostgreSQL)
     from app.database import engine, Base, warmup_pool
     from app import models  # noqa: ensure all models are imported
     Base.metadata.create_all(bind=engine)
+    _run_migrations(engine)
     warmup_pool()
     print("🚀 Starting Pontaj Digital API...")
 
@@ -87,6 +123,10 @@ async def root():
         "version": "1.0.0",
         "status": "running"
     }
+
+# Serve uploaded static files (documents, photos)
+os.makedirs("uploads", exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/api/health")
 async def health():

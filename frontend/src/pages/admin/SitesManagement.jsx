@@ -26,6 +26,8 @@ const EMPTY_SITE = {
     organization_id: '',
     work_start_time: '07:00',
     work_end_time: '16:00',
+    lunch_break_start: '12:00',
+    lunch_break_end: '13:00',
     max_overtime_minutes: 120
 }
 
@@ -126,6 +128,8 @@ export default function SitesManagement() {
             organization_id: site.organization_id || '',
             work_start_time: site.work_start_time || '07:00',
             work_end_time: site.work_end_time || '16:00',
+            lunch_break_start: site.lunch_break_start || '12:00',
+            lunch_break_end: site.lunch_break_end || '13:00',
             max_overtime_minutes: site.max_overtime_minutes ?? 120
         })
         setActiveModalTab('info')
@@ -688,6 +692,24 @@ export default function SitesManagement() {
                                             placeholder="120"
                                             min="0"
                                             max="480"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Început Pauză Masă</label>
+                                        <input
+                                            type="time"
+                                            value={formData.lunch_break_start}
+                                            onChange={e => setFormData({ ...formData, lunch_break_start: e.target.value })}
+                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Sfârșit Pauză Masă</label>
+                                        <input
+                                            type="time"
+                                            value={formData.lunch_break_end}
+                                            onChange={e => setFormData({ ...formData, lunch_break_end: e.target.value })}
+                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
                                         />
                                     </div>
                                 </div>

@@ -129,7 +129,8 @@ export default function UsersManagement() {
     const fetchRoles = async () => {
         try {
             const response = await api.get('/admin/roles/')
-            setRoles(response.data || [])
+            const fetchedRoles = response.data || []
+            setRoles(fetchedRoles.filter(r => r.code !== 'ADMIN' && r.name !== 'Administrator' && r.name !== 'ADMIN'))
         } catch (error) {
             console.error('Error fetching roles:', error)
         }

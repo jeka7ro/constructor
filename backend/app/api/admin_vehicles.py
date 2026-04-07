@@ -2,15 +2,18 @@
 Admin API endpoints for Fleet Management (Vehicles & Machinery)
 Supports Many-to-Many: Vehicle <-> Sites, Vehicle <-> Drivers
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
+import os
 from sqlalchemy import and_
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+
+import json
 
 from app.database import get_db
-from app.models import Vehicle, VehicleSiteAssignment, VehicleUserAssignment, ConstructionSite, User, Admin
+from app.models import Vehicle, VehicleSiteAssignment, VehicleUserAssignment, ConstructionSite, User, Admin, EquipmentDailyLog
 from app.api.admin_auth import get_current_admin
 
 router = APIRouter(prefix="/admin/vehicles", tags=["admin-fleet"])
@@ -21,10 +24,12 @@ router = APIRouter(prefix="/admin/vehicles", tags=["admin-fleet"])
 class VehicleCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     plate_number: Optional[str] = Field(None, max_length=20)
+    chassis_number: Optional[str] = Field(None, max_length=50)
     type: str = "van"
     year: Optional[int] = None
     status: str = "active"
     notes: Optional[str] = None
+    documents: Optional[str] = None
     site_ids: List[str] = []
     user_ids: List[str] = []
 
@@ -32,10 +37,12 @@ class VehicleCreate(BaseModel):
 class VehicleUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     plate_number: Optional[str] = Field(None, max_length=20)
+    chassis_number: Optional[str] = Field(None, max_length=50)
     type: Optional[str] = None
     year: Optional[int] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    documents: Optional[str] = None
     site_ids: Optional[List[str]] = None
     user_ids: Optional[List[str]] = None
 
@@ -56,6 +63,17 @@ class VehicleResponse(BaseModel):
         from_attributes = True
 
 
+class EquipmentLogCreate(BaseModel):
+    vehicle_id: str
+    site_id: Optional[str] = None
+    operator_id: Optional[str] = None
+    date: str  # YYYY-MM-DD
+    is_used: bool = False
+    refueled: bool = False
+    refuel_liters: Optional[float] = None
+    notes: Optional[str] = None
+
+
 def get_vehicle_with_ids(vehicle: Vehicle, db: Session) -> dict:
     """Build response dict with associated site_ids and user_ids."""
     site_ids = [
@@ -72,10 +90,12 @@ def get_vehicle_with_ids(vehicle: Vehicle, db: Session) -> dict:
         "id": vehicle.id,
         "name": vehicle.name,
         "plate_number": vehicle.plate_number,
+        "chassis_number": vehicle.chassis_number,
         "type": vehicle.type,
         "year": vehicle.year,
         "status": vehicle.status,
         "notes": vehicle.notes,
+        "documents": vehicle.documents,
         "site_ids": site_ids,
         "user_ids": user_ids,
         "created_at": vehicle.created_at,
@@ -144,10 +164,12 @@ def create_vehicle(
         organization_id=current_admin.organization_id,
         name=payload.name,
         plate_number=payload.plate_number,
+        chassis_number=payload.chassis_number,
         type=payload.type,
         year=payload.year,
         status=payload.status,
         notes=payload.notes,
+        documents=payload.documents,
     )
     db.add(v)
     db.flush()  # get ID before sync
@@ -175,6 +197,8 @@ def update_vehicle(
         v.name = payload.name
     if payload.plate_number is not None:
         v.plate_number = payload.plate_number
+    if hasattr(payload, 'chassis_number') and payload.chassis_number is not None:
+        v.chassis_number = payload.chassis_number
     if payload.type is not None:
         v.type = payload.type
     if payload.year is not None:
@@ -183,6 +207,8 @@ def update_vehicle(
         v.status = payload.status
     if payload.notes is not None:
         v.notes = payload.notes
+    if hasattr(payload, 'documents') and payload.documents is not None:
+        v.documents = payload.documents
 
     if payload.site_ids is not None or payload.user_ids is not None:
         sync_assignments(
@@ -214,6 +240,102 @@ def delete_vehicle(
     db.delete(v)
     db.commit()
     return None
+
+
+@router.post("/{vehicle_id}/upload-document")
+async def upload_vehicle_document(
+    vehicle_id: str,
+    file: UploadFile = File(...),
+    custom_name: Optional[str] = Form(None),
+    expiry_date: Optional[str] = Form(None),
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vehicle).filter(
+        Vehicle.id == vehicle_id,
+        Vehicle.organization_id == current_admin.organization_id
+    ).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vehicul negasit")
+
+    # Create directory if it doesn't exist
+    upload_dir = "uploads/vehicles"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    import uuid
+    file_ext = file.filename.split(".")[-1]
+    safe_filename = f"{uuid.uuid4().hex}.{file_ext}"
+    file_path = os.path.join(upload_dir, safe_filename)
+    
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+        
+    doc_url = f"/api/{file_path}"
+    
+    docs = v.documents or []
+    new_doc = {
+        "id": str(uuid.uuid4()),
+        "name": custom_name.strip() if custom_name and custom_name.strip() else file.filename,
+        "url": doc_url,
+        "uploaded_at": str(date.today()),
+        "expiry_date": expiry_date,
+        "original_filename": file.filename
+    }
+    docs.append(new_doc)
+    v.documents = docs
+    
+    db.commit()
+    db.refresh(v)
+    return get_vehicle_with_ids(v, db)
+
+@router.get("/expiring-documents", response_model=List[dict])
+def get_expiring_documents(
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Retrieve all fleet documents expiring within 45 days, or already expired."""
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.organization_id == current_admin.organization_id
+    ).all()
+    
+    alerts = []
+    threshold_date = date.today() + timedelta(days=45)
+    today_str = date.today().isoformat()
+    
+    for v in vehicles:
+        if v.documents:
+            for doc in v.documents:
+                exp_str = doc.get("expiry_date")
+                if exp_str:
+                    try:
+                        exp = date.fromisoformat(exp_str)
+                        if exp <= threshold_date:
+                            days_left = (exp - date.today()).days
+                            if days_left < 0:
+                                status = 'expired'
+                            elif days_left <= 7:
+                                status = 'critical'
+                            else:
+                                status = 'warning'
+                            alerts.append({
+                                "vehicle_id": v.id,
+                                "vehicle_name": v.name,
+                                "registration": v.registration_number or v.chassis_number or "N/A",
+                                "document_id": doc.get("id"),
+                                "document_name": doc.get("name"),
+                                "url": doc.get("url"),
+                                "expiry_date": exp_str,
+                                "days_left": days_left,
+                                "status": status
+                            })
+                    except ValueError:
+                        pass
+    
+    # Sort closest to expiration first
+    alerts.sort(key=lambda x: x["days_left"])
+    return alerts
+
 
 
 @router.get("/by-site/{site_id}", response_model=List[dict])
@@ -251,4 +373,129 @@ def vehicles_for_user(
         v = db.query(Vehicle).filter(Vehicle.id == a.vehicle_id).first()
         if v:
             result.append(get_vehicle_with_ids(v, db))
+    return result
+
+
+@router.post("/equipment-logs", status_code=201)
+def add_equipment_log(
+    payload: EquipmentLogCreate,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    import uuid
+    log_date = date.fromisoformat(payload.date)
+    
+    # Check if a log already exists for this vehicle and date
+    existing = db.query(EquipmentDailyLog).filter(
+        EquipmentDailyLog.vehicle_id == payload.vehicle_id,
+        EquipmentDailyLog.date == log_date
+    ).first()
+    
+    if existing:
+        existing.site_id = payload.site_id
+        existing.operator_id = payload.operator_id
+        existing.is_used = payload.is_used
+        existing.refueled = payload.refueled
+        existing.refuel_liters = payload.refuel_liters
+        existing.notes = payload.notes
+        db.commit()
+        return {"message": "Log updated", "id": existing.id}
+    
+    log = EquipmentDailyLog(
+        id=str(uuid.uuid4()),
+        vehicle_id=payload.vehicle_id,
+        site_id=payload.site_id,
+        operator_id=payload.operator_id,
+        date=log_date,
+        is_used=payload.is_used,
+        refueled=payload.refueled,
+        refuel_liters=payload.refuel_liters,
+        notes=payload.notes
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return {"message": "Log created", "id": log.id}
+
+
+@router.get("/equipment-logs/{vehicle_id}/{date_str}")
+def get_equipment_log(
+    vehicle_id: str,
+    date_str: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    log_date = date.fromisoformat(date_str)
+    log = db.query(EquipmentDailyLog).filter(
+        EquipmentDailyLog.vehicle_id == vehicle_id,
+        EquipmentDailyLog.date == log_date
+    ).first()
+    
+    if not log:
+        return None
+        
+    return {
+        "id": log.id,
+        "vehicle_id": log.vehicle_id,
+        "site_id": log.site_id,
+        "operator_id": log.operator_id,
+        "date": str(log.date),
+        "is_used": log.is_used,
+        "refueled": log.refueled,
+        "refuel_liters": log.refuel_liters,
+        "notes": log.notes
+    }
+
+
+@router.get("/fleet-report")
+def fleet_report(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Aggregate equipment usage & fuel consumption per vehicle for a date range."""
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.organization_id == current_admin.organization_id
+    ).all()
+
+    d_from = date.fromisoformat(date_from) if date_from else date.today().replace(day=1)
+    d_to = date.fromisoformat(date_to) if date_to else date.today()
+
+    result = []
+    for v in vehicles:
+        logs = db.query(EquipmentDailyLog).filter(
+            EquipmentDailyLog.vehicle_id == v.id,
+            EquipmentDailyLog.date >= d_from,
+            EquipmentDailyLog.date <= d_to,
+        ).all()
+
+        days_used = sum(1 for l in logs if l.is_used)
+        total_fuel = sum((l.refuel_liters or 0) for l in logs if l.refueled)
+        refuel_events = sum(1 for l in logs if l.refueled)
+
+        last_op_name = None
+        last_logs = sorted(logs, key=lambda l: l.date, reverse=True)
+        if last_logs and last_logs[0].operator_id:
+            op = db.query(User).filter(User.id == last_logs[0].operator_id).first()
+            if op:
+                last_op_name = f"{op.first_name} {op.last_name}"
+
+        result.append({
+            "vehicle_id": v.id,
+            "vehicle_name": v.name,
+            "registration": v.registration_number or v.chassis_number or "N/A",
+            "type": v.vehicle_type or "—",
+            "status": v.status,
+            "days_used": days_used,
+            "days_idle": len(logs) - days_used,
+            "total_logs": len(logs),
+            "total_fuel_liters": round(total_fuel, 2),
+            "refuel_events": refuel_events,
+            "last_operator": last_op_name,
+            "date_from": str(d_from),
+            "date_to": str(d_to),
+        })
+
+    result.sort(key=lambda x: x["days_used"], reverse=True)
     return result

@@ -92,6 +92,7 @@ export default function ClockInPage() {
     const [activityQuantities, setActivityQuantities] = useState({})
     const [showActivityPicker, setShowActivityPicker] = useState(false)
     const [lastAddedActivityId, setLastAddedActivityId] = useState(null)
+    const [expandedDescriptions, setExpandedDescriptions] = useState({}) // activity id -> boolean
     const [showClockOutConfirm, setShowClockOutConfirm] = useState(false)
     const [clockOutResult, setClockOutResult] = useState(null)
     const [errorMessage, setErrorMessage] = useState(null)
@@ -1054,7 +1055,22 @@ export default function ClockInPage() {
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="text-sm font-medium text-slate-800">{act.name}</div>
                                                                                 {act.description && (
-                                                                                    <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{act.description}</div>
+                                                                                    <div className="mt-0.5">
+                                                                                        <div className={`text-xs text-slate-500 whitespace-pre-wrap ${expandedDescriptions[act.id] ? '' : 'line-clamp-2'}`}>
+                                                                                            {act.description}
+                                                                                        </div>
+                                                                                        {act.description.length > 80 && (
+                                                                                            <button
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation()
+                                                                                                    setExpandedDescriptions(prev => ({ ...prev, [act.id]: !prev[act.id] }))
+                                                                                                }}
+                                                                                                className="text-[11px] text-blue-500 hover:text-blue-700 font-medium mt-1"
+                                                                                            >
+                                                                                                {expandedDescriptions[act.id] ? 'Ascunde' : 'Vezi mai mult...'}
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
                                                                                 )}
                                                                                 <div className="text-xs text-slate-400 mt-1">{t('activities.unit_type')}: {act.unit_type}</div>
                                                                             </div>
