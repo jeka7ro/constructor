@@ -10,12 +10,13 @@ import {
 
 export default function ActivitiesManagement() {
     const { t } = useTranslation()
-    const { openDialog } = useUIStore()
+    const { showDialog } = useUIStore()
     const [categories, setCategories] = useState([])
     const [flatActivities, setFlatActivities] = useState([])
     const [loading, setLoading] = useState(true)
     const [expandedCategories, setExpandedCategories] = useState({})
     const [searchQuery, setSearchQuery] = useState('')
+    const [showInactive, setShowInactive] = useState(false)
 
     // Category modal
     const [showCategoryModal, setShowCategoryModal] = useState(false)
@@ -119,7 +120,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving category:', error)
-            openDialog({ type: 'danger', title: t('common.error'), message: error.response?.data?.detail || t('activities.errors.save_category'), confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: t('common.error'), message: error.response?.data?.detail || t('activities.errors.save_category'), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -130,7 +131,7 @@ export default function ActivitiesManagement() {
     }
 
     const handleDeleteCategory = async (catId) => {
-        openDialog({
+        showDialog({
             type: 'danger',
             title: t('activities.delete.category_title'),
             message: t('activities.delete.category_message'),
@@ -141,7 +142,7 @@ export default function ActivitiesManagement() {
                     fetchData()
                 } catch (error) {
                     console.error('Error deleting category:', error)
-                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_category'), confirmText: 'OK', cancelText: null })
+                    showDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_category'), confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -169,7 +170,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving activity:', error)
-            openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.save_activity'), confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.save_activity'), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -197,7 +198,7 @@ export default function ActivitiesManagement() {
     }
 
     const handleDeleteActivity = async (id) => {
-        openDialog({
+        showDialog({
             type: 'danger',
             title: t('activities.delete.activity_title'),
             message: t('activities.delete.activity_message'),
@@ -206,7 +207,7 @@ export default function ActivitiesManagement() {
                 try {
                     const response = await api.delete(`/admin/activities/${id}`)
                     if (response.data?.message?.includes('deactivated')) {
-                        openDialog({
+                        showDialog({
                             type: 'info',
                             title: t('activities.deactivated.title'),
                             message: t('activities.deactivated.message'),
@@ -217,7 +218,7 @@ export default function ActivitiesManagement() {
                     fetchData()
                 } catch (error) {
                     console.error('Error deleting activity:', error)
-                    openDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_activity'), confirmText: 'OK', cancelText: null })
+                    showDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_activity'), confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -270,6 +271,15 @@ export default function ActivitiesManagement() {
 
                     {/* Actions */}
                     <div className="flex flex-wrap items-center justify-end gap-3 w-full lg:w-auto">
+                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-800 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <input 
+                                type="checkbox" 
+                                checked={showInactive} 
+                                onChange={(e) => setShowInactive(e.target.checked)} 
+                                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
+                            />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Arhiva (Inactive)</span>
+                        </label>
                         <button
                             onClick={async () => {
                                 try {
@@ -283,7 +293,7 @@ export default function ActivitiesManagement() {
                                     link.remove()
                                     window.URL.revokeObjectURL(url)
                                 } catch (error) {
-                                    openDialog({ type: 'danger', title: t('common.export_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
+                                    showDialog({ type: 'danger', title: t('common.export_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                                 }
                             }}
                             className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
@@ -329,10 +339,17 @@ export default function ActivitiesManagement() {
             ) : (
                 <div className="space-y-4">
                     {categories.filter(cat => {
+                        const activeActsList = cat.activities.filter(a => showInactive || a.is_active);
+                        // Hide category if it only has inactive activities and showInactive is false
+                        if (activeActsList.length === 0 && cat.activities.length > 0) return false;
+                        // Hide __uncategorized if it's completely empty based on current filter
+                        if (!cat.id && activeActsList.length === 0) return false;
+
                         if (!searchQuery) return true;
+                        
                         const query = searchQuery.toLowerCase();
                         if ((cat.name || '').toLowerCase().includes(query)) return true;
-                        return cat.activities.some(a => 
+                        return activeActsList.some(a => 
                             (a.name || '').toLowerCase().includes(query) || 
                             (a.description || '').toLowerCase().includes(query)
                         );
@@ -345,9 +362,11 @@ export default function ActivitiesManagement() {
                         const query = searchQuery.toLowerCase();
                         const categoryMatches = (cat.name || '').toLowerCase().includes(query);
                         
+                        const activeActsList = cat.activities.filter(a => showInactive || a.is_active);
+
                         // If category name matches the query, show all its items.
                         // Otherwise, only show items that matched the query.
-                        const filteredActivities = categoryMatches && searchQuery ? cat.activities : cat.activities.filter(a => {
+                        const filteredActivities = categoryMatches && searchQuery ? activeActsList : activeActsList.filter(a => {
                             if (!searchQuery) return true;
                             return (a.name || '').toLowerCase().includes(query) || 
                                    (a.description || '').toLowerCase().includes(query);
