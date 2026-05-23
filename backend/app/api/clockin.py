@@ -61,7 +61,7 @@ def ensure_time(t):
     if not t: return None
     if isinstance(t, str):
         try:
-            return time.fromisoformat(t[:8]) if len(t) >= 5 else None
+            return dtime.fromisoformat(t[:8]) if len(t) >= 5 else None
         except ValueError:
             return None
     return t
