@@ -503,13 +503,13 @@ export default function AdminOverview() {
                                         outerRadius={85}
                                         innerRadius={50}
                                         paddingAngle={3}
-                                        label={({ name, workers }) => `${name} (${workers})`}
                                     >
                                         {(chartData.sites || []).map((_, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
                                     <Tooltip />
+                                    <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px' }} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -604,13 +604,13 @@ export default function AdminOverview() {
                                         <Activity className="w-3 h-3" />
                                         {worker.activities.length} activit{worker.activities.length > 1 ? 'ăți' : 'ate'}
                                     </span>
-                                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72">
+                                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-80">
                                         <div className="bg-slate-900 text-white rounded-xl p-3 shadow-xl border border-slate-700">
                                             <div className="text-[11px] font-semibold text-slate-400 uppercase mb-2">{t('dashboard.reported_activities')}</div>
-                                            <div className="space-y-1.5">
+                                            <div className="space-y-2">
                                                 {worker.activities.map((act, i) => (
-                                                    <div key={i} className="flex items-center justify-between text-sm">
-                                                        <span className="text-slate-200 truncate flex-1 mr-2">{act.name}</span>
+                                                    <div key={i} className="flex items-start justify-between text-sm gap-2">
+                                                        <span className="text-slate-200 flex-1 leading-tight">{act.name}</span>
                                                         <span className="text-violet-300 font-bold whitespace-nowrap">{act.quantity} {act.unit_type}</span>
                                                     </div>
                                                 ))}
