@@ -57,6 +57,15 @@ class ActiveShiftResponse(BaseModel):
 
 
 # Helper Functions
+def ensure_time(t):
+    if not t: return None
+    if isinstance(t, str):
+        try:
+            return time.fromisoformat(t[:8]) if len(t) >= 5 else None
+        except ValueError:
+            return None
+    return t
+
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate distance between two GPS coordinates using Haversine formula
@@ -156,25 +165,28 @@ def clock_in(
     current_time = now.time()
     schedule_info = {}
     
-    if site.work_start_time and site.work_end_time:
+    work_start_time = ensure_time(site.work_start_time)
+    work_end_time = ensure_time(site.work_end_time)
+    
+    if work_start_time and work_end_time:
         # Block clock-in after schedule ends
-        if current_time > site.work_end_time:
+        if current_time > work_end_time:
             raise HTTPException(
                 status_code=400,
-                detail=f"Programul șantierului s-a încheiat la {site.work_end_time.strftime('%H:%M')}. Nu poți începe o tură nouă."
+                detail=f"Programul șantierului s-a încheiat la {work_end_time.strftime('%H:%M')}. Nu poți începe o tură nouă."
             )
         
         # Block clock-in too early (30 min before start)
-        earliest_dt = datetime.combine(today, site.work_start_time) - timedelta(minutes=30)
+        earliest_dt = datetime.combine(today, work_start_time) - timedelta(minutes=30)
         if current_time < earliest_dt.time():
             raise HTTPException(
                 status_code=400,
-                detail=f"Programul șantierului începe la {site.work_start_time.strftime('%H:%M')}. Poți face pontajul cu maxim 30 de minute înainte."
+                detail=f"Programul șantierului începe la {work_start_time.strftime('%H:%M')}. Poți face pontajul cu maxim 30 de minute înainte."
             )
         
         schedule_info = {
-            "work_start": site.work_start_time.strftime('%H:%M'),
-            "work_end": site.work_end_time.strftime('%H:%M'),
+            "work_start": work_start_time.strftime('%H:%M'),
+            "work_end": work_end_time.strftime('%H:%M'),
             "max_overtime_minutes": site.max_overtime_minutes or 120
         }
     
@@ -213,8 +225,8 @@ def clock_in(
     # Create new segment (clock-in)
     # Clamp check-in time: if before site start, record as site start
     effective_checkin = now_ro()
-    if site.work_start_time:
-        site_start_dt = datetime.combine(today, site.work_start_time)
+    if work_start_time:
+        site_start_dt = datetime.combine(today, work_start_time)
         if effective_checkin < site_start_dt:
             effective_checkin = site_start_dt
 
@@ -303,10 +315,12 @@ def clock_out(
         break_hours = break_duration.total_seconds() / 3600
     
     # Auto lunch break calculation
-    site = db.query(ConstructionSite).filter(ConstructionSite.id == active_segment.site_id).first()
-    if site and site.lunch_break_start and site.lunch_break_end:
-        lunch_start_dt = datetime.combine(today_ro(), site.lunch_break_start)
-        lunch_end_dt = datetime.combine(today_ro(), site.lunch_break_end)
+    lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+    lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+    
+    if site and lunch_break_start and lunch_break_end:
+        lunch_start_dt = datetime.combine(today_ro(), lunch_break_start)
+        lunch_end_dt = datetime.combine(today_ro(), lunch_break_end)
         
         overlap_start = max(active_segment.check_in_time, lunch_start_dt)
         overlap_end = min(active_segment.check_out_time, lunch_end_dt)
@@ -324,8 +338,9 @@ def clock_out(
     overtime_minutes = 0
     overtime_warning = None
     
-    if site and site.work_end_time:
-        schedule_end_dt = datetime.combine(today_ro(), site.work_end_time)
+    work_end_time = ensure_time(site.work_end_time) if site else None
+    if site and work_end_time:
+        schedule_end_dt = datetime.combine(today_ro(), work_end_time)
         if active_segment.check_out_time > schedule_end_dt:
             overtime_minutes = int((active_segment.check_out_time - schedule_end_dt).total_seconds() / 60)
             active_segment.overtime_minutes = overtime_minutes
@@ -461,10 +476,13 @@ def get_active_shift(
     
     site = db.query(ConstructionSite).filter(ConstructionSite.id == active_segment.site_id).first()
     
+    work_start_time = ensure_time(site.work_start_time) if site else None
+    work_end_time = ensure_time(site.work_end_time) if site else None
+    
     # ---- AUTO-CLOSE at schedule end ----
     now = now_ro()
-    if site and site.work_end_time:
-        schedule_end = datetime.combine(today, site.work_end_time)
+    if site and work_end_time:
+        schedule_end = datetime.combine(today, work_end_time)
         
         # Only auto-close if segment started BEFORE schedule end (prevents zombies)
         if active_segment.check_in_time < schedule_end and now > schedule_end:
@@ -501,10 +519,13 @@ def get_active_shift(
             break_duration = now - active_segment.break_start_time
             break_hours = break_duration.total_seconds() / 3600
             
+    lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+    lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+    
     # Auto lunch break implementation
-    if site and site.lunch_break_start and site.lunch_break_end:
-        lunch_start_dt = datetime.combine(today, site.lunch_break_start)
-        lunch_end_dt = datetime.combine(today, site.lunch_break_end)
+    if site and lunch_break_start and lunch_break_end:
+        lunch_start_dt = datetime.combine(today, lunch_break_start)
+        lunch_end_dt = datetime.combine(today, lunch_break_end)
         
         overlap_start = max(active_segment.check_in_time, lunch_start_dt)
         overlap_end = min(now, lunch_end_dt)
@@ -553,11 +574,11 @@ def get_active_shift(
         "last_ping_at": str(active_segment.last_ping_at) if active_segment.last_ping_at else None,
         "geofence_pause_distance": active_geo_pause.distance_at_pause if active_geo_pause else None,
         # Schedule info
-        "work_start_time": site.work_start_time.strftime('%H:%M') if site and site.work_start_time else None,
-        "work_end_time": site.work_end_time.strftime('%H:%M') if site and site.work_end_time else None,
+        "work_start_time": work_start_time.strftime('%H:%M') if work_start_time else None,
+        "work_end_time": work_end_time.strftime('%H:%M') if work_end_time else None,
         "max_overtime_minutes": site.max_overtime_minutes if site else 120,
-        "schedule_end_datetime": str(datetime.combine(today, site.work_end_time)) if site and site.work_end_time else None,
-        "overtime_limit_datetime": str(datetime.combine(today, site.work_end_time) + timedelta(minutes=site.max_overtime_minutes or 120)) if site and site.work_end_time else None
+        "schedule_end_datetime": str(datetime.combine(today, work_end_time)) if work_end_time else None,
+        "overtime_limit_datetime": str(datetime.combine(today, work_end_time) + timedelta(minutes=site.max_overtime_minutes or 120)) if work_end_time else None
     }
 
 
@@ -746,9 +767,12 @@ def my_history(
             
         site = db.query(ConstructionSite).filter(ConstructionSite.id == seg.site_id).first()
         
-        if site and site.lunch_break_start and site.lunch_break_end:
-            lunch_start_dt = datetime.combine(d, site.lunch_break_start)
-            lunch_end_dt = datetime.combine(d, site.lunch_break_end)
+        lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+        lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+        
+        if site and lunch_break_start and lunch_break_end:
+            lunch_start_dt = datetime.combine(d, lunch_break_start)
+            lunch_end_dt = datetime.combine(d, lunch_break_end)
             
             check_out = seg.check_out_time or now_ro()
             overlap_start = max(seg.check_in_time, lunch_start_dt)
