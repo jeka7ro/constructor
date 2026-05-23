@@ -811,13 +811,13 @@ export default function ClockInPage() {
                         </div>
                     )}
 
-                    {/* No GPS Warning — can still clock in */}
-                    {!location && !activeShift && (
+                    {/* No GPS Warning — strictly required now */}
+                    {!location && !activeShift && !locationError && (
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
                             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-medium text-amber-800">{t('timesheets.gps_unavailable')}</p>
-                                <p className="text-xs text-amber-600 mt-0.5">{t('timesheets.gps_unavailable_desc')}</p>
+                                <p className="text-sm font-medium text-amber-800">Se caută locația GPS...</p>
+                                <p className="text-xs text-amber-600 mt-0.5">Locația este obligatorie pentru a putea începe tura.</p>
                             </div>
                         </div>
                     )}
@@ -1179,7 +1179,7 @@ export default function ClockInPage() {
                             <div className="py-4">
                                 <button
                                     onClick={handleClockIn}
-                                    disabled={loading || !selectedSite}
+                                    disabled={loading || !selectedSite || !location}
                                     className="w-full py-5 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-green-500/40 transition-all disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.98]"
                                 >
                                     {loading ? (
