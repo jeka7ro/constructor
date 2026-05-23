@@ -11,10 +11,10 @@ export default function SettingsPage() {
     const { openDialog } = useUIStore()
     const [settings, setSettings] = useState({
         // Organization
-        org_name: 'Sushi Master',
+        org_name: '',
         org_logo: '',
-        org_contact: 'contact@sushimaster.ro',
-        org_phone: '0721234567',
+        org_contact: '',
+        org_phone: '',
 
         // Timesheet
         work_hours_start: '08:00',

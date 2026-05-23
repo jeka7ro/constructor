@@ -66,7 +66,7 @@ export default function AdminOverview() {
     useEffect(() => {
         Promise.all([fetchStats(), fetchChartData(), fetchActiveWorkers(), fetchFleetAlerts()])
         refreshTimer.current = setInterval(() => {
-            fetchStats()
+            fetchStats(true)
             fetchActiveWorkers()
             fetchChartData()
             fetchFleetAlerts()
@@ -74,9 +74,9 @@ export default function AdminOverview() {
         return () => clearInterval(refreshTimer.current)
     }, [])
 
-    const fetchStats = async () => {
+    const fetchStats = async (isBackground = false) => {
         try {
-            setLoading(true)
+            if (!isBackground) setLoading(true)
             const res = await api.get('/admin/timesheets/stats')
             const tsStats = res.data || {}
             setStats({
@@ -86,7 +86,7 @@ export default function AdminOverview() {
                 total_hours_week: tsStats.total_hours_week || 0,
             })
         } catch (e) { console.error(e) }
-        finally { setLoading(false) }
+        finally { if (!isBackground) setLoading(false) }
     }
 
     const fetchChartData = async () => {
@@ -211,7 +211,7 @@ export default function AdminOverview() {
                         </span>
                     )}
                     <button
-                        onClick={() => { fetchStats(); fetchChartData(); fetchActiveWorkers() }}
+                        onClick={() => { fetchStats(true); fetchChartData(); fetchActiveWorkers() }}
                         className="p-2 hover:bg-white rounded-lg transition-colors border border-slate-200 bg-white shadow-sm"
                     >
                         <RefreshCw className="w-4 h-4 text-slate-600" />

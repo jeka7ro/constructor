@@ -1,4 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+// Fix Leaflet default icon broken paths
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+})
 import { useAdminStore } from '../../store/adminStore'
 import useViewPreferencesStore from '../../store/viewPreferencesStore'
 import api from '../../lib/api'
@@ -17,6 +27,8 @@ const PAGE_ID = 'admin-sites'
 const EMPTY_SITE = {
     name: '',
     address: '',
+    latitude: '',
+    longitude: '',
     description: '',
     status: 'active',
     client_name: '',
@@ -29,6 +41,69 @@ const EMPTY_SITE = {
     lunch_break_start: '12:00',
     lunch_break_end: '13:00',
     max_overtime_minutes: 120
+}
+
+const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
+    const mapRef = useRef(null)
+    const mapInstance = useRef(null)
+    const markerInstance = useRef(null)
+
+    useEffect(() => {
+        if (!mapRef.current) return
+        
+        const defaultLat = latitude ? parseFloat(latitude) : 45.9432 // Romania center
+        const defaultLon = longitude ? parseFloat(longitude) : 24.9668
+        const zoom = latitude && longitude ? 15 : 6
+
+        if (!mapInstance.current) {
+            mapInstance.current = L.map(mapRef.current).setView([defaultLat, defaultLon], zoom)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19
+            }).addTo(mapInstance.current)
+
+            mapInstance.current.on('click', (e) => {
+                const { lat, lng } = e.latlng
+                onLocationChange(lat, lng)
+            })
+        }
+        
+        return () => {
+            if (mapInstance.current) {
+                mapInstance.current.remove()
+                mapInstance.current = null
+            }
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!mapInstance.current) return
+        if (latitude && longitude) {
+            const lat = parseFloat(latitude)
+            const lon = parseFloat(longitude)
+            mapInstance.current.setView([lat, lon], 15)
+            
+            if (markerInstance.current) {
+                markerInstance.current.setLatLng([lat, lon])
+            } else {
+                markerInstance.current = L.marker([lat, lon]).addTo(mapInstance.current)
+            }
+        } else {
+            if (markerInstance.current) {
+                markerInstance.current.remove()
+                markerInstance.current = null
+            }
+        }
+    }, [latitude, longitude])
+
+    return (
+        <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 shadow-inner relative" style={{ height: 200, zIndex: 10 }}>
+            <div ref={mapRef} style={{ width: '100%', height: '100%' }}></div>
+            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-xs px-2 py-1 rounded shadow text-slate-600 font-semibold z-[400] pointer-events-none">
+                {latitude && longitude ? 'Locație selectată' : 'Click pe hartă pentru a selecta locația'}
+            </div>
+        </div>
+    )
 }
 
 export default function SitesManagement() {
@@ -109,8 +184,6 @@ export default function SitesManagement() {
         setFormData(EMPTY_SITE)
         setActiveModalTab('info')
         setSelectedTeamIds([])
-        setActiveModalTab('info')
-        setSelectedTeamIds(site.team_ids || [])
         setShowEditModal(true)
     }
 
@@ -119,6 +192,8 @@ export default function SitesManagement() {
         setFormData({
             name: site.name || '',
             address: site.address || '',
+            latitude: site.latitude || '',
+            longitude: site.longitude || '',
             description: site.description || '',
             status: site.status || 'active',
             client_name: site.client_name || '',
@@ -137,9 +212,50 @@ export default function SitesManagement() {
         setShowEditModal(true)
     }
 
+
+    const handleDetectLocation = () => {
+        if (!navigator.geolocation) {
+            showToast('Geolocația nu este suportată de browserul tău.', 'error')
+            return
+        }
+
+        showToast('Se detectează locația...', 'info')
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude
+                const lon = position.coords.longitude
+                
+                let fetchedAddress = formData.address
+                
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                    const data = await res.json()
+                    if (data && data.display_name) {
+                        fetchedAddress = data.display_name
+                    }
+                } catch(e) {
+                    console.error("Geocoding failed:", e)
+                }
+
+                setFormData(prev => ({
+                    ...prev,
+                    latitude: lat,
+                    longitude: lon,
+                    address: fetchedAddress
+                }))
+                showToast('Locație preluată cu succes!', 'success')
+            },
+            (error) => {
+                console.error("GPS Error:", error)
+                showToast('Eroare la preluarea locației. Verifică permisiunile GPS.', 'error')
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        )
+    }
+
     const handleSaveSite = async () => {
         if (!formData.name.trim()) {
-            showToast('Numele proiectului este obligatoriu!', 'error')
+            showToast('Numele șantierului este obligatoriu!', 'error')
             return
         }
 
@@ -147,6 +263,8 @@ export default function SitesManagement() {
             setSaving(true)
             const payload = {
                 ...formData,
+                latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+                longitude: formData.longitude ? parseFloat(formData.longitude) : null,
                 panel_count: formData.panel_count ? parseInt(formData.panel_count) : null,
                 system_power_kw: formData.system_power_kw ? parseFloat(formData.system_power_kw) : null,
                 max_overtime_minutes: formData.max_overtime_minutes ? parseInt(formData.max_overtime_minutes) : 120,
@@ -168,7 +286,7 @@ export default function SitesManagement() {
             setShowEditModal(false)
             fetchSites()
             fetchStats()
-            showToast('Proiect salvat cu succes!', 'success')
+            showToast('Șantier salvat cu succes!', 'success')
         } catch (error) {
             showToast(error.response?.data?.detail || 'Eroare la salvare', 'error')
         } finally {
@@ -178,8 +296,8 @@ export default function SitesManagement() {
 
     const handleDeleteSite = async (siteId) => {
         showDialog({
-            title: 'Ștergere Proiect (Șantier)',
-            message: 'Sigur doriți să suspendați temporar sau să ștergeți acest proiect?',
+            title: 'Ștergere Șantier',
+            message: 'Sigur doriți să suspendați temporar sau să ștergeți acest șantier?',
             type: 'danger',
             confirmText: 'Șterge',
             onConfirm: async () => {
@@ -187,7 +305,7 @@ export default function SitesManagement() {
                     await api.delete(`/admin/sites/${siteId}`)
                     fetchSites()
                     fetchStats()
-                    showToast('Proiect sters cu succes.', 'success')
+                    showToast('Șantier sters cu succes.', 'success')
                 } catch (error) {
                     showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
                 }
@@ -208,7 +326,7 @@ export default function SitesManagement() {
         if (selectedSiteIds.length === 0) return
         showDialog({
             title: 'Ștergere Multiplă',
-            message: `Ești sigur că vrei să ștergi (suspenzi) cele ${selectedSiteIds.length} proiecte/șantiere selectate?`,
+            message: `Ești sigur că vrei să ștergi (suspenzi) cele ${selectedSiteIds.length} șantiere selectate?`,
             type: 'danger',
             confirmText: 'Șterge Selecția',
             onConfirm: async () => {
@@ -350,7 +468,7 @@ export default function SitesManagement() {
                         className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
                     >
                         <Plus className="w-5 h-5" />
-                        Adaugă Proiect
+                        Adaugă Șantier
                     </button>
                 </div>
             </div>
@@ -364,7 +482,7 @@ export default function SitesManagement() {
                                 <th className="px-6 py-4 text-left w-12">
                                     <input type="checkbox" checked={sites.length > 0 && selectedSiteIds.length === sites.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                                 </th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Proiect</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Șantier</th>
                                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Client</th>
                                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Sistem</th>
                                 <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Tip</th>
@@ -538,7 +656,7 @@ export default function SitesManagement() {
                     <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 className="text-2xl font-bold text-slate-900">
-                                {editingSite ? 'Editează Proiect' : 'Adaugă Proiect Nou'}
+                                {editingSite ? 'Editează Șantier' : 'Adaugă Șantier Nou'}
                             </h2>
                             <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                                 <X className="w-6 h-6 text-slate-600" />
@@ -564,7 +682,7 @@ export default function SitesManagement() {
                             <div className={activeModalTab !== 'info' ? 'hidden' : ''}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nume Proiect *</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nume Șantier *</label>
                                     <input
                                         type="text"
                                         value={formData.name}
@@ -582,6 +700,50 @@ export default function SitesManagement() {
                                         onChange={e => setFormData({ ...formData, address: e.target.value })}
                                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
                                         placeholder="Strada, Număr, Oraș"
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Coordonate GPS</label>
+                                        <button
+                                            type="button"
+                                            onClick={handleDetectLocation}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-semibold transition-colors"
+                                        >
+                                            <MapPin className="w-4 h-4" />
+                                            Detectează automat
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Latitudine</label>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                value={formData.latitude}
+                                                onChange={e => setFormData({ ...formData, latitude: e.target.value })}
+                                                className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                                                placeholder="ex: 44.4268"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Longitudine</label>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                value={formData.longitude}
+                                                onChange={e => setFormData({ ...formData, longitude: e.target.value })}
+                                                className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                                                placeholder="ex: 26.1025"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-3 mb-2">Sunt folosite pentru geofencing. Dacă nu sunt setate, se va încerca preluarea din adresă la salvare.</p>
+                                    <MiniMapSelector 
+                                        latitude={formData.latitude} 
+                                        longitude={formData.longitude} 
+                                        onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} 
                                     />
                                 </div>
 
@@ -652,7 +814,7 @@ export default function SitesManagement() {
                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
                                         rows={3}
                                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                        placeholder="Detalii despre proiect..."
+                                        placeholder="Detalii despre șantier..."
                                     />
                                 </div>
                             </div>
@@ -763,7 +925,7 @@ export default function SitesManagement() {
                                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50"
                             >
                                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                {editingSite ? 'Salvează' : 'Creează Proiect'}
+                                {editingSite ? 'Salvează' : 'Creează Șantier'}
                             </button>
                         </div>
                     </div>
@@ -777,7 +939,7 @@ export default function SitesManagement() {
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-900">{selectedSite.name}</h2>
-                                <p className="text-slate-600 mt-1">Fotografii proiect</p>
+                                <p className="text-slate-600 mt-1">Fotografii șantier</p>
                             </div>
                             <button
                                 onClick={() => setShowPhotoModal(false)}
