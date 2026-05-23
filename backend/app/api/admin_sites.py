@@ -45,7 +45,7 @@ def geocode_address(address: str, county: str = None) -> dict:
 
 # Pydantic schemas
 class SiteCreate(BaseModel):
-    organization_id: str
+    organization_id: Optional[str] = None
     name: str = Field(..., min_length=2, max_length=255)
     address: Optional[str] = None
     county: Optional[str] = None
@@ -260,7 +260,7 @@ def create_site(
         lng = geo.get("longitude")
     
     new_site = ConstructionSite(
-        organization_id=site_data.organization_id,
+        organization_id=site_data.organization_id or current_admin.organization_id,
         name=site_data.name,
         address=site_data.address,
         county=site_data.county,
