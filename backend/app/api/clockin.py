@@ -184,10 +184,11 @@ def clock_in(
                 detail=f"Programul șantierului începe la {work_start_time.strftime('%H:%M')}. Poți face pontajul cu maxim 30 de minute înainte."
             )
         
+        max_overtime = int(site.max_overtime_minutes) if site.max_overtime_minutes else 120
         schedule_info = {
             "work_start": work_start_time.strftime('%H:%M'),
             "work_end": work_end_time.strftime('%H:%M'),
-            "max_overtime_minutes": site.max_overtime_minutes or 120
+            "max_overtime_minutes": max_overtime
         }
     
     # ----- GEOFENCE VERIFICATION -----
@@ -345,7 +346,7 @@ def clock_out(
             overtime_minutes = int((active_segment.check_out_time - schedule_end_dt).total_seconds() / 60)
             active_segment.overtime_minutes = overtime_minutes
             
-            max_ot = site.max_overtime_minutes or 120
+            max_ot = int(site.max_overtime_minutes) if site.max_overtime_minutes else 120
             if overtime_minutes > max_ot:
                 overtime_warning = f"Ai depășit limita de overtime ({max_ot} min). Orele suplimentare necesită aprobare."
     
@@ -574,11 +575,12 @@ def get_active_shift(
         "last_ping_at": str(active_segment.last_ping_at) if active_segment.last_ping_at else None,
         "geofence_pause_distance": active_geo_pause.distance_at_pause if active_geo_pause else None,
         # Schedule info
+        max_overtime = int(site.max_overtime_minutes) if site and site.max_overtime_minutes else 120,
         "work_start_time": work_start_time.strftime('%H:%M') if work_start_time else None,
         "work_end_time": work_end_time.strftime('%H:%M') if work_end_time else None,
-        "max_overtime_minutes": site.max_overtime_minutes if site else 120,
+        "max_overtime_minutes": max_overtime[0] if isinstance(max_overtime, tuple) else max_overtime,
         "schedule_end_datetime": str(datetime.combine(today, work_end_time)) if work_end_time else None,
-        "overtime_limit_datetime": str(datetime.combine(today, work_end_time) + timedelta(minutes=site.max_overtime_minutes or 120)) if work_end_time else None
+        "overtime_limit_datetime": str(datetime.combine(today, work_end_time) + timedelta(minutes=max_overtime[0] if isinstance(max_overtime, tuple) else max_overtime)) if work_end_time else None
     }
 
 
