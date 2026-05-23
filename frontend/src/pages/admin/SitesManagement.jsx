@@ -124,7 +124,7 @@ export default function SitesManagement() {
     const [selectedTeamIds, setSelectedTeamIds] = useState([])
     const [formData, setFormData] = useState(EMPTY_SITE)
     const [saving, setSaving] = useState(false)
-    const token = useAdminStore((state) => state.token)
+
     
     // Bulk Select states
     const [selectedSiteIds, setSelectedSiteIds] = useState([])
