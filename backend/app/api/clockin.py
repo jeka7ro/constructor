@@ -456,132 +456,137 @@ def get_active_shift(
     db: Session = Depends(get_db)
 ):
     """Get current active shift if any"""
-    
-    today = today_ro()
-    active_timesheet = db.query(Timesheet).filter(
-        Timesheet.owner_user_id == current_user.id,
-        Timesheet.date == today,
-        Timesheet.status == "DRAFT"
-    ).first()
-    
-    if not active_timesheet:
-        return JSONResponse(content=None)
-    
-    active_segment = db.query(TimesheetSegment).filter(
-        TimesheetSegment.timesheet_id == active_timesheet.id,
-        TimesheetSegment.check_out_time == None
-    ).order_by(TimesheetSegment.check_in_time.desc()).first()
-    
-    if not active_segment:
-        return JSONResponse(content=None)
-    
-    site = db.query(ConstructionSite).filter(ConstructionSite.id == active_segment.site_id).first()
-    
-    work_start_time = ensure_time(site.work_start_time) if site else None
-    work_end_time = ensure_time(site.work_end_time) if site else None
-    
-    # ---- AUTO-CLOSE at schedule end ----
-    now = now_ro()
-    if site and work_end_time:
-        schedule_end = datetime.combine(today, work_end_time)
+    try:
+        today = today_ro()
+        active_timesheet = db.query(Timesheet).filter(
+            Timesheet.owner_user_id == current_user.id,
+            Timesheet.date == today,
+            Timesheet.status == "DRAFT"
+        ).first()
         
-        # Only auto-close if segment started BEFORE schedule end (prevents zombies)
-        if active_segment.check_in_time < schedule_end and now > schedule_end:
-            active_segment.check_out_time = schedule_end
+        if not active_timesheet:
+            return JSONResponse(content=None)
+        
+        active_segment = db.query(TimesheetSegment).filter(
+            TimesheetSegment.timesheet_id == active_timesheet.id,
+            TimesheetSegment.check_out_time == None
+        ).order_by(TimesheetSegment.check_in_time.desc()).first()
+        
+        if not active_segment:
+            return JSONResponse(content=None)
+        
+        site = db.query(ConstructionSite).filter(ConstructionSite.id == active_segment.site_id).first()
+        
+        work_start_time = ensure_time(site.work_start_time) if site else None
+        work_end_time = ensure_time(site.work_end_time) if site else None
+        
+        # ---- AUTO-CLOSE at schedule end ----
+        now = now_ro()
+        if site and work_end_time:
+            schedule_end = datetime.combine(today, work_end_time)
             
-            # Close any active break
-            if active_segment.break_start_time and not active_segment.break_end_time:
-                active_segment.break_end_time = schedule_end
+            # Only auto-close if segment started BEFORE schedule end (prevents zombies)
+            if active_segment.check_in_time < schedule_end and now > schedule_end:
+                active_segment.check_out_time = schedule_end
+                
+                # Close any active break
+                if active_segment.break_start_time and not active_segment.break_end_time:
+                    active_segment.break_end_time = schedule_end
+                
+                # Close any active geofence pause
+                active_geo_pause = db.query(GeofencePause).filter(
+                    GeofencePause.segment_id == active_segment.id,
+                    GeofencePause.pause_end == None
+                ).first()
+                if active_geo_pause:
+                    active_geo_pause.pause_end = schedule_end
+                
+                db.commit()
+                return JSONResponse(content=None)  # Shift closed at schedule end
+        
+        # Calculate elapsed time
+        now = now_ro()
+        elapsed = now - active_segment.check_in_time
+        elapsed_hours = elapsed.total_seconds() / 3600
+        
+        # Calculate break time
+        break_hours = 0
+        if active_segment.break_start_time:
+            if active_segment.break_end_time:
+                break_duration = active_segment.break_end_time - active_segment.break_start_time
+                break_hours = break_duration.total_seconds() / 3600
+            else:
+                # Break is active
+                break_duration = now - active_segment.break_start_time
+                break_hours = break_duration.total_seconds() / 3600
+                
+        lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+        lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+        
+        # Auto lunch break implementation
+        if site and lunch_break_start and lunch_break_end:
+            lunch_start_dt = datetime.combine(today, lunch_break_start)
+            lunch_end_dt = datetime.combine(today, lunch_break_end)
             
-            # Close any active geofence pause
-            active_geo_pause = db.query(GeofencePause).filter(
-                GeofencePause.segment_id == active_segment.id,
-                GeofencePause.pause_end == None
-            ).first()
-            if active_geo_pause:
-                active_geo_pause.pause_end = schedule_end
+            overlap_start = max(active_segment.check_in_time, lunch_start_dt)
+            overlap_end = min(now, lunch_end_dt)
             
-            db.commit()
-            return JSONResponse(content=None)  # Shift closed at schedule end
-    
-    # Calculate elapsed time
-    now = now_ro()
-    elapsed = now - active_segment.check_in_time
-    elapsed_hours = elapsed.total_seconds() / 3600
-    
-    # Calculate break time
-    break_hours = 0
-    if active_segment.break_start_time:
-        if active_segment.break_end_time:
-            break_duration = active_segment.break_end_time - active_segment.break_start_time
-            break_hours = break_duration.total_seconds() / 3600
+            if overlap_start < overlap_end:
+                auto_break_hours = (overlap_end - overlap_start).total_seconds() / 3600
+                if auto_break_hours > break_hours:
+                    break_hours = auto_break_hours
+        
+        # Calculate geofence pause time
+        geofence_pause_secs = get_geofence_pause_seconds(db, active_segment.id)
+        geofence_pause_hours = geofence_pause_secs / 3600
+        
+        # Check if currently outside geofence
+        active_geo_pause = db.query(GeofencePause).filter(
+            GeofencePause.segment_id == active_segment.id,
+            GeofencePause.pause_end == None
+        ).first()
+        
+        # Detect GPS loss: no ping in last 2 minutes
+        gps_lost = False
+        if active_segment.last_ping_at:
+            since_last_ping = (now - active_segment.last_ping_at).total_seconds()
+            gps_lost = since_last_ping > 120  # 2 minutes
         else:
-            # Break is active
-            break_duration = now - active_segment.break_start_time
-            break_hours = break_duration.total_seconds() / 3600
-            
-    lunch_break_start = ensure_time(site.lunch_break_start) if site else None
-    lunch_break_end = ensure_time(site.lunch_break_end) if site else None
-    
-    # Auto lunch break implementation
-    if site and lunch_break_start and lunch_break_end:
-        lunch_start_dt = datetime.combine(today, lunch_break_start)
-        lunch_end_dt = datetime.combine(today, lunch_break_end)
+            # No pings ever received — check if more than 2 min since check-in
+            since_checkin = (now - active_segment.check_in_time).total_seconds()
+            gps_lost = since_checkin > 120
         
-        overlap_start = max(active_segment.check_in_time, lunch_start_dt)
-        overlap_end = min(now, lunch_end_dt)
+        max_overtime = int(site.max_overtime_minutes) if site and site.max_overtime_minutes else 120
         
-        if overlap_start < overlap_end:
-            auto_break_hours = (overlap_end - overlap_start).total_seconds() / 3600
-            if auto_break_hours > break_hours:
-                break_hours = auto_break_hours
-    
-    # Calculate geofence pause time
-    geofence_pause_secs = get_geofence_pause_seconds(db, active_segment.id)
-    geofence_pause_hours = geofence_pause_secs / 3600
-    
-    # Check if currently outside geofence
-    active_geo_pause = db.query(GeofencePause).filter(
-        GeofencePause.segment_id == active_segment.id,
-        GeofencePause.pause_end == None
-    ).first()
-    
-    # Detect GPS loss: no ping in last 2 minutes
-    gps_lost = False
-    if active_segment.last_ping_at:
-        since_last_ping = (now - active_segment.last_ping_at).total_seconds()
-        gps_lost = since_last_ping > 120  # 2 minutes
-    else:
-        # No pings ever received — check if more than 2 min since check-in
-        since_checkin = (now - active_segment.check_in_time).total_seconds()
-        gps_lost = since_checkin > 120
-    
-    return {
-        "timesheet_id": active_timesheet.id,
-        "segment_id": active_segment.id,
-        "site_id": active_segment.site_id,
-        "site_name": site.name if site else "Unknown",
-        "site_latitude": site.latitude if site else None,
-        "site_longitude": site.longitude if site else None,
-        "site_geofence_radius": site.geofence_radius if site else 300,
-        "check_in_time": str(active_segment.check_in_time),
-        "is_on_break": bool(active_segment.break_start_time and not active_segment.break_end_time),
-        "break_start_time": str(active_segment.break_start_time) if active_segment.break_start_time else None,
-        "elapsed_hours": round(elapsed_hours, 2),
-        "break_hours": round(break_hours, 2),
-        "geofence_pause_hours": round(geofence_pause_hours, 2),
-        "is_outside_geofence": bool(active_geo_pause),
-        "gps_lost": gps_lost,
-        "last_ping_at": str(active_segment.last_ping_at) if active_segment.last_ping_at else None,
-        "geofence_pause_distance": active_geo_pause.distance_at_pause if active_geo_pause else None,
-        # Schedule info
-        max_overtime = int(site.max_overtime_minutes) if site and site.max_overtime_minutes else 120,
-        "work_start_time": work_start_time.strftime('%H:%M') if work_start_time else None,
-        "work_end_time": work_end_time.strftime('%H:%M') if work_end_time else None,
-        "max_overtime_minutes": max_overtime[0] if isinstance(max_overtime, tuple) else max_overtime,
-        "schedule_end_datetime": str(datetime.combine(today, work_end_time)) if work_end_time else None,
-        "overtime_limit_datetime": str(datetime.combine(today, work_end_time) + timedelta(minutes=max_overtime[0] if isinstance(max_overtime, tuple) else max_overtime)) if work_end_time else None
-    }
+        return {
+            "timesheet_id": active_timesheet.id,
+            "segment_id": active_segment.id,
+            "site_id": active_segment.site_id,
+            "site_name": site.name if site else "Unknown",
+            "site_latitude": site.latitude if site else None,
+            "site_longitude": site.longitude if site else None,
+            "site_geofence_radius": site.geofence_radius if site else 300,
+            "check_in_time": str(active_segment.check_in_time),
+            "is_on_break": bool(active_segment.break_start_time and not active_segment.break_end_time),
+            "break_start_time": str(active_segment.break_start_time) if active_segment.break_start_time else None,
+            "elapsed_hours": round(elapsed_hours, 2),
+            "break_hours": round(break_hours, 2),
+            "geofence_pause_hours": round(geofence_pause_hours, 2),
+            "is_outside_geofence": bool(active_geo_pause),
+            "gps_lost": gps_lost,
+            "last_ping_at": str(active_segment.last_ping_at) if active_segment.last_ping_at else None,
+            "geofence_pause_distance": active_geo_pause.distance_at_pause if active_geo_pause else None,
+            # Schedule info
+            "work_start_time": work_start_time.strftime('%H:%M') if work_start_time else None,
+            "work_end_time": work_end_time.strftime('%H:%M') if work_end_time else None,
+            "max_overtime_minutes": max_overtime,
+            "schedule_end_datetime": str(datetime.combine(today, work_end_time)) if work_end_time else None,
+            "overtime_limit_datetime": str(datetime.combine(today, work_end_time) + timedelta(minutes=max_overtime)) if work_end_time else None
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=f"Active shift error: {error_details}")
 
 
 @router.post("/timesheets/location-ping")
