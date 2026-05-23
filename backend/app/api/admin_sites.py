@@ -259,8 +259,17 @@ def create_site(
         lat = geo.get("latitude")
         lng = geo.get("longitude")
     
+    org_id = site_data.organization_id or current_admin.organization_id
+    if not org_id:
+        from app.models import Organization
+        org = db.query(Organization).first()
+        if org:
+            org_id = org.id
+        else:
+            raise HTTPException(status_code=400, detail="No organization available in the system")
+
     new_site = ConstructionSite(
-        organization_id=site_data.organization_id or current_admin.organization_id,
+        organization_id=org_id,
         name=site_data.name,
         address=site_data.address,
         county=site_data.county,
