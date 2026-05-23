@@ -286,6 +286,8 @@ def clock_out(
     if not active_segment:
         raise HTTPException(status_code=404, detail="Nu ai o tură activă")
     
+    site = db.query(ConstructionSite).filter(ConstructionSite.id == active_segment.site_id).first()
+    
     # End any active break
     if active_segment.break_start_time and not active_segment.break_end_time:
         active_segment.break_end_time = now_ro()
