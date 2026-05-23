@@ -108,6 +108,7 @@ const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
 
 export default function SitesManagement() {
     const { showDialog, showToast } = useUIStore()
+    const { token, admin } = useAdminStore()
     const [sites, setSites] = useState([])
     const [totalSites, setTotalSites] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -268,7 +269,7 @@ export default function SitesManagement() {
                 panel_count: formData.panel_count ? parseInt(formData.panel_count) : null,
                 system_power_kw: formData.system_power_kw ? parseFloat(formData.system_power_kw) : null,
                 max_overtime_minutes: formData.max_overtime_minutes ? parseInt(formData.max_overtime_minutes) : 120,
-                organization_id: formData.organization_id || 'aa8a486f-b60f-4f68-b929-8340370fe8a7'
+                organization_id: formData.organization_id || admin?.organization_id || ''
             }
 
             let currentSiteId = editingSite?.id;
