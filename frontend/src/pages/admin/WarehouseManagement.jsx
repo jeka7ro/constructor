@@ -195,90 +195,83 @@ export default function WarehouseManagement() {
     })
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Package className="w-8 h-8 text-blue-600" />
-                        Magazie Virtuală
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Gestionează stocul pe categorii, intrări și ieșiri materiale.</p>
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
+                        <Package className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Magazie Virtuală</h1>
                 </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex overflow-x-auto bg-white dark:bg-slate-900 rounded-xl p-1 shadow-sm border border-slate-200 dark:border-slate-800 gap-1 hide-scrollbar">
-                {CATEGORIES.map(cat => (
-                    <button
-                        key={cat.id}
-                        onClick={() => setActiveTab(cat.id)}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap flex-1 justify-center ${
-                            activeTab === cat.id
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
-                    >
-                        <cat.icon className="w-4 h-4" />
-                        {cat.label}
-                    </button>
-                ))}
-            </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Caută articol..."
+                            value={searchQuery}
+                            onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                            className="w-64 pl-4 pr-24 py-2 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                        />
+                        {searchQuery && (
+                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                    {filteredItems.length}/{items.length}
+                                </span>
+                                <button
+                                    onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
+                                    className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
-            {/* Actions Bar */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Caută în tabel..."
-                        value={searchQuery}
-                        onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                        className="w-full pl-11 pr-12 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all shadow-sm"
-                    />
-                    {searchQuery && (
-                        <button
-                            onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={handleExportExcel}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-xl font-medium transition-all shadow-sm"
-                        title="Descarcă tabelul în Excel"
+                    <select
+                        value={activeTab}
+                        onChange={(e) => { setActiveTab(e.target.value); setCurrentPage(1); }}
+                        className="py-2 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-emerald-500 outline-none appearance-none"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
                     >
-                        <Download className="w-5 h-5" />
+                        {CATEGORIES.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.label}</option>
+                        ))}
+                    </select>
+
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
+                    >
+                        <Download className="w-4 h-4" />
                         Export Excel
                     </button>
+
                     <button
-                        onClick={() => { setSelectedItem(null); setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : '' }); setShowItemModal(true); }}
-                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-sm"
+                        onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : '' }); setSelectedItem(null); setShowItemModal(true); }}
+                        className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all"
                     >
-                        <Plus className="w-5 h-5" />
-                        Adaugă Articol
+                        <Plus className="w-4 h-4" />
+                        Articol Nou
                     </button>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                        <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
-                                <th className="px-4 py-3 font-semibold text-center w-12 border-r border-slate-200 dark:border-slate-700">#</th>
-                                <th className="px-4 py-3 font-semibold">Articol</th>
-                                <th className="px-4 py-3 font-semibold text-center border-x border-slate-200 dark:border-slate-700 w-24">U.M.</th>
-                                <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-24">Intrări</th>
-                                <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-24">Ieșiri</th>
-                                <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-32">Stoc Curent</th>
-                                <th className="px-4 py-3 font-semibold text-center w-48">Acțiuni</th>
+                                <th className="px-6 py-4 w-12 text-center">NR.</th>
+                                <th className="px-6 py-4">ARTICOL</th>
+                                <th className="px-6 py-4 text-center">U.M.</th>
+                                <th className="px-6 py-4 text-center">INTRĂRI</th>
+                                <th className="px-6 py-4 text-center">IEȘIRI</th>
+                                <th className="px-6 py-4 text-center">STOC CURENT</th>
+                                <th className="px-6 py-4 text-right">ACȚIUNI</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
                                     <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
@@ -294,22 +287,22 @@ export default function WarehouseManagement() {
                             ) : (
                                 paginatedItems.map((item, index) => (
                                     <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                        <td className="px-4 py-2.5 text-center text-slate-500 font-medium border-r border-slate-200 dark:border-slate-800">
+                                        <td className="px-6 py-4 text-center text-slate-500 font-medium">
                                             {(currentPage - 1) * itemsPerPage + index + 1}
                                         </td>
-                                        <td className="px-4 py-2.5">
+                                        <td className="px-6 py-4">
                                             <div className="font-bold text-slate-900 dark:text-white truncate">{item.name}</div>
                                         </td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-400 font-medium border-x border-slate-200 dark:border-slate-800">
+                                        <td className="px-6 py-4 text-center text-slate-600 dark:text-slate-400 font-medium">
                                             {item.unit}
                                         </td>
-                                        <td className="px-4 py-2.5 text-center text-blue-600 dark:text-blue-400 font-bold border-r border-slate-200 dark:border-slate-800">
+                                        <td className="px-6 py-4 text-center text-emerald-600 dark:text-emerald-400 font-bold">
                                             {item.total_in > 0 ? `+${item.total_in}` : '-'}
                                         </td>
-                                        <td className="px-4 py-2.5 text-center text-orange-500 dark:text-orange-400 font-bold border-r border-slate-200 dark:border-slate-800">
+                                        <td className="px-6 py-4 text-center text-rose-500 dark:text-rose-400 font-bold">
                                             {item.total_out > 0 ? `-${item.total_out}` : '-'}
                                         </td>
-                                        <td className="px-4 py-2.5 text-center border-r border-slate-200 dark:border-slate-800">
+                                        <td className="px-6 py-4 text-center">
                                             <button 
                                                 onClick={() => {
                                                     setHistoryItem(item)
@@ -317,26 +310,24 @@ export default function WarehouseManagement() {
                                                     setShowHistoryModal(true)
                                                     fetchTransactions(item.id)
                                                 }}
-                                                className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded w-full font-bold text-sm transition-all hover:bg-slate-100 dark:hover:bg-slate-700 ${item.total_quantity <= 0 ? 'text-red-600' : 'text-emerald-600'}`}
+                                                className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm transition-all border ${item.total_quantity <= 0 ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'}`}
                                                 title="Apasă pentru a vedea istoricul tranzacțiilor"
                                             >
-                                                {item.total_quantity}
-                                                <History className="w-3.5 h-3.5 opacity-50" />
+                                                {item.total_quantity > 0 ? `• ${item.total_quantity}` : '0'}
                                             </button>
                                         </td>
-                                        <td className="px-4 py-2.5 text-center">
-                                            <div className="flex justify-center items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => openTxModal(item, 'IN')} className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold shadow-sm transition-all uppercase tracking-wider" title="Adaugă Intrare">
-                                                    <ArrowDownRight className="w-3.5 h-3.5" /> IN
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => openTxModal(item, 'IN')} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors" title="Adaugă Intrare">
+                                                    <ArrowDownRight className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => openTxModal(item, 'OUT')} className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded text-[11px] font-bold shadow-sm transition-all uppercase tracking-wider" title="Adaugă Ieșire">
-                                                    <ArrowUpRight className="w-3.5 h-3.5" /> OUT
+                                                <button onClick={() => openTxModal(item, 'OUT')} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title="Adaugă Ieșire">
+                                                    <ArrowUpRight className="w-4 h-4" />
                                                 </button>
-                                                <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                                                <button onClick={() => { setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded transition-colors" title="Modifică articol">
+                                                <button onClick={() => { setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică articol">
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded transition-colors" title="Șterge articol">
+                                                <button onClick={() => handleDeleteItem(item.id)} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title="Șterge articol">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -348,45 +339,40 @@ export default function WarehouseManagement() {
                     </table>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 0 && (
-                    <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <label className="text-sm text-slate-500">Afișează:</label>
-                                <select 
-                                    value={itemsPerPage}
-                                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                                    className="px-2 py-1 bg-white border border-slate-200 rounded-md text-sm text-slate-700 focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={25}>25</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
-                            </div>
-                            <span className="text-sm text-slate-500">
-                                Pagina {currentPage} din {totalPages}
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-emerald-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
+                    <div className="flex items-center gap-2">
+                        <span className="uppercase tracking-wide">Afișează</span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <span>Pagina {currentPage} din {Math.max(1, totalPages)}</span>
+                        <div className="flex gap-1">
                             <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(p => p - 1)}
-                                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                                className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
                             >
-                                <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                                <ChevronLeft className="w-4 h-4" />
                             </button>
                             <button
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(p => p + 1)}
-                                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                                className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
                             >
-                                <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                                <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
 
             {/* ITEM MODAL */}
