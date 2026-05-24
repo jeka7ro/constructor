@@ -55,7 +55,7 @@ def upload_file(file_content: bytes, path: str, content_type: str = "image/jpeg"
         local_path.parent.mkdir(parents=True, exist_ok=True)
         with open(local_path, "wb") as f:
             f.write(file_content)
-        return f"/uploads/{path}"
+        return f"/api/uploads/{path}"
 
 
 def delete_file(path: str) -> bool:
@@ -97,7 +97,7 @@ def get_file_url(path: str) -> str:
     if is_cloud_storage():
         return f"{SUPABASE_URL}/storage/v1/object/public/{STORAGE_BUCKET}/{path}"
     else:
-        return f"/uploads/{path}"
+        return f"/api/uploads/{path}"
 
 
 def get_content_type(filename: str) -> str:

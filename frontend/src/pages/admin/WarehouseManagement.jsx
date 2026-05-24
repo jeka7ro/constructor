@@ -258,35 +258,42 @@ export default function WarehouseManagement() {
             {/* Table */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                             <tr>
-                                <th className="px-6 py-4 font-semibold">Articol</th>
-                                <th className="px-6 py-4 font-semibold text-center">Stoc Curent</th>
-                                <th className="px-6 py-4 font-semibold text-right">Acțiuni</th>
+                                <th className="px-4 py-3 font-semibold text-center w-12 border-r border-slate-200 dark:border-slate-700">#</th>
+                                <th className="px-4 py-3 font-semibold">Articol</th>
+                                <th className="px-4 py-3 font-semibold text-center border-x border-slate-200 dark:border-slate-700 w-24">U.M.</th>
+                                <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-32">Stoc Curent</th>
+                                <th className="px-4 py-3 font-semibold text-center w-48">Acțiuni</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="3" className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
                                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                                     </td>
                                 </tr>
                             ) : paginatedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan="3" className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
                                         Nu s-au găsit articole.
                                     </td>
                                 </tr>
                             ) : (
-                                paginatedItems.map(item => (
-                                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="font-medium text-slate-900 dark:text-white">{item.name}</div>
-                                            <div className="text-xs text-slate-500 mt-0.5">UM: {item.unit}</div>
+                                paginatedItems.map((item, index) => (
+                                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                        <td className="px-4 py-2.5 text-center text-slate-500 font-medium border-r border-slate-200 dark:border-slate-800">
+                                            {(currentPage - 1) * itemsPerPage + index + 1}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-4 py-2.5">
+                                            <div className="font-bold text-slate-900 dark:text-white truncate">{item.name}</div>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-400 font-medium border-x border-slate-200 dark:border-slate-800">
+                                            {item.unit}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center border-r border-slate-200 dark:border-slate-800">
                                             <button 
                                                 onClick={() => {
                                                     setHistoryItem(item)
@@ -294,26 +301,26 @@ export default function WarehouseManagement() {
                                                     setShowHistoryModal(true)
                                                     fetchTransactions(item.id)
                                                 }}
-                                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm transition-all hover:ring-2 hover:ring-offset-1 ${item.total_quantity <= 0 ? 'bg-red-100 text-red-700 hover:ring-red-400' : 'bg-emerald-100 text-emerald-700 hover:ring-emerald-400'}`}
+                                                className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded w-full font-bold text-sm transition-all hover:bg-slate-100 dark:hover:bg-slate-700 ${item.total_quantity <= 0 ? 'text-red-600' : 'text-emerald-600'}`}
                                                 title="Apasă pentru a vedea istoricul tranzacțiilor"
                                             >
-                                                {item.total_quantity} {item.unit}
-                                                <History className="w-3 h-3 opacity-50" />
+                                                {item.total_quantity}
+                                                <History className="w-3.5 h-3.5 opacity-50" />
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end items-center gap-2">
-                                                <button onClick={() => openTxModal(item, 'IN')} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-sm transition-all" title="Adaugă Intrare">
-                                                    <ArrowDownRight className="w-4 h-4" /> Intrare
+                                        <td className="px-4 py-2.5 text-center">
+                                            <div className="flex justify-center items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => openTxModal(item, 'IN')} className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold shadow-sm transition-all uppercase tracking-wider" title="Adaugă Intrare">
+                                                    <ArrowDownRight className="w-3.5 h-3.5" /> IN
                                                 </button>
-                                                <button onClick={() => openTxModal(item, 'OUT')} className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium shadow-sm transition-all" title="Adaugă Ieșire">
-                                                    <ArrowUpRight className="w-4 h-4" /> Ieșire
+                                                <button onClick={() => openTxModal(item, 'OUT')} className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded text-[11px] font-bold shadow-sm transition-all uppercase tracking-wider" title="Adaugă Ieșire">
+                                                    <ArrowUpRight className="w-3.5 h-3.5" /> OUT
                                                 </button>
-                                                <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                                                <button onClick={() => { setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Modifică articol">
+                                                <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                                                <button onClick={() => { setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded transition-colors" title="Modifică articol">
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Șterge articol">
+                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded transition-colors" title="Șterge articol">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
