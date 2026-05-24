@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip, History } from 'lucide-react'
+import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip, History, X } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '../../store/uiStore'
@@ -232,9 +232,17 @@ export default function WarehouseManagement() {
                         type="text"
                         placeholder="Caută în tabel..."
                         value={searchQuery}
-                        onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                        className="w-full pl-11 pr-12 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all shadow-sm"
                     />
+                    {searchQuery && (
+                        <button
+                            onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
                 <div className="flex gap-2">
                     <button
@@ -533,9 +541,17 @@ export default function WarehouseManagement() {
                                         type="text"
                                         placeholder="Caută în istoric..."
                                         value={historySearch}
-                                        onChange={(e) => setHistorySearch(e.target.value)}
-                                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500"
+                                        onChange={e => setHistorySearch(e.target.value)}
+                                        className="w-full pl-9 pr-10 py-2 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
                                     />
+                                    {historySearch && (
+                                        <button
+                                            onClick={() => setHistorySearch('')}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                 </div>
                                 <button onClick={() => setShowHistoryModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium">
                                     Închide
