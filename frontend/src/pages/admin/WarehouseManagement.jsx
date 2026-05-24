@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
+import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip, History } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '../../store/uiStore'
@@ -180,17 +180,19 @@ export default function WarehouseManagement() {
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
     const paginatedItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
-    // Filtering for History
-    const filteredHistory = transactions.filter(t => 
-        (t.date && String(t.date).includes(historySearch)) ||
-        (t.transaction_type && t.transaction_type.toLowerCase().includes(historySearch.toLowerCase())) ||
-        (String(t.quantity).includes(historySearch)) ||
-        (t.assigned_site && t.assigned_site.toLowerCase().includes(historySearch.toLowerCase())) ||
-        (t.assigned_user && t.assigned_user.toLowerCase().includes(historySearch.toLowerCase())) ||
-        (t.assigned_vehicle && t.assigned_vehicle.toLowerCase().includes(historySearch.toLowerCase())) ||
-        (t.operator && t.operator.toLowerCase().includes(historySearch.toLowerCase())) ||
-        (t.notes && t.notes.toLowerCase().includes(historySearch.toLowerCase()))
-    )
+    const filteredHistory = transactions.filter(t => {
+        const searchLower = historySearch.toLowerCase()
+        return (
+            (t.date && String(t.date).toLowerCase().includes(searchLower)) ||
+            (t.transaction_type && t.transaction_type.toLowerCase().includes(searchLower)) ||
+            (String(t.quantity).includes(searchLower)) ||
+            (t.assigned_site && t.assigned_site.toLowerCase().includes(searchLower)) ||
+            (t.assigned_user && t.assigned_user.toLowerCase().includes(searchLower)) ||
+            (t.assigned_vehicle && t.assigned_vehicle.toLowerCase().includes(searchLower)) ||
+            (t.operator && t.operator.toLowerCase().includes(searchLower)) ||
+            (t.notes && t.notes.toLowerCase().includes(searchLower))
+        )
+    })
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -285,31 +287,36 @@ export default function WarehouseManagement() {
                                             <div className="text-xs text-slate-500 mt-0.5">UM: {item.unit}</div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full font-bold text-sm ${item.total_quantity <= 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            <button 
+                                                onClick={() => {
+                                                    setHistoryItem(item)
+                                                    setHistorySearch('')
+                                                    setShowHistoryModal(true)
+                                                    fetchTransactions(item.id)
+                                                }}
+                                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm transition-all hover:ring-2 hover:ring-offset-1 ${item.total_quantity <= 0 ? 'bg-red-100 text-red-700 hover:ring-red-400' : 'bg-emerald-100 text-emerald-700 hover:ring-emerald-400'}`}
+                                                title="Apasă pentru a vedea istoricul tranzacțiilor"
+                                            >
                                                 {item.total_quantity} {item.unit}
-                                            </span>
+                                                <History className="w-3 h-3 opacity-50" />
+                                            </button>
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button onClick={() => {
-                                                setHistoryItem(item)
-                                                setHistorySearch('')
-                                                setShowHistoryModal(true)
-                                                fetchTransactions(item.id)
-                                            }} className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-medium transition-colors">
-                                                Istoric
-                                            </button>
-                                            <button onClick={() => openTxModal(item, 'IN')} className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-medium transition-colors">
-                                                + Intrare
-                                            </button>
-                                            <button onClick={() => openTxModal(item, 'OUT')} className="px-3 py-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg text-xs font-medium transition-colors">
-                                                - Ieșire
-                                            </button>
-                                            <button onClick={() => { setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="px-2 py-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => handleDeleteItem(item.id)} className="px-2 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end items-center gap-2">
+                                                <button onClick={() => openTxModal(item, 'IN')} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-sm transition-all" title="Adaugă Intrare">
+                                                    <ArrowDownRight className="w-4 h-4" /> Intrare
+                                                </button>
+                                                <button onClick={() => openTxModal(item, 'OUT')} className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium shadow-sm transition-all" title="Adaugă Ieșire">
+                                                    <ArrowUpRight className="w-4 h-4" /> Ieșire
+                                                </button>
+                                                <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                                                <button onClick={() => { setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Modifică articol">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Șterge articol">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
