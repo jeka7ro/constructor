@@ -50,21 +50,22 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
     items = query.order_by(WarehouseItem.name).all()
     
     # Calculate Total IN and OUT
-    from sqlalchemy import func
-    from app.models.warehouse import WarehouseTransaction
-    stats = db.query(
-        WarehouseTransaction.item_id,
-        WarehouseTransaction.transaction_type,
-        func.sum(WarehouseTransaction.quantity).label('total')
-    ).filter(WarehouseTransaction.item_id.in_([i.id for i in items]) if items else False).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type).all()
-    
     in_map = {}
     out_map = {}
-    for item_id, tx_type, total in stats:
-        if tx_type == "IN":
-            in_map[item_id] = total
-        else:
-            out_map[item_id] = total
+    if items:
+        from sqlalchemy import func
+        from app.models.warehouse import WarehouseTransaction
+        stats = db.query(
+            WarehouseTransaction.item_id,
+            WarehouseTransaction.transaction_type,
+            func.sum(WarehouseTransaction.quantity).label('total')
+        ).filter(WarehouseTransaction.item_id.in_([i.id for i in items])).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type).all()
+        
+        for item_id, tx_type, total in stats:
+            if tx_type == "IN":
+                in_map[item_id] = total
+            else:
+                out_map[item_id] = total
 
     return [
         {
