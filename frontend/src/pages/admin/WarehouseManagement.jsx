@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Package, Truck, UserCircle, Search, LogOut, ArrowRightLeft, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2 } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'react-hot-toast'
+import { useUIStore } from '../../store/uiStore'
 
 const CATEGORIES = [
     { id: 'SCULE', label: 'Scule', icon: Package },
@@ -13,6 +13,7 @@ const CATEGORIES = [
 
 export default function WarehouseManagement() {
     const { t } = useTranslation()
+    const { showToast } = useUIStore()
     const [activeTab, setActiveTab] = useState('SCULE')
     const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
@@ -51,7 +52,7 @@ export default function WarehouseManagement() {
             const res = await api.get('/warehouse/items', { params: { category: activeTab } })
             setItems(res.data)
         } catch (error) {
-            toast.error('Eroare la încărcarea stocurilor')
+            showToast('Eroare la încărcarea stocurilor', 'error')
         } finally {
             setLoading(false)
         }
@@ -75,7 +76,7 @@ export default function WarehouseManagement() {
             const res = await api.get(`/warehouse/items/${itemId}/transactions`)
             setTransactions(res.data)
         } catch (error) {
-            toast.error('Eroare la încărcarea istoricului')
+            showToast('Eroare la încărcarea istoricului', 'error')
         }
     }
 
@@ -84,15 +85,15 @@ export default function WarehouseManagement() {
         try {
             if (selectedItem) {
                 await api.put(`/warehouse/items/${selectedItem.id}`, { name: itemForm.name, unit: itemForm.unit })
-                toast.success('Articol actualizat')
+                showToast('Articol actualizat', 'success')
             } else {
                 await api.post('/warehouse/items', { ...itemForm, category: activeTab })
-                toast.success('Articol creat')
+                showToast('Articol creat', 'success')
             }
             setShowItemModal(false)
             fetchItems()
         } catch (error) {
-            toast.error('Eroare la salvare')
+            showToast('Eroare la salvare', 'error')
         }
     }
 
@@ -100,27 +101,27 @@ export default function WarehouseManagement() {
         if (!window.confirm('Sigur dorești să ștergi acest articol? Tot istoricul va fi pierdut.')) return
         try {
             await api.delete(`/warehouse/items/${id}`)
-            toast.success('Articol șters')
+            showToast('Articol șters', 'success')
             fetchItems()
         } catch (error) {
-            toast.error('Eroare la ștergere')
+            showToast('Eroare la ștergere', 'error')
         }
     }
 
     const handleSaveTx = async (e) => {
         e.preventDefault()
         if (!txForm.quantity || Number(txForm.quantity) <= 0) {
-            toast.error('Introduceți o cantitate validă')
+            showToast('Introduceți o cantitate validă', 'error')
             return
         }
 
         if (txType === 'OUT') {
             if (activeTab === 'COMBUSTIBIL' && !txForm.assigned_to_vehicle_id) {
-                toast.error('Selectați utilajul / mașina')
+                showToast('Selectați utilajul / mașina', 'error')
                 return
             }
             if (['CONSUMABILE', 'STRUCTURA', 'SCULE'].includes(activeTab) && !txForm.assigned_to_user_id) {
-                toast.error('Selectați angajatul')
+                showToast('Selectați angajatul', 'error')
                 return
             }
         }
@@ -135,11 +136,11 @@ export default function WarehouseManagement() {
                 assigned_to_vehicle_id: txForm.assigned_to_vehicle_id || null,
                 notes: txForm.notes
             })
-            toast.success('Tranzacție salvată')
+            showToast('Tranzacție salvată', 'success')
             setShowTxModal(false)
             fetchItems()
         } catch (error) {
-            toast.error(error.response?.data?.detail || 'Eroare la salvare tranzacție')
+            showToast(error.response?.data?.detail || 'Eroare la salvare tranzacție', 'error')
         }
     }
 
