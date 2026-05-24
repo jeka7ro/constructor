@@ -6,14 +6,14 @@ from pydantic import BaseModel
 from datetime import date, datetime
 
 from app.database import get_db
-from app.models import WarehouseItem, WarehouseTransaction, User, Vehicle
-from app.api.auth import get_current_user
+from app.models import WarehouseItem, WarehouseTransaction, Admin, Vehicle
+from app.api.admin_auth import get_current_admin
 
 router = APIRouter()
 
-def is_admin_or_logistic(user: User):
-    if user.role.code not in ["ADMIN", "SUPER_ADMIN", "LOGISTIC"]:
-        raise HTTPException(status_code=403, detail="Nu ai permisiunea necesară pentru magazie.")
+def is_admin_or_logistic(admin: Admin):
+    # Currently Admin table does not have roles, all Admins are allowed.
+    # If role-based access is added to Admin in the future, check here.
     return True
 
 # Schemas
@@ -38,9 +38,9 @@ class WarehouseTransactionCreate(BaseModel):
 
 # GET items
 @router.get("/warehouse/items")
-def get_items(category: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin_or_logistic(current_user)
-    query = db.query(WarehouseItem).filter(WarehouseItem.organization_id == current_user.organization_id)
+def get_items(category: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
+    query = db.query(WarehouseItem).filter(WarehouseItem.organization_id == current_admin.organization_id)
     if category:
         query = query.filter(WarehouseItem.category == category)
     items = query.order_by(WarehouseItem.name).all()
@@ -57,11 +57,11 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
 
 # CREATE item
 @router.post("/warehouse/items")
-def create_item(item: WarehouseItemCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin_or_logistic(current_user)
+def create_item(item: WarehouseItemCreate, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
     
     db_item = WarehouseItem(
-        organization_id=current_user.organization_id,
+        organization_id=current_admin.organization_id,
         name=item.name,
         category=item.category,
         unit=item.unit,
@@ -74,10 +74,10 @@ def create_item(item: WarehouseItemCreate, db: Session = Depends(get_db), curren
 
 # UPDATE item
 @router.put("/warehouse/items/{item_id}")
-def update_item(item_id: str, item: WarehouseItemUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin_or_logistic(current_user)
+def update_item(item_id: str, item: WarehouseItemUpdate, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
     
-    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_user.organization_id).first()
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
         
@@ -93,10 +93,10 @@ def update_item(item_id: str, item: WarehouseItemUpdate, db: Session = Depends(g
 
 # DELETE item
 @router.delete("/warehouse/items/{item_id}")
-def delete_item(item_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin_or_logistic(current_user)
+def delete_item(item_id: str, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
     
-    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_user.organization_id).first()
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
         
@@ -106,8 +106,8 @@ def delete_item(item_id: str, db: Session = Depends(get_db), current_user: User 
 
 # GET transactions for item
 @router.get("/warehouse/items/{item_id}/transactions")
-def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin_or_logistic(current_user)
+def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
     
     transactions = db.query(WarehouseTransaction).filter(WarehouseTransaction.item_id == item_id).order_by(desc(WarehouseTransaction.created_at)).all()
     
@@ -132,10 +132,10 @@ def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_u
 
 # ADD transaction
 @router.post("/warehouse/transactions")
-def add_transaction(tx: WarehouseTransactionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin_or_logistic(current_user)
+def add_transaction(tx: WarehouseTransactionCreate, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
     
-    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == tx.item_id, WarehouseItem.organization_id == current_user.organization_id).first()
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == tx.item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
         
@@ -150,7 +150,7 @@ def add_transaction(tx: WarehouseTransactionCreate, db: Session = Depends(get_db
         transaction_type=tx.transaction_type,
         quantity=tx.quantity,
         date=tx.date,
-        operated_by_id=current_user.id,
+        operated_by_id=current_admin.id,
         assigned_to_user_id=tx.assigned_to_user_id,
         assigned_to_vehicle_id=tx.assigned_to_vehicle_id,
         notes=tx.notes
