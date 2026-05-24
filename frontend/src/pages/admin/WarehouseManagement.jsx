@@ -282,8 +282,19 @@ export default function WarehouseManagement() {
                                 <input type="text" required value={itemForm.name} onChange={e => setItemForm({ ...itemForm, name: e.target.value })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-transparent text-slate-900 dark:text-white" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unitate de măsură (ex: buc, L, kg, m)</label>
-                                <input type="text" required value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-transparent text-slate-900 dark:text-white" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unitate de măsură</label>
+                                <select required value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-transparent text-slate-900 dark:text-white">
+                                    <option value="">Alege unitatea...</option>
+                                    <option value="buc">buc (Bucăți)</option>
+                                    <option value="L">L (Litri)</option>
+                                    <option value="kg">kg (Kilograme)</option>
+                                    <option value="m">m (Metri)</option>
+                                    <option value="ml">ml (Metri liniari)</option>
+                                    <option value="mp">mp (Metri pătrați)</option>
+                                    <option value="rolă">rolă</option>
+                                    <option value="set">set</option>
+                                    <option value="cutie">cutie</option>
+                                </select>
                             </div>
                             <div className="flex justify-end gap-3 pt-4">
                                 <button type="button" onClick={() => setShowItemModal(false)} className="px-5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-medium">Anulează</button>
