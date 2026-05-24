@@ -246,7 +246,7 @@ export default function WarehouseManagement() {
                         Export Excel
                     </button>
                     <button
-                        onClick={() => { setSelectedItem(null); setItemForm({ name: '', unit: '' }); setShowItemModal(true); }}
+                        onClick={() => { setSelectedItem(null); setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : '' }); setShowItemModal(true); }}
                         className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-sm"
                     >
                         <Plus className="w-5 h-5" />
@@ -380,17 +380,23 @@ export default function WarehouseManagement() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unitate de măsură</label>
-                                <select required value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-transparent text-slate-900 dark:text-white">
-                                    <option value="">Alege unitatea...</option>
-                                    <option value="buc">buc (Bucăți)</option>
-                                    <option value="L">L (Litri)</option>
-                                    <option value="kg">kg (Kilograme)</option>
-                                    <option value="m">m (Metri)</option>
-                                    <option value="ml">ml (Metri liniari)</option>
-                                    <option value="mp">mp (Metri pătrați)</option>
-                                    <option value="rolă">rolă</option>
-                                    <option value="set">set</option>
-                                    <option value="cutie">cutie</option>
+                                <select required value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} disabled={activeTab === 'COMBUSTIBIL'} className={`w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-transparent text-slate-900 dark:text-white ${activeTab === 'COMBUSTIBIL' ? 'bg-slate-50 dark:bg-slate-800 cursor-not-allowed text-slate-500' : ''}`}>
+                                    {activeTab === 'COMBUSTIBIL' ? (
+                                        <option value="L">L (Litri)</option>
+                                    ) : (
+                                        <>
+                                            <option value="">Alege unitatea...</option>
+                                            <option value="buc">buc (Bucăți)</option>
+                                            <option value="L">L (Litri)</option>
+                                            <option value="kg">kg (Kilograme)</option>
+                                            <option value="m">m (Metri)</option>
+                                            <option value="ml">ml (Metri liniari)</option>
+                                            <option value="mp">mp (Metri pătrați)</option>
+                                            <option value="rolă">rolă</option>
+                                            <option value="set">set</option>
+                                            <option value="cutie">cutie</option>
+                                        </>
+                                    )}
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3 pt-4">
