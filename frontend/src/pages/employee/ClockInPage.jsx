@@ -178,6 +178,47 @@ export default function ClockInPage() {
 
     // Reverse geocode user location to get address
     useEffect(() => {
+        if (!selectedSiteObj) return
+        setSelfDeclaration(false)
+    }, [selectedSiteObj])
+
+    // Sync offline activities periodically when online
+    useEffect(() => {
+        const syncOfflineActivities = async () => {
+            if (!activeShift?.timesheet_id || !navigator.onLine) return
+            const offlineKey = `offlineActivities_${activeShift.timesheet_id}`
+            const offlineActivities = JSON.parse(localStorage.getItem(offlineKey) || '[]')
+            
+            if (offlineActivities.length > 0) {
+                let allSynced = true
+                for (const act of offlineActivities) {
+                    try {
+                        await api.post(`/timesheets/${activeShift.timesheet_id}/activities`, {
+                            activity_id: act.activity_id,
+                            quantity: act.quantity
+                        })
+                    } catch (e) {
+                        allSynced = false
+                        console.error('Failed to sync offline activity', e)
+                    }
+                }
+                if (allSynced) {
+                    localStorage.removeItem(offlineKey)
+                    fetchAddedActivities(activeShift.timesheet_id)
+                }
+            }
+        }
+
+        window.addEventListener('online', syncOfflineActivities)
+        const interval = setInterval(syncOfflineActivities, 60000)
+        
+        return () => {
+            window.removeEventListener('online', syncOfflineActivities)
+            clearInterval(interval)
+        }
+    }, [activeShift?.timesheet_id])
+
+    useEffect(() => {
         if (!location) return
         const controller = new AbortController()
         fetch(`/api/reverse-geocode?lat=${location.latitude}&lon=${location.longitude}`, {
@@ -394,16 +435,53 @@ export default function ClockInPage() {
         try {
             const response = await api.get(`/timesheets/${timesheetId}`)
             const segments = response.data?.segments || []
-            const activities = segments.flatMap(s => s.activities || [])
-            setAddedActivities(activities)
+            const apiActivities = segments.flatMap(s => s.activities || [])
+            
+            // Cache them
+            localStorage.setItem(`cachedApiActivities_${timesheetId}`, JSON.stringify(apiActivities))
+            
+            // Merge with offline activities
+            const offlineKey = `offlineActivities_${timesheetId}`
+            const offlineActivities = JSON.parse(localStorage.getItem(offlineKey) || '[]').map((act, idx) => ({
+                id: `offline-${idx}`,
+                activity_id: act.activity_id,
+                name: act.name,
+                quantity_numeric: act.quantity,
+                unit_type: act.unit_type,
+                is_offline: true
+            }))
+            
+            setAddedActivities([...apiActivities, ...offlineActivities])
         } catch (error) {
             console.error('Error fetching added activities:', error)
+            // Use cached + offline
+            const cached = JSON.parse(localStorage.getItem(`cachedApiActivities_${timesheetId}`) || '[]')
+            const offlineKey = `offlineActivities_${timesheetId}`
+            const offlineActivities = JSON.parse(localStorage.getItem(offlineKey) || '[]').map((act, idx) => ({
+                id: `offline-${idx}`,
+                activity_id: act.activity_id,
+                name: act.name,
+                quantity_numeric: act.quantity,
+                unit_type: act.unit_type,
+                is_offline: true
+            }))
+            setAddedActivities([...cached, ...offlineActivities])
         }
     }
 
     const handleAddActivity = async (activity) => {
         if (!activeShift?.timesheet_id) return
         const qty = activityQuantities[activity.id] || 1
+        
+        const optimisticActivity = {
+            id: `temp-${Date.now()}`,
+            activity_id: activity.id,
+            name: activity.name,
+            quantity_numeric: qty,
+            unit_type: activity.unit_type,
+            is_offline: true
+        }
+
         try {
             await api.post(`/timesheets/${activeShift.timesheet_id}/activities`, {
                 activity_id: activity.id,
@@ -411,15 +489,44 @@ export default function ClockInPage() {
             })
             await fetchAddedActivities(activeShift.timesheet_id)
             setActivityQuantities(prev => ({ ...prev, [activity.id]: 1 }))
-            // Flash success on the added activity (don't close picker)
             setLastAddedActivityId(activity.id)
             setTimeout(() => setLastAddedActivityId(null), 1500)
         } catch (error) {
-            setErrorMessage(error.response?.data?.detail || t('errors.add_activity'))
+            if (!navigator.onLine || error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+                // Save locally
+                const offlineKey = `offlineActivities_${activeShift.timesheet_id}`
+                const existing = JSON.parse(localStorage.getItem(offlineKey) || '[]')
+                existing.push({
+                    activity_id: activity.id,
+                    quantity: qty,
+                    name: activity.name,
+                    unit_type: activity.unit_type,
+                    timestamp: new Date().toISOString()
+                })
+                localStorage.setItem(offlineKey, JSON.stringify(existing))
+                
+                // Update UI optimistically
+                fetchAddedActivities(activeShift.timesheet_id)
+                setActivityQuantities(prev => ({ ...prev, [activity.id]: 1 }))
+                setLastAddedActivityId(activity.id)
+                setTimeout(() => setLastAddedActivityId(null), 1500)
+            } else {
+                setErrorMessage(error.response?.data?.detail || t('errors.add_activity'))
+            }
         }
     }
 
     const handleRemoveActivity = async (lineId) => {
+        if (typeof lineId === 'string' && lineId.startsWith('offline-')) {
+            const idx = parseInt(lineId.split('-')[1])
+            const offlineKey = `offlineActivities_${activeShift.timesheet_id}`
+            const existing = JSON.parse(localStorage.getItem(offlineKey) || '[]')
+            existing.splice(idx, 1)
+            localStorage.setItem(offlineKey, JSON.stringify(existing))
+            fetchAddedActivities(activeShift.timesheet_id)
+            return
+        }
+
         try {
             await api.delete(`/timesheets/activities/${lineId}`)
             await fetchAddedActivities(activeShift.timesheet_id)
@@ -496,6 +603,26 @@ export default function ClockInPage() {
 
         try {
             setLoading(true)
+
+            // Sync offline activities before clocking out
+            if (activeShift?.timesheet_id && navigator.onLine) {
+                const offlineKey = `offlineActivities_${activeShift.timesheet_id}`
+                const offlineActivities = JSON.parse(localStorage.getItem(offlineKey) || '[]')
+                if (offlineActivities.length > 0) {
+                    for (const act of offlineActivities) {
+                        try {
+                            await api.post(`/timesheets/${activeShift.timesheet_id}/activities`, {
+                                activity_id: act.activity_id,
+                                quantity: act.quantity
+                            })
+                        } catch(e) {
+                            console.error('Failed to sync activity on clockout', e)
+                        }
+                    }
+                    localStorage.removeItem(offlineKey)
+                }
+            }
+
             // Send GPS coords if available, otherwise send empty body (backend accepts optional coords)
             const payload = location
                 ? { latitude: location.latitude, longitude: location.longitude }
