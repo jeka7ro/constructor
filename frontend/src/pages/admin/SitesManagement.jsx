@@ -653,7 +653,7 @@ export default function SitesManagement() {
 
             {/* Edit/Add Modal */}
             {showEditModal && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowEditModal(false)}>
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 className="text-2xl font-bold text-slate-900">

@@ -600,7 +600,7 @@ export default function UsersManagement() {
 
             {/* =================== ADD/EDIT USER MODAL =================== */}
             {showEditModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowEditModal(false)}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl border border-slate-200/50" onClick={e => e.stopPropagation()}>
                         {/* Header with gradient */}
                         <div className="relative overflow-hidden">
@@ -1081,7 +1081,7 @@ export default function UsersManagement() {
 
             {/* =================== RESET PIN MODAL =================== */}
             {showPinModal && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowPinModal(false)}>
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900">Resetare PIN</h2>
@@ -1138,7 +1138,7 @@ export default function UsersManagement() {
 
             {/* =================== ASSIGN SITE MODAL =================== */}
             {showAssignSiteModal && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowAssignSiteModal(false)}>
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">

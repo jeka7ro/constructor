@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -64,11 +64,12 @@ export default function AdminDashboard() {
         { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
         { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
         { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
-        { path: '/admin/teams', icon: Users, label: t('nav.teams') },
-        { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
-        { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
-        { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
-    ]
+        { path: '/admin/teams', icon: Users, label: t('nav.teams'), roles: ['ADMIN', 'SUPER_ADMIN', 'SITE_MANAGER', 'LOGISTIC'] },
+        { path: '/admin/fleet', icon: Truck, label: t('nav.fleet'), roles: ['ADMIN', 'SUPER_ADMIN', 'LOGISTIC'] },
+        { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie'), roles: ['ADMIN', 'SUPER_ADMIN', 'LOGISTIC'] },
+        { path: '/admin/settings', icon: Settings, label: t('nav.settings'), roles: ['ADMIN', 'SUPER_ADMIN'] },
+        { path: '/admin/notifications', icon: Bell, label: t('nav.notifications'), roles: ['ADMIN', 'SUPER_ADMIN', 'LOGISTIC'] },
+    ].filter(item => !item.roles || item.roles.includes(admin?.role?.code))
 
     const [darkMode, setDarkMode] = useState(() => {
         if (typeof window !== 'undefined') {

@@ -11,7 +11,7 @@ from pathlib import Path
 load_dotenv()
 
 # Import routers
-from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles
+from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse
 
 import threading
 
@@ -61,6 +61,28 @@ def _run_migrations(engine):
             is_used BOOLEAN DEFAULT TRUE,
             refueled BOOLEAN DEFAULT FALSE,
             refuel_liters FLOAT DEFAULT 0,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        );""",
+        """CREATE TABLE IF NOT EXISTS warehouse_items (
+            id VARCHAR(36) PRIMARY KEY,
+            organization_id VARCHAR(36) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            category VARCHAR(50) NOT NULL,
+            unit VARCHAR(20) NOT NULL,
+            total_quantity FLOAT DEFAULT 0.0 NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );""",
+        """CREATE TABLE IF NOT EXISTS warehouse_transactions (
+            id VARCHAR(36) PRIMARY KEY,
+            item_id VARCHAR(36) NOT NULL,
+            transaction_type VARCHAR(10) NOT NULL,
+            quantity FLOAT NOT NULL,
+            date DATE NOT NULL,
+            operated_by_id VARCHAR(36),
+            assigned_to_user_id VARCHAR(36),
+            assigned_to_vehicle_id VARCHAR(36),
             notes TEXT,
             created_at TIMESTAMP DEFAULT NOW()
         );""",
@@ -169,6 +191,7 @@ app.include_router(sites.router, prefix="/api", tags=["sites"])
 app.include_router(site_photos.router, prefix="/api", tags=["site-photos"])
 app.include_router(admin_teams.router, prefix="/api", tags=["admin-teams"])
 app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
+app.include_router(warehouse.router, prefix="/api", tags=["warehouse"])
 
 # Serve uploaded files (ID cards, etc.)
 uploads_dir = Path(__file__).parent / "uploads"

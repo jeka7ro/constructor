@@ -444,3 +444,45 @@ class VehicleUserAssignment(Base):
 
     vehicle = relationship("Vehicle")
     user = relationship("User")
+
+# =================== WAREHOUSE MANAGEMENT ===================
+
+class WarehouseItem(Base):
+    """Virtual Warehouse Items (Magazie Virtuala)"""
+    __tablename__ = "warehouse_items"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False)  # SCULE, CONSUMABILE, STRUCTURA, COMBUSTIBIL
+    unit = Column(String(20), nullable=False)      # e.g., buc, L, kg, m, rola
+    total_quantity = Column(Float, default=0.0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization")
+
+class WarehouseTransaction(Base):
+    """Stock in/out history for warehouse items"""
+    __tablename__ = "warehouse_transactions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    item_id = Column(String(36), ForeignKey("warehouse_items.id", ondelete="CASCADE"), nullable=False)
+    transaction_type = Column(String(10), nullable=False)  # IN or OUT
+    quantity = Column(Float, nullable=False)
+    date = Column(Date, nullable=False, default=date.today)
+    
+    # Who performed the transaction (Logistic/Admin user)
+    operated_by_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    
+    # Destination assignments (for OUT transactions)
+    assigned_to_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to_vehicle_id = Column(String(36), ForeignKey("vehicles.id", ondelete="SET NULL"), nullable=True)
+    
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    item = relationship("WarehouseItem")
+    operated_by = relationship("User", foreign_keys=[operated_by_id])
+    assigned_to_user = relationship("User", foreign_keys=[assigned_to_user_id])
+    assigned_to_vehicle = relationship("Vehicle", foreign_keys=[assigned_to_vehicle_id])

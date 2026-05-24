@@ -26,6 +26,7 @@ const SitePhotosPage = lazy(() => import('./pages/admin/SitePhotosPage'))
 const TeamsManagement = lazy(() => import('./pages/admin/TeamsManagement'))
 const NotificationsPage = lazy(() => import('./pages/admin/NotificationsPage'))
 const FleetManagement = lazy(() => import('./pages/admin/FleetManagement'))
+const WarehouseManagement = lazy(() => import('./pages/admin/WarehouseManagement'))
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
 
@@ -65,6 +66,7 @@ function App() {
                         <Route path="site-photos" element={<SitePhotosPage />} />
                         <Route path="teams" element={<TeamsManagement />} />
                         <Route path="fleet" element={<FleetManagement />} />
+                        <Route path="warehouse" element={<WarehouseManagement />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                     </Route>
 
