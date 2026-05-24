@@ -472,8 +472,8 @@ class WarehouseTransaction(Base):
     quantity = Column(Float, nullable=False)
     date = Column(Date, nullable=False, default=date.today)
     
-    # Who performed the transaction (Logistic/Admin user)
-    operated_by_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # Who performed the transaction (Logistic/Admin user). No foreign key because it can be an Admin OR a User.
+    operated_by_id = Column(String(36), nullable=True)
     
     # Destination assignments (for OUT transactions)
     assigned_to_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
@@ -483,6 +483,5 @@ class WarehouseTransaction(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     item = relationship("WarehouseItem")
-    operated_by = relationship("User", foreign_keys=[operated_by_id])
     assigned_to_user = relationship("User", foreign_keys=[assigned_to_user_id])
     assigned_to_vehicle = relationship("Vehicle", foreign_keys=[assigned_to_vehicle_id])

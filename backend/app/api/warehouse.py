@@ -112,10 +112,17 @@ def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_a
     transactions = db.query(WarehouseTransaction).filter(WarehouseTransaction.item_id == item_id).order_by(desc(WarehouseTransaction.created_at)).all()
     
     result = []
+    
+    # Pre-fetch all admins and users to match operator_id
+    all_admins = {a.id: a.full_name for a in db.query(Admin).all()}
+    all_users = {u.id: u.full_name for u in db.query(User).all()}
+
     for t in transactions:
         assigned_user = t.assigned_to_user.full_name if t.assigned_to_user else None
         assigned_vehicle = t.assigned_to_vehicle.name if t.assigned_to_vehicle else None
-        operator = t.operated_by.full_name if t.operated_by else None
+        
+        # Look up operator in admins first, then users
+        operator = all_admins.get(t.operated_by_id) or all_users.get(t.operated_by_id) or "Necunoscut"
         
         result.append({
             "id": t.id,
