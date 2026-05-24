@@ -272,6 +272,8 @@ export default function WarehouseManagement() {
                                 <th className="px-4 py-3 font-semibold text-center w-12 border-r border-slate-200 dark:border-slate-700">#</th>
                                 <th className="px-4 py-3 font-semibold">Articol</th>
                                 <th className="px-4 py-3 font-semibold text-center border-x border-slate-200 dark:border-slate-700 w-24">U.M.</th>
+                                <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-24">Intrări</th>
+                                <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-24">Ieșiri</th>
                                 <th className="px-4 py-3 font-semibold text-center border-r border-slate-200 dark:border-slate-700 w-32">Stoc Curent</th>
                                 <th className="px-4 py-3 font-semibold text-center w-48">Acțiuni</th>
                             </tr>
@@ -279,13 +281,13 @@ export default function WarehouseManagement() {
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
                                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                                     </td>
                                 </tr>
                             ) : paginatedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
                                         Nu s-au găsit articole.
                                     </td>
                                 </tr>
@@ -300,6 +302,12 @@ export default function WarehouseManagement() {
                                         </td>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-400 font-medium border-x border-slate-200 dark:border-slate-800">
                                             {item.unit}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center text-blue-600 dark:text-blue-400 font-bold border-r border-slate-200 dark:border-slate-800">
+                                            {item.total_in > 0 ? `+${item.total_in}` : '-'}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center text-orange-500 dark:text-orange-400 font-bold border-r border-slate-200 dark:border-slate-800">
+                                            {item.total_out > 0 ? `-${item.total_out}` : '-'}
                                         </td>
                                         <td className="px-4 py-2.5 text-center border-r border-slate-200 dark:border-slate-800">
                                             <button 

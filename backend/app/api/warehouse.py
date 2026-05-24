@@ -49,13 +49,32 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
         query = query.filter(WarehouseItem.category == category)
     items = query.order_by(WarehouseItem.name).all()
     
+    # Calculate Total IN and OUT
+    from sqlalchemy import func
+    from app.models.warehouse import WarehouseTransaction
+    stats = db.query(
+        WarehouseTransaction.item_id,
+        WarehouseTransaction.transaction_type,
+        func.sum(WarehouseTransaction.quantity).label('total')
+    ).filter(WarehouseTransaction.item_id.in_([i.id for i in items]) if items else False).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type).all()
+    
+    in_map = {}
+    out_map = {}
+    for item_id, tx_type, total in stats:
+        if tx_type == "IN":
+            in_map[item_id] = total
+        else:
+            out_map[item_id] = total
+
     return [
         {
             "id": i.id,
             "name": i.name,
             "category": i.category,
             "unit": i.unit,
-            "total_quantity": i.total_quantity
+            "total_quantity": i.total_quantity,
+            "total_in": in_map.get(i.id, 0),
+            "total_out": out_map.get(i.id, 0)
         } for i in items
     ]
 
