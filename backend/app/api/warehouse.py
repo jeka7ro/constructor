@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List, Optional
@@ -6,8 +6,11 @@ from pydantic import BaseModel
 from datetime import date, datetime
 
 from app.database import get_db
-from app.models import WarehouseItem, WarehouseTransaction, Admin, Vehicle
+from app.models import WarehouseItem, WarehouseTransaction, Admin, Vehicle, User
 from app.api.admin_auth import get_current_admin
+from app.storage import upload_file, get_content_type
+import os
+import uuid
 
 router = APIRouter()
 
@@ -34,6 +37,7 @@ class WarehouseTransactionCreate(BaseModel):
     date: date
     assigned_to_user_id: Optional[str] = None
     assigned_to_vehicle_id: Optional[str] = None
+    site_id: Optional[str] = None
     notes: Optional[str] = None
 
 # GET items
@@ -120,6 +124,7 @@ def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_a
     for t in transactions:
         assigned_user = t.assigned_to_user.full_name if t.assigned_to_user else None
         assigned_vehicle = t.assigned_to_vehicle.name if t.assigned_to_vehicle else None
+        assigned_site = t.site.name if t.site else None
         
         # Look up operator in admins first, then users
         operator = all_admins.get(t.operated_by_id) or all_users.get(t.operated_by_id) or "Necunoscut"
@@ -131,43 +136,70 @@ def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_a
             "date": t.date,
             "assigned_user": assigned_user,
             "assigned_vehicle": assigned_vehicle,
+            "assigned_site": assigned_site,
             "operator": operator,
             "notes": t.notes,
+            "attachment_url": t.attachment_url,
             "created_at": t.created_at
         })
     return result
 
 # ADD transaction
 @router.post("/warehouse/transactions")
-def add_transaction(tx: WarehouseTransactionCreate, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+async def add_transaction(
+    item_id: str = Form(...),
+    transaction_type: str = Form(...),
+    quantity: float = Form(...),
+    date: str = Form(...),
+    assigned_to_user_id: Optional[str] = Form(None),
+    assigned_to_vehicle_id: Optional[str] = Form(None),
+    site_id: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db), 
+    current_admin: Admin = Depends(get_current_admin)
+):
     is_admin_or_logistic(current_admin)
     
-    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == tx.item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
         
-    if tx.transaction_type not in ["IN", "OUT"]:
+    if transaction_type not in ["IN", "OUT"]:
         raise HTTPException(status_code=400, detail="Tip tranzacție invalid")
         
-    if tx.transaction_type == "OUT" and db_item.total_quantity < tx.quantity:
+    if transaction_type == "OUT" and db_item.total_quantity < quantity:
         raise HTTPException(status_code=400, detail="Stoc insuficient")
         
+    attachment_url = None
+    if file:
+        content = await file.read()
+        filename = file.filename
+        storage_path = f"warehouse/{uuid.uuid4()}_{filename}"
+        attachment_url = upload_file(content, storage_path, get_content_type(filename))
+        
+    # convert date string to date object
+    from datetime import date as dt_date
+    date_obj = dt_date.fromisoformat(date)
+        
     db_tx = WarehouseTransaction(
-        item_id=tx.item_id,
-        transaction_type=tx.transaction_type,
-        quantity=tx.quantity,
-        date=tx.date,
+        item_id=item_id,
+        transaction_type=transaction_type,
+        quantity=quantity,
+        date=date_obj,
         operated_by_id=current_admin.id,
-        assigned_to_user_id=tx.assigned_to_user_id,
-        assigned_to_vehicle_id=tx.assigned_to_vehicle_id,
-        notes=tx.notes
+        assigned_to_user_id=assigned_to_user_id,
+        assigned_to_vehicle_id=assigned_to_vehicle_id,
+        site_id=site_id,
+        notes=notes,
+        attachment_url=attachment_url
     )
     db.add(db_tx)
     
-    if tx.transaction_type == "IN":
-        db_item.total_quantity += tx.quantity
+    if transaction_type == "IN":
+        db_item.total_quantity += quantity
     else:
-        db_item.total_quantity -= tx.quantity
+        db_item.total_quantity -= quantity
         
     db.commit()
     return {"success": True, "new_total": db_item.total_quantity}

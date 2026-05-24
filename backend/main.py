@@ -83,11 +83,13 @@ def _run_migrations(engine):
             operated_by_id VARCHAR(36),
             assigned_to_user_id VARCHAR(36),
             assigned_to_vehicle_id VARCHAR(36),
+            site_id VARCHAR(36),
             notes TEXT,
             created_at TIMESTAMP DEFAULT NOW()
         );""",
         # Postgres migration to drop foreign key for operated_by_id if it was created
-        "ALTER TABLE warehouse_transactions DROP CONSTRAINT IF EXISTS warehouse_transactions_operated_by_id_fkey;"
+        "ALTER TABLE warehouse_transactions DROP CONSTRAINT IF EXISTS warehouse_transactions_operated_by_id_fkey;",
+        "ALTER TABLE warehouse_transactions ADD COLUMN IF NOT EXISTS site_id VARCHAR(36);"
     ]
     try:
         with engine.connect() as conn:

@@ -478,10 +478,12 @@ class WarehouseTransaction(Base):
     # Destination assignments (for OUT transactions)
     assigned_to_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     assigned_to_vehicle_id = Column(String(36), ForeignKey("vehicles.id", ondelete="SET NULL"), nullable=True)
-    
+    site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
     notes = Column(Text, nullable=True)
+    attachment_url = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     item = relationship("WarehouseItem")
     assigned_to_user = relationship("User", foreign_keys=[assigned_to_user_id])
     assigned_to_vehicle = relationship("Vehicle", foreign_keys=[assigned_to_vehicle_id])
+    site = relationship("ConstructionSite", foreign_keys=[site_id])

@@ -111,5 +111,8 @@ def get_content_type(filename: str) -> str:
         ".gif": "image/gif",
         ".svg": "image/svg+xml",
         ".heic": "image/heic",
+        ".pdf": "application/pdf",
+        ".doc": "application/msword",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }
     return content_types.get(ext, "application/octet-stream")
