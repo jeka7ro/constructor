@@ -77,21 +77,25 @@ export default function WarehouseManagement() {
 
     const fetchDropdownData = async () => {
         try {
-            const [usersRes, vehiclesRes, sitesRes] = await Promise.all([
-                api.get('/admin/users/', { params: { page_size: 1000 } }),
-                api.get('/admin/vehicles/', { params: { page_size: 1000 } }),
-                api.get('/admin/sites/', { params: { page_size: 1000 } })
-            ])
-            const usersList = Array.isArray(usersRes.data?.users) ? usersRes.data.users : (Array.isArray(usersRes.data) ? usersRes.data : [])
-            setUsers(usersList.filter(u => u.is_active !== false))
+            api.get('/admin/users/', { params: { page_size: 1000 } })
+                .then(res => {
+                    const list = Array.isArray(res.data?.users) ? res.data.users : (Array.isArray(res.data) ? res.data : [])
+                    setUsers(list.filter(u => u.is_active !== false))
+                }).catch(e => console.error('Failed to fetch users', e))
             
-            const vehiclesList = Array.isArray(vehiclesRes.data?.vehicles) ? vehiclesRes.data.vehicles : (Array.isArray(vehiclesRes.data) ? vehiclesRes.data : [])
-            setVehicles(vehiclesList)
-            
-            const sitesList = Array.isArray(sitesRes.data?.sites) ? sitesRes.data.sites : (Array.isArray(sitesRes.data) ? sitesRes.data : [])
-            setSites(sitesList)
+            api.get('/admin/vehicles', { params: { page_size: 1000 } })
+                .then(res => {
+                    const list = Array.isArray(res.data?.vehicles) ? res.data.vehicles : (Array.isArray(res.data) ? res.data : [])
+                    setVehicles(list)
+                }).catch(e => console.error('Failed to fetch vehicles', e))
+                
+            api.get('/admin/sites/', { params: { page_size: 1000 } })
+                .then(res => {
+                    const list = Array.isArray(res.data?.sites) ? res.data.sites : (Array.isArray(res.data) ? res.data : [])
+                    setSites(list)
+                }).catch(e => console.error('Failed to fetch sites', e))
         } catch (error) {
-            console.error('Failed to load dropdowns', error)
+            console.error('Failed to init dropdown fetching', error)
         }
     }
 
