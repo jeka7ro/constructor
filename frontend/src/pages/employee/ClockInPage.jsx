@@ -76,6 +76,7 @@ export default function ClockInPage() {
     const { user, setAuth, accessToken, refreshToken, logout } = useAuthStore()
 
     const [loading, setLoading] = useState(true)
+    const [unreadComplaints, setUnreadComplaints] = useState(0)
     const [activeShift, setActiveShift] = useState(null)
     const [sites, setSites] = useState([])
     const [selectedSite, setSelectedSite] = useState(null)
@@ -235,6 +236,17 @@ export default function ClockInPage() {
             .catch(() => { })
         return () => controller.abort()
     }, [location?.latitude, location?.longitude])
+
+    useEffect(() => {
+        const fetchUnread = () => {
+            api.get('/user/complaints/unread-count')
+                .then(res => setUnreadComplaints(res.data?.count || 0))
+                .catch(() => {})
+        }
+        fetchUnread()
+        const t = setInterval(fetchUnread, 60000)
+        return () => clearInterval(t)
+    }, [])
 
     useEffect(() => {
         fetchActiveShift()
@@ -761,10 +773,15 @@ export default function ClockInPage() {
                         </button>
                         <button
                             onClick={() => navigate('/sesizari')}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            className="p-2 hover:bg-white/20 rounded-lg transition-colors relative"
                             title="Sesizări și Reclamații"
                         >
                             <MessageSquareWarning className="w-5 h-5" />
+                            {unreadComplaints > 0 && (
+                                <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border border-blue-600">
+                                    {unreadComplaints > 9 ? '9+' : unreadComplaints}
+                                </span>
+                            )}
                         </button>
                         <button
                             onClick={() => { logout(); navigate('/login'); }}

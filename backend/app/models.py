@@ -543,6 +543,7 @@ class Complaint(Base):
 
     admin_response = Column(Text, nullable=True)
     responded_by = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    user_seen_response = Column(Boolean, default=False)
     responded_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

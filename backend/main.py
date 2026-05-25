@@ -227,7 +227,21 @@ def user_submit_complaint(
     db.refresh(c)
     return {"id": c.id, "title": c.title, "status": c.status, "created_at": str(c.created_at)}
 
+
+@app.get("/api/user/complaints/unread-count", tags=["user-complaints"])
+def user_complaints_unread_count(
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    count = db.query(ComplaintModel).filter(
+        ComplaintModel.user_id == current_user.id,
+        ComplaintModel.admin_response != None,
+        ComplaintModel.user_seen_response == False
+    ).count()
+    return {"count": count}
+
 @app.get("/api/user/complaints", tags=["user-complaints"])
+
 def user_list_complaints(
     db=Depends(_get_db),
     current_user: UserModel = Depends(get_current_user),
@@ -235,6 +249,16 @@ def user_list_complaints(
     complaints = db.query(ComplaintModel).filter(
         ComplaintModel.user_id == current_user.id
     ).order_by(ComplaintModel.created_at.desc()).all()
+
+    modified = False
+    for c in complaints:
+        if c.admin_response and not c.user_seen_response:
+            c.user_seen_response = True
+            modified = True
+            
+    if modified:
+        db.commit()
+
     return [
         {
             "id": c.id,
@@ -242,6 +266,7 @@ def user_list_complaints(
             "content": c.content,
             "status": c.status,
             "admin_response": c.admin_response,
+            "user_seen_response": c.user_seen_response,
             "responded_at": str(c.responded_at) if c.responded_at else None,
             "created_at": str(c.created_at),
         }

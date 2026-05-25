@@ -96,6 +96,7 @@ def respond_to_complaint(
     c.admin_response = body.admin_response
     c.status = body.status
     c.responded_by = current_admin.id
+    c.user_seen_response = False
     c.responded_at = datetime.utcnow()
     c.updated_at = datetime.utcnow()
     db.commit()

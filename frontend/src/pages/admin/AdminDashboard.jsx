@@ -228,7 +228,7 @@ export default function AdminDashboard() {
                                    </span>
                                )}
                            </button>
-                           <button className={`p-2.5 rounded-full transition-colors relative text-slate-300 hover:text-white hover:bg-white/10`} onClick={() => setShowNotifications(!showNotifications)}>
+                           <button className={`p-2.5 rounded-full transition-colors relative text-slate-300 hover:text-white hover:bg-white/10`} onClick={() => navigate('/admin/notifications')}>
                                <Bell className="w-5 h-5" />
                                {unreadCount > 0 && (
                                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900"></span>
