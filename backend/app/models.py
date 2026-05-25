@@ -481,6 +481,13 @@ class WarehouseItem(Base):
     category = Column(String(50), nullable=False)  # SCULE, CONSUMABILE, STRUCTURA, COMBUSTIBIL
     unit = Column(String(20), nullable=False)      # e.g., buc, L, kg, m, rola
     total_quantity = Column(Float, default=0.0, nullable=False)
+    
+    # Tool specific tracking fields
+    model = Column(String(255), nullable=True)
+    inventory_code = Column(String(100), nullable=True)
+    current_holder_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    checked_out_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

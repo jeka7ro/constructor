@@ -24,11 +24,15 @@ class WarehouseItemCreate(BaseModel):
     name: str
     category: str
     unit: str
+    model: Optional[str] = None
+    inventory_code: Optional[str] = None
 
 class WarehouseItemUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
     unit: Optional[str] = None
+    model: Optional[str] = None
+    inventory_code: Optional[str] = None
 
 class WarehouseTransactionCreate(BaseModel):
     item_id: str
@@ -44,7 +48,7 @@ class WarehouseTransactionCreate(BaseModel):
 @router.get("/warehouse/items")
 def get_items(category: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     is_admin_or_logistic(current_admin)
-    query = db.query(WarehouseItem).filter(WarehouseItem.organization_id == current_admin.organization_id)
+    query = db.query(WarehouseItem, User.full_name.label("holder_name")).outerjoin(User, WarehouseItem.current_holder_id == User.id).filter(WarehouseItem.organization_id == current_admin.organization_id)
     if category:
         query = query.filter(WarehouseItem.category == category)
     items = query.order_by(WarehouseItem.name).all()
@@ -61,7 +65,7 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
             func.sum(WarehouseTransaction.quantity).label('total')
         ).filter(WarehouseTransaction.item_id.in_([i.id for i in items])).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type).all()
         
-        for item_id, tx_type, total in stats:
+        for i, holder_name in items:
             if tx_type == "IN":
                 in_map[item_id] = total
             else:
@@ -74,9 +78,14 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
             "category": i.category,
             "unit": i.unit,
             "total_quantity": i.total_quantity,
+            "model": i.model,
+            "inventory_code": i.inventory_code,
+            "current_holder_id": i.current_holder_id,
+            "current_holder_name": holder_name,
+            "checked_out_at": i.checked_out_at,
             "total_in": in_map.get(i.id, 0),
             "total_out": out_map.get(i.id, 0)
-        } for i in items
+        } for i, holder_name in items
     ]
 
 # CREATE item
@@ -89,7 +98,9 @@ def create_item(item: WarehouseItemCreate, db: Session = Depends(get_db), curren
         name=item.name,
         category=item.category,
         unit=item.unit,
-        total_quantity=0.0
+        model=item.model,
+        inventory_code=item.inventory_code,
+        total_quantity=1.0 if item.inventory_code else 0.0
     )
     db.add(db_item)
     db.commit()
@@ -111,6 +122,10 @@ def update_item(item_id: str, item: WarehouseItemUpdate, db: Session = Depends(g
         db_item.category = item.category
     if item.unit is not None:
         db_item.unit = item.unit
+    if item.model is not None:
+        db_item.model = item.model
+    if item.inventory_code is not None:
+        db_item.inventory_code = item.inventory_code
         
     db.commit()
     return {"success": True}
@@ -303,3 +318,78 @@ async def edit_transaction(
         
     db.commit()
     return {"success": True, "new_total": db_item.total_quantity}
+
+class ToolCheckout(BaseModel):
+    user_id: str
+    date: str
+
+@router.post("/warehouse/items/{item_id}/checkout")
+def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
+    if db_item.current_holder_id:
+        raise HTTPException(status_code=400, detail="Scula este deja predată")
+
+    # update status
+    db_item.current_holder_id = data.user_id
+    from datetime import datetime
+    db_item.checked_out_at = datetime.utcnow()
+
+    # create OUT transaction representing check-out
+    from datetime import date as dt_date
+    date_obj = dt_date.fromisoformat(data.date)
+    
+    tx = WarehouseTransaction(
+        item_id=item_id,
+        transaction_type="OUT",
+        quantity=1.0,
+        date=date_obj,
+        operated_by_id=current_admin.id,
+        assigned_to_user_id=data.user_id,
+        notes="Predare sculă"
+    )
+    db.add(tx)
+    # the total_quantity goes from 1 to 0 (since it's an individual item)
+    db_item.total_quantity = 0.0
+    db.commit()
+    return {"success": True}
+
+class ToolCheckin(BaseModel):
+    date: str
+
+@router.post("/warehouse/items/{item_id}/checkin")
+def checkin_tool(item_id: str, data: ToolCheckin, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
+    if not db_item.current_holder_id:
+        raise HTTPException(status_code=400, detail="Scula este deja în magazie")
+
+    # record who returned it based on who had it
+    returned_from_user_id = db_item.current_holder_id
+
+    # clear status
+    db_item.current_holder_id = None
+    db_item.checked_out_at = None
+
+    # create IN transaction representing check-in
+    from datetime import date as dt_date
+    date_obj = dt_date.fromisoformat(data.date)
+    
+    tx = WarehouseTransaction(
+        item_id=item_id,
+        transaction_type="IN",
+        quantity=1.0,
+        date=date_obj,
+        operated_by_id=current_admin.id,
+        assigned_to_user_id=returned_from_user_id,
+        notes="Primire sculă"
+    )
+    db.add(tx)
+    # item comes back to warehouse, so qty=1
+    db_item.total_quantity = 1.0
+    db.commit()
+    return {"success": True}

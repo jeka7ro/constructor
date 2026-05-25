@@ -108,11 +108,15 @@ export default function WarehouseManagement() {
     const [txType, setTxType] = useState('IN') // 'IN' or 'OUT'
 
     // Form states
-    const [itemForm, setItemForm] = useState({ name: '', unit: '' })
+    const [itemForm, setItemForm] = useState({ name: '', unit: '', model: '', inventory_code: '' })
     const [txForm, setTxForm] = useState({ quantity: '', date: new Date().toISOString().split('T')[0], assigned_to_user_ids: [], assigned_to_vehicle_ids: [], site_id: '', notes: '', file: null })
 
     // Transactions History Modal
     const [showHistoryModal, setShowHistoryModal] = useState(false)
+
+    // Tool Check-Out Modal
+    const [toolModal, setToolModal] = useState({ isOpen: false, item: null, userId: '', date: new Date().toISOString().split('T')[0] })
+    const [isSubmittingTool, setIsSubmittingTool] = useState(false)
 
     useEffect(() => {
         setCurrentPage(1)
@@ -230,11 +234,16 @@ export default function WarehouseManagement() {
         if (isSubmittingItem) return
         try {
             setIsSubmittingItem(true)
+            const payload = { ...itemForm, category: activeTab }
+            // Clean up empty strings for optional fields
+            if (!payload.model) delete payload.model
+            if (!payload.inventory_code) delete payload.inventory_code
+            
             if (selectedItem) {
-                await api.put(`/warehouse/items/${selectedItem.id}`, { name: itemForm.name, unit: itemForm.unit })
+                await api.put(`/warehouse/items/${selectedItem.id}`, { name: itemForm.name, unit: itemForm.unit, model: itemForm.model, inventory_code: itemForm.inventory_code })
                 showToast('Articol actualizat', 'success')
             } else {
-                await api.post('/warehouse/items', { ...itemForm, category: activeTab })
+                await api.post('/warehouse/items', payload)
                 showToast('Articol creat', 'success')
             }
             setShowItemModal(false)
@@ -258,6 +267,48 @@ export default function WarehouseManagement() {
                     fetchItems()
                 } catch (error) {
                     showToast('Eroare la ștergerea articolului', 'error')
+                }
+            }
+        })
+    }
+
+    const handleCheckOut = async (e) => {
+        e.preventDefault()
+        if (isSubmittingTool || !toolModal.userId) return
+        try {
+            setIsSubmittingTool(true)
+            await api.post(`/warehouse/items/${toolModal.item.id}/checkout`, {
+                user_id: toolModal.userId,
+                date: toolModal.date
+            })
+            showToast('Sculă predată cu succes', 'success')
+            setToolModal({ ...toolModal, isOpen: false })
+            fetchItems()
+        } catch (error) {
+            showToast(error.response?.data?.detail || 'Eroare la predare', 'error')
+        } finally {
+            setIsSubmittingTool(false)
+        }
+    }
+
+    const handleCheckIn = async (item) => {
+        if (isSubmittingTool) return
+        setConfirmModal({
+            isOpen: true,
+            title: 'Primire Sculă',
+            message: `Sunteți sigur că ați primit scula înapoi de la ${item.current_holder_name}?`,
+            onConfirm: async () => {
+                try {
+                    setIsSubmittingTool(true)
+                    await api.post(`/warehouse/items/${item.id}/checkin`, {
+                        date: new Date().toISOString().split('T')[0]
+                    })
+                    showToast('Sculă primită în magazie', 'success')
+                    fetchItems()
+                } catch (error) {
+                    showToast(error.response?.data?.detail || 'Eroare la primire', 'error')
+                } finally {
+                    setIsSubmittingTool(false)
                 }
             }
         })
@@ -640,7 +691,7 @@ export default function WarehouseManagement() {
                         </button>
 
                         <button
-                            onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : '' }); setSelectedItem(null); setShowItemModal(true); }}
+                            onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : (activeTab === 'SCULE' ? 'buc' : ''), model: '', inventory_code: '' }); setSelectedItem(null); setShowItemModal(true); }}
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
@@ -690,30 +741,68 @@ export default function WarehouseManagement() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-slate-900 dark:text-white truncate">{item.name}</div>
+                                            {item.inventory_code && (
+                                                <div className="flex flex-col gap-0.5 mt-1">
+                                                    {item.model && <span className="text-xs text-slate-500 font-medium">Model: {item.model}</span>}
+                                                    <span className="text-[10px] text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit">{item.inventory_code}</span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-center text-slate-600 dark:text-slate-400 font-medium">
                                             {item.unit}
                                         </td>
-                                        <td className="px-6 py-4 text-center text-blue-600 dark:text-blue-400 font-bold">
-                                            {item.total_in > 0 ? `+${item.total_in}` : '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-center text-rose-500 dark:text-rose-400 font-bold">
-                                            {item.total_out > 0 ? `-${item.total_out}` : '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm border ${item.total_quantity <= 0 ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50'}`}>
-                                                {item.total_quantity > 0 ? `• ${item.total_quantity}` : '0'}
-                                            </div>
-                                        </td>
+                                        {item.inventory_code ? (
+                                            <td colSpan="3" className="px-6 py-4 text-center">
+                                                {item.current_holder_id ? (
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50">
+                                                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                        La: {item.current_holder_name}
+                                                    </div>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50">
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                        În Magazie
+                                                    </div>
+                                                )}
+                                            </td>
+                                        ) : (
+                                            <>
+                                                <td className="px-6 py-4 text-center text-blue-600 dark:text-blue-400 font-bold">
+                                                    {item.total_in > 0 ? `+${item.total_in}` : '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-center text-rose-500 dark:text-rose-400 font-bold">
+                                                    {item.total_out > 0 ? `-${item.total_out}` : '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm border ${item.total_quantity <= 0 ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50'}`}>
+                                                        {item.total_quantity > 0 ? `• ${item.total_quantity}` : '0'}
+                                                    </div>
+                                                </td>
+                                            </>
+                                        )}
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'IN'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Adaugă Intrare">
-                                                    <ArrowDownRight className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'OUT'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title="Adaugă Ieșire">
-                                                    <ArrowUpRight className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică articol">
+                                                {item.inventory_code ? (
+                                                    item.current_holder_id ? (
+                                                        <button onClick={(e) => { e.stopPropagation(); handleCheckIn(item); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-bold" title="Primire">
+                                                            Primire
+                                                        </button>
+                                                    ) : (
+                                                        <button onClick={(e) => { e.stopPropagation(); setToolModal({ isOpen: true, item, userId: '', date: new Date().toISOString().split('T')[0] }); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-blue-200 dark:border-blue-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-xs font-bold" title="Predare">
+                                                            Predare
+                                                        </button>
+                                                    )
+                                                ) : (
+                                                    <>
+                                                        <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'IN'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Adaugă Intrare">
+                                                            <ArrowDownRight className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'OUT'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title="Adaugă Ieșire">
+                                                            <ArrowUpRight className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit, model: item.model || '', inventory_code: item.inventory_code || '' }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică articol">
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title="Șterge articol">
@@ -798,6 +887,61 @@ export default function WarehouseManagement() {
                 </div>
             )}
 
+            {/* TOOL CHECK-OUT MODAL */}
+            {toolModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-100 opacity-100 transition-all">
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                Predare Sculă
+                            </h2>
+                            <button onClick={() => setToolModal({ ...toolModal, isOpen: false })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{toolModal.item?.name} ({toolModal.item?.inventory_code})</p>
+                            <form onSubmit={handleCheckOut} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană</label>
+                                    <select
+                                        required
+                                        value={toolModal.userId}
+                                        onChange={e => setToolModal({ ...toolModal, userId: e.target.value })}
+                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                    >
+                                        <option value="">Alege angajat...</option>
+                                        {users.map(u => (
+                                            <option key={u.id} value={u.id}>{u.full_name} {u.employee_code ? `(${u.employee_code})` : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Data Predare</label>
+                                    <input type="date" required value={toolModal.date} onChange={e => setToolModal({ ...toolModal, date: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
+                                </div>
+                                <div className="flex gap-3 justify-end pt-4 mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setToolModal({ ...toolModal, isOpen: false })}
+                                        className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                                    >
+                                        Anulează
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingTool}
+                                        className="px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all disabled:opacity-50"
+                                    >
+                                        {isSubmittingTool ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmă Predarea'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ITEM MODAL */}
             {showItemModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -838,6 +982,20 @@ export default function WarehouseManagement() {
                                         )}
                                     </select>
                                 </div>
+                                
+                                {activeTab === 'SCULE' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Model (Opțional)</label>
+                                            <input type="text" value={itemForm.model} onChange={e => setItemForm({ ...itemForm, model: e.target.value })} placeholder="ex. GSB 18V-110 C" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Cod Inventar (Opțional)</label>
+                                            <input type="text" value={itemForm.inventory_code} onChange={e => setItemForm({ ...itemForm, inventory_code: e.target.value })} placeholder="ex. INV-001" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
+                                        </div>
+                                    </>
+                                )}
+                                
                                 <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
                                     <button type="button" onClick={() => setShowItemModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">Anulează</button>
                                     <button type="submit" className="px-5 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-sm font-bold shadow-sm shadow-blue-500/20 transition-all flex items-center gap-2">
