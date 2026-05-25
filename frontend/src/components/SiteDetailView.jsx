@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Building2, Car, MapPin, Package, Users, Camera, ArrowLeft, Loader2, Search, X, Clock } from 'lucide-react'
+import { Calendar, Building2, Car, MapPin, Package, Users, Camera, ArrowLeft, Loader2, X, Clock, CheckSquare } from 'lucide-react'
 import api from '../lib/api'
 
 export default function SiteDetailView({ site, onBack }) {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('general')
-    
-    // Date Range
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
+
+    // Row selection for attendance tab
+    const [selectedRows, setSelectedRows] = useState([])
 
     useEffect(() => {
         if (!site) return
         fetchDetails()
     }, [site, startDate, endDate])
+
+    // Reset selection on tab change
+    useEffect(() => { setSelectedRows([]) }, [activeTab])
 
     const fetchDetails = async () => {
         setLoading(true)
@@ -22,11 +26,10 @@ export default function SiteDetailView({ site, onBack }) {
             const params = {}
             if (startDate) params.start_date = startDate
             if (endDate) params.end_date = endDate
-            
             const res = await api.get(`/admin/sites/${site.id}/details`, { params })
             setData(res.data)
         } catch (error) {
-            console.error("Failed to load site details", error)
+            console.error('Failed to load site details', error)
         } finally {
             setLoading(false)
         }
@@ -45,145 +48,133 @@ export default function SiteDetailView({ site, onBack }) {
     const totalWorkers = (data.direct_users?.length || 0) + (data.teams?.reduce((acc, t) => acc + (t.members?.length || 0), 0) || 0)
 
     const TABS = [
-        { id: 'general', label: 'Informații Generale', icon: Building2 },
-        { id: 'teams', label: `Echipe/Angajați (${totalWorkers})`, icon: Users },
-        { id: 'vehicles', label: `Utilaje (${data.vehicles?.length || 0})`, icon: Car },
-        { id: 'warehouse', label: `Magazie (${data.warehouse_transactions?.length || 0})`, icon: Package },
+        { id: 'general',    label: 'Informații Generale',                          icon: Building2 },
+        { id: 'teams',      label: `Echipe/Angajați (${totalWorkers})`,            icon: Users },
+        { id: 'vehicles',   label: `Utilaje (${data.vehicles?.length || 0})`,      icon: Car },
+        { id: 'warehouse',  label: `Magazie (${data.warehouse_transactions?.length || 0})`, icon: Package },
         { id: 'attendance', label: `Activitate (${data.attendance?.length || 0})`, icon: Clock },
-        { id: 'photos', label: `Fotografii (${data.photos?.length || 0})`, icon: Camera }
+        { id: 'photos',     label: `Fotografii (${data.photos?.length || 0})`,     icon: Camera },
     ]
 
+    const toggleRow = (id) => setSelectedRows(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+    const toggleAll = (ids) => setSelectedRows(prev => ids.every(id => prev.includes(id)) ? prev.filter(id => !ids.includes(id)) : [...new Set([...prev, ...ids])])
+
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <button 
-                            onClick={onBack}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* ─── Site Header (fără card propriu, blenduit în parent) ─── */}
+            <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onBack}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            {data.site.name}
+                            {data.site.status === 'active' && (
+                                <span className="px-2 py-0.5 text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold">Activ</span>
+                            )}
+                        </h2>
+                        <p className="text-sm text-slate-400 flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            {data.site.address || 'Fără adresă'}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Date range filter */}
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+                    <Calendar className="w-4 h-4 text-slate-400 ml-2" />
+                    <input
+                        type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                        className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 outline-none w-32"
+                    />
+                    <span className="text-slate-300">–</span>
+                    <input
+                        type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                        className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 outline-none w-32 pr-2"
+                    />
+                    {(startDate || endDate) && (
+                        <button onClick={() => { setStartDate(''); setEndDate('') }} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full mr-1">
+                            <X className="w-3 h-3 text-slate-500" />
                         </button>
-                        <div>
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                {data.site.name}
-                                {data.site.status === 'active' && (
-                                    <span className="px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700 rounded-full font-semibold">Activ</span>
-                                )}
-                            </h2>
-                            <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                                <MapPin className="w-4 h-4" />
-                                {data.site.address || 'Fără adresă specificată'}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    {/* Date Picker for filtering */}
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-                        <Calendar className="w-4 h-4 text-slate-400 ml-3" />
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 outline-none w-32"
-                        />
-                        <span className="text-slate-300">-</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 outline-none w-32 pr-3"
-                        />
-                        {(startDate || endDate) && (
-                            <button onClick={() => { setStartDate(''); setEndDate(''); }} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full mr-1">
-                                <X className="w-3 h-3 text-slate-500" />
-                            </button>
-                        )}
-                    </div>
+                    )}
                 </div>
+            </div>
 
-                {/* Tabs */}
-                <div className="flex overflow-x-auto gap-2 mt-6 custom-scrollbar pb-1">
-                    {TABS.map(tab => {
-                        const Icon = tab.icon
-                        const isActive = activeTab === tab.id
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap
-                                    ${isActive 
-                                        ? 'bg-blue-600 text-white shadow-md' 
-                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                    }`}
-                            >
-                                <Icon className="w-4 h-4" />
-                                {tab.label}
-                            </button>
-                        )
-                    })}
+            {/* ─── Tabs ─── */}
+            <div className="flex overflow-x-auto gap-1.5 px-6 py-3 border-b border-slate-100 dark:border-slate-800 custom-scrollbar">
+                {TABS.map(tab => {
+                    const Icon = tab.icon
+                    const isActive = activeTab === tab.id
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                                isActive
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {tab.label}
+                        </button>
+                    )
+                })}
+            </div>
+
+            {/* ─── Content ─── */}
+            {loading && data ? (
+                <div className="flex justify-center items-center p-10 opacity-50">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                 </div>
+            ) : (
+                <div className="p-6">
 
-                {/* Divider */}
-                <div className="border-t border-slate-100 dark:border-slate-800 mt-5 -mx-6" />
-
-                {/* Tab Content — inside the same card */}
-                {loading && data ? (
-                    <div className="flex justify-center p-8 opacity-50">
-                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                    </div>
-                ) : (
-                    <div className="pt-5">
-                    {/* GENERAL TAB */}
+                    {/* ══ GENERAL TAB ══ */}
                     {activeTab === 'general' && (
-                        <div className="space-y-6">
-                            {/* Info cards row */}
+                        <div className="space-y-5">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 {/* Client & Sistem */}
-                                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-5">
-                                    <h3 className="font-bold text-base text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-                                        <Building2 className="w-4 h-4 text-blue-500" />
-                                        Informații Client & Sistem
+                                <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-700">
+                                    <h3 className="font-bold text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <Building2 className="w-4 h-4 text-blue-500" /> Informații Client & Sistem
                                     </h3>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <p className="text-slate-400 text-xs mb-1">Client</p>
-                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.client_name || '-'}</p>
-                                        </div>
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <p className="text-slate-400 text-xs mb-1">Putere Sistem</p>
-                                            <p className="font-semibold text-amber-600">{data.site.system_power_kw || 0} kW</p>
-                                        </div>
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <p className="text-slate-400 text-xs mb-1">Panouri</p>
-                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.panel_count || 0} buc</p>
-                                        </div>
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <p className="text-slate-400 text-xs mb-1">Tip Instalare</p>
-                                            <p className="font-semibold text-slate-800 dark:text-white capitalize">{data.site.installation_type || 'N/A'}</p>
-                                        </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            { label: 'Client',        val: data.site.client_name || '—' },
+                                            { label: 'Putere Sistem', val: `${data.site.system_power_kw || 0} kW`, cls: 'text-amber-600 font-bold' },
+                                            { label: 'Panouri',       val: `${data.site.panel_count || 0} buc` },
+                                            { label: 'Tip Instalare', val: data.site.installation_type || 'N/A', cls: 'capitalize' },
+                                        ].map(({ label, val, cls }) => (
+                                            <div key={label} className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                                <p className="text-slate-400 text-xs mb-1">{label}</p>
+                                                <p className={`font-semibold text-slate-800 dark:text-white text-sm ${cls || ''}`}>{val}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
                                 {/* Program & Locatie */}
-                                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-5">
-                                    <h3 className="font-bold text-base text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-                                        <Clock className="w-4 h-4 text-blue-500" />
-                                        Program & Locație
+                                <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-5 border border-slate-100 dark:border-slate-700">
+                                    <h3 className="font-bold text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-blue-500" /> Program & Locație
                                     </h3>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                                             <p className="text-slate-400 text-xs mb-1">Program Lucru</p>
-                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.work_start_time || '—'} - {data.site.work_end_time || '—'}</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white text-sm">{data.site.work_start_time || '—'} – {data.site.work_end_time || '—'}</p>
                                         </div>
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                                             <p className="text-slate-400 text-xs mb-1">Pauză Masă</p>
-                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.lunch_break_start || '—'} - {data.site.lunch_break_end || '—'}</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white text-sm">{data.site.lunch_break_start || '—'} – {data.site.lunch_break_end || '—'}</p>
                                         </div>
-                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 col-span-2">
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700 col-span-2">
                                             <p className="text-slate-400 text-xs mb-1">Data Creării</p>
-                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.created_at ? new Date(data.site.created_at).toLocaleString('ro-RO') : 'N/A'}</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white text-sm">{data.site.created_at ? new Date(data.site.created_at).toLocaleString('ro-RO') : 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -191,94 +182,84 @@ export default function SiteDetailView({ site, onBack }) {
 
                             {/* Map */}
                             {data.site.address && (
-                                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-                                    <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700">
+                                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                                    <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700">
                                         <MapPin className="w-4 h-4 text-blue-500" />
                                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Locație pe hartă</span>
-                                        <span className="text-xs text-slate-400 ml-1">— {data.site.address}</span>
+                                        <span className="text-xs text-slate-400 truncate">— {data.site.address}</span>
                                     </div>
                                     <iframe
                                         title="Locatie santier"
                                         src={`https://maps.google.com/maps?q=${encodeURIComponent(data.site.address)}&output=embed&z=15`}
-                                        width="100%"
-                                        height="340"
+                                        width="100%" height="320"
                                         style={{ border: 0, display: 'block' }}
-                                        allowFullScreen
-                                        loading="lazy"
+                                        allowFullScreen loading="lazy"
                                     />
                                 </div>
                             )}
                         </div>
                     )}
 
-
-                    {/* TEAMS TAB */}
+                    {/* ══ ECHIPE TAB ══ */}
                     {activeTab === 'teams' && (
-                        <div>
-                            <h3 className="font-bold text-lg mb-4 border-b pb-2">Echipe și Angajați Alocați</h3>
-                            
-                            <div className="space-y-6">
-                                {data.teams?.length > 0 && (
-                                    <div>
-                                        <h4 className="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wider">Echipe Alocate</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {data.teams.map(team => (
-                                                <div key={team.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                                                    <h5 className="font-bold text-blue-700 flex items-center gap-2 mb-2">
-                                                        <Users className="w-4 h-4" />
-                                                        {team.name}
-                                                    </h5>
-                                                    <ul className="space-y-1.5">
-                                                        {team.members?.map(m => (
-                                                            <li key={m.id} className="text-sm text-slate-600 flex justify-between items-center bg-white p-1.5 rounded border border-slate-100 shadow-sm">
-                                                                <span>{m.name}</span>
-                                                                <span className="text-[10px] uppercase bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">{m.role}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            ))}
-                                        </div>
+                        <div className="space-y-6">
+                            {data.teams?.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Echipe Alocate</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {data.teams.map(team => (
+                                            <div key={team.id} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                                                <h5 className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 mb-3 text-sm">
+                                                    <Users className="w-4 h-4" /> {team.name}
+                                                </h5>
+                                                <ul className="space-y-1.5">
+                                                    {team.members?.map(m => (
+                                                        <li key={m.id} className="text-sm text-slate-600 dark:text-slate-300 flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                                                            <span>{m.name}</span>
+                                                            <span className="text-[10px] uppercase bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">{m.role}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
-
-                                {data.direct_users?.length > 0 && (
-                                    <div>
-                                        <h4 className="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wider">Angajați Individuali Alocați</h4>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                            {data.direct_users.map(u => (
-                                                <div key={u.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
-                                                    <span className="text-sm font-medium text-slate-700">{u.name}</span>
-                                                    <span className="text-[10px] uppercase bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">{u.role}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                </div>
+                            )}
+                            {data.direct_users?.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Angajați Individuali</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {data.direct_users.map(u => (
+                                            <div key={u.id} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center">
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{u.name}</span>
+                                                <span className="text-[10px] uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold">{u.role}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
-
-                                {(!data.teams?.length && !data.direct_users?.length) && (
-                                    <p className="text-slate-500 italic py-4">Nu există echipe sau angajați individuali alocați acestui șantier.</p>
-                                )}
-                            </div>
+                                </div>
+                            )}
+                            {!data.teams?.length && !data.direct_users?.length && (
+                                <p className="text-slate-400 text-sm italic py-6 text-center">Nu există echipe sau angajați alocați acestui șantier.</p>
+                            )}
                         </div>
                     )}
 
-                    {/* VEHICLES TAB */}
+                    {/* ══ UTILAJE TAB ══ */}
                     {activeTab === 'vehicles' && (
                         <div>
-                            <h3 className="font-bold text-lg mb-4 border-b pb-2">Utilaje Alocate</h3>
                             {data.vehicles.length === 0 ? (
-                                <p className="text-slate-500 italic py-4">Nu există utilaje alocate acestui șantier.</p>
+                                <p className="text-slate-400 text-sm italic py-6 text-center">Nu există utilaje alocate.</p>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {data.vehicles.map(v => (
-                                        <div key={v.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4">
-                                            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
-                                                <Car className="w-6 h-6" />
+                                        <div key={v.id} className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 flex items-center gap-4">
+                                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                                                <Car className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-slate-800">{v.plate_number}</p>
-                                                <p className="text-sm text-slate-500">{v.brand} {v.model}</p>
+                                                <p className="font-bold text-slate-800 dark:text-white text-sm">{v.name}</p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{v.plate_number || '—'}</p>
+                                                <p className="text-xs text-slate-400 capitalize">{v.type} · {v.year}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -287,92 +268,110 @@ export default function SiteDetailView({ site, onBack }) {
                         </div>
                     )}
 
-                    {/* WAREHOUSE TAB */}
-                    {activeTab === 'warehouse' && (
-                        <div>
-                            <h3 className="font-bold text-lg mb-4 border-b pb-2">Istoric Tranzacții Magazie / Materiale</h3>
-                            {data.warehouse_transactions.length === 0 ? (
-                                <p className="text-slate-500 italic py-4">Nu există tranzacții înregistrate în perioada selectată.</p>
-                            ) : (
-                                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                    {/* ══ MAGAZIE TAB ══ */}
+                    {activeTab === 'warehouse' && (() => {
+                        const rows = data.warehouse_transactions
+                        const allIds = rows.map(r => r.id)
+                        const allSelected = allIds.length > 0 && allIds.every(id => selectedRows.includes(id))
+                        return (
+                            <div>
+                                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                             <tr>
-                                                <th className="px-6 py-4">Dată</th>
-                                                <th className="px-6 py-4">Articol</th>
-                                                <th className="px-6 py-4">Tip</th>
-                                                <th className="px-6 py-4">Cantitate</th>
-                                                <th className="px-6 py-4">Utilizator</th>
+                                                <th className="px-4 py-3 w-10">
+                                                    <input type="checkbox" checked={allSelected} onChange={() => toggleAll(allIds)} className="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer" />
+                                                </th>
+                                                <th className="px-4 py-3">Dată</th>
+                                                <th className="px-4 py-3">Articol</th>
+                                                <th className="px-4 py-3">Tip</th>
+                                                <th className="px-4 py-3">Cantitate</th>
+                                                <th className="px-4 py-3">Utilizator</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                                            {data.warehouse_transactions.map(tx => (
-                                                <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-medium">
-                                                        {new Date(tx.created_at).toLocaleString('ro-RO')}
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                            {rows.length === 0 ? (
+                                                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic text-sm">Nu există tranzacții în perioada selectată.</td></tr>
+                                            ) : rows.map(tx => (
+                                                <tr key={tx.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${selectedRows.includes(tx.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`} onClick={() => toggleRow(tx.id)}>
+                                                    <td className="px-4 py-3">
+                                                        <input type="checkbox" checked={selectedRows.includes(tx.id)} onChange={() => toggleRow(tx.id)} onClick={e => e.stopPropagation()} className="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer" />
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="font-bold text-blue-600 dark:text-blue-400">{tx.item_name}</span>
-                                                        <br />
-                                                        <span className="text-xs text-slate-500 dark:text-slate-400">SKU: {tx.item_sku}</span>
+                                                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(tx.created_at).toLocaleString('ro-RO')}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-semibold text-blue-600 dark:text-blue-400">{tx.item_name}</span>
+                                                        <span className="block text-xs text-slate-400">{tx.item_sku}</span>
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        {tx.tx_type === 'out' 
-                                                            ? <span className="px-2.5 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-bold">Ieșire</span>
-                                                            : <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg text-xs font-bold">Intrare</span>
+                                                    <td className="px-4 py-3">
+                                                        {tx.tx_type === 'out'
+                                                            ? <span className="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-bold">Ieșire</span>
+                                                            : <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold">Intrare</span>
                                                         }
                                                     </td>
-                                                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{tx.quantity}</td>
-                                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium">{tx.user_name}</td>
+                                                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{tx.quantity}</td>
+                                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{tx.user_name}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                                {/* Footer */}
+                                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400">
+                                    <span>{selectedRows.filter(id => allIds.includes(id)).length > 0 ? `${selectedRows.filter(id => allIds.includes(id)).length} selectate` : ''}</span>
+                                    <span>Total: <strong className="text-slate-600 dark:text-slate-200">{rows.length}</strong> înregistrări</span>
+                                </div>
+                            </div>
+                        )
+                    })()}
 
-                    {/* ATTENDANCE TAB */}
-                    {activeTab === 'attendance' && (
-                        <div>
-                            <h3 className="font-bold text-lg mb-4 border-b pb-2">Istoric Pontaj / Activitate</h3>
-                            {data.attendance.length === 0 ? (
-                                <p className="text-slate-500 italic py-4">Nu există activitate înregistrată în perioada selectată.</p>
-                            ) : (
-                                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                    {/* ══ ACTIVITATE TAB ══ */}
+                    {activeTab === 'attendance' && (() => {
+                        const rows = data.attendance
+                        const allIds = rows.map(r => r.id)
+                        const allSelected = allIds.length > 0 && allIds.every(id => selectedRows.includes(id))
+                        return (
+                            <div>
+                                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
                                     <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                             <tr>
-                                                <th className="px-6 py-4">Dată</th>
-                                                <th className="px-6 py-4">Muncitor</th>
-                                                <th className="px-6 py-4">Check In</th>
-                                                <th className="px-6 py-4">Check Out</th>
-                                                <th className="px-6 py-4">Activitate</th>
+                                                <th className="px-4 py-3 w-10">
+                                                    <input type="checkbox" checked={allSelected} onChange={() => toggleAll(allIds)} className="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer" />
+                                                </th>
+                                                <th className="px-4 py-3">Dată</th>
+                                                <th className="px-4 py-3">Muncitor</th>
+                                                <th className="px-4 py-3">Check In</th>
+                                                <th className="px-4 py-3">Check Out</th>
+                                                <th className="px-4 py-3">Activități efectuate</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                                            {data.attendance.map(a => (
-                                                <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-medium">{new Date(a.date).toLocaleDateString('ro-RO')}</td>
-                                                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{a.user_name}</td>
-                                                    <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 font-bold">
-                                                        {a.check_in ? new Date(a.check_in).toLocaleTimeString('ro-RO', {hour: '2-digit', minute: '2-digit'}) : '-'}
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                            {rows.length === 0 ? (
+                                                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic text-sm">Nu există activitate înregistrată{startDate || endDate ? ' în perioada selectată' : ''}.</td></tr>
+                                            ) : rows.map(a => (
+                                                <tr key={a.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${selectedRows.includes(a.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`} onClick={() => toggleRow(a.id)}>
+                                                    <td className="px-4 py-3">
+                                                        <input type="checkbox" checked={selectedRows.includes(a.id)} onChange={() => toggleRow(a.id)} onClick={e => e.stopPropagation()} className="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer" />
                                                     </td>
-                                                    <td className="px-6 py-4 text-red-600 dark:text-red-400 font-bold">
-                                                        {a.check_out ? new Date(a.check_out).toLocaleTimeString('ro-RO', {hour: '2-digit', minute: '2-digit'}) : '-'}
+                                                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(a.date).toLocaleDateString('ro-RO')}</td>
+                                                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{a.user_name}</td>
+                                                    <td className="px-4 py-3 font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                        {a.check_in ? new Date(a.check_in).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        {a.activities && a.activities.length > 0 ? (
+                                                    <td className="px-4 py-3 font-bold text-red-500 dark:text-red-400 tabular-nums">
+                                                        {a.check_out ? new Date(a.check_out).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {a.activities?.length > 0 ? (
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {a.activities.map((act, i) => (
-                                                                    <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                                                                    <span key={i} className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
                                                                         {act}
                                                                     </span>
                                                                 ))}
                                                             </div>
                                                         ) : (
-                                                            <span className="text-slate-300 dark:text-slate-600 text-xs italic">—</span>
+                                                            <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -380,24 +379,28 @@ export default function SiteDetailView({ site, onBack }) {
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                                {/* Footer total */}
+                                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400">
+                                    <span>{selectedRows.filter(id => allIds.includes(id)).length > 0 ? `${selectedRows.filter(id => allIds.includes(id)).length} selectate` : ''}</span>
+                                    <span>Total: <strong className="text-slate-600 dark:text-slate-200">{rows.length}</strong> înregistrări{(startDate || endDate) ? ' (filtrate)' : ''}</span>
+                                </div>
+                            </div>
+                        )
+                    })()}
 
-                    {/* PHOTOS TAB */}
+                    {/* ══ FOTOGRAFII TAB ══ */}
                     {activeTab === 'photos' && (
                         <div>
-                            <h3 className="font-bold text-lg mb-4 border-b pb-2">Galerie Foto</h3>
                             {data.photos.length === 0 ? (
-                                <p className="text-slate-500 italic py-4">Nu există fotografii încărcate în perioada selectată.</p>
+                                <p className="text-slate-400 text-sm italic py-6 text-center">Nu există fotografii încărcate.</p>
                             ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {data.photos.map(p => (
-                                        <div key={p.id} className="relative group rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                                        <div key={p.id} className="relative group rounded-2xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700">
                                             <img src={p.photo_path} alt="Site" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                                 <p className="text-white text-xs font-medium">{new Date(p.created_at).toLocaleString('ro-RO')}</p>
-                                                <p className="text-slate-200 text-xs truncate">de {p.uploader_name}</p>
+                                                <p className="text-slate-300 text-xs truncate">de {p.uploader_name}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -405,9 +408,9 @@ export default function SiteDetailView({ site, onBack }) {
                             )}
                         </div>
                     )}
+
                 </div>
             )}
         </div>
-    </div>
     )
 }
