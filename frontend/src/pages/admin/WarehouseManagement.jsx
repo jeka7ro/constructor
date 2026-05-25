@@ -829,6 +829,24 @@ export default function WarehouseManagement() {
                                                     <div className="flex items-center gap-1.5">
                                                         {item.model && <span className="text-[11px] text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-2">Mod: {item.model}</span>}
                                                         <span className="text-[10px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{item.inventory_code}</span>
+                                                        
+                                                        {/* Inline Assignment Status */}
+                                                        {(item.current_site_id || item.current_holder_id) ? (
+                                                            <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                                <div className="flex items-center gap-2 text-[11px] text-amber-600 font-semibold truncate max-w-[200px]">
+                                                                    {item.current_site_name && <span>🏢 {item.current_site_name}</span>}
+                                                                    {item.current_holder_name && <span>👤 {item.current_holder_name}</span>}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+                                                                <span className={`text-[11px] font-semibold ${item.is_defective ? 'text-red-600 uppercase tracking-wider' : 'text-emerald-600'}`}>
+                                                                    {item.is_defective ? 'Defect' : 'În Magazie'}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -836,48 +854,21 @@ export default function WarehouseManagement() {
                                         <td className="px-6 py-3 text-center text-slate-600 dark:text-slate-400 font-medium">
                                             {item.unit}
                                         </td>
-                                        {item.inventory_code ? (
-                                            <td colSpan="3" className="px-6 py-3 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    {(item.current_site_id || item.current_holder_id) ? (
-                                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
-                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                                                                Repartizată:
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-[11px] font-semibold opacity-90 truncate max-w-[200px]">
-                                                                {item.current_site_name && <span>🏢 {item.current_site_name}</span>}
-                                                                {item.current_holder_name && <span>👤 {item.current_holder_name}</span>}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
-                                                            <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
-                                                            În Magazie
-                                                        </div>
-                                                    )}
-                                                    {item.is_defective && (
-                                                        <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider bg-red-100 px-2 py-0.5 rounded-sm shrink-0">
-                                                            Defect
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        ) : (
-                                            <>
-                                                <td className="px-6 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">
-                                                    {item.total_in > 0 ? `+${item.total_in}` : '-'}
-                                                </td>
-                                                <td className="px-6 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">
-                                                    {item.total_out > 0 ? `-${item.total_out}` : '-'}
-                                                </td>
-                                                <td className="px-6 py-3 text-center">
-                                                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm border ${item.total_quantity <= 0 ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50'}`}>
-                                                        {item.total_quantity > 0 ? `• ${item.total_quantity}` : '0'}
-                                                    </div>
-                                                </td>
-                                            </>
-                                        )}
+                                        <td className="px-6 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">
+                                            {item.total_in > 0 ? `+${item.total_in}` : '-'}
+                                        </td>
+                                        <td className="px-6 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">
+                                            {item.total_out > 0 ? `-${item.total_out}` : '-'}
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <div className={`inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold ${
+                                                item.total_quantity === 0
+                                                    ? 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                                                    : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
+                                            }`}>
+                                                • {item.total_quantity}
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-3 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                                 {item.inventory_code ? (
