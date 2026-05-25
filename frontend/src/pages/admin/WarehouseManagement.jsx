@@ -1,10 +1,72 @@
-import { useState, useEffect } from 'react'
-import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip, History, X, FileSpreadsheet, Save } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Package, Truck, Search, Loader2, ArrowUpRight, ArrowDownRight, Edit2, Trash2, FileText, Download, ChevronLeft, ChevronRight, Paperclip, History, X, FileSpreadsheet, Save, ChevronDown } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '../../store/uiStore'
 import * as XLSX from 'xlsx'
 import Pagination from '../../components/Pagination'
+
+const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, searchPlaceholder, displayFn }) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const wrapperRef = useRef(null)
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false)
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    const filtered = options.filter(o => displayFn(o).toLowerCase().includes(search.toLowerCase()))
+    const allChecked = filtered.length > 0 && filtered.every(o => selectedIds.includes(o.id))
+
+    return (
+        <div ref={wrapperRef} className="relative w-full">
+            <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm flex items-center justify-between">
+                <span className="truncate">{selectedIds.length > 0 ? `${selectedIds.length} selectați` : placeholder}</span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isOpen && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <input 
+                                type="text" autoFocus 
+                                value={search} onChange={e => setSearch(e.target.value)} 
+                                placeholder={searchPlaceholder}
+                                className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-1 custom-scrollbar">
+                        <label className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm font-semibold border-b border-slate-100 dark:border-slate-800 mb-1">
+                            <input type="checkbox" checked={allChecked} onChange={() => {
+                                if (allChecked) onChange(selectedIds.filter(id => !filtered.find(o => o.id === id)))
+                                else onChange([...new Set([...selectedIds, ...filtered.map(o => o.id)])])
+                            }} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                            Selectează Toți
+                        </label>
+                        {filtered.length === 0 ? (
+                            <div className="px-3 py-4 text-center text-xs text-slate-400">Nu s-au găsit rezultate.</div>
+                        ) : filtered.map(o => (
+                            <label key={o.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm transition-colors">
+                                <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={(e) => {
+                                    if (e.target.checked) onChange([...selectedIds, o.id])
+                                    else onChange(selectedIds.filter(id => id !== o.id))
+                                }} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                {displayFn(o)}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 
 const CATEGORIES = [
     { id: 'TOATE', label: 'Toate', icon: Package },
@@ -47,7 +109,7 @@ export default function WarehouseManagement() {
 
     // Form states
     const [itemForm, setItemForm] = useState({ name: '', unit: '' })
-    const [txForm, setTxForm] = useState({ quantity: '', date: new Date().toISOString().split('T')[0], assigned_to_user_id: '', assigned_to_vehicle_id: '', site_id: '', notes: '', file: null })
+    const [txForm, setTxForm] = useState({ quantity: '', date: new Date().toISOString().split('T')[0], assigned_to_user_ids: [], assigned_to_vehicle_ids: [], site_id: '', notes: '', file: null })
 
     // Transactions History Modal
     const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -222,22 +284,36 @@ export default function WarehouseManagement() {
             formData.append('quantity', Number(txForm.quantity))
             formData.append('date', txForm.date)
             
-            if (txForm.assigned_to_user_id) formData.append('assigned_to_user_id', txForm.assigned_to_user_id)
-            if (txForm.assigned_to_vehicle_id) formData.append('assigned_to_vehicle_id', txForm.assigned_to_vehicle_id)
-            if (txForm.site_id) formData.append('site_id', txForm.site_id)
-            if (txForm.notes) formData.append('notes', txForm.notes)
-            if (txForm.file) formData.append('file', txForm.file)
-
             if (editingTx) {
+                if (txForm.assigned_to_user_ids[0]) formData.append('assigned_to_user_id', txForm.assigned_to_user_ids[0])
+                if (txForm.assigned_to_vehicle_ids[0]) formData.append('assigned_to_vehicle_id', txForm.assigned_to_vehicle_ids[0])
                 await api.put(`/warehouse/transactions/${editingTx.id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 })
                 showToast('Tranzacție actualizată', 'success')
             } else {
-                await api.post('/warehouse/transactions', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                })
-                showToast('Tranzacție salvată', 'success')
+                const uIds = txForm.assigned_to_user_ids.length > 0 ? txForm.assigned_to_user_ids : [null]
+                const vIds = txForm.assigned_to_vehicle_ids.length > 0 ? txForm.assigned_to_vehicle_ids : [null]
+                
+                for (const uid of uIds) {
+                    for (const vid of vIds) {
+                        const fd = new FormData()
+                        fd.append('item_id', selectedItem.id)
+                        fd.append('transaction_type', txType)
+                        fd.append('quantity', Number(txForm.quantity))
+                        fd.append('date', txForm.date)
+                        if (uid) fd.append('assigned_to_user_id', uid)
+                        if (vid) fd.append('assigned_to_vehicle_id', vid)
+                        if (txForm.site_id) fd.append('site_id', txForm.site_id)
+                        if (txForm.notes) fd.append('notes', txForm.notes)
+                        if (txForm.file) fd.append('file', txForm.file)
+
+                        await api.post('/warehouse/transactions', fd, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        })
+                    }
+                }
+                showToast('Tranzacții salvate cu succes', 'success')
             }
             
             setShowTxModal(false)
@@ -260,15 +336,15 @@ export default function WarehouseManagement() {
             setTxForm({
                 quantity: existingTx.quantity,
                 date: existingTx.date || new Date().toISOString().split('T')[0],
-                assigned_to_user_id: existingTx.assigned_to_user_id || '',
-                assigned_to_vehicle_id: existingTx.assigned_to_vehicle_id || '',
+                assigned_to_user_ids: existingTx.assigned_to_user_id ? [existingTx.assigned_to_user_id] : [],
+                assigned_to_vehicle_ids: existingTx.assigned_to_vehicle_id ? [existingTx.assigned_to_vehicle_id] : [],
                 site_id: existingTx.site_id || '',
                 notes: existingTx.notes || '',
                 file: null
             })
         } else {
             setEditingTx(null)
-            setTxForm({ quantity: '', date: new Date().toISOString().split('T')[0], assigned_to_user_id: '', assigned_to_vehicle_id: '', site_id: '', notes: '', file: null })
+            setTxForm({ quantity: '', date: new Date().toISOString().split('T')[0], assigned_to_user_ids: [], assigned_to_vehicle_ids: [], site_id: '', notes: '', file: null })
         }
         setShowTxModal(true)
     }
@@ -822,29 +898,25 @@ export default function WarehouseManagement() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană</label>
-                                                <select
-                                                    value={txForm.assigned_to_user_id || ''}
-                                                    onChange={e => setTxForm({ ...txForm, assigned_to_user_id: e.target.value })}
-                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                                >
-                                                    <option value="">Alege angajat...</option>
-                                                    {users.map(u => (
-                                                        <option key={u.id} value={u.id}>{u.full_name} {u.employee_code ? `(${u.employee_code})` : ''}</option>
-                                                    ))}
-                                                </select>
+                                                <MultiSelectDropdown
+                                                    options={users}
+                                                    selectedIds={txForm.assigned_to_user_ids}
+                                                    onChange={ids => setTxForm({ ...txForm, assigned_to_user_ids: ids })}
+                                                    placeholder="Alege angajați..."
+                                                    searchPlaceholder="Caută angajat..."
+                                                    displayFn={u => `${u.full_name}${u.employee_code ? ` (${u.employee_code})` : ''}`}
+                                                />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Utilaj / Mașină</label>
-                                                <select 
-                                                    value={txForm.assigned_to_vehicle_id || ''} 
-                                                    onChange={e => setTxForm({ ...txForm, assigned_to_vehicle_id: e.target.value })} 
-                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                                >
-                                                    <option value="">Alege utilaj...</option>
-                                                    {vehicles.map(v => (
-                                                        <option key={v.id} value={v.id}>{v.name} {v.plate_number ? `(${v.plate_number})` : ''}</option>
-                                                    ))}
-                                                </select>
+                                                <MultiSelectDropdown
+                                                    options={vehicles}
+                                                    selectedIds={txForm.assigned_to_vehicle_ids}
+                                                    onChange={ids => setTxForm({ ...txForm, assigned_to_vehicle_ids: ids })}
+                                                    placeholder="Alege utilaje..."
+                                                    searchPlaceholder="Caută utilaj..."
+                                                    displayFn={v => `${v.name}${v.plate_number ? ` (${v.plate_number})` : ''}`}
+                                                />
                                             </div>
                                         </div>
                                     </>
