@@ -124,15 +124,17 @@ export default function SiteDetailView({ site, onBack }) {
                         )
                     })}
                 </div>
-            </div>
 
-            {/* Content Area */}
-            {loading && data ? (
-                <div className="flex justify-center p-8 opacity-50">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                </div>
-            ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                {/* Divider */}
+                <div className="border-t border-slate-100 dark:border-slate-800 mt-5 -mx-6" />
+
+                {/* Tab Content — inside the same card */}
+                {loading && data ? (
+                    <div className="flex justify-center p-8 opacity-50">
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                    </div>
+                ) : (
+                    <div className="pt-5">
                     {/* GENERAL TAB */}
                     {activeTab === 'general' && (
                         <div className="space-y-6">
