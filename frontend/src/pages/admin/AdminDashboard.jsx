@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
         { path: '/admin/teams', icon: Users, label: t('nav.teams') },
         { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
         { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
-        { path: '/admin/accommodations', icon: BedDouble, label: 'Cazări' },
+        { path: '/admin/accommodations', icon: BedDouble, Wallet, label: 'Cazări' },
         { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
         { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
         { path: '/admin/users', icon: Shield, label: 'Utilizatori' },

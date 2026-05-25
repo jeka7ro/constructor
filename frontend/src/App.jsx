@@ -31,6 +31,7 @@ const FleetManagement = lazy(() => import('./pages/admin/FleetManagement'))
 const WarehouseManagement = lazy(() => import('./pages/admin/WarehouseManagement'))
 const ComplaintsManagement = lazy(() => import('./pages/admin/ComplaintsManagement'))
 const AccommodationsManagement = lazy(() => import('./pages/admin/AccommodationsManagement'))
+const ExpensesManagement = lazy(() => import('./pages/admin/ExpensesManagement'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
@@ -76,6 +77,7 @@ function App() {
                         <Route path="warehouse" element={<WarehouseManagement />} />
                         <Route path="complaints" element={<ComplaintsManagement />} />
                         <Route path="accommodations" element={<AccommodationsManagement />} />
+                                <Route path="expenses" element={<ExpensesManagement />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                     </Route>
 

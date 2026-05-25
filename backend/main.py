@@ -11,7 +11,7 @@ from pathlib import Path
 load_dotenv()
 
 # Import routers
-from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients, admin_complaints, admin_accommodations
+from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients, admin_complaints, admin_accommodations, admin_expenses
 
 import threading
 
@@ -91,7 +91,21 @@ def _run_migrations(engine):
         # Postgres migration to drop foreign key for operated_by_id if it was created
         "ALTER TABLE warehouse_transactions DROP CONSTRAINT IF EXISTS warehouse_transactions_operated_by_id_fkey;",
         "ALTER TABLE warehouse_transactions ADD COLUMN IF NOT EXISTS site_id VARCHAR(36);",
-        "ALTER TABLE warehouse_transactions ADD COLUMN IF NOT EXISTS attachment_url VARCHAR(255);"
+                "ALTER TABLE warehouse_transactions ADD COLUMN IF NOT EXISTS attachment_url VARCHAR(255);",
+        """CREATE TABLE IF NOT EXISTS expenses (
+            id VARCHAR(36) PRIMARY KEY,
+            organization_id VARCHAR(36) NOT NULL,
+            site_id VARCHAR(36) NOT NULL,
+            user_id VARCHAR(36),
+            category VARCHAR(50) NOT NULL,
+            amount FLOAT NOT NULL,
+            currency VARCHAR(10) DEFAULT 'RON',
+            date DATE NOT NULL,
+            description TEXT,
+            document_url VARCHAR(255),
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );"""
     ]
     try:
         with engine.connect() as conn:
@@ -200,7 +214,7 @@ app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
 app.include_router(warehouse.router, prefix="/api", tags=["warehouse"])
 app.include_router(admin_clients.router, prefix="/api/admin/clients", tags=["admin-clients"])
 app.include_router(admin_complaints.router, prefix="/api", tags=["admin-complaints"])
-app.include_router(admin_accommodations.router, prefix="/api", tags=["admin-accommodations"])
+app.include_router(admin_accommodations, admin_expenses.router, prefix="/api", tags=["admin-accommodations"])
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body
