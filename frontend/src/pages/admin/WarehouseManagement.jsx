@@ -854,19 +854,28 @@ export default function WarehouseManagement() {
                                         <td className="px-6 py-3 text-center text-slate-600 dark:text-slate-400 font-medium">
                                             {item.unit}
                                         </td>
-                                        <td className="px-6 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">
-                                            {item.total_in > 0 ? `+${item.total_in}` : '-'}
-                                        </td>
-                                        <td className="px-6 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">
-                                            {item.total_out > 0 ? `-${item.total_out}` : '-'}
-                                        </td>
+                                        {item.inventory_code ? (
+                                            <>
+                                                <td className="px-6 py-3 text-center text-slate-400 dark:text-slate-500 font-medium">-</td>
+                                                <td className="px-6 py-3 text-center text-slate-400 dark:text-slate-500 font-medium">-</td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td className="px-6 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">
+                                                    {item.total_in > 0 ? `+${item.total_in}` : '-'}
+                                                </td>
+                                                <td className="px-6 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">
+                                                    {item.total_out > 0 ? `-${item.total_out}` : '-'}
+                                                </td>
+                                            </>
+                                        )}
                                         <td className="px-6 py-3 text-center">
                                             <div className={`inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold ${
-                                                item.total_quantity === 0
+                                                (item.inventory_code ? (item.current_site_id || item.current_holder_id) : (item.total_quantity === 0))
                                                     ? 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
                                                     : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
                                             }`}>
-                                                • {item.total_quantity}
+                                                • {item.inventory_code ? (item.current_site_id || item.current_holder_id ? '0' : '1') : item.total_quantity}
                                             </div>
                                         </td>
                                         <td className="px-6 py-3 text-right">
