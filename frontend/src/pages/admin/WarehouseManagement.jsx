@@ -69,6 +69,7 @@ const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, sear
 }
 
 const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, searchPlaceholder, displayFn }) => {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const wrapperRef = useRef(null)
@@ -129,7 +130,7 @@ const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, sear
     )
 }
 
-const CATEGORIES = [
+const getCategories = (t) => [
     { id: 'TOATE', label: t('warehouse.all'), icon: Package },
     { id: 'SCULE', label: t('warehouse.tools'), icon: Package },
     { id: 'CONSUMABILE', label: t('warehouse.consumables'), icon: Package },
@@ -762,7 +763,7 @@ export default function WarehouseManagement() {
 
                     <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                         <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-full shadow-inner mr-2 shrink-0">
-                            {CATEGORIES.map(cat => (
+                            {getCategories(t).map(cat => (
                                 <button
                                     key={cat.id}
                                     onClick={() => { setActiveTab(cat.id); setCurrentPage(1); }}
