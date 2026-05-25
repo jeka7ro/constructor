@@ -190,18 +190,28 @@ export default function WarehouseManagement() {
         fetchItems()
         fetchSites()
         fetchDropdownData()
-    }, [])
+    }, [activeTab, selectedSite])
 
     const fetchItems = async () => {
         try {
             setLoading(true)
-            const res = await api.get('/warehouse/items')
+            const res = await api.get('/warehouse/items', { params: { category: activeTab !== 'TOATE' ? activeTab : undefined, site_id: selectedSite || undefined } })
             setItems(res.data)
         } catch (error) {
             showToast('Eroare la încărcarea stocurilor', 'error')
         } finally {
             setLoading(false)
         }
+    }
+
+    const fetchSites = () => {
+        api.get('/admin/sites/', { params: { page_size: 1000, status: 'active' } })
+            .then(res => {
+                const list = Array.isArray(res.data?.sites) ? res.data.sites : (Array.isArray(res.data) ? res.data : [])
+                setAllSites(list)
+                setSites(list)
+            })
+            .catch(err => console.error(err))
     }
 
     const fetchDropdownData = async () => {
@@ -217,12 +227,6 @@ export default function WarehouseManagement() {
                     const list = Array.isArray(res.data?.vehicles) ? res.data.vehicles : (Array.isArray(res.data) ? res.data : [])
                     setVehicles(list)
                 }).catch(e => console.error('Failed to fetch vehicles', e))
-                
-            api.get('/admin/sites/', { params: { page_size: 1000, status: 'active' } })
-                .then(res => {
-                    const list = Array.isArray(res.data?.sites) ? res.data.sites : (Array.isArray(res.data) ? res.data : [])
-                    setSites(list)
-                }).catch(e => console.error('Failed to fetch sites', e))
         } catch (error) {
             console.error('Failed to init dropdown fetching', error)
         }
@@ -263,7 +267,7 @@ export default function WarehouseManagement() {
                     showToast('Tranzacție ștearsă', 'success')
                     fetchTransactions(selectedItem.id)
                     fetchItems()
-        fetchSites()
+                    fetchSites()
                 } catch (error) {
                     showToast('Eroare la ștergerea tranzacției', 'error')
                 }
@@ -285,7 +289,7 @@ export default function WarehouseManagement() {
                     setSelectedTxIds([])
                     fetchTransactions(selectedItem.id)
                     fetchItems()
-        fetchSites()
+                    fetchSites()
                 } catch (error) {
                     showToast('Eroare la ștergerea tranzacțiilor', 'error')
                 }
@@ -314,7 +318,7 @@ export default function WarehouseManagement() {
             }
             setShowItemModal(false)
             fetchItems()
-        fetchSites()
+            fetchSites()
         } catch (error) {
             showToast('Eroare la salvare', 'error')
         } finally {
@@ -332,7 +336,7 @@ export default function WarehouseManagement() {
                     await api.delete(`/warehouse/items/${itemId}`)
                     showToast('Articol șters', 'success')
                     fetchItems()
-        fetchSites()
+                    fetchSites()
                 } catch (error) {
                     showToast('Eroare la ștergerea articolului', 'error')
                 }
@@ -353,7 +357,7 @@ export default function WarehouseManagement() {
             showToast('Sculă repartizată cu succes', 'success')
             setToolModal({ ...toolModal, isOpen: false })
             fetchItems()
-        fetchSites()
+            fetchSites()
         } catch (error) {
             showToast(error.response?.data?.detail || 'Eroare la repartizare', 'error')
         } finally {
@@ -385,7 +389,7 @@ export default function WarehouseManagement() {
                     })
                     showToast('Sculă primită în magazie', 'success')
                     fetchItems()
-        fetchSites()
+                    fetchSites()
                 } catch (error) {
                     showToast(error.response?.data?.detail || 'Eroare la primire', 'error')
                 } finally {
@@ -401,7 +405,7 @@ export default function WarehouseManagement() {
             await api.post(`/warehouse/items/${item.id}/toggle-defective`)
             showToast(item.is_defective ? 'Scula a fost marcată ca funcțională' : 'Scula a fost marcată ca defectă', 'success')
             fetchItems()
-        fetchSites()
+            fetchSites()
         } catch (error) {
             showToast('Eroare la actualizarea stării', 'error')
         }
@@ -461,7 +465,7 @@ export default function WarehouseManagement() {
             
             setShowTxModal(false)
             fetchItems()
-        fetchSites()
+            fetchSites()
             if (historyItem && historyItem.id === selectedItem.id) {
                 fetchTransactions(selectedItem.id)
             }
@@ -507,13 +511,7 @@ export default function WarehouseManagement() {
     }
 
     // Filtering & Pagination for Items
-    const filteredItems = items.filter(i => {
-        const matchesTab = activeTab === 'TOATE' || i.category === activeTab;
-        const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              i.unit.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              String(i.total_quantity).includes(searchQuery);
-        return matchesTab && matchesSearch;
-    })
+    const filteredItems = items
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
     const paginatedItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
@@ -627,15 +625,15 @@ export default function WarehouseManagement() {
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:checked:bg-blue-500"
                                         />
                                     </th>
-                                    <th className="px-6 py-4">{t('warehouse.date')}</th>
-                                    <th className="px-6 py-4">{t('warehouse.type')}</th>
+                                    <th className="px-6 py-4">Dată</th>
+                                    <th className="px-6 py-4">Tip</th>
                                     {!historyItem?.inventory_code && (
-                                        <th className="px-6 py-4 text-right">{t('warehouse.quantity')}</th>
+                                        <th className="px-6 py-4 text-right">Cantitate</th>
                                     )}
-                                    <th className="px-6 py-4">{t('warehouse.site')}</th>
-                                    <th className="px-6 py-4">{t('warehouse.recipient')}</th>
+                                    <th className="px-6 py-4">Șantier</th>
+                                    <th className="px-6 py-4">Destinatar</th>
                                     <th className="px-6 py-4">Notițe / Atașament</th>
-                                    <th className="px-6 py-4">{t('warehouse.operator')}</th>
+                                    <th className="px-6 py-4">Operator</th>
                                     <th className="px-6 py-4 text-right">Acțiuni</th>
                                 </tr>
                             </thead>
@@ -730,7 +728,7 @@ export default function WarehouseManagement() {
                     <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
                         <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('warehouse.title')}</h1>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Gestiune Depozit</h1>
                 </div>
             </div>
 
@@ -742,7 +740,7 @@ export default function WarehouseManagement() {
                         </div>
                         <input
                             type="text"
-                            placeholder={t('warehouse.search_item')}
+                            placeholder="Caută articol..."
                             value={searchQuery}
                             onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
@@ -780,12 +778,23 @@ export default function WarehouseManagement() {
                             ))}
                         </div>
 
+                        <select 
+                            value={selectedSite}
+                            onChange={(e) => setSelectedSite(e.target.value)}
+                            className="h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Toate Șantierele</option>
+                            {allSites.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                        </select>
+
                         <button
                             onClick={handleExportExcel}
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('warehouse.export_excel')}</span>
+                            <span className="hidden sm:inline">Export</span>
                         </button>
 
                         <button
@@ -793,7 +802,7 @@ export default function WarehouseManagement() {
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
-                            Articol Nou
+                            Articol
                         </button>
                     </div>
                 </div>
@@ -802,12 +811,12 @@ export default function WarehouseManagement() {
                         <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
                                 <th className="px-6 py-3 w-12 text-center">NR.</th>
-                                <th className="px-6 py-3">{t('warehouse.col_item')}</th>
-                                <th className="px-6 py-3 text-center">{t('warehouse.col_unit')}</th>
-                                <th className="px-6 py-3 text-center">{t('warehouse.col_in')}</th>
-                                <th className="px-6 py-3 text-center">{t('warehouse.col_out')}</th>
-                                <th className="px-6 py-3 text-center">{t('warehouse.col_stock')}</th>
-                                <th className="px-6 py-3 text-right">{t('warehouse.col_actions')}</th>
+                                <th className="px-6 py-3">Articol</th>
+                                <th className="px-6 py-3 text-center">UM</th>
+                                <th className="px-6 py-3 text-center">Intrări</th>
+                                <th className="px-6 py-3 text-center">Ieșiri</th>
+                                <th className="px-6 py-3 text-center">Stoc</th>
+                                <th className="px-6 py-3 text-right">Acțiuni</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -849,13 +858,13 @@ export default function WarehouseManagement() {
                                                         {(item.current_site_id || item.current_holder_id) ? (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                                <span className="text-[11px] text-amber-600 font-semibold truncate">{t('warehouse.assigned')}</span>
+                                                                <span className="text-[11px] text-amber-600 font-semibold truncate">Repartizat</span>
                                                             </div>
                                                         ) : (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className={`w-1.5 h-1.5 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
                                                                 <span className={`text-[11px] font-semibold ${item.is_defective ? 'text-red-600 uppercase tracking-wider' : 'text-emerald-600'}`}>
-                                                                    {item.is_defective ? t('warehouse.defective') : t('warehouse.in_stock')}
+                                                                    {item.is_defective ? 'Defect' : 'În Depozit'}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -943,7 +952,7 @@ export default function WarehouseManagement() {
 
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
                     <div className="flex items-center gap-2">
-                        <span className="uppercase tracking-wide">{t('warehouse.show')}</span>
+                        <span className="uppercase tracking-wide">Afișare</span>
                         <select
                             value={itemsPerPage}
                             onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
