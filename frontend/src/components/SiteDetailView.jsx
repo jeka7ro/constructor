@@ -362,7 +362,19 @@ export default function SiteDetailView({ site, onBack }) {
                                                     <td className="px-6 py-4 text-red-600 dark:text-red-400 font-bold">
                                                         {a.check_out ? new Date(a.check_out).toLocaleTimeString('ro-RO', {hour: '2-digit', minute: '2-digit'}) : '-'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium">{a.activity_name}</td>
+                                                    <td className="px-6 py-4">
+                                                        {a.activities && a.activities.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {a.activities.map((act, i) => (
+                                                                    <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                                                                        {act}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300 dark:text-slate-600 text-xs italic">—</span>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>

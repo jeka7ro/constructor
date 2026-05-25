@@ -327,7 +327,9 @@ def get_site_details(
         for t, item, u in wh_transactions
     ]
     
-    # Attendance (Timesheet Segments)
+    # Attendance (Timesheet Segments) — with real activities
+    from app.models import TimesheetLine, Activity as ActivityModel
+
     ts_query = db.query(TimesheetSegment, Timesheet, User).join(
         Timesheet, TimesheetSegment.timesheet_id == Timesheet.id
     ).join(
@@ -338,7 +340,22 @@ def get_site_details(
     if ed: ts_query = ts_query.filter(Timesheet.date <= ed.date())
     
     ts_segments = ts_query.order_by(TimesheetSegment.check_in_time.desc()).all()
-    
+
+    # Build a map: segment_id -> list of activity names
+    seg_ids = [seg.id for seg, _, _ in ts_segments]
+    activity_map = {}
+    if seg_ids:
+        lines = db.query(TimesheetLine, ActivityModel).join(
+            ActivityModel, TimesheetLine.activity_id == ActivityModel.id
+        ).filter(TimesheetLine.segment_id.in_(seg_ids)).all()
+        for line, act in lines:
+            if line.segment_id not in activity_map:
+                activity_map[line.segment_id] = []
+            entry = act.name
+            if line.quantity_numeric:
+                entry += f" ({line.quantity_numeric} {line.unit_type or ''})"
+            activity_map[line.segment_id].append(entry)
+
     attendance_list = [
         {
             "id": seg.id,
@@ -346,7 +363,7 @@ def get_site_details(
             "user_name": u.full_name,
             "check_in": str(seg.check_in_time) if seg.check_in_time else None,
             "check_out": str(seg.check_out_time) if seg.check_out_time else None,
-            "activity_name": "Activitate Generală" 
+            "activities": activity_map.get(seg.id, []),
         }
         for seg, ts, u in ts_segments
     ]
