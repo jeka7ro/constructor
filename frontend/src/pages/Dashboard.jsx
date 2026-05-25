@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../store/authStore'
-import { Clock, Calendar, Users, Settings, TrendingUp, MapPin, Briefcase, ArrowRight, LogOut } from 'lucide-react'
+import { Clock, Calendar, Users, Settings, TrendingUp, MapPin, Briefcase, ArrowRight, LogOut, PackageSearch, AlertTriangle, MessageSquareWarning } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
 
@@ -70,6 +70,27 @@ export default function Dashboard() {
             description: 'Configurare cont',
             gradient: 'from-slate-500 to-slate-600',
             href: '/settings'
+        },
+        {
+            icon: PackageSearch,
+            title: 'Necesar Materiale',
+            description: 'Cereri pentru șantier',
+            gradient: 'from-amber-500 to-orange-600',
+            href: '/material-requests'
+        },
+        {
+            icon: AlertTriangle,
+            title: 'Urgențe',
+            description: 'Alerte rapide din șantier',
+            gradient: 'from-rose-500 to-red-600',
+            href: '/emergencies'
+        },
+        {
+            icon: MessageSquareWarning,
+            title: 'Sesizări / Reclamații',
+            description: 'Trimite o sesizare',
+            gradient: 'from-sky-500 to-cyan-600',
+            href: '/sesizari'
         }
     ]
 

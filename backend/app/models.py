@@ -524,8 +524,60 @@ class WarehouseTransaction(Base):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SESIZARI SI RECLAMATII
+# SESIZARI SI RECLAMATII / URGENTE / MATERIALE
 # ─────────────────────────────────────────────────────────────────────────────
+
+class MaterialRequest(Base):
+    """Necesar materiale cerut de un angajat/responsabil"""
+    __tablename__ = "material_requests"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
+
+    items_text = Column(Text, nullable=False)
+    notes = Column(Text, nullable=True)
+    
+    # Valori posibile: pending, approved, rejected, delivered
+    status = Column(String(20), nullable=False, default="pending")
+
+    admin_response = Column(Text, nullable=True)
+    responded_by = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    responded_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", foreign_keys=[user_id])
+    site = relationship("ConstructionSite", foreign_keys=[site_id])
+    responder = relationship("Admin", foreign_keys=[responded_by])
+
+class Emergency(Base):
+    """Alerta de urgenta trimisa de un angajat"""
+    __tablename__ = "emergencies"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
+
+    description = Column(Text, nullable=False)
+    severity = Column(String(20), nullable=False, default="high") # high, critical
+    
+    # Valori posibile: active, resolved
+    status = Column(String(20), nullable=False, default="active")
+
+    admin_response = Column(Text, nullable=True)
+    resolved_by = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", foreign_keys=[user_id])
+    site = relationship("ConstructionSite", foreign_keys=[site_id])
+    resolver = relationship("Admin", foreign_keys=[resolved_by])
 
 class Complaint(Base):
     """Sesizare / Reclamatie trimisa de un angajat"""

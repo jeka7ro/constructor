@@ -32,7 +32,11 @@ const WarehouseManagement = lazy(() => import('./pages/admin/WarehouseManagement
 const ComplaintsManagement = lazy(() => import('./pages/admin/ComplaintsManagement'))
 const AccommodationsManagement = lazy(() => import('./pages/admin/AccommodationsManagement'))
 const ExpensesManagement = lazy(() => import('./pages/admin/ExpensesManagement'))
+const AdminMaterialRequests = lazy(() => import('./pages/admin/AdminMaterialRequests'))
+const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
+const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
+const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
 
@@ -78,6 +82,8 @@ function App() {
                         <Route path="complaints" element={<ComplaintsManagement />} />
                         <Route path="accommodations" element={<AccommodationsManagement />} />
                                 <Route path="expenses" element={<ExpensesManagement />} />
+                                <Route path="material-requests" element={<AdminMaterialRequests />} />
+                                <Route path="emergencies" element={<AdminEmergencies />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                     </Route>
 
@@ -94,6 +100,8 @@ function App() {
                             <Route path="/timesheets/new" element={<TimesheetForm />} />
                             <Route path="/timesheets/:id" element={<TimesheetForm />} />
                             <Route path="/sesizari" element={<EmployeeComplaints />} />
+                            <Route path="/material-requests" element={<EmployeeMaterialRequests />} />
+                            <Route path="/emergencies" element={<EmployeeEmergencies />} />
                         </>
                     ) : null}
 

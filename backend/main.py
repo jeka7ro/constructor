@@ -11,7 +11,7 @@ from pathlib import Path
 load_dotenv()
 
 # Import routers
-from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients, admin_complaints, admin_accommodations, admin_expenses
+from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies, admin_material_requests
 
 import threading
 
@@ -214,7 +214,10 @@ app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
 app.include_router(warehouse.router, prefix="/api", tags=["warehouse"])
 app.include_router(admin_clients.router, prefix="/api/admin/clients", tags=["admin-clients"])
 app.include_router(admin_complaints.router, prefix="/api", tags=["admin-complaints"])
-app.include_router(admin_accommodations, admin_expenses.router, prefix="/api", tags=["admin-accommodations"])
+app.include_router(admin_accommodations.router, prefix="/api", tags=["admin-accommodations"])
+app.include_router(admin_expenses.router, prefix="/api", tags=["admin-expenses"])
+app.include_router(admin_emergencies.router, prefix="/api", tags=["admin-emergencies"])
+app.include_router(admin_material_requests.router, prefix="/api", tags=["admin-material-requests"])
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body
@@ -285,6 +288,96 @@ def user_list_complaints(
             "created_at": str(c.created_at),
         }
         for c in complaints
+    ]
+
+# ─── User: Necesar Materiale ──────────────────────────────────────────────────
+from app.models import MaterialRequest as MaterialRequestModel
+
+@app.post("/api/user/material-requests", tags=["user-material-requests"], status_code=201)
+def user_submit_material_request(
+    items_text: str = Body(...),
+    notes: Optional[str] = Body(None),
+    site_id: Optional[str] = Body(None),
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    c = MaterialRequestModel(
+        organization_id=current_user.organization_id,
+        user_id=current_user.id,
+        site_id=site_id or current_user.site_id,
+        items_text=items_text,
+        notes=notes,
+        status="pending",
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return {"id": c.id, "status": c.status, "created_at": str(c.created_at)}
+
+@app.get("/api/user/material-requests", tags=["user-material-requests"])
+def user_list_material_requests(
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    requests = db.query(MaterialRequestModel).filter(
+        MaterialRequestModel.user_id == current_user.id
+    ).order_by(MaterialRequestModel.created_at.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "items_text": c.items_text,
+            "notes": c.notes,
+            "status": c.status,
+            "admin_response": c.admin_response,
+            "responded_at": str(c.responded_at) if c.responded_at else None,
+            "created_at": str(c.created_at),
+        }
+        for c in requests
+    ]
+
+# ─── User: Urgente ────────────────────────────────────────────────────────────
+from app.models import Emergency as EmergencyModel
+
+@app.post("/api/user/emergencies", tags=["user-emergencies"], status_code=201)
+def user_submit_emergency(
+    description: str = Body(...),
+    severity: str = Body("high"),
+    site_id: Optional[str] = Body(None),
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    c = EmergencyModel(
+        organization_id=current_user.organization_id,
+        user_id=current_user.id,
+        site_id=site_id or current_user.site_id,
+        description=description,
+        severity=severity,
+        status="active",
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return {"id": c.id, "status": c.status, "created_at": str(c.created_at)}
+
+@app.get("/api/user/emergencies", tags=["user-emergencies"])
+def user_list_emergencies(
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    requests = db.query(EmergencyModel).filter(
+        EmergencyModel.user_id == current_user.id
+    ).order_by(EmergencyModel.created_at.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "description": c.description,
+            "severity": c.severity,
+            "status": c.status,
+            "admin_response": c.admin_response,
+            "resolved_at": str(c.resolved_at) if c.resolved_at else None,
+            "created_at": str(c.created_at),
+        }
+        for c in requests
     ]
 
 # Serve uploaded files (ID cards, etc.)

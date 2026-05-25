@@ -8,6 +8,13 @@ from app.database import get_db
 from app.models import Complaint, Admin, Organization
 from app.api.admin_auth import get_current_admin
 
+def check_complaint_permission(admin: Admin):
+    allowed_roles = ["TESA", "ADMIN", "SUPER_ADMIN", "FINANCIAR", "SUPERVIZOR"]
+    if admin.is_super_admin:
+        return
+    if admin.role.upper() not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Nu aveți permisiunea de a gestiona sesizările.")
+
 router = APIRouter(prefix="/admin/complaints", tags=["Admin - Sesizari"])
 
 
@@ -43,6 +50,7 @@ def list_complaints(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """Lista tuturor sesizarilor organizatiei"""
+    check_complaint_permission(current_admin)
     q = db.query(Complaint).filter(Complaint.organization_id == current_admin.organization_id)
     if status_filter and status_filter != "all":
         q = q.filter(Complaint.status == status_filter)
@@ -56,6 +64,11 @@ def unread_count(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """Numar de sesizari deschise (pentru badge sidebar)"""
+    try:
+        check_complaint_permission(current_admin)
+    except HTTPException:
+        return {"count": 0}
+        
     count = db.query(Complaint).filter(
         Complaint.organization_id == current_admin.organization_id,
         Complaint.status.in_(["open", "in_review"])
@@ -69,6 +82,7 @@ def get_complaint(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
 ):
+    check_complaint_permission(current_admin)
     c = db.query(Complaint).filter(
         Complaint.id == complaint_id,
         Complaint.organization_id == current_admin.organization_id
@@ -86,6 +100,7 @@ def respond_to_complaint(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """Admin raspunde la o sesizare"""
+    check_complaint_permission(current_admin)
     c = db.query(Complaint).filter(
         Complaint.id == complaint_id,
         Complaint.organization_id == current_admin.organization_id
@@ -112,6 +127,7 @@ def change_status(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """Schimba statusul unei sesizari"""
+    check_complaint_permission(current_admin)
     valid_statuses = ["open", "in_review", "resolved", "closed"]
     if body.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Status invalid. Valori acceptate: {valid_statuses}")
@@ -136,6 +152,7 @@ def delete_complaint(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
 ):
+    check_complaint_permission(current_admin)
     c = db.query(Complaint).filter(
         Complaint.id == complaint_id,
         Complaint.organization_id == current_admin.organization_id

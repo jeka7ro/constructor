@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -82,7 +82,10 @@ export default function AdminDashboard() {
         { path: '/admin/teams', icon: Users, label: t('nav.teams') },
         { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
         { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
-        { path: '/admin/accommodations', icon: BedDouble, Wallet, label: 'Cazări' },
+        { path: '/admin/accommodations', icon: BedDouble, label: 'Cazări' },
+        { path: '/admin/expenses', icon: Wallet, label: 'Deconturi / Cheltuieli' },
+        { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
+        { path: '/admin/emergencies', icon: AlertTriangle, label: 'Urgențe' },
         { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
         { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
         { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
@@ -139,7 +142,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto custom-scrollbar">
+                <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.path}
