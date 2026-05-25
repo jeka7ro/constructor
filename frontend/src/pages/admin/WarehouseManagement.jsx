@@ -121,7 +121,7 @@ const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, sear
                                 <span className="truncate">{displayFn(o)}</span>
                             </div>
                         ))}
-                        {filtered.length === 0 && <div className="p-3 text-center text-xs text-slate-500">Niciun rezultat găsit</div>}
+                        {filtered.length === 0 && <div className="p-3 text-center text-xs text-slate-500">{t('warehouse.no_results')}</div>}
                     </div>
                 </div>
             )}
@@ -130,11 +130,11 @@ const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, sear
 }
 
 const CATEGORIES = [
-    { id: 'TOATE', label: 'Toate', icon: Package },
-    { id: 'SCULE', label: 'Scule', icon: Package },
-    { id: 'CONSUMABILE', label: 'Consumabile', icon: Package },
-    { id: 'STRUCTURA', label: 'Structură', icon: Package },
-    { id: 'COMBUSTIBIL', label: 'Combustibil', icon: Truck },
+    { id: 'TOATE', label: t('warehouse.all'), icon: Package },
+    { id: 'SCULE', label: t('warehouse.tools'), icon: Package },
+    { id: 'CONSUMABILE', label: t('warehouse.consumables'), icon: Package },
+    { id: 'STRUCTURA', label: t('warehouse.structure'), icon: Package },
+    { id: 'COMBUSTIBIL', label: t('warehouse.fuel'), icon: Truck },
 ]
 
 export default function WarehouseManagement() {
@@ -530,7 +530,7 @@ export default function WarehouseManagement() {
                     className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors w-fit"
                 >
                     <ChevronLeft className="w-5 h-5" />
-                    <span className="font-semibold">Înapoi la Magazie</span>
+                    <span className="font-semibold">{t('warehouse.back_to_warehouse')}</span>
                 </button>
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
@@ -616,13 +616,13 @@ export default function WarehouseManagement() {
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:checked:bg-blue-500"
                                         />
                                     </th>
-                                    <th className="px-6 py-4">Dată</th>
-                                    <th className="px-6 py-4">Tip</th>
-                                    <th className="px-6 py-4 text-right">Cantitate</th>
-                                    <th className="px-6 py-4">Șantier</th>
-                                    <th className="px-6 py-4">Destinatar</th>
+                                    <th className="px-6 py-4">{t('warehouse.date')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.type')}</th>
+                                    <th className="px-6 py-4 text-right">{t('warehouse.quantity')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.site')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.recipient')}</th>
                                     <th className="px-6 py-4">Notițe / Atașament</th>
-                                    <th className="px-6 py-4">Operator</th>
+                                    <th className="px-6 py-4">{t('warehouse.operator')}</th>
                                     <th className="px-6 py-4 text-right">Acțiuni</th>
                                 </tr>
                             </thead>
@@ -715,7 +715,7 @@ export default function WarehouseManagement() {
                     <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
                         <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Magazie</h1>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('warehouse.title')}</h1>
                 </div>
             </div>
 
@@ -727,7 +727,7 @@ export default function WarehouseManagement() {
                         </div>
                         <input
                             type="text"
-                            placeholder="Caută articol..."
+                            placeholder={t('warehouse.search_item')}
                             value={searchQuery}
                             onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
@@ -770,7 +770,7 @@ export default function WarehouseManagement() {
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden sm:inline">Export Excel</span>
+                            <span className="hidden sm:inline">{t('warehouse.export_excel')}</span>
                         </button>
 
                         <button
@@ -787,12 +787,12 @@ export default function WarehouseManagement() {
                         <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
                                 <th className="px-6 py-3 w-12 text-center">NR.</th>
-                                <th className="px-6 py-3">ARTICOL</th>
-                                <th className="px-6 py-3 text-center">U.M.</th>
-                                <th className="px-6 py-3 text-center">INTRĂRI</th>
-                                <th className="px-6 py-3 text-center">IEȘIRI</th>
-                                <th className="px-6 py-3 text-center">STOC CURENT</th>
-                                <th className="px-6 py-3 text-right">ACȚIUNI</th>
+                                <th className="px-6 py-3">{t('warehouse.col_item')}</th>
+                                <th className="px-6 py-3 text-center">{t('warehouse.col_unit')}</th>
+                                <th className="px-6 py-3 text-center">{t('warehouse.col_in')}</th>
+                                <th className="px-6 py-3 text-center">{t('warehouse.col_out')}</th>
+                                <th className="px-6 py-3 text-center">{t('warehouse.col_stock')}</th>
+                                <th className="px-6 py-3 text-right">{t('warehouse.col_actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -834,13 +834,13 @@ export default function WarehouseManagement() {
                                                         {(item.current_site_id || item.current_holder_id) ? (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                                <span className="text-[11px] text-amber-600 font-semibold truncate">Repartizată</span>
+                                                                <span className="text-[11px] text-amber-600 font-semibold truncate">{t('warehouse.assigned')}</span>
                                                             </div>
                                                         ) : (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className={`w-1.5 h-1.5 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
                                                                 <span className={`text-[11px] font-semibold ${item.is_defective ? 'text-red-600 uppercase tracking-wider' : 'text-emerald-600'}`}>
-                                                                    {item.is_defective ? 'Defect' : 'În Magazie'}
+                                                                    {item.is_defective ? t('warehouse.defective') : t('warehouse.in_stock')}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -928,7 +928,7 @@ export default function WarehouseManagement() {
 
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
                     <div className="flex items-center gap-2">
-                        <span className="uppercase tracking-wide">Afișează</span>
+                        <span className="uppercase tracking-wide">{t('warehouse.show')}</span>
                         <select
                             value={itemsPerPage}
                             onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
@@ -1071,7 +1071,7 @@ export default function WarehouseManagement() {
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Package className="w-5 h-5 text-slate-500" />
-                                {selectedItem ? 'Modifică Articol' : 'Adaugă Articol Nou'}
+                                {selectedItem ? 'Modifică Articol' : t('warehouse.add_new_item')}
                             </h2>
                             <button onClick={() => setShowItemModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                                 <X className="w-5 h-5" />
@@ -1080,11 +1080,11 @@ export default function WarehouseManagement() {
                         <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50">
                             <form onSubmit={handleSaveItem} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Articol</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.item_name')}</label>
                                     <input type="text" required value={itemForm.name} onChange={e => setItemForm({ ...itemForm, name: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Unitate de măsură</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.unit_of_measure')}</label>
                                     <select required value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} disabled={activeTab === 'COMBUSTIBIL'} className={`w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm ${activeTab === 'COMBUSTIBIL' ? 'opacity-70 cursor-not-allowed' : ''}`}>
                                         {activeTab === 'COMBUSTIBIL' ? (
                                             <option value="L">L (Litri)</option>

@@ -1,4 +1,6 @@
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronDown } from 'lucide-react'
 
 // Inline SVG flags — no emoji, no external deps
 const FlagRO = () => (
@@ -49,63 +51,72 @@ const LANGUAGES = [
 
 export default function LanguageSelector({ variant = 'dark' }) {
     const { i18n } = useTranslation()
-    const currentLang = i18n.language?.substring(0, 2) || 'ro'
+    const [isOpen, setIsOpen] = useState(false)
+    const dropdownRef = useRef(null)
+    
+    const currentLangCode = i18n.language?.substring(0, 2) || 'ro'
+    const activeLang = LANGUAGES.find(l => l.code === currentLangCode) || LANGUAGES[0]
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
 
     const change = (code) => {
         i18n.changeLanguage(code)
         localStorage.setItem('language', code)
+        setIsOpen(false)
     }
 
     const isDark = variant === 'dark'
 
     return (
-        <div className="flex items-center gap-1">
-            {LANGUAGES.map((lang) => {
-                const active = currentLang === lang.code
-                return (
-                    <button
-                        key={lang.code}
-                        onClick={() => change(lang.code)}
-                        title={lang.label}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            padding: '3px 7px',
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            letterSpacing: '0.04em',
-                            border: active
-                                ? '2px solid #3b82f6'
-                                : `2px solid transparent`,
-                            background: active
-                                ? (isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff')
-                                : 'transparent',
-                            color: active
-                                ? '#3b82f6'
-                                : (isDark ? 'rgba(255,255,255,0.45)' : '#94a3b8'),
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => {
-                            if (!active) {
-                                e.currentTarget.style.color = isDark ? '#fff' : '#1e293b'
-                                e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'
-                            }
-                        }}
-                        onMouseLeave={e => {
-                            if (!active) {
-                                e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.45)' : '#94a3b8'
-                                e.currentTarget.style.background = 'transparent'
-                            }
-                        }}
-                    >
-                        <lang.Flag />
-                        <span>{lang.label}</span>
-                    </button>
-                )
-            })}
+        <div className="relative" ref={dropdownRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${
+                    isDark 
+                        ? 'border-slate-700/50 hover:bg-slate-800 text-slate-300' 
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
+                style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}
+            >
+                <activeLang.Flag />
+                <span>{activeLang.label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <div className={`absolute right-0 mt-2 w-32 py-1 rounded-xl shadow-lg border backdrop-blur-xl z-50 ${
+                    isDark 
+                        ? 'bg-slate-900/90 border-slate-800' 
+                        : 'bg-white/90 border-slate-200'
+                }`}>
+                    {LANGUAGES.map((lang) => {
+                        const active = currentLangCode === lang.code
+                        return (
+                            <button
+                                key={lang.code}
+                                onClick={() => change(lang.code)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-semibold transition-colors ${
+                                    active 
+                                        ? (isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600')
+                                        : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')
+                                }`}
+                            >
+                                <lang.Flag />
+                                <span>{lang.label}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 }
+

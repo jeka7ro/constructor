@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { BedDouble, Plus, Search, X, ChevronLeft, ChevronRight, Loader2, Edit2, Trash2, Users, MapPin, UserPlus } from 'lucide-react'
-import api from '../../lib/api'
+import api from '../../lib/api';
+import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../../store/uiStore'
 
 export default function AccommodationsManagement() {
+    const { t } = useTranslation();
     const { showToast } = useUIStore()
     const [accommodations, setAccommodations] = useState([])
     const [allUsers, setAllUsers] = useState([])
@@ -405,7 +407,7 @@ export default function AccommodationsManagement() {
                             <BedDouble className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Cazări</h1>
+                            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('accommodations.title')}</h1>
                             <p className="text-xs text-slate-400 mt-0.5">{accommodations.length} cazări înregistrate</p>
                         </div>
                     </div>
@@ -418,7 +420,7 @@ export default function AccommodationsManagement() {
                             <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                 <Search className="w-4 h-4" />
                             </div>
-                            <input type="text" placeholder="Caută cazare..." value={searchQuery}
+                            <input type="text" placeholder={t('accommodations.search')} value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
                                 className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             />
@@ -460,7 +462,7 @@ export default function AccommodationsManagement() {
                                     </th>
                                     <th className="px-6 py-4">Nr.</th>
                                     <th className="px-6 py-4">Denumire</th>
-                                    <th className="px-6 py-4">Adresă</th>
+                                    <th className="px-6 py-4">{t('accommodations.address')}</th>
                                     <th className="px-6 py-4 text-center">Capacitate</th>
                                     <th className="px-6 py-4 text-center">Ocupanți</th>
                                     <th className="px-6 py-4 text-right">Acțiuni</th>
@@ -686,7 +688,7 @@ function FormModal({ show, editing, form, setForm, saving, onSave, onClose }) {
                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Adresă</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('accommodations.address')}</label>
                         <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                             placeholder="Stradă, număr, localitate..."
                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />

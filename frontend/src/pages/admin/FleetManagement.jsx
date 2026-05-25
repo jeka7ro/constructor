@@ -365,7 +365,7 @@ export default function FleetManagement() {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Caută vehicul..."
+                                placeholder={t('fleet.search_vehicle')}
                                 className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             />
                             {searchQuery && (
@@ -486,7 +486,7 @@ export default function FleetManagement() {
                                 </div>
                                 <div>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                                        {editingVehicle ? 'Editează Vehicul' : 'Vehicul Nou'}
+                                        {editingVehicle ? t('fleet.edit_vehicle') : 'Vehicul Nou'}
                                     </h2>
                                     {editingVehicle && <p className="text-xs text-slate-400 mt-0.5">{editingVehicle.name} · {editingVehicle.plate_number}</p>}
                                 </div>
