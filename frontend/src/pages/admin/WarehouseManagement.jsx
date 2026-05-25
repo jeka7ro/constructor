@@ -834,10 +834,7 @@ export default function WarehouseManagement() {
                                                         {(item.current_site_id || item.current_holder_id) ? (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                                <div className="flex items-center gap-2 text-[11px] text-amber-600 font-semibold truncate max-w-[200px]">
-                                                                    {item.current_site_name && <span>🏢 {item.current_site_name}</span>}
-                                                                    {item.current_holder_name && <span>👤 {item.current_holder_name}</span>}
-                                                                </div>
+                                                                <span className="text-[11px] text-amber-600 font-semibold truncate">Repartizată</span>
                                                             </div>
                                                         ) : (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
