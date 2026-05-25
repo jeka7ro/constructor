@@ -408,6 +408,20 @@ export default function AccommodationsManagement() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation()
+                                                        // Load full detail first, then open assign modal
+                                                        const res = await api.get(`/admin/accommodations/${acc.id}`)
+                                                        setDetailAcc(res.data)
+                                                        setAssignForm({ user_id: '', assigned_from: '', assigned_until: '' })
+                                                        setShowAssignModal(true)
+                                                    }}
+                                                    title="Adaugă muncitor la cazare"
+                                                    className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
+                                                >
+                                                    <UserPlus className="w-4 h-4" />
+                                                </button>
                                                 <button onClick={e => openEdit(acc, e)}
                                                     className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors">
                                                     <Edit2 className="w-4 h-4" />
@@ -447,6 +461,55 @@ export default function AccommodationsManagement() {
 
             <FormModal show={showFormModal} editing={editingAcc} form={form} setForm={setForm} saving={saving} onSave={handleSave} onClose={() => setShowFormModal(false)} />
             <ConfirmModal state={confirmModal} onClose={() => setConfirmModal(p => ({ ...p, isOpen: false }))} />
+
+            {/* Assign modal — also available from list view row UserPlus button */}
+            {showAssignModal && detailAcc && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAssignModal(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <UserPlus className="w-5 h-5 text-blue-500" /> Adaugă Muncitor
+                                </h2>
+                                <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name}</p>
+                            </div>
+                            <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
+                        </div>
+                        <form onSubmit={handleAssign} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Angajat *</label>
+                                <select value={assignForm.user_id} onChange={e => setAssignForm(p => ({ ...p, user_id: e.target.value }))}
+                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all">
+                                    <option value="">Selectează angajat...</option>
+                                    {allUsers.filter(u => !detailAcc.assignments?.some(a => a.user_id === u.id)).map(u => (
+                                        <option key={u.id} value={u.id}>{u.full_name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">De la</label>
+                                    <input type="date" value={assignForm.assigned_from} onChange={e => setAssignForm(p => ({ ...p, assigned_from: e.target.value }))}
+                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Până la</label>
+                                    <input type="date" value={assignForm.assigned_until} onChange={e => setAssignForm(p => ({ ...p, assigned_until: e.target.value }))}
+                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                                <button type="submit" disabled={assigning || !assignForm.user_id}
+                                    className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
+                                    {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                                    Adaugă
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </>
     )
 }
