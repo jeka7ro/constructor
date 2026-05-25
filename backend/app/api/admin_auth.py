@@ -31,6 +31,7 @@ class AdminResponse(BaseModel):
     id: str
     email: str
     full_name: str
+    role: str
     is_active: bool
     is_super_admin: bool = False
     created_at: datetime
@@ -114,7 +115,7 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
     # Create access token with super admin flag
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": admin.id, "email": admin.email, "is_super_admin": bool(admin.is_super_admin)},
+        data={"sub": admin.id, "email": admin.email, "role": admin.role, "is_super_admin": bool(admin.is_super_admin)},
         expires_delta=access_token_expires
     )
     
@@ -136,7 +137,7 @@ def refresh_token(current_admin: Admin = Depends(get_current_admin)):
     """Refresh access token"""
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": current_admin.id, "email": current_admin.email},
+        data={"sub": current_admin.id, "email": current_admin.email, "role": current_admin.role, "is_super_admin": bool(current_admin.is_super_admin)},
         expires_delta=access_token_expires
     )
     

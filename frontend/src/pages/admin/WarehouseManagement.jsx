@@ -115,7 +115,7 @@ export default function WarehouseManagement() {
     const [showHistoryModal, setShowHistoryModal] = useState(false)
 
     // Tool Check-Out Modal
-    const [toolModal, setToolModal] = useState({ isOpen: false, item: null, userId: '', date: new Date().toISOString().split('T')[0] })
+    const [toolModal, setToolModal] = useState({ isOpen: false, item: null, siteId: '', date: new Date().toISOString().split('T')[0] })
     const [isSubmittingTool, setIsSubmittingTool] = useState(false)
 
     useEffect(() => {
@@ -274,18 +274,18 @@ export default function WarehouseManagement() {
 
     const handleCheckOut = async (e) => {
         e.preventDefault()
-        if (isSubmittingTool || !toolModal.userId) return
+        if (isSubmittingTool || !toolModal.siteId) return
         try {
             setIsSubmittingTool(true)
             await api.post(`/warehouse/items/${toolModal.item.id}/checkout`, {
-                user_id: toolModal.userId,
+                site_id: toolModal.siteId,
                 date: toolModal.date
             })
-            showToast('Sculă predată cu succes', 'success')
+            showToast('Sculă repartizată cu succes pe șantier', 'success')
             setToolModal({ ...toolModal, isOpen: false })
             fetchItems()
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la predare', 'error')
+            showToast(error.response?.data?.detail || 'Eroare la repartizare', 'error')
         } finally {
             setIsSubmittingTool(false)
         }
@@ -295,8 +295,8 @@ export default function WarehouseManagement() {
         if (isSubmittingTool) return
         setConfirmModal({
             isOpen: true,
-            title: 'Primire Sculă',
-            message: `Sunteți sigur că ați primit scula înapoi de la ${item.current_holder_name}?`,
+            title: 'Primire Sculă în Magazie',
+            message: `Sunteți sigur că ați primit scula înapoi de pe șantierul ${item.current_site_name}?`,
             onConfirm: async () => {
                 try {
                     setIsSubmittingTool(true)
@@ -312,6 +312,17 @@ export default function WarehouseManagement() {
                 }
             }
         })
+    }
+
+    const handleToggleDefective = async (item, e) => {
+        e.stopPropagation();
+        try {
+            await api.post(`/warehouse/items/${item.id}/toggle-defective`)
+            showToast(item.is_defective ? 'Scula a fost marcată ca funcțională' : 'Scula a fost marcată ca defectă', 'success')
+            fetchItems()
+        } catch (error) {
+            showToast('Eroare la actualizarea stării', 'error')
+        }
     }
 
     const [isSubmittingTx, setIsSubmittingTx] = useState(false)
@@ -753,17 +764,24 @@ export default function WarehouseManagement() {
                                         </td>
                                         {item.inventory_code ? (
                                             <td colSpan="3" className="px-6 py-4 text-center">
-                                                {item.current_holder_id ? (
-                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50">
-                                                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                                        La: {item.current_holder_name}
-                                                    </div>
-                                                ) : (
-                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50">
-                                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                        În Magazie
-                                                    </div>
-                                                )}
+                                                <div className="flex flex-col items-center gap-2">
+                                                    {item.current_site_id ? (
+                                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
+                                                            <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                                                            Pe șantier: {item.current_site_name}
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
+                                                            <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+                                                            În Magazie
+                                                        </div>
+                                                    )}
+                                                    {item.is_defective && (
+                                                        <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider bg-red-100 px-2 py-0.5 rounded-sm">
+                                                            Defect
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                         ) : (
                                             <>
@@ -783,15 +801,29 @@ export default function WarehouseManagement() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                                 {item.inventory_code ? (
-                                                    item.current_holder_id ? (
-                                                        <button onClick={(e) => { e.stopPropagation(); handleCheckIn(item); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-bold" title="Primire">
-                                                            Primire
+                                                    <>
+                                                        <button 
+                                                            onClick={(e) => handleToggleDefective(item, e)} 
+                                                            className={`flex items-center justify-center px-2 h-8 rounded-full border text-xs font-bold transition-colors ${item.is_defective ? 'border-red-500 bg-red-500 text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                                            title={item.is_defective ? "Marchează funcțională" : "Marchează defectă"}
+                                                        >
+                                                            Defect
                                                         </button>
-                                                    ) : (
-                                                        <button onClick={(e) => { e.stopPropagation(); setToolModal({ isOpen: true, item, userId: '', date: new Date().toISOString().split('T')[0] }); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-blue-200 dark:border-blue-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-xs font-bold" title="Predare">
-                                                            Predare
-                                                        </button>
-                                                    )
+                                                        {item.current_site_id ? (
+                                                            <button onClick={(e) => { e.stopPropagation(); handleCheckIn(item); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-bold" title="Primire">
+                                                                Primire
+                                                            </button>
+                                                        ) : (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setToolModal({ isOpen: true, item, siteId: '', date: new Date().toISOString().split('T')[0] }); }} 
+                                                                className={`flex items-center justify-center px-3 h-8 rounded-full border border-blue-200 dark:border-blue-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-xs font-bold ${item.is_defective ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                title="Repartizare Șantier"
+                                                                disabled={item.is_defective}
+                                                            >
+                                                                Repartizare
+                                                            </button>
+                                                        )}
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'IN'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Adaugă Intrare">
@@ -893,7 +925,7 @@ export default function WarehouseManagement() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-100 opacity-100 transition-all">
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                Predare Sculă
+                                Repartizare pe Șantier
                             </h2>
                             <button onClick={() => setToolModal({ ...toolModal, isOpen: false })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                                 <X className="w-5 h-5" />
@@ -903,21 +935,21 @@ export default function WarehouseManagement() {
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{toolModal.item?.name} ({toolModal.item?.inventory_code})</p>
                             <form onSubmit={handleCheckOut} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație</label>
                                     <select
                                         required
-                                        value={toolModal.userId}
-                                        onChange={e => setToolModal({ ...toolModal, userId: e.target.value })}
+                                        value={toolModal.siteId}
+                                        onChange={e => setToolModal({ ...toolModal, siteId: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                     >
-                                        <option value="">Alege angajat...</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>{u.full_name} {u.employee_code ? `(${u.employee_code})` : ''}</option>
+                                        <option value="">Alege șantier...</option>
+                                        {sites.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Data Predare</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Data Repartizare</label>
                                     <input type="date" required value={toolModal.date} onChange={e => setToolModal({ ...toolModal, date: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                 </div>
                                 <div className="flex gap-3 justify-end pt-4 mt-2">

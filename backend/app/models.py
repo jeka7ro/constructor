@@ -237,6 +237,7 @@ class Admin(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
+    role = Column(String(50), default='ADMIN', nullable=False)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_super_admin = Column(Boolean, default=False, nullable=False, server_default='false')
@@ -486,7 +487,9 @@ class WarehouseItem(Base):
     model = Column(String(255), nullable=True)
     inventory_code = Column(String(100), nullable=True)
     current_holder_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    current_site_id = Column(String(36), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True)
     checked_out_at = Column(DateTime, nullable=True)
+    is_defective = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

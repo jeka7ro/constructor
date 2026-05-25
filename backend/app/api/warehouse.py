@@ -15,8 +15,8 @@ import uuid
 router = APIRouter()
 
 def is_admin_or_logistic(admin: Admin):
-    # Currently Admin table does not have roles, all Admins are allowed.
-    # If role-based access is added to Admin in the future, check here.
+    if admin.role not in ["ADMIN", "LOGISTIC"]:
+        raise HTTPException(status_code=403, detail="Nu aveți permisiunea de a accesa această secțiune")
     return True
 
 # Schemas
@@ -48,7 +48,8 @@ class WarehouseTransactionCreate(BaseModel):
 @router.get("/warehouse/items")
 def get_items(category: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     is_admin_or_logistic(current_admin)
-    query = db.query(WarehouseItem, User.full_name.label("holder_name")).outerjoin(User, WarehouseItem.current_holder_id == User.id).filter(WarehouseItem.organization_id == current_admin.organization_id)
+    from app.models import Site
+    query = db.query(WarehouseItem, Site.name.label("site_name")).outerjoin(Site, WarehouseItem.current_site_id == Site.id).filter(WarehouseItem.organization_id == current_admin.organization_id)
     if category:
         query = query.filter(WarehouseItem.category == category)
     items = query.order_by(WarehouseItem.name).all()
@@ -80,12 +81,13 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
             "total_quantity": i.total_quantity,
             "model": i.model,
             "inventory_code": i.inventory_code,
-            "current_holder_id": i.current_holder_id,
-            "current_holder_name": holder_name,
+            "current_site_id": i.current_site_id,
+            "current_site_name": site_name,
             "checked_out_at": i.checked_out_at,
+            "is_defective": i.is_defective,
             "total_in": in_map.get(i.id, 0),
             "total_out": out_map.get(i.id, 0)
-        } for i, holder_name in items
+        } for i, site_name in items
     ]
 
 # CREATE item
@@ -320,7 +322,7 @@ async def edit_transaction(
     return {"success": True, "new_total": db_item.total_quantity}
 
 class ToolCheckout(BaseModel):
-    user_id: str
+    site_id: str
     date: str
 
 @router.post("/warehouse/items/{item_id}/checkout")
@@ -329,11 +331,13 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
     db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
-    if db_item.current_holder_id:
-        raise HTTPException(status_code=400, detail="Scula este deja predată")
+    if db_item.current_site_id:
+        raise HTTPException(status_code=400, detail="Scula este deja pe un șantier")
+    if db_item.is_defective:
+        raise HTTPException(status_code=400, detail="Nu se poate repartiza o sculă defectă")
 
     # update status
-    db_item.current_holder_id = data.user_id
+    db_item.current_site_id = data.site_id
     from datetime import datetime
     db_item.checked_out_at = datetime.utcnow()
 
@@ -347,8 +351,8 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
         quantity=1.0,
         date=date_obj,
         operated_by_id=current_admin.id,
-        assigned_to_user_id=data.user_id,
-        notes="Predare sculă"
+        site_id=data.site_id,
+        notes="Repartizare pe șantier"
     )
     db.add(tx)
     # the total_quantity goes from 1 to 0 (since it's an individual item)
@@ -365,14 +369,14 @@ def checkin_tool(item_id: str, data: ToolCheckin, db: Session = Depends(get_db),
     db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
-    if not db_item.current_holder_id:
+    if not db_item.current_site_id:
         raise HTTPException(status_code=400, detail="Scula este deja în magazie")
 
-    # record who returned it based on who had it
-    returned_from_user_id = db_item.current_holder_id
+    # record from where it returned
+    returned_from_site_id = db_item.current_site_id
 
     # clear status
-    db_item.current_holder_id = None
+    db_item.current_site_id = None
     db_item.checked_out_at = None
 
     # create IN transaction representing check-in
@@ -385,11 +389,21 @@ def checkin_tool(item_id: str, data: ToolCheckin, db: Session = Depends(get_db),
         quantity=1.0,
         date=date_obj,
         operated_by_id=current_admin.id,
-        assigned_to_user_id=returned_from_user_id,
-        notes="Primire sculă"
+        site_id=returned_from_site_id,
+        notes="Primire din șantier"
     )
     db.add(tx)
-    # item comes back to warehouse, so qty=1
     db_item.total_quantity = 1.0
     db.commit()
     return {"success": True}
+
+@router.post("/warehouse/items/{item_id}/toggle-defective")
+def toggle_defective(item_id: str, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
+        
+    db_item.is_defective = not db_item.is_defective
+    db.commit()
+    return {"success": True, "is_defective": db_item.is_defective}

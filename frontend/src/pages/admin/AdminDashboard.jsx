@@ -70,7 +70,7 @@ export default function AdminDashboard() {
 
     const unreadCount = Math.max(0, notifCount - lastSeenCount)
 
-    const navItems = [
+    const allNavItems = [
         { path: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
         { path: '/admin/employees', icon: HardHat, label: 'Angajați' },
         { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
@@ -88,6 +88,10 @@ export default function AdminDashboard() {
         { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
         { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
     ]
+
+    const navItems = admin?.role === 'LOGISTIC' 
+        ? allNavItems.filter(item => ['/admin/warehouse', '/admin/fleet', '/admin/settings', '/admin/notifications'].includes(item.path))
+        : allNavItems
 
     const [darkMode, setDarkMode] = useState(() => {
         if (typeof window !== 'undefined') {
