@@ -68,6 +68,67 @@ const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, sear
     )
 }
 
+const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, searchPlaceholder, displayFn }) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const wrapperRef = useRef(null)
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false)
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    // Reset search when closed
+    useEffect(() => {
+        if (!isOpen) setSearch('')
+    }, [isOpen])
+
+    const filtered = options.filter(o => displayFn(o).toLowerCase().includes(search.toLowerCase()))
+    const selectedOption = options.find(o => o.id === selectedId)
+
+    return (
+        <div ref={wrapperRef} className="relative w-full">
+            <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm flex items-center justify-between">
+                <span className="truncate">{selectedOption ? displayFn(selectedOption) : <span className="text-slate-400">{placeholder}</span>}</span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isOpen && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                    <div className="p-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <input 
+                                type="text" autoFocus 
+                                value={search} onChange={e => setSearch(e.target.value)} 
+                                placeholder={searchPlaceholder}
+                                className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-1 custom-scrollbar">
+                        <div 
+                            onClick={() => { onChange(''); setIsOpen(false) }} 
+                            className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm mb-1 ${!selectedId ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' : ''}`}
+                        >
+                            <span className="truncate">{placeholder}</span>
+                        </div>
+                        {filtered.map(o => (
+                            <div key={o.id} onClick={() => { onChange(o.id); setIsOpen(false) }} className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm ${selectedId === o.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 font-medium' : ''}`}>
+                                <span className="truncate">{displayFn(o)}</span>
+                            </div>
+                        ))}
+                        {filtered.length === 0 && <div className="p-3 text-center text-xs text-slate-500">Niciun rezultat găsit</div>}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
 const CATEGORIES = [
     { id: 'TOATE', label: 'Toate', icon: Package },
     { id: 'SCULE', label: 'Scule', icon: Package },
@@ -154,7 +215,7 @@ export default function WarehouseManagement() {
                     setVehicles(list)
                 }).catch(e => console.error('Failed to fetch vehicles', e))
                 
-            api.get('/admin/sites/', { params: { page_size: 1000 } })
+            api.get('/admin/sites/', { params: { page_size: 1000, status: 'active' } })
                 .then(res => {
                     const list = Array.isArray(res.data?.sites) ? res.data.sites : (Array.isArray(res.data) ? res.data : [])
                     setSites(list)
@@ -954,82 +1015,30 @@ export default function WarehouseManagement() {
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{toolModal.item?.name} ({toolModal.item?.inventory_code})</p>
                             <form onSubmit={handleCheckOut} className="space-y-4">
                                 <div className="space-y-4">
-                                    {/* Searchable Site Select using datalist */}
+                                    {/* Searchable Site Select using SingleSelectDropdown */}
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație (Opțional)</label>
-                                        <div className="relative">
-                                            <input
-                                                list="sites-datalist"
-                                                type="text"
-                                                placeholder="Caută și selectează șantier..."
-                                                value={sites.find(s => s.id === toolModal.siteId)?.name || toolModal._siteSearch || ''}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setToolModal({ ...toolModal, _siteSearch: val, siteId: '' });
-                                                    const matchedSite = sites.find(s => s.name === val);
-                                                    if (matchedSite) {
-                                                        setToolModal({ ...toolModal, siteId: matchedSite.id, _siteSearch: '' });
-                                                    }
-                                                }}
-                                                onBlur={e => {
-                                                    if (!toolModal.siteId) {
-                                                        setToolModal({ ...toolModal, _siteSearch: '' });
-                                                    }
-                                                }}
-                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            />
-                                            <datalist id="sites-datalist">
-                                                {sites.map(s => (
-                                                    <option key={s.id} value={s.name} />
-                                                ))}
-                                            </datalist>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                                <Search className="w-4 h-4" />
-                                            </div>
-                                        </div>
-                                        {toolModal.siteId && (
-                                            <p className="text-xs text-emerald-600 mt-1 ml-2 font-medium">✓ Șantier selectat</p>
-                                        )}
+                                        <SingleSelectDropdown
+                                            options={sites}
+                                            selectedId={toolModal.siteId}
+                                            onChange={val => setToolModal({ ...toolModal, siteId: val })}
+                                            placeholder="Nu asocia cu șantier..."
+                                            searchPlaceholder="Caută șantier..."
+                                            displayFn={s => s.name}
+                                        />
                                     </div>
 
-                                    {/* Searchable User Select using datalist */}
+                                    {/* Searchable User Select using SingleSelectDropdown */}
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană (Opțional)</label>
-                                        <div className="relative">
-                                            <input
-                                                list="users-datalist"
-                                                type="text"
-                                                placeholder="Caută și selectează angajat..."
-                                                value={users.find(u => u.id === toolModal.userId)?.full_name || toolModal._userSearch || ''}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setToolModal({ ...toolModal, _userSearch: val, userId: '' });
-                                                    // if typed value perfectly matches a user name, select it
-                                                    const matchedUser = users.find(u => u.full_name === val);
-                                                    if (matchedUser) {
-                                                        setToolModal({ ...toolModal, userId: matchedUser.id, _userSearch: '' });
-                                                    }
-                                                }}
-                                                onBlur={e => {
-                                                    // validate if selected valid user
-                                                    if (!toolModal.userId) {
-                                                        setToolModal({ ...toolModal, _userSearch: '' });
-                                                    }
-                                                }}
-                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            />
-                                            <datalist id="users-datalist">
-                                                {users.map(u => (
-                                                    <option key={u.id} value={u.full_name}>{u.employee_code || ''}</option>
-                                                ))}
-                                            </datalist>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                                <Search className="w-4 h-4" />
-                                            </div>
-                                        </div>
-                                        {toolModal.userId && (
-                                            <p className="text-xs text-blue-600 mt-1 ml-2 font-medium">✓ Angajat selectat</p>
-                                        )}
+                                        <SingleSelectDropdown
+                                            options={users}
+                                            selectedId={toolModal.userId}
+                                            onChange={val => setToolModal({ ...toolModal, userId: val })}
+                                            placeholder="Nu asocia cu angajat..."
+                                            searchPlaceholder="Caută angajat..."
+                                            displayFn={u => `${u.full_name}${u.employee_code ? ` (${u.employee_code})` : ''}`}
+                                        />
                                     </div>
                                 </div>
                                 <div>

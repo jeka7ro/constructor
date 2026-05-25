@@ -487,7 +487,7 @@ class WarehouseItem(Base):
     model = Column(String(255), nullable=True)
     inventory_code = Column(String(100), nullable=True)
     current_holder_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    current_site_id = Column(String(36), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True)
+    current_site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
     checked_out_at = Column(DateTime, nullable=True)
     is_defective = Column(Boolean, default=False, nullable=False)
 
