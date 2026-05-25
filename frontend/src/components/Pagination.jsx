@@ -54,75 +54,37 @@ export default function Pagination({
     }
 
     return (
-        <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-white/10">
-            {/* Items info */}
-            <div className="flex items-center gap-4">
-                <span className="text-sm text-slate-600 dark:text-slate-400">
-                    Afișare <span className="font-semibold text-slate-900 dark:text-slate-200">{startItem}</span> -{' '}
-                    <span className="font-semibold text-slate-900 dark:text-slate-200">{endItem}</span> din{' '}
-                    <span className="font-semibold text-slate-900 dark:text-slate-200">{totalItems}</span>
-                </span>
-
-                {/* Page size selector */}
-                <div className="flex items-center gap-2">
-                    <label htmlFor="pageSize" className="text-sm text-slate-600 dark:text-slate-400">
-                        Rânduri:
-                    </label>
-                    <select
-                        id="pageSize"
-                        value={pageSize}
-                        onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-2xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
-                    >
-                        {pageSizeOptions.map((size) => (
-                            <option key={size} value={size}>
-                                {size}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* Page navigation */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
             <div className="flex items-center gap-2">
-                <button
-                    onClick={handlePrevious}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-2xl border border-slate-200 dark:border-white/10 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title="Pagina anterioară"
+                <span className="uppercase tracking-wide">Afișează</span>
+                <select
+                    value={pageSize}
+                    onChange={(e) => onPageSizeChange(Number(e.target.value))}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-
-                <div className="flex items-center gap-1">
-                    {getPageNumbers().map((page, index) => (
-                        page === '...' ? (
-                            <span key={`ellipsis-${index}`} className="px-3 py-2 text-slate-400 dark:text-slate-500">
-                                ...
-                            </span>
-                        ) : (
-                            <button
-                                key={page}
-                                onClick={() => onPageChange(page)}
-                                className={`min-w-[40px] px-3 py-2 rounded-2xl text-sm font-medium transition-colors ${currentPage === page
-                                        ? 'bg-blue-500 text-white shadow-sm'
-                                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                    }`}
-                            >
-                                {page}
-                            </button>
-                        )
+                    {pageSizeOptions.map((size) => (
+                        <option key={size} value={size}>{size}</option>
                     ))}
+                </select>
+            </div>
+            <div className="flex items-center gap-4">
+                <span>Pagina {currentPage} din {totalPages || 1}</span>
+                <div className="flex gap-1">
+                    <button
+                        onClick={handlePrevious}
+                        disabled={currentPage === 1}
+                        className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={handleNext}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
-
-                <button
-                    onClick={handleNext}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-2xl border border-slate-200 dark:border-white/10 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title="Pagina următoare"
-                >
-                    <ChevronRight className="w-5 h-5" />
-                </button>
             </div>
         </div>
     )

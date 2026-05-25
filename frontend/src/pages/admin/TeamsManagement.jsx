@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAdminStore } from '../../store/adminStore'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
+import DataTable from '../../components/DataTable'
 import {
     Users, Plus, Search, Trash2, Edit3, Building2,
     Loader2, UserPlus, X, Check, ChevronDown, Shield
@@ -15,17 +16,18 @@ export default function TeamsManagement() {
     const [loading, setLoading] = useState(true)
     const [users, setUsers] = useState([])
     const [sites, setSites] = useState([])
-    const [showCreate, setShowCreate] = useState(false)
-    const [editTeam, setEditTeam] = useState(null)
-    const [expandedTeam, setExpandedTeam] = useState(null)
-
-    // Create form
+    
+    // Create / Edit form
+    const [showModal, setShowModal] = useState(false)
+    const [editingTeamId, setEditingTeamId] = useState(null)
     const [newName, setNewName] = useState('')
     const [newLeader, setNewLeader] = useState('')
     const [newSite, setNewSite] = useState('')
     const [newMembers, setNewMembers] = useState([])
     const [searchQ, setSearchQ] = useState('')
+    const [globalSearch, setGlobalSearch] = useState('')
     const [saving, setSaving] = useState(false)
+    const [expandedTeam, setExpandedTeam] = useState(null)
 
     const api = useCallback(async (url, opts = {}) => {
         const r = await fetch(`/api${url}`, {
@@ -69,15 +71,18 @@ export default function TeamsManagement() {
         fetchSites()
     }, [fetchTeams, fetchUsers, fetchSites])
 
-    const handleCreate = async () => {
+    const handleSave = async () => {
         if (!newName.trim() || !newLeader) return
         setSaving(true)
         try {
-            await api('/admin/teams/', {
-                method: 'POST',
-                body: JSON.stringify({ name: newName, team_leader_id: newLeader, site_id: newSite || null, member_ids: newMembers })
-            })
-            setShowCreate(false)
+            const payload = { name: newName, team_leader_id: newLeader, site_id: newSite || null, member_ids: newMembers }
+            if (editingTeamId) {
+                await api(`/admin/teams/${editingTeamId}`, { method: 'PUT', body: JSON.stringify(payload) })
+            } else {
+                await api('/admin/teams/', { method: 'POST', body: JSON.stringify(payload) })
+            }
+            setShowModal(false)
+            setEditingTeamId(null)
             setNewName('')
             setNewLeader('')
             setNewSite('')
@@ -85,22 +90,24 @@ export default function TeamsManagement() {
             fetchTeams()
         } catch (e) {
             console.error(e)
-            openDialog({ type: 'danger', title: 'Eroare', message: e.message || 'A apărut o eroare la crearea echipei', confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'danger', title: 'Eroare', message: e.message || 'A apărut o eroare la salvarea echipei', confirmText: 'OK', cancelText: null })
         } finally { setSaving(false) }
     }
 
-    const handleUpdate = async (teamId, updates) => {
+    const handleUpdate = async (teamId, data) => {
         try {
-            await api(`/admin/teams/${teamId}`, {
-                method: 'PUT',
-                body: JSON.stringify(updates)
-            })
-            setEditTeam(null)
+            await api(`/admin/teams/${teamId}`, { method: 'PATCH', body: JSON.stringify(data) })
             fetchTeams()
-        } catch (e) {
-            console.error(e)
-            openDialog({ type: 'danger', title: 'Eroare', message: e.message || 'A apărut o eroare la salvarea modificărilor', confirmText: 'OK', cancelText: null })
-        }
+        } catch (e) { console.error(e) }
+    }
+
+    const openEditModal = (team) => {
+        setEditingTeamId(team.id)
+        setNewName(team.name || '')
+        setNewLeader(team.team_leader_id || '')
+        setNewSite(team.site_id || '')
+        setNewMembers([])
+        setShowModal(true)
     }
 
     const handleDelete = async (teamId) => {
@@ -137,35 +144,118 @@ export default function TeamsManagement() {
         return true
     })
 
+    const columns = [
+        {
+            key: 'name', label: t('teams.team_name'), sortable: true,
+            render: (team) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
+                        <Users className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white">{team.name}</span>
+                </div>
+            )
+        },
+        {
+            key: 'team_leader_name', label: t('teams.team_leader_label'), sortable: true,
+            render: (team) => (
+                <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                    <Shield className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{team.team_leader_name}</span>
+                </div>
+            )
+        },
+        {
+            key: 'site_name', label: 'Șantier', sortable: true,
+            render: (team) => (
+                team.site_name ? (
+                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{team.site_name}</span>
+                    </div>
+                ) : <span className="text-slate-400">—</span>
+            )
+        },
+        {
+            key: 'member_count', label: t('teams.members'), sortable: true,
+            render: (team) => (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {team.member_count}
+                </span>
+            )
+        },
+        {
+            key: 'actions', label: t('common.actions'),
+            render: (team) => (
+                <div className="flex items-center gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); openEditModal(team) }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg transition-colors">
+                        <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(team.id) }} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )
+        }
+    ]
+
+    const filteredTeams = teams.filter(t => !globalSearch || t.name.toLowerCase().includes(globalSearch.toLowerCase()) || (t.team_leader_name && t.team_leader_name.toLowerCase().includes(globalSearch.toLowerCase())))
+
     return (
-        <div className="p-6 max-w-6xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                            <Users className="w-5 h-5 text-white" />
-                        </div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <Users className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                         {t('teams.title')}
-                        <span className="text-base font-normal text-slate-400">({teams.length})</span>
                     </h1>
                 </div>
-                <button
-                    onClick={() => { setShowCreate(true); setNewName(''); setNewLeader(''); setNewMembers([]) }}
-                    className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-                >
-                    <Plus className="w-4 h-4" />
-                    {t('teams.new_team')}
-                </button>
             </div>
 
-            {/* Create Modal */}
-            {showCreate && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+                <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
+                    <div className="relative group flex items-center w-full sm:w-auto">
+                        <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                            <Search className="w-4 h-4" />
+                        </div>
+                        <input
+                            type="text"
+                            value={globalSearch}
+                            onChange={e => setGlobalSearch(e.target.value)}
+                            placeholder="Caută echipă..."
+                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                        />
+                        {globalSearch && (
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                <span className="text-[10px] font-bold text-white">
+                                    {filteredTeams.length}/{teams.length}
+                                </span>
+                                <button onClick={() => setGlobalSearch('')} className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5">
+                                    <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <button
+                        onClick={() => { setEditingTeamId(null); setNewName(''); setNewLeader(''); setNewSite(''); setNewMembers([]); setShowModal(true) }}
+                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        {t('teams.new_team')}
+                    </button>
+                </div>
+
+                <DataTable columns={columns} data={filteredTeams} loading={loading} />
+            </div>
+
+            {/* Create / Edit Modal */}
+            {showModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900">{t('teams.new_team')}</h2>
-                            <button onClick={() => setShowCreate(false)} className="p-1 hover:bg-slate-100 rounded-lg">
+                            <h2 className="text-lg font-bold text-slate-900">{editingTeamId ? 'Editare Echipă' : t('teams.new_team')}</h2>
+                            <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 rounded-lg">
                                 <X className="w-5 h-5 text-slate-500" />
                             </button>
                         </div>
@@ -216,224 +306,38 @@ export default function TeamsManagement() {
                                         className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 outline-none"
                                     />
                                 </div>
-                                <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg">
-                                    {workers.filter(w => w.id !== newLeader).map(w => (
-                                        <label key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0">
-                                            <input
-                                                type="checkbox"
-                                                checked={newMembers.includes(w.id)}
-                                                onChange={e => {
-                                                    if (e.target.checked) setNewMembers(m => [...m, w.id])
-                                                    else setNewMembers(m => m.filter(id => id !== w.id))
-                                                }}
-                                                className="w-4 h-4 text-blue-500 rounded"
-                                            />
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-slate-900">{w.full_name}</div>
-                                                <div className="text-xs text-slate-500">{w.employee_code} · {w.role_name}</div>
-                                            </div>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button onClick={() => setShowCreate(false)}
-                                    className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
-                                >{t('common.cancel')}</button>
-                                <button onClick={handleCreate}
-                                    disabled={!newName.trim() || !newLeader || saving}
-                                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 transition-all"
-                                >
-                                    {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('teams.create')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Teams List */}
-            {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                </div>
-            ) : teams.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-16 text-center">
-                    <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-lg font-semibold text-slate-600">{t('teams.no_teams')}</p>
-                    <p className="text-sm text-slate-400 mt-1">{t('teams.no_teams_hint')}</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {teams.map(team => (
-                        <div key={team.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                            {/* Team Header */}
-                            <div
-                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-                                onClick={() => setExpandedTeam(expandedTeam === team.id ? null : team.id)}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                                        <Users className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        {editTeam === team.id ? (
-                                            <input
-                                                type="text"
-                                                defaultValue={team.name}
-                                                onClick={e => e.stopPropagation()}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter') handleUpdate(team.id, { name: e.target.value })
-                                                    if (e.key === 'Escape') setEditTeam(null)
-                                                }}
-                                                className="px-3 py-1 border border-blue-400 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none"
-                                                autoFocus
-                                            />
-                                        ) : (
-                                            <h3 className="font-bold text-slate-900">{team.name}</h3>
-                                        )}
-                                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-                                            <span className="flex items-center gap-1">
-                                                <Shield className="w-3 h-3" />
-                                                {team.team_leader_name}
-                                            </span>
-                                            <span>{team.member_count} {t('teams.members_short')}</span>
-                                            {team.site_name && (
-                                                <span className="flex items-center gap-1">
-                                                    <Building2 className="w-3 h-3" />
-                                                    {team.site_name}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${team.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {team.is_active ? t('teams.active_f') : t('teams.inactive_f')}
-                                    </span>
-                                    <button
-                                        onClick={e => { e.stopPropagation(); setEditTeam(team.id) }}
-                                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-                                    >
-                                        <Edit3 className="w-4 h-4 text-slate-400" />
-                                    </button>
-                                    <button
-                                        onClick={e => { e.stopPropagation(); handleDelete(team.id) }}
-                                        className="p-1.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expandedTeam === team.id ? 'rotate-180' : ''}`} />
-                                </div>
-                            </div>
-
-                            {/* Expanded - Members */}
-                            {expandedTeam === team.id && (
-                                <div className="border-t border-slate-100 p-4">
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Șantier Alocat</label>
-                                        <select
-                                            value={team.site_id || ''}
-                                            onChange={e => handleUpdate(team.id, { site_id: e.target.value || null })}
-                                            className="w-full max-w-sm px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 transition-colors"
-                                        >
-                                            <option value="">Fără șantier alocat</option>
-                                            {sites.map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h4 className="text-sm font-bold text-slate-700">{t('teams.members')} ({team.member_count})</h4>
-                                        <AddMemberButton
-                                            team={team}
-                                            users={users}
-                                            onAdd={(userId) => {
-                                                const ids = [...team.members.map(m => m.user_id), userId]
-                                                handleSetMembers(team.id, ids)
-                                            }}
-                                        />
-                                    </div>
-                                    {team.members.length === 0 ? (
-                                        <p className="text-sm text-slate-400 text-center py-4">{t('teams.no_members')}</p>
-                                    ) : (
-                                        <div className="space-y-1">
-                                            {team.members.map(m => (
-                                                <div key={m.user_id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
-                                                    <div>
-                                                        <div className="text-sm font-medium text-slate-900">{m.full_name}</div>
-                                                        <div className="text-xs text-slate-500">{m.employee_code} · {m.role_name}</div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            const ids = team.members.filter(x => x.user_id !== m.user_id).map(x => x.user_id)
-                                                            handleSetMembers(team.id, ids)
-                                                        }}
-                                                        className="p-1.5 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+                                <div className="border border-slate-200 rounded-xl max-h-60 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
+                                    {users.filter(u => ['WORKER', 'SUBCONTRACTOR'].includes(u.role_code)).map(u => {
+                                        if (searchQ && !u.full_name.toLowerCase().includes(searchQ.toLowerCase())) return null
+                                        const isSel = newMembers.includes(u.id)
+                                        return (
+                                            <label key={u.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-blue-50/50 transition-colors ${isSel ? 'bg-blue-50' : ''}`}>
+                                                <input type="checkbox" checked={isSel} onChange={e => {
+                                                    if (e.target.checked) setNewMembers(prev => [...prev, u.id])
+                                                    else setNewMembers(prev => prev.filter(id => id !== u.id))
+                                                }} className="hidden" />
+                                                <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${isSel ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'}`}>
+                                                    {isSel && <Check className="w-3.5 h-3.5 text-white" />}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-900">{u.full_name}</p>
+                                                    <p className="text-[11px] text-slate-500">{u.role_name} • {u.employee_code}</p>
+                                                </div>
+                                            </label>
+                                        )
+                                    })}
                                 </div>
-                            )}
+                            </div>
                         </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    )
-}
 
-// Inline add-member dropdown
-function AddMemberButton({ team, users, onAdd }) {
-    const { t } = useTranslation()
-    const [open, setOpen] = useState(false)
-    const [q, setQ] = useState('')
-    const existingIds = team.members.map(m => m.user_id)
-    const available = users.filter(u =>
-        !existingIds.includes(u.id) &&
-        (u.full_name.toLowerCase().includes(q.toLowerCase()) || u.employee_code.toLowerCase().includes(q.toLowerCase()))
-    )
-
-    return (
-        <div className="relative">
-            <button
-                onClick={() => setOpen(!open)}
-                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition-colors"
-            >
-                <UserPlus className="w-3.5 h-3.5" />
-                {t('common.add')}
-            </button>
-            {open && (
-                <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-10 overflow-hidden">
-                    <div className="p-2">
-                        <input
-                            type="text" value={q} onChange={e => setQ(e.target.value)}
-                            placeholder={t('common.search')} autoFocus
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 outline-none"
-                        />
-                    </div>
-                    <div className="max-h-48 overflow-y-auto">
-                        {available.map(u => (
-                            <button
-                                key={u.id}
-                                onClick={() => { onAdd(u.id); setOpen(false); setQ('') }}
-                                className="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between border-b border-slate-100 last:border-0"
-                            >
-                                <div>
-                                    <div className="text-sm font-medium text-slate-900">{u.full_name}</div>
-                                    <div className="text-xs text-slate-500">{u.employee_code}</div>
-                                </div>
-                                <Plus className="w-4 h-4 text-blue-500" />
+                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                            <button onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors">
+                                {t('common.cancel')}
                             </button>
-                        ))}
-                        {available.length === 0 && (
-                            <p className="text-xs text-slate-400 text-center py-3">{t('teams.no_workers')}</p>
-                        )}
+                            <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+                                {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (editingTeamId ? 'Salvează' : t('teams.create'))}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

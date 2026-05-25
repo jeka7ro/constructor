@@ -26,9 +26,9 @@ class WarehouseItemCreate(BaseModel):
     unit: str
 
 class WarehouseItemUpdate(BaseModel):
-    name: Optional[str]
-    category: Optional[str]
-    unit: Optional[str]
+    name: Optional[str] = None
+    category: Optional[str] = None
+    unit: Optional[str] = None
 
 class WarehouseTransactionCreate(BaseModel):
     item_id: str
@@ -54,7 +54,7 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
     out_map = {}
     if items:
         from sqlalchemy import func
-        from app.models.warehouse import WarehouseTransaction
+        from app.models import WarehouseTransaction
         stats = db.query(
             WarehouseTransaction.item_id,
             WarehouseTransaction.transaction_type,
@@ -157,6 +157,9 @@ def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_a
             "assigned_user": assigned_user,
             "assigned_vehicle": assigned_vehicle,
             "assigned_site": assigned_site,
+            "assigned_to_user_id": t.assigned_to_user_id,
+            "assigned_to_vehicle_id": t.assigned_to_vehicle_id,
+            "site_id": t.site_id,
             "operator": operator,
             "notes": t.notes,
             "attachment_url": t.attachment_url,
@@ -220,6 +223,83 @@ async def add_transaction(
         db_item.total_quantity += quantity
     else:
         db_item.total_quantity -= quantity
+        
+    db.commit()
+    return {"success": True, "new_total": db_item.total_quantity}
+
+# DELETE transaction
+@router.delete("/warehouse/transactions/{tx_id}")
+def delete_transaction(tx_id: str, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    is_admin_or_logistic(current_admin)
+    
+    tx = db.query(WarehouseTransaction).filter(WarehouseTransaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="Tranzacția nu a fost găsită")
+        
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == tx.item_id).first()
+    if db_item:
+        if tx.transaction_type == "IN":
+            db_item.total_quantity -= tx.quantity
+        else:
+            db_item.total_quantity += tx.quantity
+            
+    db.delete(tx)
+    db.commit()
+    return {"success": True}
+
+# EDIT transaction
+@router.put("/warehouse/transactions/{tx_id}")
+async def edit_transaction(
+    tx_id: str,
+    quantity: float = Form(...),
+    date: str = Form(...),
+    assigned_to_user_id: Optional[str] = Form(None),
+    assigned_to_vehicle_id: Optional[str] = Form(None),
+    site_id: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    is_admin_or_logistic(current_admin)
+    
+    tx = db.query(WarehouseTransaction).filter(WarehouseTransaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="Tranzacția nu a fost găsită")
+        
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == tx.item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
+
+    qty_diff = quantity - tx.quantity
+    
+    if tx.transaction_type == "OUT" and db_item.total_quantity - qty_diff < 0:
+        raise HTTPException(status_code=400, detail="Stoc insuficient pentru modificare")
+        
+    attachment_url = tx.attachment_url
+    if file:
+        content = await file.read()
+        filename = file.filename
+        storage_path = f"warehouse/{uuid.uuid4()}_{filename}"
+        attachment_url = upload_file(content, storage_path, get_content_type(filename))
+        
+    from datetime import date as dt_date
+    date_obj = dt_date.fromisoformat(date)
+    
+    # Adjust item stock
+    if tx.transaction_type == "IN":
+        db_item.total_quantity += qty_diff
+    else:
+        db_item.total_quantity -= qty_diff
+
+    tx.quantity = quantity
+    tx.date = date_obj
+    tx.assigned_to_user_id = assigned_to_user_id if assigned_to_user_id != "null" and assigned_to_user_id != "" else None
+    tx.assigned_to_vehicle_id = assigned_to_vehicle_id if assigned_to_vehicle_id != "null" and assigned_to_vehicle_id != "" else None
+    tx.site_id = site_id if site_id != "null" and site_id != "" else None
+    tx.notes = notes
+    if file:
+        tx.attachment_url = attachment_url
         
     db.commit()
     return {"success": True, "new_total": db_item.total_quantity}

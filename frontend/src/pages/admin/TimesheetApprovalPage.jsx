@@ -229,14 +229,14 @@ export default function TimesheetApprovalPage() {
                                 openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                             }
                         }}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg text-sm font-semibold hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                     >
-                        <FileDown className="w-4 h-4" />
-                        {t('common.export')}
                         <FileSpreadsheet className="w-4 h-4" />
+                        <span className="hidden sm:inline">{t('common.export')}</span>
                     </button>
-                    <button onClick={fetchWorkers} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
-                        <RefreshCw className="w-4 h-4" /> Refresh
+                    <button onClick={fetchWorkers} className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
+                        <RefreshCw className="w-4 h-4" /> 
+                        <span className="hidden sm:inline">Refresh</span>
                     </button>
                     {lastRefresh && (
                         <span className="text-xs text-slate-400">{lastRefresh.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -245,26 +245,34 @@ export default function TimesheetApprovalPage() {
             </div>
 
             {/* Period Selector */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-6">
-                <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1 flex-wrap">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 mb-6">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 w-full lg:flex-1">
                         {PERIOD_PRESETS.map(preset => (
                             <button
                                 key={preset.key}
                                 onClick={() => handlePreset(preset)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activePeriod === preset.key ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                            >{t(preset.label)}</button>
+                                className={`px-2 py-2 rounded-lg text-xs font-semibold transition-all w-full text-center ${
+                                    activePeriod === preset.key 
+                                        ? 'bg-blue-600 text-white shadow-md' 
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                }`}
+                            >
+                                {t(preset.label)}
+                            </button>
                         ))}
                     </div>
-                    <div className="h-6 w-px bg-slate-200 mx-1" />
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs text-slate-500 font-medium">{t('timesheets.from')}:</label>
-                        <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setActivePeriod('custom') }}
-                            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
-                        <label className="text-xs text-slate-500 font-medium">{t('timesheets.to')}:</label>
-                        <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setActivePeriod('custom') }}
-                            className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none" />
+                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <label className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('timesheets.from')}:</label>
+                            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setActivePeriod('custom') }}
+                                className="w-full sm:w-auto px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <label className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('timesheets.to')}:</label>
+                            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setActivePeriod('custom') }}
+                                className="w-full sm:w-auto px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -328,17 +336,17 @@ export default function TimesheetApprovalPage() {
             {/* Workers Table */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden relative">
                 <table className="w-full">
-                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.employee_col')}</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.site')}</th>
-                            {isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.days')}</th>}
-                            {!isRange && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.check_in')}</th>}
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.time_on_site')}</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.kpi.on_break')}</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.total_shift')}</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.status')}</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.activities')}</th>
+                            <th className="px-4 py-3 text-left">{t('users.employee_col')}</th>
+                            <th className="px-4 py-3 text-left">{t('common.site')}</th>
+                            {isRange && <th className="px-4 py-3 text-left">{t('common.days')}</th>}
+                            {!isRange && <th className="px-4 py-3 text-left">{t('dashboard.check_in')}</th>}
+                            <th className="px-4 py-3 text-left">{t('timesheets.time_on_site')}</th>
+                            <th className="px-4 py-3 text-left">{t('timesheets.kpi.on_break')}</th>
+                            <th className="px-4 py-3 text-left">{t('timesheets.total_shift')}</th>
+                            <th className="px-4 py-3 text-left">{t('common.status')}</th>
+                            <th className="px-4 py-3 text-left">{t('dashboard.activities')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

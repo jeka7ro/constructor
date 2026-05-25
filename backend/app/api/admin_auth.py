@@ -32,6 +32,7 @@ class AdminResponse(BaseModel):
     email: str
     full_name: str
     is_active: bool
+    is_super_admin: bool = False
     created_at: datetime
 
     class Config:
@@ -110,10 +111,10 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
     if not admin.is_active:
         raise HTTPException(status_code=400, detail="Inactive admin account")
     
-    # Create access token
+    # Create access token with super admin flag
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": admin.id, "email": admin.email},
+        data={"sub": admin.id, "email": admin.email, "is_super_admin": bool(admin.is_super_admin)},
         expires_delta=access_token_expires
     )
     

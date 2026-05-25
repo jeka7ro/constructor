@@ -21,6 +21,7 @@ import Pagination from '../../components/Pagination'
 import PhotoUpload from '../../components/PhotoUpload'
 import PhotoGallery from '../../components/PhotoGallery'
 import { useUIStore } from '../../store/uiStore'
+import SiteDetailView from '../../components/SiteDetailView'
 
 const PAGE_ID = 'admin-sites'
 
@@ -31,6 +32,7 @@ const EMPTY_SITE = {
     longitude: '',
     description: '',
     status: 'active',
+    client_id: '',
     client_name: '',
     panel_count: '',
     system_power_kw: '',
@@ -124,6 +126,8 @@ export default function SitesManagement() {
     const [selectedTeamIds, setSelectedTeamIds] = useState([])
     const [formData, setFormData] = useState(EMPTY_SITE)
     const [saving, setSaving] = useState(false)
+    const [detailSite, setDetailSite] = useState(null)
+    const [clients, setClients] = useState([])
 
     
     // Bulk Select states
@@ -139,7 +143,18 @@ export default function SitesManagement() {
         fetchSites()
         fetchStats()
         fetchTeams()
+        fetchClients()
     }, [search, statusFilter, preferences.currentPage, preferences.pageSize])
+
+    const fetchClients = async () => {
+        try {
+            const response = await api.get('/admin/clients')
+            // only show active clients
+            setClients(response.data.filter(c => c.is_active) || [])
+        } catch (error) {
+            console.error('Error fetching clients:', error)
+        }
+    }
 
 
     const fetchTeams = async () => {
@@ -197,6 +212,7 @@ export default function SitesManagement() {
             longitude: site.longitude || '',
             description: site.description || '',
             status: site.status || 'active',
+            client_id: site.client_id || '',
             client_name: site.client_name || '',
             panel_count: site.panel_count || '',
             system_power_kw: site.system_power_kw || '',
@@ -402,163 +418,168 @@ export default function SitesManagement() {
 
     return (
         <div className="p-4 space-y-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-3">
-                        <Building2 className="w-8 h-8 text-blue-600" />
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <Building2 className="w-5 h-5" />
+                        </div>
                         Gestionare Șantiere
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Administrează șantierele de instalare panouri solare și starea lor</p>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <StatCard label="Total" value={(stats.active_sites || 0) + (stats.completed_sites || 0)} icon={Building2} color="from-blue-500 to-indigo-600" onClick={() => {setStatusFilter(''); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === ''} />
-                    <StatCard label="Active" value={stats.active_sites || 0} icon={CheckCircle} color="from-emerald-500 to-green-600" onClick={() => {setStatusFilter('active'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'active'} />
-                    <StatCard label="Finalizate" value={stats.completed_sites || 0} icon={Zap} color="from-amber-500 to-orange-500" onClick={() => {setStatusFilter('completed'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'completed'} />
-                    <StatCard label="Suspendați" value={stats.suspended_sites || 0} icon={XCircle} color="from-slate-500 to-slate-600" onClick={() => {setStatusFilter('suspended'); setCurrentPage(PAGE_ID, 1)}} active={statusFilter === 'suspended'} />
-                </div>
-            )}
-
-            {/* Search, Filters and Actions */}
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-3xl shadow-sm flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+                <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
+                    <div className="relative group flex items-center w-full sm:w-auto">
+                        <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                            <Search className="w-4 h-4" />
+                        </div>
                         <input
                             type="text"
-                            placeholder="Caută după nume, client sau locație..."
+                            placeholder="Caută după nume, client, locație..."
                             value={search}
                             onChange={(e) => {setSearch(e.target.value); setCurrentPage(PAGE_ID, 1)}}
-                            className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
+                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                         />
+                        {search && (
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                <span className="text-[10px] font-bold text-white">
+                                    {sites.length}/{totalSites || 0}
+                                </span>
+                                <button 
+                                    onClick={() => { setSearch(''); setCurrentPage(PAGE_ID, 1) }}
+                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                >
+                                    <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    {/* Status Filter */}
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                        className="px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-400 outline-none transition-all shadow-sm font-medium min-w-[140px]"
-                    >
-                        <option value="">Toate stările</option>
-                        <option value="active">Active</option>
-                        <option value="completed">Finalizate</option>
-                        <option value="suspended">Suspendate</option>
-                    </select>
 
-                    <ViewToggle
-                        viewMode={preferences.viewMode}
-                        onChange={(mode) => setViewMode(PAGE_ID, mode)}
-                    />
-                </div>
-                
-                <div className="flex items-center gap-2">
-                    {selectedSiteIds.length > 0 && (
-                        <button
-                            onClick={handleBulkDelete}
-                            className="px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-all shadow flex items-center gap-2 whitespace-nowrap"
+                    <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => {setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1)}}
+                            className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
                         >
-                            <Trash2 className="w-4 h-4" />
-                            {selectedSiteIds.length > 1 ? 'Șterge Selecția' : 'Șterge'} ({selectedSiteIds.length})
-                        </button>
-                    )}
-                    <button
-                        onClick={handleAddSite}
-                        className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Adaugă Șantier
-                    </button>
-                </div>
-            </div>
+                            <option value="active">Active</option>
+                            <option value="completed">Finalizate</option>
+                            <option value="suspended">Suspendate</option>
+                            <option value="all">Toate Statusurile</option>
+                        </select>
 
-            {/* Sites List/Grid */}
-            {preferences.viewMode === 'list' ? (
-                <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                                <th className="px-6 py-4 text-left w-12">
-                                    <input type="checkbox" checked={sites.length > 0 && selectedSiteIds.length === sites.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Șantier</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Client</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Sistem</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Tip</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Program</th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                                <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Acțiuni</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                            {sites.map((site) => (
-                                <tr key={site.id} className={`hover:bg-blue-50/40 dark:hover:bg-slate-800 transition-colors ${selectedSiteIds.includes(site.id) ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
-                                    <td className="px-6 py-4">
-                                        <input type="checkbox" checked={selectedSiteIds.includes(site.id)} onChange={() => handleToggleSelect(site.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div>
-                                            <p className="font-semibold text-slate-900 dark:text-slate-100">{site.name}</p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
-                                                <MapPin className="w-3 h-3" />
-                                                {site.address || 'Fără adresă'}
-                                            </p>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-slate-800 dark:text-slate-200">{site.client_name || '-'}</p>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex items-center gap-1 text-amber-500 font-semibold">
-                                                <Zap className="w-4 h-4" />
+                        <ViewToggle
+                            viewMode={preferences.viewMode}
+                            onViewModeChange={(mode) => setViewMode(PAGE_ID, mode)}
+                        />
+
+                        {/* Actions */}
+                        {selectedSiteIds.length > 0 && (
+                            <button
+                                onClick={handleBulkDelete}
+                                className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="hidden sm:inline">Șterge ({selectedSiteIds.length})</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={handleAddSite}
+                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Adaugă Șantier
+                        </button>
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                {detailSite ? (
+                    <SiteDetailView site={detailSite} onBack={() => setDetailSite(null)} />
+                ) : (
+                <div className="bg-white dark:bg-slate-900/80">
+                    {preferences.viewMode === 'list' ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-y border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4 text-center w-16">
+                                            <input type="checkbox" checked={sites.length > 0 && selectedSiteIds.length === sites.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                        </th>
+                                        <th className="px-6 py-4">Șantier</th>
+                                        <th className="px-6 py-4">Client</th>
+                                        <th className="px-6 py-4">Sistem</th>
+                                        <th className="px-6 py-4">Tip</th>
+                                        <th className="px-6 py-4">Program</th>
+                                        <th className="px-6 py-4 text-center">Status</th>
+                                        <th className="px-6 py-4 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                    {sites.map((site) => (
+                                        <tr key={site.id} className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors ${selectedSiteIds.includes(site.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                                            <td className="px-6 py-4 text-center">
+                                                <input type="checkbox" checked={selectedSiteIds.includes(site.id)} onChange={() => handleToggleSelect(site.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                            </td>
+                                            <td className="px-6 py-4 align-middle">
+                                                <div>
+                                                    <button onClick={() => setDetailSite(site)} className="text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors text-left">{site.name}</button>
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                                                        <MapPin className="w-3 h-3" />
+                                                        <span className="truncate max-w-[200px]">{site.address || 'Fără adresă'}</span>
+                                                    </p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 align-middle">
+                                                <p className="text-sm text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{site.client_name || '-'}</p>
+                                            </td>
+                                            <td className="px-6 py-4 align-middle">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded w-fit border border-amber-100 dark:border-amber-800">
+                                                <Zap className="w-3 h-3" />
                                                 {site.system_power_kw || 0} kW
                                             </span>
-                                            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                                                <Hash className="w-4 h-4" />
-                                                {site.panel_count || 0}
-                                            </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 align-middle">
                                         {getInstallationTypeBadge(site.installation_type)}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1 text-sm">
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="flex items-center gap-1 text-[11px]">
                                             <Clock className="w-3.5 h-3.5 text-slate-400" />
                                             <span className="font-medium text-slate-700 dark:text-slate-300">{site.work_start_time || '07:00'}</span>
                                             <span className="text-slate-400">—</span>
                                             <span className="font-medium text-slate-700 dark:text-slate-300">{site.work_end_time || '16:00'}</span>
                                         </div>
-                                        <p className="text-xs text-slate-400 mt-0.5">+{site.max_overtime_minutes ?? 120}min OT</p>
+                                        <p className="text-[10px] font-semibold text-slate-400 mt-0.5">+{site.max_overtime_minutes ?? 120}min OT</p>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 align-middle text-center">
                                         {getStatusBadge(site.status)}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center justify-end gap-2">
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="flex items-center justify-end gap-1 transition-opacity">
                                             <button
                                                 onClick={() => handlePhotoClick(site)}
-                                                className="p-1.5 hover:bg-blue-50 rounded-full border border-slate-200 transition-colors"
+                                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                                                 title="Fotografii"
                                             >
-                                                <Camera className="w-3.5 h-3.5 text-blue-600" />
+                                                <Camera className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleEditSite(site)}
-                                                className="p-1.5 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors"
+                                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                                                 title="Editează"
                                             >
-                                                <Edit2 className="w-3.5 h-3.5 text-slate-600" />
+                                                <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteSite(site.id)}
-                                                className="p-1.5 hover:bg-red-50 rounded-full border border-slate-200 transition-colors"
+                                                className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400"
                                                 title="Șterge"
                                             >
-                                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -575,7 +596,7 @@ export default function SitesManagement() {
                                 <input type="checkbox" checked={selectedSiteIds.includes(site.id)} onChange={() => handleToggleSelect(site.id)} className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer drop-shadow-sm" />
                             </div>
                             <div className="flex items-start justify-between mb-4 pr-8">
-                                <h3 className="font-bold text-lg text-slate-900">{site.name}</h3>
+                                <h3 className="font-bold text-lg text-slate-900 hover:text-blue-600 cursor-pointer" onClick={() => setDetailSite(site)}>{site.name}</h3>
                                 {getStatusBadge(site.status)}
                             </div>
 
@@ -638,256 +659,261 @@ export default function SitesManagement() {
             )}
 
             {/* Pagination */}
-            <div className="mt-6">
-                <Pagination
-                    currentPage={preferences.currentPage}
-                    pageSize={preferences.pageSize}
-                    totalItems={totalSites}
-                    onPageChange={(page) => setCurrentPage(PAGE_ID, page)}
-                    onPageSizeChange={(size) => {
-                        setPageSize(PAGE_ID, size)
-                        setCurrentPage(PAGE_ID, 1)
-                    }}
-                />
+            <Pagination
+                currentPage={preferences.currentPage}
+                pageSize={preferences.pageSize}
+                totalItems={totalSites}
+                onPageChange={(page) => setCurrentPage(PAGE_ID, page)}
+                onPageSizeChange={(size) => {
+                    setPageSize(PAGE_ID, size)
+                    setCurrentPage(PAGE_ID, 1)
+                }}
+            />
             </div>
+            )}
+        </div>
 
             {/* Edit/Add Modal */}
             {showEditModal && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-slate-900">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-slate-500" />
                                 {editingSite ? 'Editează Șantier' : 'Adaugă Șantier Nou'}
                             </h2>
-                            <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                                <X className="w-6 h-6 text-slate-600" />
+                            <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                                                <div className="flex border-b border-slate-200">
+                        <div className="flex border-b border-slate-100 dark:border-slate-800 shrink-0 bg-slate-50/50 dark:bg-slate-900/50 px-6 pt-2">
                             <button
                                 onClick={() => setActiveModalTab('info')}
-                                className={`px-6 py-4 text-sm font-semibold transition-colors ${activeModalTab === 'info' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${activeModalTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                             >
                                 Informații
                             </button>
                             <button
                                 onClick={() => setActiveModalTab('teams')}
-                                className={`px-6 py-4 text-sm font-semibold transition-colors ${activeModalTab === 'teams' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${activeModalTab === 'teams' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                             >
                                 Echipe Alocate
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-5">
+                        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 flex-1">
                             <div className={activeModalTab !== 'info' ? 'hidden' : ''}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nume Șantier *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        placeholder="ex: Instalare Panouri Solare - Familia Ionescu"
-                                    />
-                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Șantier *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            placeholder="ex: Instalare Panouri Solare - Familia Ionescu"
+                                        />
+                                    </div>
 
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Adresă</label>
-                                    <input
-                                        type="text"
-                                        value={formData.address}
-                                        onChange={e => setFormData({ ...formData, address: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        placeholder="Strada, Număr, Oraș"
-                                    />
-                                </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Adresă</label>
+                                        <input
+                                            type="text"
+                                            value={formData.address}
+                                            onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            placeholder="Strada, Număr, Oraș"
+                                        />
+                                    </div>
 
-                                <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Coordonate GPS</label>
-                                        <button
-                                            type="button"
-                                            onClick={handleDetectLocation}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-semibold transition-colors"
+                                    <div className="md:col-span-2 bg-white dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Coordonate GPS</label>
+                                            <button
+                                                type="button"
+                                                onClick={handleDetectLocation}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800"
+                                            >
+                                                <MapPin className="w-3.5 h-3.5" />
+                                                Detectează automat
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Latitudine</label>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    value={formData.latitude}
+                                                    onChange={e => setFormData({ ...formData, latitude: e.target.value })}
+                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                    placeholder="ex: 44.4268"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Longitudine</label>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    value={formData.longitude}
+                                                    onChange={e => setFormData({ ...formData, longitude: e.target.value })}
+                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                    placeholder="ex: 26.1025"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-3 mb-2 ml-1">Sunt folosite pentru geofencing. Dacă nu sunt setate, se va încerca preluarea din adresă la salvare.</p>
+                                        <MiniMapSelector 
+                                            latitude={formData.latitude} 
+                                            longitude={formData.longitude} 
+                                            onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} 
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Client</label>
+                                        <select
+                                            value={formData.client_id}
+                                            onChange={e => setFormData({ ...formData, client_id: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                         >
-                                            <MapPin className="w-4 h-4" />
-                                            Detectează automat
-                                        </button>
+                                            <option value="">-- Fără client asociat --</option>
+                                            {clients.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1">Latitudine</label>
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                value={formData.latitude}
-                                                onChange={e => setFormData({ ...formData, latitude: e.target.value })}
-                                                className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                                placeholder="ex: 44.4268"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1">Longitudine</label>
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                value={formData.longitude}
-                                                onChange={e => setFormData({ ...formData, longitude: e.target.value })}
-                                                className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                                placeholder="ex: 26.1025"
-                                            />
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-3 mb-2">Sunt folosite pentru geofencing. Dacă nu sunt setate, se va încerca preluarea din adresă la salvare.</p>
-                                    <MiniMapSelector 
-                                        latitude={formData.latitude} 
-                                        longitude={formData.longitude} 
-                                        onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} 
-                                    />
-                                </div>
 
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Client</label>
-                                    <input
-                                        type="text"
-                                        value={formData.client_name}
-                                        onChange={e => setFormData({ ...formData, client_name: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        placeholder="Numele clientului"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Tip Instalare</label>
-                                    <select
-                                        value={formData.installation_type}
-                                        onChange={e => setFormData({ ...formData, installation_type: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                    >
-                                        <option value="residential">Rezidențial</option>
-                                        <option value="commercial">Comercial</option>
-                                        <option value="industrial">Industrial</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Putere Sistem (kW)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        value={formData.system_power_kw}
-                                        onChange={e => setFormData({ ...formData, system_power_kw: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        placeholder="ex: 10.5"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Număr Panouri</label>
-                                    <input
-                                        type="number"
-                                        value={formData.panel_count}
-                                        onChange={e => setFormData({ ...formData, panel_count: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        placeholder="ex: 24"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                                    <select
-                                        value={formData.status}
-                                        onChange={e => setFormData({ ...formData, status: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                    >
-                                        <option value="active">Activ</option>
-                                        <option value="completed">Finalizat</option>
-                                        <option value="suspended">Suspendat</option>
-                                    </select>
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Descriere</label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        rows={3}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                        placeholder="Detalii despre șantier..."
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Work Schedule Section */}
-                            <div className="border-t border-slate-200 pt-5 mt-5">
-                                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-blue-500" />
-                                    Program Lucru Șantier
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Început Program</label>
-                                        <input
-                                            type="time"
-                                            value={formData.work_start_time}
-                                            onChange={e => setFormData({ ...formData, work_start_time: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        />
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Tip Instalare</label>
+                                        <select
+                                            value={formData.installation_type}
+                                            onChange={e => setFormData({ ...formData, installation_type: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                        >
+                                            <option value="residential">Rezidențial</option>
+                                            <option value="commercial">Comercial</option>
+                                            <option value="industrial">Industrial</option>
+                                        </select>
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Sfârșit Program</label>
-                                        <input
-                                            type="time"
-                                            value={formData.work_end_time}
-                                            onChange={e => setFormData({ ...formData, work_end_time: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Overtime Max (min)</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Putere Sistem (kW)</label>
                                         <input
                                             type="number"
-                                            value={formData.max_overtime_minutes}
-                                            onChange={e => setFormData({ ...formData, max_overtime_minutes: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-                                            placeholder="120"
-                                            min="0"
-                                            max="480"
+                                            step="0.1"
+                                            value={formData.system_power_kw}
+                                            onChange={e => setFormData({ ...formData, system_power_kw: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            placeholder="ex: 10.5"
                                         />
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Început Pauză Masă</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Număr Panouri</label>
                                         <input
-                                            type="time"
-                                            value={formData.lunch_break_start}
-                                            onChange={e => setFormData({ ...formData, lunch_break_start: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                                            type="number"
+                                            value={formData.panel_count}
+                                            onChange={e => setFormData({ ...formData, panel_count: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            placeholder="ex: 24"
                                         />
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Sfârșit Pauză Masă</label>
-                                        <input
-                                            type="time"
-                                            value={formData.lunch_break_end}
-                                            onChange={e => setFormData({ ...formData, lunch_break_end: e.target.value })}
-                                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Status</label>
+                                        <select
+                                            value={formData.status}
+                                            onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                        >
+                                            <option value="active">Activ</option>
+                                            <option value="completed">Finalizat</option>
+                                            <option value="suspended">Suspendat</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Descriere</label>
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                            rows={3}
+                                            className="w-full px-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none"
+                                            placeholder="Detalii despre șantier..."
                                         />
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-400 mt-2">Pontajul se poate face cu max 30 min înainte. Overtime fără aprobare: {formData.max_overtime_minutes || 120} minute.</p>
-                            </div>
+
+                                {/* Work Schedule Section */}
+                                <div className="border-t border-slate-200 dark:border-slate-800 pt-5 mt-5">
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-blue-500" />
+                                        Program Lucru Șantier
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Început Program</label>
+                                            <input
+                                                type="time"
+                                                value={formData.work_start_time}
+                                                onChange={e => setFormData({ ...formData, work_start_time: e.target.value })}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Sfârșit Program</label>
+                                            <input
+                                                type="time"
+                                                value={formData.work_end_time}
+                                                onChange={e => setFormData({ ...formData, work_end_time: e.target.value })}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Overtime Max (min)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.max_overtime_minutes}
+                                                onChange={e => setFormData({ ...formData, max_overtime_minutes: e.target.value })}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                placeholder="120"
+                                                min="0"
+                                                max="480"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Început Pauză Masă</label>
+                                            <input
+                                                type="time"
+                                                value={formData.lunch_break_start}
+                                                onChange={e => setFormData({ ...formData, lunch_break_start: e.target.value })}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Sfârșit Pauză Masă</label>
+                                            <input
+                                                type="time"
+                                                value={formData.lunch_break_end}
+                                                onChange={e => setFormData({ ...formData, lunch_break_end: e.target.value })}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1">Pontajul se poate face cu max 30 min înainte. Overtime fără aprobare: {formData.max_overtime_minutes || 120} minute.</p>
+                                </div>
                             </div>
 
                             <div className={activeModalTab !== 'teams' ? 'hidden' : ''}>
                                 <div className="space-y-4">
-                                    <p className="text-sm text-slate-500 mb-4">
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                                         Bifează echipele care lucrează pe acest șantier. Orice modificare va actualiza forța de muncă din aplicație.
                                     </p>
                                     <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                                         {teams.map(team => (
-                                            <label key={team.id} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors ${selectedTeamIds.includes(team.id) ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                                            <label key={team.id} className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-colors ${selectedTeamIds.includes(team.id) ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600 shadow-sm' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                                                 <div className="flex items-center gap-4">
                                                     <input
                                                         type="checkbox"
@@ -899,8 +925,8 @@ export default function SitesManagement() {
                                                         className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                     />
                                                     <div>
-                                                        <p className="text-sm font-bold text-slate-900">{team.name}</p>
-                                                        <p className="text-xs text-slate-500 mt-1">Șef: {team.team_leader_name} · {team.member_count} Muncitori</p>
+                                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{team.name}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Șef: {team.team_leader_name} · {team.member_count} Muncitori</p>
                                                     </div>
                                                 </div>
                                             </label>
@@ -913,19 +939,19 @@ export default function SitesManagement() {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
+                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-white dark:bg-slate-900">
                             <button
                                 onClick={() => setShowEditModal(false)}
-                                className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+                                className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                             >
                                 Anulează
                             </button>
                             <button
                                 onClick={handleSaveSite}
                                 disabled={saving}
-                                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50"
+                                className="px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {editingSite ? 'Salvează' : 'Creează Șantier'}
                             </button>
                         </div>
@@ -935,18 +961,21 @@ export default function SitesManagement() {
 
             {/* Photo Modal */}
             {showPhotoModal && selectedSite && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 flex items-center justify-between text-white shrink-0">
                             <div>
-                                <h2 className="text-2xl font-bold text-slate-900">{selectedSite.name}</h2>
-                                <p className="text-slate-600 mt-1">Fotografii șantier</p>
+                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                    <Camera className="w-6 h-6" />
+                                    {selectedSite.name}
+                                </h2>
+                                <p className="text-white/80 mt-1 ml-8 text-sm">Fotografii șantier</p>
                             </div>
                             <button
                                 onClick={() => setShowPhotoModal(false)}
-                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
                             >
-                                <X className="w-6 h-6 text-slate-600" />
+                                <X className="w-6 h-6" />
                             </button>
                         </div>
 

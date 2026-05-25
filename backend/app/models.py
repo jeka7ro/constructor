@@ -239,8 +239,30 @@ class Admin(Base):
     full_name = Column(String(255), nullable=False)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_super_admin = Column(Boolean, default=False, nullable=False, server_default='false')
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Client(Base):
+    """Clients of the organization"""
+    __tablename__ = "clients"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    cui = Column(String(50), nullable=True)
+    reg_com = Column(String(50), nullable=True)
+    address = Column(Text, nullable=True)
+    contact_person = Column(String(255), nullable=True)
+    phone = Column(String(50), nullable=True)
+    email = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    organization = relationship("Organization")
+    sites = relationship("ConstructionSite", back_populates="client")
 
 
 class ConstructionSite(Base):
@@ -255,7 +277,8 @@ class ConstructionSite(Base):
     status = Column(String(50), default="active", nullable=False)  # active, completed, suspended
     
     # Solar panel installation specific fields
-    client_name = Column(String(255))  # Client name
+    client_id = Column(String(36), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
+    client_name = Column(String(255))  # Client name (legacy or fallback)
     panel_count = Column(Integer)  # Number of panels to install
     system_power_kw = Column(Float)  # System power in kW
     installation_type = Column(String(100))  # residential, commercial, industrial
@@ -277,6 +300,7 @@ class ConstructionSite(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     organization = relationship("Organization")
+    client = relationship("Client", back_populates="sites")
 
 
 class TimesheetPhoto(Base):

@@ -600,6 +600,11 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
     if not role:
         raise HTTPException(status_code=400, detail="Rol invalid")
 
+    # Only super admins can create users with admin roles
+    ADMIN_ROLE_NAMES = {'Administrator', 'Super Administrator'}
+    if role.name in ADMIN_ROLE_NAMES and not getattr(current_admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Doar Super Administratorul poate crea conturi de Administrator.")
+
     full_name = f"{user_data.last_name} {user_data.first_name}".strip()
     
     # Convert birth_date string to date object for SQLite
@@ -632,6 +637,7 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Update full_name from last_name/first_name
     if user_data.last_name is not None or user_data.first_name is not None:
         current_last, current_first = split_full_name(user.full_name)
         last = user_data.last_name if user_data.last_name is not None else current_last
@@ -640,10 +646,14 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
     elif user_data.full_name is not None:
         user.full_name = user_data.full_name
 
+    # Check if trying to assign an admin role — only super admin can do this
     if user_data.role_id is not None:
         role = db.query(Role).filter(Role.id == user_data.role_id).first()
         if not role:
             raise HTTPException(status_code=400, detail="Invalid role ID")
+        ADMIN_ROLE_NAMES = {'Administrator', 'Super Administrator'}
+        if role.name in ADMIN_ROLE_NAMES and not getattr(current_admin, 'is_super_admin', False):
+            raise HTTPException(status_code=403, detail="Doar Super Administratorul poate atribui roluri de Administrator.")
         user.role_id = user_data.role_id
 
     for field in ['employee_code', 'is_active', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address']:
@@ -823,7 +833,12 @@ def delete_user(user_id: str, hard_delete: bool = False, db: Session = Depends(g
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
+
+    # Only super admin can delete users with admin roles
+    ADMIN_ROLE_NAMES = {'Administrator', 'Super Administrator'}
+    if user.role and user.role.name in ADMIN_ROLE_NAMES and not getattr(current_admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Doar Super Administratorul poate șterge conturi de Administrator.")
+
     if hard_delete:
         db.delete(user)
         db.commit()

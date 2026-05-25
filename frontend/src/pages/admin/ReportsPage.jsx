@@ -3,7 +3,7 @@ import { useAdminStore } from '../../store/adminStore'
 import api from '../../lib/api'
 import {
     FileDown, Calendar, Users, Building2, Loader2, Download, Eye,
-    BarChart3, Clock, TrendingUp, Activity, Filter, PieChart as PieChartIcon
+    BarChart3, Clock, TrendingUp, Activity, Filter, PieChart as PieChartIcon, FileSpreadsheet
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -176,7 +176,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Quick Filters */}
-                <div className="flex gap-2 mb-5 flex-wrap">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mb-5">
                     {[
                         { label: t('reports.last_7_days'), fn: () => setQuickFilter(7) },
                         { label: t('reports.last_30_days'), fn: () => setQuickFilter(30) },
@@ -198,7 +198,7 @@ export default function ReportsPage() {
                         },
                     ].map(f => (
                         <button key={f.label} onClick={f.fn}
-                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors">
+                            className="px-2 py-2 w-full text-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors">
                             {f.label}
                         </button>
                     ))}
@@ -210,21 +210,21 @@ export default function ReportsPage() {
                             <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('reports.from_date')}
                         </label>
                         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
+                            className="w-full px-3 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" />
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                             <Calendar className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('reports.to_date')}
                         </label>
                         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none" />
+                            className="w-full px-3 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" />
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                             <Users className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('users.employee_col')}
                         </label>
                         <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
+                            className="w-full px-3 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all">
                             <option value="">{t('reports.all_employees')}</option>
                             {employees.map(emp => (
                                 <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>
@@ -236,7 +236,7 @@ export default function ReportsPage() {
                             <Building2 className="w-3.5 h-3.5 inline mr-1 text-slate-400 dark:text-slate-500" /> {t('common.site')}
                         </label>
                         <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none">
+                            className="w-full px-3 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all">
                             <option value="">{t('reports.all_sites')}</option>
                             {sites.map(site => (
                                 <option key={site.id} value={site.id}>{site.name}</option>
@@ -246,16 +246,16 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 mt-5">
+                <div className="flex gap-3 mt-5 border-t border-slate-100 dark:border-slate-800 pt-5">
                     <button onClick={handlePreview} disabled={loading}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50">
+                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50">
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                         {t('reports.generate')}
                     </button>
                     <button onClick={handleDownloadExcel} disabled={loading || !preview}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Download className="w-4 h-4" />
-                        {t('reports.download_excel')}
+                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+                        <FileSpreadsheet className="w-4 h-4" />
+                        <span className="hidden sm:inline">{t('reports.download_excel')}</span>
                     </button>
                 </div>
             </div>
@@ -440,16 +440,16 @@ export default function ReportsPage() {
                         {activeTab === 'timesheets' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.date')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.employee_col')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.code')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('users.role')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.site')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.check_in')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.check_out')}</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.hours')}</th>
+                                            <th className="px-5 py-3 text-left">{t('users.date')}</th>
+                                            <th className="px-5 py-3 text-left">{t('users.employee_col')}</th>
+                                            <th className="px-5 py-3 text-left">{t('users.code')}</th>
+                                            <th className="px-5 py-3 text-left">{t('users.role')}</th>
+                                            <th className="px-5 py-3 text-left">{t('common.site')}</th>
+                                            <th className="px-5 py-3 text-left">{t('reports.table.check_in')}</th>
+                                            <th className="px-5 py-3 text-left">{t('reports.table.check_out')}</th>
+                                            <th className="px-5 py-3 text-right">{t('reports.table.hours')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -473,13 +473,13 @@ export default function ReportsPage() {
                         {activeTab === 'bySite' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Șantier</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.timesheets')}</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.total_hours')}</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.avg_timesheet')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.chart')}</th>
+                                            <th className="px-5 py-3 text-left">Șantier</th>
+                                            <th className="px-5 py-3 text-right">{t('reports.table.timesheets')}</th>
+                                            <th className="px-5 py-3 text-right">{t('reports.table.total_hours')}</th>
+                                            <th className="px-5 py-3 text-right">{t('reports.table.avg_timesheet')}</th>
+                                            <th className="px-5 py-3 text-left">{t('reports.table.chart')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -512,14 +512,14 @@ export default function ReportsPage() {
                         {activeTab === 'byEmployee' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">#</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Angajat</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('timesheets.days_worked')}</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Ore</th>
-                                            <th className="px-5 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('reports.table.avg_day')}</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Grafic</th>
+                                            <th className="px-5 py-3 text-left">#</th>
+                                            <th className="px-5 py-3 text-left">Angajat</th>
+                                            <th className="px-5 py-3 text-right">{t('timesheets.days_worked')}</th>
+                                            <th className="px-5 py-3 text-right">Total Ore</th>
+                                            <th className="px-5 py-3 text-right">{t('reports.table.avg_day')}</th>
+                                            <th className="px-5 py-3 text-left">Grafic</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">

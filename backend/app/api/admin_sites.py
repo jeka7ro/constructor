@@ -55,7 +55,7 @@ class SiteCreate(BaseModel):
     longitude: Optional[float] = None
     geofence_radius: Optional[int] = Field(100, ge=10, le=5000)
     
-    # Solar panel installation specific
+    client_id: Optional[str] = None
     client_name: Optional[str] = Field(None, max_length=255)
     panel_count: Optional[int] = Field(None, ge=0)
     system_power_kw: Optional[float] = Field(None, ge=0)
@@ -82,7 +82,7 @@ class SiteUpdate(BaseModel):
     longitude: Optional[float] = None
     geofence_radius: Optional[int] = Field(None, ge=10, le=5000)
     
-    # Solar panel installation specific
+    client_id: Optional[str] = None
     client_name: Optional[str] = Field(None, max_length=255)
     panel_count: Optional[int] = Field(None, ge=0)
     system_power_kw: Optional[float] = Field(None, ge=0)
@@ -127,7 +127,8 @@ def site_to_dict(site, db=None) -> dict:
         "longitude": site.longitude,
         "geofence_radius": site.geofence_radius,
         "created_at": site.created_at.isoformat() if site.created_at else None,
-        "client_name": site.client_name,
+        "client_id": site.client_id,
+        "client_name": site.client.name if site.client_id and hasattr(site, 'client') and site.client else site.client_name,
         "panel_count": site.panel_count,
         "system_power_kw": site.system_power_kw,
         "installation_type": site.installation_type,
@@ -237,6 +238,149 @@ def get_site(
     return site_to_dict(site, db)
 
 
+@router.get("/{site_id}/details")
+def get_site_details(
+    site_id: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """
+    Get detailed site information including related entities (vehicles, warehouse, attendance, photos)
+    """
+    site = db.query(ConstructionSite).filter(ConstructionSite.id == site_id).first()
+    if not site:
+        raise HTTPException(status_code=404, detail="Construction site not found")
+    
+    from app.models import (
+        VehicleSiteAssignment, Vehicle, 
+        WarehouseTransaction, WarehouseItem, 
+        TimesheetSegment, Timesheet, User,
+        SitePhoto
+    )
+    from sqlalchemy.orm import joinedload
+    
+    # Teams and direct users assigned
+    from app.models import Team, TeamMember
+    teams_db = db.query(Team).filter(Team.site_id == site_id).all()
+    teams_list = []
+    for team in teams_db:
+        members = db.query(User).join(TeamMember, TeamMember.user_id == User.id).filter(TeamMember.team_id == team.id).all()
+        teams_list.append({
+            "id": team.id,
+            "name": team.name,
+            "members": [{"id": m.id, "name": m.full_name, "role": m.role} for m in members]
+        })
+        
+    direct_users_db = db.query(User).filter(User.site_id == site_id).all()
+    direct_users_list = [{"id": m.id, "name": m.full_name, "role": m.role} for m in direct_users_db]
+    
+    # Vehicles assigned
+    vehicles_assigned = db.query(VehicleSiteAssignment, Vehicle).join(
+        Vehicle, VehicleSiteAssignment.vehicle_id == Vehicle.id
+    ).filter(
+        VehicleSiteAssignment.site_id == site_id,
+        VehicleSiteAssignment.is_active == True
+    ).all()
+    
+    vehicles_list = [
+        {
+            "id": v.id,
+            "brand": v.brand,
+            "model": v.model,
+            "plate_number": v.plate_number,
+            "assigned_at": str(va.created_at)
+        }
+        for va, v in vehicles_assigned
+    ]
+    
+    # Date filtering base queries
+    from datetime import datetime
+    sd = datetime.fromisoformat(start_date) if start_date else None
+    ed = datetime.fromisoformat(end_date) if end_date else None
+    
+    # Warehouse transactions
+    wh_query = db.query(WarehouseTransaction, WarehouseItem, User).join(
+        WarehouseItem, WarehouseTransaction.item_id == WarehouseItem.id
+    ).outerjoin(
+        User, WarehouseTransaction.assigned_to_user_id == User.id
+    ).filter(WarehouseTransaction.site_id == site_id)
+    
+    if sd: wh_query = wh_query.filter(WarehouseTransaction.created_at >= sd)
+    if ed: wh_query = wh_query.filter(WarehouseTransaction.created_at <= ed)
+    
+    wh_transactions = wh_query.order_by(WarehouseTransaction.created_at.desc()).all()
+    
+    warehouse_list = [
+        {
+            "id": t.id,
+            "tx_type": t.transaction_type,
+            "quantity": t.quantity,
+            "created_at": str(t.created_at),
+            "item_name": item.name,
+            "item_sku": item.category,
+            "user_name": u.full_name if u else "N/A"
+        }
+        for t, item, u in wh_transactions
+    ]
+    
+    # Attendance (Timesheet Segments)
+    ts_query = db.query(TimesheetSegment, Timesheet, User).join(
+        Timesheet, TimesheetSegment.timesheet_id == Timesheet.id
+    ).join(
+        User, Timesheet.owner_user_id == User.id
+    ).filter(TimesheetSegment.site_id == site_id)
+    
+    if sd: ts_query = ts_query.filter(Timesheet.date >= sd.date())
+    if ed: ts_query = ts_query.filter(Timesheet.date <= ed.date())
+    
+    ts_segments = ts_query.order_by(TimesheetSegment.check_in_time.desc()).all()
+    
+    attendance_list = [
+        {
+            "id": seg.id,
+            "date": str(ts.date),
+            "user_name": u.full_name,
+            "check_in": str(seg.check_in_time) if seg.check_in_time else None,
+            "check_out": str(seg.check_out_time) if seg.check_out_time else None,
+            "activity_name": "Activitate Generală" 
+        }
+        for seg, ts, u in ts_segments
+    ]
+    
+    # Photos
+    ph_query = db.query(SitePhoto, User).outerjoin(
+        User, SitePhoto.uploaded_by_user_id == User.id
+    ).filter(SitePhoto.site_id == site_id)
+    
+    if sd: ph_query = ph_query.filter(SitePhoto.created_at >= sd)
+    if ed: ph_query = ph_query.filter(SitePhoto.created_at <= ed)
+    
+    photos = ph_query.order_by(SitePhoto.created_at.desc()).all()
+    
+    photo_list = [
+        {
+            "id": p.id,
+            "photo_path": p.photo_path,
+            "description": p.description,
+            "created_at": str(p.created_at),
+            "uploader_name": u.full_name if u else "N/A"
+        }
+        for p, u in photos
+    ]
+    
+    return {
+        "site": site_to_dict(site, db),
+        "teams": teams_list,
+        "direct_users": direct_users_list,
+        "vehicles": vehicles_list,
+        "warehouse_transactions": warehouse_list,
+        "attendance": attendance_list,
+        "photos": photo_list
+    }
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_site(
     site_data: SiteCreate,
@@ -278,6 +422,7 @@ def create_site(
         latitude=lat,
         longitude=lng,
         geofence_radius=site_data.geofence_radius or 100,
+        client_id=site_data.client_id,
         client_name=site_data.client_name,
         panel_count=site_data.panel_count,
         system_power_kw=site_data.system_power_kw,
@@ -349,6 +494,8 @@ def update_site(
             site.longitude = geo.get("longitude")
     
     # Update solar panel fields
+    if site_data.client_id is not None:
+        site.client_id = site_data.client_id
     if site_data.client_name is not None:
         site.client_name = site_data.client_name
     
@@ -465,6 +612,7 @@ def get_map_data(
             "status": site.status,
             "active_workers": int(active_workers),
             "vehicle_count": vehicle_count,
+            "client_id": site.client_id,
             "panel_count": site.panel_count,
             "system_power_kw": site.system_power_kw,
             "client_name": site.client_name,

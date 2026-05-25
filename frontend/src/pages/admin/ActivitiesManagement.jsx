@@ -3,9 +3,9 @@ import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
 import {
-    Plus, Edit2, Trash2, Loader2, Activity as ActivityIcon,
-    CheckCircle, XCircle, ChevronDown, ChevronRight, Palette,
-    FolderPlus, GripVertical, Layers, FileDown, FileSpreadsheet, Search
+    Plus, Edit2, Trash2, Loader2, Activity as ActivityIcon, Activity,
+    CheckCircle, XCircle, X, ChevronDown, ChevronRight, Palette,
+    FolderPlus, GripVertical, Layers, FileDown, FileSpreadsheet, Search, Save, Folder
 } from 'lucide-react'
 
 export default function ActivitiesManagement() {
@@ -247,79 +247,93 @@ export default function ActivitiesManagement() {
     return (
         <div className="p-8">
             {/* Header */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('activities.title')}</h1>
-                    <p className="text-slate-600">{t('activities.subtitle')}</p>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <ActivityIcon className="w-5 h-5" />
+                        </div>
+                        {t('activities.title')}
+                    </h1>
                 </div>
-            </div>
 
-            {/* Unified Action Bar */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 rounded-3xl shadow-lg shadow-slate-200/50 mb-8">
-                <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-                    {/* Search Bar */}
-                    <div className="relative w-full lg:w-[400px] shrink-0">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <div className="flex flex-wrap items-center gap-2.5">
+                    {/* The "Bubble" Search */}
+                    <div className="relative group flex items-center">
+                        <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                            <Search className="w-4 h-4" />
+                        </div>
                         <input
                             type="text"
                             placeholder={t('activities.search_placeholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-2xl shadow-sm text-sm transition-all focus:bg-white placeholder:text-slate-400"
+                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
                         />
+                        {searchQuery && (
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                <span className="text-[10px] font-bold text-white">
+                                    {totalActivities}
+                                </span>
+                                <button 
+                                    onClick={() => setSearchQuery('')}
+                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                >
+                                    <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                </button>
+                            </div>
+                        )}
                     </div>
+                    
+                    <label className="flex items-center gap-2 cursor-pointer h-10 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+                        <input 
+                            type="checkbox" 
+                            checked={showInactive} 
+                            onChange={(e) => setShowInactive(e.target.checked)} 
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
+                        />
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Arhiva (Inactive)</span>
+                    </label>
 
-                    {/* Actions */}
-                    <div className="flex flex-wrap items-center justify-end gap-3 w-full lg:w-auto">
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-800 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                            <input 
-                                type="checkbox" 
-                                checked={showInactive} 
-                                onChange={(e) => setShowInactive(e.target.checked)} 
-                                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
-                            />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Arhiva (Inactive)</span>
-                        </label>
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const response = await api.get('/admin/activities/export/excel', { responseType: 'blob' })
-                                    const url = window.URL.createObjectURL(new Blob([response.data]))
-                                    const link = document.createElement('a')
-                                    link.href = url
-                                    link.setAttribute('download', `activitati_${new Date().toISOString().slice(0, 10)}.xlsx`)
-                                    document.body.appendChild(link)
-                                    link.click()
-                                    link.remove()
-                                    window.URL.revokeObjectURL(url)
-                                } catch (error) {
-                                    showDialog({ type: 'danger', title: t('common.export_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
-                                }
-                            }}
-                            className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
-                        >
-                            <FileDown className="w-5 h-5" />
-                            {t('common.export')}
-                        </button>
-                        <button
-                            onClick={() => {
-                                setEditingCategory(null)
-                                setCategoryForm({ name: '', color: '#3b82f6', sort_order: 0 })
-                                setShowCategoryModal(true)
-                            }}
-                            className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all shadow-md shadow-blue-500/20 flex-1 lg:flex-none text-sm"
-                        >
-                            <FolderPlus className="w-5 h-5" />
-                            {t('activities.new_category')}
-                        </button>
-                        <button
-                            onClick={() => handleAddActivityToCategory('')}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold transition-all shadow-lg shadow-blue-600/30 flex-1 lg:flex-none text-sm"
-                        >
-                            <Plus className="w-5 h-5" />
-                            {t('activities.new_activity')}
-                        </button>
-                    </div>
+                    <button
+                        onClick={async () => {
+                            try {
+                                const response = await api.get('/admin/activities/export/excel', { responseType: 'blob' })
+                                const url = window.URL.createObjectURL(new Blob([response.data]))
+                                const link = document.createElement('a')
+                                link.href = url
+                                link.setAttribute('download', `activitati_${new Date().toISOString().slice(0, 10)}.xlsx`)
+                                document.body.appendChild(link)
+                                link.click()
+                                link.remove()
+                                window.URL.revokeObjectURL(url)
+                            } catch (error) {
+                                showDialog({ type: 'danger', title: t('common.export_error'), message: t('common.error_message') + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
+                            }
+                        }}
+                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" />
+                        <span className="hidden sm:inline">{t('common.export')}</span>
+                    </button>
+                    <button
+                        onClick={() => {
+                            setEditingCategory(null)
+                            setCategoryForm({ name: '', color: '#3b82f6', sort_order: 0 })
+                            setShowCategoryModal(true)
+                        }}
+                        className="flex items-center gap-1.5 px-4 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors"
+                    >
+                        <FolderPlus className="w-4 h-4" />
+                        <span className="hidden sm:inline">{t('activities.new_category')}</span>
+                    </button>
+                    <button
+                        onClick={() => handleAddActivityToCategory('')}
+                        className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        {t('activities.new_activity')}
+                    </button>
                 </div>
             </div>
 
@@ -432,74 +446,72 @@ export default function ActivitiesManagement() {
                                             </div>
                                         ) : (
                                             <table className="w-full">
-                                                <thead className="bg-slate-50/70">
+                                                <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                                     <tr>
-                                                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('dashboard.activities')}</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.description')}</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('activities.unit_measure')}</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('activities.rules')}</th>
-                                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.status')}</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
+                                                        <th className="px-6 py-3 text-left">{t('dashboard.activities')}</th>
+                                                        <th className="px-4 py-3 text-left">{t('common.description')}</th>
+                                                        <th className="px-4 py-3 text-left">{t('activities.unit_measure')}</th>
+                                                        <th className="px-4 py-3 text-left">{t('activities.rules')}</th>
+                                                        <th className="px-4 py-3 text-center">{t('common.status')}</th>
+                                                        <th className="px-4 py-3 text-right">{t('common.actions')}</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-slate-100">
+                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                                                     {filteredActivities.map((activity) => (
-                                                        <tr key={activity.id} className="hover:bg-slate-50 transition-colors">
+                                                        <tr key={activity.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                                             <td className="px-6 py-3">
-                                                                <div className="font-medium text-slate-900 text-sm">{activity.name}</div>
+                                                                <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm group-hover:text-blue-600 transition-colors">{activity.name}</div>
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <div className="text-sm text-slate-500 max-w-[200px] truncate" title={activity.description}>
+                                                                <div className="text-sm text-slate-500 dark:text-slate-400 max-w-[200px] truncate" title={activity.description}>
                                                                     {activity.description || '—'}
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                                                                <span className="inline-flex items-center px-2.5 py-1 rounded border border-blue-200 dark:border-blue-900/50 text-[11px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
                                                                     {activity.unit_type}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-4 py-3 text-sm text-slate-500">
+                                                            <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                                                                 {activity.quantity_rules || '—'}
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 {activity.is_active ? (
-                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700">
-                                                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                                                                         {t('common.active')}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">
-                                                                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                                                         {t('common.inactive')}
                                                                     </span>
                                                                 )}
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <div className="flex items-center justify-end gap-1">
+                                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                     <button
                                                                         onClick={() => handleEditActivity(activity)}
-                                                                        className="p-1.5 hover:bg-blue-50 rounded-full border border-slate-200 transition-colors"
+                                                                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                                                                         title={t('common.edit')}
                                                                     >
-                                                                        <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                                                                        <Edit2 className="w-4 h-4" />
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleToggleActive(activity.id, activity.is_active)}
-                                                                        className="p-1.5 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors"
+                                                                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                                                         title={activity.is_active ? t('users.deactivate') : t('users.activate')}
                                                                     >
                                                                         {activity.is_active ? (
-                                                                            <XCircle className="w-3.5 h-3.5 text-slate-500" />
+                                                                            <XCircle className="w-4 h-4" />
                                                                         ) : (
-                                                                            <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                                            <CheckCircle className="w-4 h-4 text-emerald-500" />
                                                                         )}
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleDeleteActivity(activity.id)}
-                                                                        className="p-1.5 hover:bg-red-50 rounded-full border border-slate-200 transition-colors"
+                                                                        className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400"
                                                                         title="Șterge"
                                                                     >
-                                                                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                                                        <Trash2 className="w-4 h-4" />
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -537,184 +549,202 @@ export default function ActivitiesManagement() {
 
             {/* Category Modal */}
             {showCategoryModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">
-                            {editingCategory ? t('activities.edit_category') : t('activities.new_category')}
-                        </h2>
-                        <form onSubmit={handleSaveCategory} className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.category_name')}</label>
-                                <input
-                                    type="text"
-                                    value={categoryForm.name}
-                                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                                    placeholder={t('activities.placeholders.name')}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">{t('activities.color')}</label>
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div
-                                        className="w-10 h-10 rounded-xl border-2 border-slate-200"
-                                        style={{ backgroundColor: categoryForm.color }}
-                                    />
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
+                        <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-6 flex justify-between items-center text-white shrink-0">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Folder className="w-6 h-6" />
+                                {editingCategory ? t('activities.edit_category') : t('activities.new_category')}
+                            </h2>
+                            <button onClick={() => { setShowCategoryModal(false); setEditingCategory(null); }} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <form onSubmit={handleSaveCategory} className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.category_name')}</label>
                                     <input
                                         type="text"
-                                        value={categoryForm.color}
-                                        onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
-                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono"
-                                        placeholder="#3b82f6"
+                                        value={categoryForm.name}
+                                        onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                                        placeholder={t('activities.placeholders.name')}
+                                        required
                                     />
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {PRESET_COLORS.map(c => (
-                                        <button
-                                            key={c}
-                                            type="button"
-                                            onClick={() => setCategoryForm({ ...categoryForm, color: c })}
-                                            className={`w-7 h-7 rounded-lg transition-all ${categoryForm.color === c ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-110'}`}
-                                            style={{ backgroundColor: c }}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('activities.color')}</label>
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div
+                                            className="w-11 h-11 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 shrink-0"
+                                            style={{ backgroundColor: categoryForm.color }}
                                         />
-                                    ))}
+                                        <input
+                                            type="text"
+                                            value={categoryForm.color}
+                                            onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                                            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all font-mono text-sm uppercase"
+                                            placeholder="#3B82F6"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {PRESET_COLORS.map(c => (
+                                            <button
+                                                key={c}
+                                                type="button"
+                                                onClick={() => setCategoryForm({ ...categoryForm, color: c })}
+                                                className={`w-8 h-8 rounded-xl transition-all ${categoryForm.color === c ? 'ring-2 ring-offset-2 dark:ring-offset-slate-900 ring-slate-400 scale-110 shadow-md' : 'hover:scale-110 shadow-sm opacity-80 hover:opacity-100'}`}
+                                                style={{ backgroundColor: c }}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.sort_order')}</label>
-                                <input
-                                    type="number"
-                                    value={categoryForm.sort_order}
-                                    onChange={(e) => setCategoryForm({ ...categoryForm, sort_order: parseInt(e.target.value) || 0 })}
-                                    className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                                />
-                            </div>
-                            <div className="flex items-center gap-3 pt-2">
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all"
-                                >
-                                    {editingCategory ? t('common.save') : t('teams.create')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowCategoryModal(false); setEditingCategory(null) }}
-                                    className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
-                                >
-                                    Anulează
-                                </button>
-                            </div>
-                        </form>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.sort_order')}</label>
+                                    <input
+                                        type="number"
+                                        value={categoryForm.sort_order}
+                                        onChange={(e) => setCategoryForm({ ...categoryForm, sort_order: parseInt(e.target.value) || 0 })}
+                                        className="w-24 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowCategoryModal(false); setEditingCategory(null) }}
+                                        className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-medium transition-colors"
+                                    >
+                                        Anulează
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium shadow-sm shadow-violet-600/20 transition-all flex items-center gap-2"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        {editingCategory ? t('common.save') : t('teams.create')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Activity Modal */}
             {showActivityModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">
-                            {editingActivity ? t('activities.edit_activity') : t('activities.new_activity')}
-                        </h2>
-                        <form onSubmit={handleSaveActivity} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.categories')}</label>
-                                <select
-                                    value={activityForm.category_id}
-                                    onChange={(e) => setActivityForm({ ...activityForm, category_id: e.target.value })}
-                                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="">{t('activities.no_category')}</option>
-                                    {categoryList.map(cat => (
-                                        <option key={cat.id} value={cat.id}>
-                                            {cat.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.activity_name')}</label>
-                                <input
-                                    type="text"
-                                    value={activityForm.name}
-                                    onChange={(e) => setActivityForm({ ...activityForm, name: e.target.value })}
-                                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="ex: Montaj panouri solare"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.description_optional')}</label>
-                                <textarea
-                                    value={activityForm.description}
-                                    onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
-                                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder={`${t('activities.placeholders.desc')}...`}
-                                    rows={2}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 flex justify-between items-center text-white shrink-0">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Activity className="w-6 h-6" />
+                                {editingActivity ? t('activities.edit_activity') : t('activities.new_activity')}
+                            </h2>
+                            <button onClick={() => { setShowActivityModal(false); setEditingActivity(null); }} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
+                            <form onSubmit={handleSaveActivity} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.unit_measure')}</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.categories')}</label>
                                     <select
-                                        value={activityForm.unit_type}
-                                        onChange={(e) => setActivityForm({ ...activityForm, unit_type: e.target.value })}
-                                        className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        value={activityForm.category_id}
+                                        onChange={(e) => setActivityForm({ ...activityForm, category_id: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                     >
-                                        <option value="buc">{t('activities.units.buc')}</option>
-                                        <option value="ore">ore</option>
-                                        <option value="m">m (metri)</option>
-                                        <option value="m²">{t('activities.units.sqm')}</option>
-                                        <option value="buc/set">buc/set</option>
-                                        <option value="kg">kg (kilograme)</option>
+                                        <option value="">{t('activities.no_category')}</option>
+                                        {categoryList.map(cat => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.sort_order')}</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.activity_name')}</label>
                                     <input
-                                        type="number"
-                                        value={activityForm.sort_order}
-                                        onChange={(e) => setActivityForm({ ...activityForm, sort_order: parseInt(e.target.value) || 0 })}
-                                        className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        type="text"
+                                        value={activityForm.name}
+                                        onChange={(e) => setActivityForm({ ...activityForm, name: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        placeholder="ex: Montaj panouri solare"
+                                        required
                                     />
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('activities.quantity_rules')}</label>
-                                <input
-                                    type="text"
-                                    value={activityForm.quantity_rules}
-                                    onChange={(e) => setActivityForm({ ...activityForm, quantity_rules: e.target.value })}
-                                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="ex: min: 1, max: 100"
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 pt-1">
-                                <input
-                                    type="checkbox"
-                                    checked={activityForm.is_active}
-                                    onChange={(e) => setActivityForm({ ...activityForm, is_active: e.target.checked })}
-                                    className="w-4 h-4 rounded border-slate-300 text-blue-600"
-                                />
-                                <label className="text-sm font-medium text-slate-700">{t('activities.is_active_label')}</label>
-                            </div>
-                            <div className="flex items-center gap-3 pt-3">
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium transition-all"
-                                >
-                                    {editingActivity ? t('common.save') : t('common.add')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowActivityModal(false); setEditingActivity(null) }}
-                                    className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
-                                >
-                                    Anulează
-                                </button>
-                            </div>
-                        </form>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.description_optional')}</label>
+                                    <textarea
+                                        value={activityForm.description}
+                                        onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all custom-scrollbar"
+                                        placeholder={`${t('activities.placeholders.desc')}...`}
+                                        rows={2}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.unit_measure')}</label>
+                                        <select
+                                            value={activityForm.unit_type}
+                                            onChange={(e) => setActivityForm({ ...activityForm, unit_type: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        >
+                                            <option value="buc">{t('activities.units.buc')}</option>
+                                            <option value="ore">ore</option>
+                                            <option value="m">m (metri)</option>
+                                            <option value="m²">{t('activities.units.sqm')}</option>
+                                            <option value="buc/set">buc/set</option>
+                                            <option value="kg">kg (kilograme)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.sort_order')}</label>
+                                        <input
+                                            type="number"
+                                            value={activityForm.sort_order}
+                                            onChange={(e) => setActivityForm({ ...activityForm, sort_order: parseInt(e.target.value) || 0 })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('activities.quantity_rules')}</label>
+                                    <input
+                                        type="text"
+                                        value={activityForm.quantity_rules}
+                                        onChange={(e) => setActivityForm({ ...activityForm, quantity_rules: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        placeholder="ex: min: 1, max: 100"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 pt-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={activityForm.is_active}
+                                        onChange={(e) => setActivityForm({ ...activityForm, is_active: e.target.checked })}
+                                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('activities.is_active_label')}</label>
+                                </div>
+                                <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowActivityModal(false); setEditingActivity(null) }}
+                                        className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-medium transition-colors"
+                                    >
+                                        Anulează
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        {editingActivity ? t('common.save') : t('common.add')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

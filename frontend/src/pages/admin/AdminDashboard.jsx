@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -58,7 +58,8 @@ export default function AdminDashboard() {
 
     const navItems = [
         { path: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
-        { path: '/admin/users', icon: Users, label: t('nav.users') },
+        { path: '/admin/employees', icon: HardHat, label: 'Angajați' },
+        { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
         { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
         { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
         { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
@@ -68,6 +69,7 @@ export default function AdminDashboard() {
         { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
         { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
         { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
+        { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
         { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
     ]
 

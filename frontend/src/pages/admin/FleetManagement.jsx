@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
-import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink } from 'lucide-react'
+import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink, Search, Car } from 'lucide-react'
 
 const VEHICLE_TYPES = ['car', 'van', 'truck', 'excavator', 'grader', 'compactor', 'pile_driver', 'concrete_mixer', 'tractor_trailer', 'forklift', 'telehandler', 'cherry_picker', 'crane_truck', 'crane', 'pickup_4x4', 'mobile_workshop', 'generator', 'other']
 const VEHICLE_STATUSES = ['active', 'service', 'inactive']
@@ -48,6 +48,7 @@ export default function FleetManagement() {
     const [docFile, setDocFile] = useState(null)
     const [docForm, setDocForm] = useState({ name: '', expiry_date: '' })
     const [uploadingDoc, setUploadingDoc] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
 
     // Fleet report
     const [reportData, setReportData] = useState([])
@@ -68,6 +69,13 @@ export default function FleetManagement() {
             setReportLoading(false)
         }
     }, [reportDateFrom, reportDateTo])
+
+    const filteredVehicles = vehicles.filter(v => mainTab === 'cars' ? CAR_TYPES.includes(v.type) : !CAR_TYPES.includes(v.type)).filter(v => 
+        !searchQuery || 
+        v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (v.plate_number && v.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (v.chassis_number && v.chassis_number.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
 
     const filteredSites = sites.filter(s => (s.name || '').toLowerCase().includes(siteSearch.toLowerCase()) || (s.county || '').toLowerCase().includes(siteSearch.toLowerCase()))
     
@@ -271,16 +279,16 @@ export default function FleetManagement() {
         {
             key: '_actions', label: t('common.actions'),
             render: (v) => (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {!CAR_TYPES.includes(v.type) && (
-                        <button onClick={() => { setLogEquipment(v); setShowLogModal(true); setLogForm({ date: new Date().toISOString().split('T')[0], site_id: v.site_ids?.[0] || '', operator_id: v.user_ids?.[0] || '', is_used: true, refueled: false, refuel_liters: '', notes: '' }) }} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors" title="Pontaj Zilnic">
+                        <button onClick={() => { setLogEquipment(v); setShowLogModal(true); setLogForm({ date: new Date().toISOString().split('T')[0], site_id: v.site_ids?.[0] || '', operator_id: v.user_ids?.[0] || '', is_used: true, refueled: false, refuel_liters: '', notes: '' }) }} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" title="Pontaj Zilnic">
                             <CalendarClock className="w-4 h-4" />
                         </button>
                     )}
-                    <button onClick={() => openEdit(v)} title={t('common.edit')} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <Edit2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <button onClick={() => openEdit(v)} title={t('common.edit')} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
+                        <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setDeleteTarget(v)} title={t('common.delete')} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                    <button onClick={() => setDeleteTarget(v)} title={t('common.delete')} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400">
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
@@ -291,22 +299,15 @@ export default function FleetManagement() {
     return (
         <div className="p-6 max-w-7xl mx-auto">
             {/* Page Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                            <CalendarClock className="w-5 h-5" />
+                        </div>
                         {t('fleet.title')}
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {vehicles.length} {t('fleet.registered_vehicles')}
-                    </p>
                 </div>
-                <button
-                    onClick={openAdd}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    {t('fleet.add_vehicle')}
-                </button>
             </div>
 
             {error && (
@@ -324,36 +325,69 @@ export default function FleetManagement() {
             )}
 
             {/* Main Tabs */}
-            <div className="flex items-center gap-4 mb-6 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner mb-4 border border-slate-200 dark:border-slate-700">
                 <button
                     onClick={() => setMainTab('cars')}
-                    className={`px-6 py-3 font-semibold text-sm transition-colors relative ${mainTab === 'cars' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'cars' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                 >
                     Parc Auto (Mașini)
-                    {mainTab === 'cars' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
                 </button>
                 <button
                     onClick={() => setMainTab('equipment')}
-                    className={`px-6 py-3 font-semibold text-sm transition-colors relative ${mainTab === 'equipment' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'equipment' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                 >
                     Utilaje
-                    {mainTab === 'equipment' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
                 </button>
                 <button
                     onClick={() => { setMainTab('report'); fetchReport(); }}
-                    className={`flex items-center gap-1.5 px-6 py-3 font-semibold text-sm transition-colors relative ${mainTab === 'report' ? 'text-violet-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'report' ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                 >
                     <BarChart2 className="w-4 h-4" />
                     Raport Consum
-                    {mainTab === 'report' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600" />}
                 </button>
             </div>
 
             {mainTab !== 'report' && (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+                    <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
+                        <div className="relative group flex items-center w-full sm:w-auto">
+                            <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                <Search className="w-4 h-4" />
+                            </div>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Caută vehicul..."
+                                className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            />
+                            {searchQuery && (
+                                <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                    <span className="text-[10px] font-bold text-white">
+                                        {filteredVehicles.length}/{vehicles.filter(v => mainTab === 'cars' ? CAR_TYPES.includes(v.type) : !CAR_TYPES.includes(v.type)).length}
+                                    </span>
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                    >
+                                        <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={openAdd}
+                            className="px-5 h-10 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Plus className="w-4 h-4" />
+                            {t('fleet.add_vehicle')}
+                        </button>
+                    </div>
+
                     <DataTable
                         columns={columns}
-                        data={vehicles.filter(v => mainTab === 'cars' ? CAR_TYPES.includes(v.type) : !CAR_TYPES.includes(v.type))}
+                        data={filteredVehicles}
                         loading={loading}
                         defaultPageSize={25}
                     />
@@ -435,15 +469,16 @@ export default function FleetManagement() {
 
             {/* Add / Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 flex justify-between items-center text-white shrink-0 border-b border-slate-200 dark:border-slate-700">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Car className="w-6 h-6" />
                                 {editingVehicle ? t('common.edit') + ' ' + t('fleet.vehicle') : t('fleet.add_vehicle')}
                             </h2>
-                            <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                                <X className="w-5 h-5 text-slate-500" />
+                            <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 

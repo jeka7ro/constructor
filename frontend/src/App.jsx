@@ -13,6 +13,8 @@ const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'))
 const UsersManagement = lazy(() => import('./pages/admin/UsersManagement'))
+const EmployeesManagement = lazy(() => import('./pages/admin/EmployeesManagement'))
+const ClientsManagement = lazy(() => import('./pages/admin/ClientsManagement'))
 const SitesManagement = lazy(() => import('./pages/admin/SitesManagement'))
 const PhotoTestPage = lazy(() => import('./pages/admin/PhotoTestPage'))
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
@@ -57,6 +59,8 @@ function App() {
                         <Route index element={<Navigate to="/admin/dashboard" replace />} />
                         <Route path="dashboard" element={<AdminOverview />} />
                         <Route path="users" element={<UsersManagement />} />
+                        <Route path="employees" element={<EmployeesManagement />} />
+                        <Route path="clients" element={<ClientsManagement />} />
                         <Route path="sites" element={<SitesManagement />} />
                         <Route path="photos-test" element={<PhotoTestPage />} />
                         <Route path="reports" element={<ReportsPage />} />

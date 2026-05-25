@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -69,19 +69,19 @@ export default function DataTable({
     return (
         <div className="flex flex-col min-h-0">
             {/* Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-y border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                        <tr>
                             {/* Row number column */}
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 dark:text-slate-500 w-10 select-none">
+                            <th className="px-6 py-4 text-center w-16 select-none">
                                 {t('common.row_number')}
                             </th>
                             {columns.map(col => (
                                 <th
                                     key={col.key}
                                     className={[
-                                        'px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap select-none',
+                                        'px-6 py-4 text-left whitespace-nowrap select-none',
                                         col.sortable ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''
                                     ].join(' ')}
                                     onClick={col.sortable ? () => handleSort(col.key) : undefined}
@@ -94,16 +94,16 @@ export default function DataTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                         {loading ? (
                             <tr>
-                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-slate-400">
+                                <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-sm text-slate-400">
                                     {t('common.loading')}
                                 </td>
                             </tr>
                         ) : slice.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-slate-400">
+                                <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-sm text-slate-400">
                                     {emptyText || t('common.no_data')}
                                 </td>
                             </tr>
@@ -111,13 +111,13 @@ export default function DataTable({
                             slice.map((row, idx) => (
                                 <tr
                                     key={row.id ?? idx}
-                                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
                                 >
-                                    <td className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                                    <td className="px-6 py-4 text-center text-slate-500 font-medium tabular-nums">
                                         {from + idx + 1}
                                     </td>
                                     {columns.map(col => (
-                                        <td key={col.key} className="px-4 py-3 text-slate-700 dark:text-slate-200">
+                                        <td key={col.key} className="px-6 py-4 align-middle text-slate-900 dark:text-white font-medium">
                                             {col.render ? col.render(row, from + idx) : (row[col.key] ?? '—')}
                                         </td>
                                     ))}
@@ -129,51 +129,37 @@ export default function DataTable({
             </div>
 
             {/* Pagination Footer */}
-            <div className="flex items-center justify-between mt-3 px-1 flex-wrap gap-2">
-                {/* Rows per page */}
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span>{t('common.rows_per_page')}</span>
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-2">
+                    <span className="uppercase tracking-wide">Afișează</span>
                     <select
                         value={pageSize}
                         onChange={handlePageSize}
-                        className="border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                         {PAGE_SIZE_OPTIONS.map(s => (
                             <option key={s} value={s}>{s}</option>
                         ))}
                     </select>
                 </div>
-
-                {/* Page info */}
-                <span className="text-xs text-slate-400 dark:text-slate-500">
-                    {t('common.showing', {
-                        from: sorted.length === 0 ? 0 : from + 1,
-                        to: Math.min(from + pageSize, sorted.length),
-                        count: sorted.length
-                    })}
-                </span>
-
-                {/* Prev / Next */}
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={safePage <= 1}
-                        className="px-3 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                    >
-                        &larr;
-                    </button>
-
-                    <span className="px-3 py-1 text-xs text-slate-500 dark:text-slate-400">
-                        {t('common.page_of', { current: safePage, total: totalPages })}
-                    </span>
-
-                    <button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={safePage >= totalPages}
-                        className="px-3 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                    >
-                        &rarr;
-                    </button>
+                <div className="flex items-center gap-4">
+                    <span>Pagina {safePage} din {totalPages || 1}</span>
+                    <div className="flex gap-1">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={safePage <= 1}
+                            className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={safePage >= totalPages || totalPages === 0}
+                            className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
