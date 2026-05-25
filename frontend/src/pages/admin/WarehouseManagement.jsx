@@ -725,13 +725,13 @@ export default function WarehouseManagement() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 w-12 text-center">NR.</th>
-                                <th className="px-6 py-4">ARTICOL</th>
-                                <th className="px-6 py-4 text-center">U.M.</th>
-                                <th className="px-6 py-4 text-center">INTRĂRI</th>
-                                <th className="px-6 py-4 text-center">IEȘIRI</th>
-                                <th className="px-6 py-4 text-center">STOC CURENT</th>
-                                <th className="px-6 py-4 text-right">ACȚIUNI</th>
+                                <th className="px-6 py-3 w-12 text-center">NR.</th>
+                                <th className="px-6 py-3">ARTICOL</th>
+                                <th className="px-6 py-3 text-center">U.M.</th>
+                                <th className="px-6 py-3 text-center">INTRĂRI</th>
+                                <th className="px-6 py-3 text-center">IEȘIRI</th>
+                                <th className="px-6 py-3 text-center">STOC CURENT</th>
+                                <th className="px-6 py-3 text-right">ACȚIUNI</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -758,23 +758,25 @@ export default function WarehouseManagement() {
                                         }}
                                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                                     >
-                                        <td className="px-6 py-4 text-center text-slate-500 font-medium">
+                                        <td className="px-6 py-3 text-center text-slate-500 font-medium">
                                             {(currentPage - 1) * itemsPerPage + index + 1}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-slate-900 dark:text-white truncate">{item.name}</div>
-                                            {item.inventory_code && (
-                                                <div className="flex flex-col gap-0.5 mt-1">
-                                                    {item.model && <span className="text-xs text-slate-500 font-medium">Model: {item.model}</span>}
-                                                    <span className="text-[10px] text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit">{item.inventory_code}</span>
-                                                </div>
-                                            )}
+                                        <td className="px-6 py-3">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{item.name}</span>
+                                                {item.inventory_code && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        {item.model && <span className="text-[11px] text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-2">Mod: {item.model}</span>}
+                                                        <span className="text-[10px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{item.inventory_code}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center text-slate-600 dark:text-slate-400 font-medium">
+                                        <td className="px-6 py-3 text-center text-slate-600 dark:text-slate-400 font-medium">
                                             {item.unit}
                                         </td>
                                         {item.inventory_code ? (
-                                            <td colSpan="3" className="px-6 py-2 text-center">
+                                            <td colSpan="3" className="px-6 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     {(item.current_site_id || item.current_holder_id) ? (
                                                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
@@ -802,20 +804,20 @@ export default function WarehouseManagement() {
                                             </td>
                                         ) : (
                                             <>
-                                                <td className="px-6 py-4 text-center text-blue-600 dark:text-blue-400 font-bold">
+                                                <td className="px-6 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">
                                                     {item.total_in > 0 ? `+${item.total_in}` : '-'}
                                                 </td>
-                                                <td className="px-6 py-4 text-center text-rose-500 dark:text-rose-400 font-bold">
+                                                <td className="px-6 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">
                                                     {item.total_out > 0 ? `-${item.total_out}` : '-'}
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="px-6 py-3 text-center">
                                                     <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm border ${item.total_quantity <= 0 ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-900/50' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50'}`}>
                                                         {item.total_quantity > 0 ? `• ${item.total_quantity}` : '0'}
                                                     </div>
                                                 </td>
                                             </>
                                         )}
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-3 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                                 {item.inventory_code ? (
                                                     <>
