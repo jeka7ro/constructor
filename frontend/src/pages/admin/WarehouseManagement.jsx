@@ -896,28 +896,40 @@ export default function WarehouseManagement() {
                                         </div>
                                         
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană</label>
-                                                <MultiSelectDropdown
-                                                    options={users}
-                                                    selectedIds={txForm.assigned_to_user_ids}
-                                                    onChange={ids => setTxForm({ ...txForm, assigned_to_user_ids: ids })}
-                                                    placeholder="Alege angajați..."
-                                                    searchPlaceholder="Caută angajat..."
-                                                    displayFn={u => `${u.full_name}${u.employee_code ? ` (${u.employee_code})` : ''}`}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Utilaj / Mașină</label>
-                                                <MultiSelectDropdown
-                                                    options={vehicles}
-                                                    selectedIds={txForm.assigned_to_vehicle_ids}
-                                                    onChange={ids => setTxForm({ ...txForm, assigned_to_vehicle_ids: ids })}
-                                                    placeholder="Alege utilaje..."
-                                                    searchPlaceholder="Caută utilaj..."
-                                                    displayFn={v => `${v.name}${v.plate_number ? ` (${v.plate_number})` : ''}`}
-                                                />
-                                            </div>
+                                            {(() => {
+                                                const filteredUsers = txForm.site_id 
+                                                    ? users.filter(u => u.site_id === txForm.site_id) 
+                                                    : users;
+                                                const filteredVehicles = txForm.site_id 
+                                                    ? vehicles.filter(v => v.site_ids && v.site_ids.includes(txForm.site_id)) 
+                                                    : vehicles;
+                                                return (
+                                                    <>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană</label>
+                                                            <MultiSelectDropdown
+                                                                options={filteredUsers}
+                                                                selectedIds={txForm.assigned_to_user_ids}
+                                                                onChange={ids => setTxForm({ ...txForm, assigned_to_user_ids: ids })}
+                                                                placeholder="Alege angajați..."
+                                                                searchPlaceholder="Caută angajat..."
+                                                                displayFn={u => `${u.full_name}${u.employee_code ? ` (${u.employee_code})` : ''}`}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Utilaj / Mașină</label>
+                                                            <MultiSelectDropdown
+                                                                options={filteredVehicles}
+                                                                selectedIds={txForm.assigned_to_vehicle_ids}
+                                                                onChange={ids => setTxForm({ ...txForm, assigned_to_vehicle_ids: ids })}
+                                                                placeholder="Alege utilaje..."
+                                                                searchPlaceholder="Caută utilaj..."
+                                                                displayFn={v => `${v.name}${v.plate_number ? ` (${v.plate_number})` : ''}`}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )
+                                            })()}
                                         </div>
                                     </>
                                 )}
