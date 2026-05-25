@@ -115,20 +115,19 @@ export default function WarehouseManagement() {
     const [showHistoryModal, setShowHistoryModal] = useState(false)
 
     useEffect(() => {
-        fetchItems()
         setCurrentPage(1)
         setSearchQuery('')
     }, [activeTab])
 
     useEffect(() => {
+        fetchItems()
         fetchDropdownData()
     }, [])
 
     const fetchItems = async () => {
         try {
             setLoading(true)
-            const params = activeTab === 'TOATE' ? {} : { category: activeTab }
-            const res = await api.get('/warehouse/items', { params })
+            const res = await api.get('/warehouse/items')
             setItems(res.data)
         } catch (error) {
             showToast('Eroare la încărcarea stocurilor', 'error')
@@ -363,11 +362,13 @@ export default function WarehouseManagement() {
     }
 
     // Filtering & Pagination for Items
-    const filteredItems = items.filter(i => 
-        i.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        i.unit.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(i.total_quantity).includes(searchQuery)
-    )
+    const filteredItems = items.filter(i => {
+        const matchesTab = activeTab === 'TOATE' || i.category === activeTab;
+        const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              i.unit.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              String(i.total_quantity).includes(searchQuery);
+        return matchesTab && matchesSearch;
+    })
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
     const paginatedItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
