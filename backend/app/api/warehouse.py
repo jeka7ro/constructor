@@ -324,7 +324,7 @@ async def edit_transaction(
     return {"success": True, "new_total": db_item.total_quantity}
 
 class ToolCheckout(BaseModel):
-    site_id: str
+    site_id: Optional[str] = None
     user_id: Optional[str] = None
     date: str
 
@@ -339,9 +339,15 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
     if db_item.is_defective:
         raise HTTPException(status_code=400, detail="Nu se poate repartiza o sculă defectă")
 
+    site_id_val = data.site_id if data.site_id and data.site_id != "null" else None
+    user_id_val = data.user_id if data.user_id and data.user_id != "null" else None
+
+    if not site_id_val and not user_id_val:
+        raise HTTPException(status_code=400, detail="Trebuie să selectezi un șantier sau un angajat")
+
     # update status
-    db_item.current_site_id = data.site_id
-    db_item.current_holder_id = data.user_id if data.user_id and data.user_id != "null" else None
+    db_item.current_site_id = site_id_val
+    db_item.current_holder_id = user_id_val
     from datetime import datetime
     db_item.checked_out_at = datetime.utcnow()
 
@@ -355,8 +361,8 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
         quantity=1.0,
         date=date_obj,
         operated_by_id=current_admin.id,
-        site_id=data.site_id,
-        assigned_to_user_id=data.user_id if data.user_id and data.user_id != "null" else None,
+        site_id=site_id_val,
+        assigned_to_user_id=user_id_val,
         notes="Repartizare"
     )
     db.add(tx)

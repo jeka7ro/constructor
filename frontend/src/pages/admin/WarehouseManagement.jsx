@@ -774,16 +774,18 @@ export default function WarehouseManagement() {
                                             {item.unit}
                                         </td>
                                         {item.inventory_code ? (
-                                            <td colSpan="3" className="px-6 py-4 text-center">
-                                                <div className="flex flex-col items-center gap-2">
+                                            <td colSpan="3" className="px-6 py-2 text-center">
+                                                <div className="flex items-center justify-center gap-2">
                                                     {(item.current_site_id || item.current_holder_id) ? (
-                                                        <div className={`inline-flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
-                                                            <div className="flex items-center gap-1.5">
+                                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
                                                                 <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                                                                Repartizată
+                                                                Repartizată:
                                                             </div>
-                                                            {item.current_site_name && <span className="font-medium opacity-90">🏢 {item.current_site_name}</span>}
-                                                            {item.current_holder_name && <span className="font-medium opacity-90">👤 {item.current_holder_name}</span>}
+                                                            <div className="flex items-center gap-2 text-[11px] font-semibold opacity-90 truncate max-w-[200px]">
+                                                                {item.current_site_name && <span>🏢 {item.current_site_name}</span>}
+                                                                {item.current_holder_name && <span>👤 {item.current_holder_name}</span>}
+                                                            </div>
                                                         </div>
                                                     ) : (
                                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
@@ -792,7 +794,7 @@ export default function WarehouseManagement() {
                                                         </div>
                                                     )}
                                                     {item.is_defective && (
-                                                        <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider bg-red-100 px-2 py-0.5 rounded-sm">
+                                                        <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider bg-red-100 px-2 py-0.5 rounded-sm shrink-0">
                                                             Defect
                                                         </span>
                                                     )}
@@ -949,31 +951,84 @@ export default function WarehouseManagement() {
                         <div className="p-6">
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{toolModal.item?.name} ({toolModal.item?.inventory_code})</p>
                             <form onSubmit={handleCheckOut} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație (Opțional)</label>
-                                    <select
-                                        value={toolModal.siteId}
-                                        onChange={e => setToolModal({ ...toolModal, siteId: e.target.value })}
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                    >
-                                        <option value="">Nu asocia cu șantier...</option>
-                                        {sites.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană (Opțional)</label>
-                                    <select
-                                        value={toolModal.userId}
-                                        onChange={e => setToolModal({ ...toolModal, userId: e.target.value })}
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                    >
-                                        <option value="">Nu asocia cu angajat...</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>{u.full_name} {u.employee_code ? `(${u.employee_code})` : ''}</option>
-                                        ))}
-                                    </select>
+                                <div className="space-y-4">
+                                    {/* Searchable Site Select using datalist */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație (Opțional)</label>
+                                        <div className="relative">
+                                            <input
+                                                list="sites-datalist"
+                                                type="text"
+                                                placeholder="Caută și selectează șantier..."
+                                                value={sites.find(s => s.id === toolModal.siteId)?.name || toolModal._siteSearch || ''}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setToolModal({ ...toolModal, _siteSearch: val, siteId: '' });
+                                                    const matchedSite = sites.find(s => s.name === val);
+                                                    if (matchedSite) {
+                                                        setToolModal({ ...toolModal, siteId: matchedSite.id, _siteSearch: '' });
+                                                    }
+                                                }}
+                                                onBlur={e => {
+                                                    if (!toolModal.siteId) {
+                                                        setToolModal({ ...toolModal, _siteSearch: '' });
+                                                    }
+                                                }}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            />
+                                            <datalist id="sites-datalist">
+                                                {sites.map(s => (
+                                                    <option key={s.id} value={s.name} />
+                                                ))}
+                                            </datalist>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                                <Search className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        {toolModal.siteId && (
+                                            <p className="text-xs text-emerald-600 mt-1 ml-2 font-medium">✓ Șantier selectat</p>
+                                        )}
+                                    </div>
+
+                                    {/* Searchable User Select using datalist */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană (Opțional)</label>
+                                        <div className="relative">
+                                            <input
+                                                list="users-datalist"
+                                                type="text"
+                                                placeholder="Caută și selectează angajat..."
+                                                value={users.find(u => u.id === toolModal.userId)?.full_name || toolModal._userSearch || ''}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setToolModal({ ...toolModal, _userSearch: val, userId: '' });
+                                                    // if typed value perfectly matches a user name, select it
+                                                    const matchedUser = users.find(u => u.full_name === val);
+                                                    if (matchedUser) {
+                                                        setToolModal({ ...toolModal, userId: matchedUser.id, _userSearch: '' });
+                                                    }
+                                                }}
+                                                onBlur={e => {
+                                                    // validate if selected valid user
+                                                    if (!toolModal.userId) {
+                                                        setToolModal({ ...toolModal, _userSearch: '' });
+                                                    }
+                                                }}
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                            />
+                                            <datalist id="users-datalist">
+                                                {users.map(u => (
+                                                    <option key={u.id} value={u.full_name}>{u.employee_code || ''}</option>
+                                                ))}
+                                            </datalist>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                                <Search className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        {toolModal.userId && (
+                                            <p className="text-xs text-blue-600 mt-1 ml-2 font-medium">✓ Angajat selectat</p>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Data Repartizare</label>
