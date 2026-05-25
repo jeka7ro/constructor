@@ -7,6 +7,7 @@ export default function AccommodationsManagement() {
     const { showToast } = useUIStore()
     const [accommodations, setAccommodations] = useState([])
     const [allUsers, setAllUsers] = useState([])
+    const [allSites, setAllSites] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
@@ -24,7 +25,10 @@ export default function AccommodationsManagement() {
     const [saving, setSaving] = useState(false)
 
     const [showAssignModal, setShowAssignModal] = useState(false)
-    const [assignForm, setAssignForm] = useState({ user_id: '', assigned_from: '', assigned_until: '' })
+    const [selectedUserIds, setSelectedUserIds] = useState([])
+    const [assignDates, setAssignDates] = useState({ assigned_from: '', assigned_until: '' })
+    const [workerSearch, setWorkerSearch] = useState('')
+    const [siteFilter, setSiteFilter] = useState('')
     const [assigning, setAssigning] = useState(false)
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
@@ -34,13 +38,16 @@ export default function AccommodationsManagement() {
     const fetchAll = async () => {
         setLoading(true)
         try {
-            const [accRes, usersRes] = await Promise.all([
+            const [accRes, usersRes, sitesRes] = await Promise.all([
                 api.get('/admin/accommodations/'),
-                api.get('/admin/users/', { params: { page_size: 1000 } })
+                api.get('/admin/users/', { params: { page_size: 1000 } }),
+                api.get('/admin/sites/', { params: { page_size: 1000 } })
             ])
             setAccommodations(accRes.data)
             const list = Array.isArray(usersRes.data?.users) ? usersRes.data.users : (Array.isArray(usersRes.data) ? usersRes.data : [])
             setAllUsers(list.filter(u => u.is_active !== false))
+            const sitesList = Array.isArray(sitesRes.data?.sites) ? sitesRes.data.sites : (Array.isArray(sitesRes.data) ? sitesRes.data : [])
+            setAllSites(sitesList)
         } catch {
             showToast('Eroare la încărcare', 'error')
         } finally {
@@ -95,21 +102,43 @@ export default function AccommodationsManagement() {
 
     const handleAssign = async (e) => {
         e.preventDefault()
-        if (!assignForm.user_id) { showToast('Selectează un angajat', 'error'); return }
+        if (!selectedUserIds.length) { showToast('Selectează cel puțin un angajat', 'error'); return }
         setAssigning(true)
-        try {
-            await api.post(`/admin/accommodations/${detailAcc.id}/assign`, {
-                user_id: assignForm.user_id,
-                assigned_from: assignForm.assigned_from || null,
-                assigned_until: assignForm.assigned_until || null,
-            })
-            showToast('Muncitor repartizat', 'success')
-            setShowAssignModal(false)
-            setAssignForm({ user_id: '', assigned_from: '', assigned_until: '' })
-            openDetail(detailAcc)
-        } catch (err) {
-            showToast(err.response?.data?.detail || 'Eroare la repartizare', 'error')
-        } finally { setAssigning(false) }
+        let added = 0, errors = 0
+        for (const uid of selectedUserIds) {
+            try {
+                await api.post(`/admin/accommodations/${detailAcc.id}/assign`, {
+                    user_id: uid,
+                    assigned_from: assignDates.assigned_from || null,
+                    assigned_until: assignDates.assigned_until || null,
+                })
+                added++
+            } catch { errors++ }
+        }
+        if (added > 0) showToast(`${added} muncitor${added > 1 ? 'i' : ''} repartiza${added > 1 ? 'ți' : 't'}`, 'success')
+        if (errors > 0) showToast(`${errors} erori la repartizare (deja cazați?)`, 'error')
+        setShowAssignModal(false)
+        setSelectedUserIds([])
+        setAssignDates({ assigned_from: '', assigned_until: '' })
+        setWorkerSearch('')
+        if (detailAcc) openDetail(detailAcc)
+        fetchAll()
+        setAssigning(false)
+    }
+
+    const openAssignModal = async (acc) => {
+        setAssigning(false)
+        setSelectedUserIds([])
+        setAssignDates({ assigned_from: '', assigned_until: '' })
+        setWorkerSearch('')
+        setSiteFilter('')
+        if (!detailAcc || detailAcc.id !== acc.id) {
+            try {
+                const res = await api.get(`/admin/accommodations/${acc.id}`)
+                setDetailAcc(res.data)
+            } catch { setDetailAcc(acc) }
+        }
+        setShowAssignModal(true)
     }
 
     const handleRemoveAssignment = (assignmentId) => {
@@ -181,9 +210,9 @@ export default function AccommodationsManagement() {
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white text-sm font-bold transition-all">
                                     <Edit2 className="w-4 h-4" /> Editează
                                 </button>
-                                <button onClick={() => { setAssignForm({ user_id: '', assigned_from: '', assigned_until: '' }); setShowAssignModal(true) }}
+                                <button onClick={() => openAssignModal(detailAcc)}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all">
-                                    <UserPlus className="w-4 h-4" /> Adaugă Muncitor
+                                    <UserPlus className="w-4 h-4" /> Adaugă Muncitori
                                 </button>
                             </div>
                         </div>
@@ -240,49 +269,124 @@ export default function AccommodationsManagement() {
                     </div>
                 </div>
 
-                {/* Assign Modal */}
-                {showAssignModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAssignModal(false)}>
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <UserPlus className="w-5 h-5 text-slate-500" /> Adaugă Muncitor
-                                </h2>
-                                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
+                {/* Multi-select Assign Modal — detail view */}
+                {showAssignModal && detailAcc && (() => {
+                    const alreadyIn = detailAcc.assignments?.map(a => a.user_id) || []
+                    const available = allUsers.filter(u => !alreadyIn.includes(u.id))
+                    const filtered = available.filter(u => {
+                        const mName = u.full_name?.toLowerCase().includes(workerSearch.toLowerCase())
+                        const mSite = siteFilter ? u.site_id === siteFilter : true
+                        return mName && mSite
+                    })
+                    const allChecked = filtered.length > 0 && filtered.every(u => selectedUserIds.includes(u.id))
+                    return (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAssignModal(false)}>
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                                {/* Header */}
+                                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                            <UserPlus className="w-5 h-5 text-blue-500" /> Adaugă Muncitori
+                                        </h2>
+                                        <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} disponibili &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} selectați</span></p>
+                                    </div>
+                                    <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
+                                </div>
+
+                                {/* Search + Filter + Select All */}
+                                <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Caută angajat..."
+                                                value={workerSearch}
+                                                onChange={e => setWorkerSearch(e.target.value)}
+                                                autoFocus
+                                                className="w-full h-9 pl-10 pr-4 bg-slate-50 dark:bg-slate-800 text-sm border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            />
+                                        </div>
+                                        <select
+                                            value={siteFilter}
+                                            onChange={e => setSiteFilter(e.target.value)}
+                                            className="h-9 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all max-w-[160px] truncate"
+                                        >
+                                            <option value="">Toate șantierele</option>
+                                            {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 dark:text-slate-300 font-semibold select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={allChecked}
+                                                onChange={() => {
+                                                    if (allChecked) setSelectedUserIds(p => p.filter(id => !filtered.map(u => u.id).includes(id)))
+                                                    else setSelectedUserIds(p => [...new Set([...p, ...filtered.map(u => u.id)])])
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            />
+                                            Selectează Toți ({filtered.length})
+                                        </label>
+                                        {selectedUserIds.length > 0 && (
+                                            <button onClick={() => setSelectedUserIds([])} className="text-xs text-slate-400 hover:text-red-500 transition-colors">
+                                                Golire selecție
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Worker list */}
+                                <div className="overflow-y-auto flex-1 px-2 py-2">
+                                    {filtered.length === 0 ? (
+                                        <p className="text-center text-slate-400 text-sm py-8">Nu s-a găsit niciun angajat disponibil.</p>
+                                    ) : filtered.map(u => {
+                                        const checked = selectedUserIds.includes(u.id)
+                                        return (
+                                            <label key={u.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${checked ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() => setSelectedUserIds(p => checked ? p.filter(id => id !== u.id) : [...p, u.id])}
+                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                                                />
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                                                    {u.full_name?.charAt(0) || '?'}
+                                                </div>
+                                                <span className={`text-sm font-semibold ${checked ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>{u.full_name}</span>
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+
+                                {/* Dates + Submit */}
+                                <form onSubmit={handleAssign} className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">De la</label>
+                                            <input type="date" value={assignDates.assigned_from} onChange={e => setAssignDates(p => ({ ...p, assigned_from: e.target.value }))}
+                                                className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Până la</label>
+                                            <input type="date" value={assignDates.assigned_until} onChange={e => setAssignDates(p => ({ ...p, assigned_until: e.target.value }))}
+                                                className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 justify-end">
+                                        <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                                        <button type="submit" disabled={assigning || !selectedUserIds.length}
+                                            className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
+                                            {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                                            Adaugă {selectedUserIds.length > 0 ? `(${selectedUserIds.length})` : ''}
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                            <form onSubmit={handleAssign} className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Angajat *</label>
-                                    <select value={assignForm.user_id} onChange={e => setAssignForm(p => ({ ...p, user_id: e.target.value }))}
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all">
-                                        <option value="">Selectează angajat...</option>
-                                        {unassignedUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">De la</label>
-                                        <input type="date" value={assignForm.assigned_from} onChange={e => setAssignForm(p => ({ ...p, assigned_from: e.target.value }))}
-                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Până la</label>
-                                        <input type="date" value={assignForm.assigned_until} onChange={e => setAssignForm(p => ({ ...p, assigned_until: e.target.value }))}
-                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
-                                    </div>
-                                </div>
-                                <div className="flex gap-3 justify-end pt-2">
-                                    <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
-                                    <button type="submit" disabled={assigning || !assignForm.user_id}
-                                        className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
-                                        {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                                        Adaugă
-                                    </button>
-                                </div>
-                            </form>
                         </div>
-                    </div>
-                )}
+                    )
+                })()}
 
                 <ConfirmModal state={confirmModal} onClose={() => setConfirmModal(p => ({ ...p, isOpen: false }))} />
                 <FormModal show={showFormModal} editing={editingAcc} form={form} setForm={setForm} saving={saving} onSave={handleSave} onClose={() => setShowFormModal(false)} />
@@ -411,13 +515,9 @@ export default function AccommodationsManagement() {
                                                 <button
                                                     onClick={async (e) => {
                                                         e.stopPropagation()
-                                                        // Load full detail first, then open assign modal
-                                                        const res = await api.get(`/admin/accommodations/${acc.id}`)
-                                                        setDetailAcc(res.data)
-                                                        setAssignForm({ user_id: '', assigned_from: '', assigned_until: '' })
-                                                        setShowAssignModal(true)
+                                                        await openAssignModal(acc)
                                                     }}
-                                                    title="Adaugă muncitor la cazare"
+                                                    title="Adaugă muncitori la cazare"
                                                     className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
                                                 >
                                                     <UserPlus className="w-4 h-4" />
@@ -462,54 +562,105 @@ export default function AccommodationsManagement() {
             <FormModal show={showFormModal} editing={editingAcc} form={form} setForm={setForm} saving={saving} onSave={handleSave} onClose={() => setShowFormModal(false)} />
             <ConfirmModal state={confirmModal} onClose={() => setConfirmModal(p => ({ ...p, isOpen: false }))} />
 
-            {/* Assign modal — also available from list view row UserPlus button */}
-            {showAssignModal && detailAcc && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAssignModal(false)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <UserPlus className="w-5 h-5 text-blue-500" /> Adaugă Muncitor
-                                </h2>
-                                <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name}</p>
+            {/* Multi-select Assign Modal — list view */}
+            {showAssignModal && detailAcc && (() => {
+                const alreadyIn = detailAcc.assignments?.map(a => a.user_id) || []
+                const available = allUsers.filter(u => !alreadyIn.includes(u.id))
+                const filteredW = available.filter(u => {
+                    const mName = u.full_name?.toLowerCase().includes(workerSearch.toLowerCase())
+                    const mSite = siteFilter ? u.site_id === siteFilter : true
+                    return mName && mSite
+                })
+                const allChecked = filteredW.length > 0 && filteredW.every(u => selectedUserIds.includes(u.id))
+                return (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAssignModal(false)}>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <UserPlus className="w-5 h-5 text-blue-500" /> Adaugă Muncitori
+                                    </h2>
+                                    <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} disponibili &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} selectați</span></p>
+                                </div>
+                                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
                             </div>
-                            <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
+                            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input type="text" placeholder="Caută angajat..." value={workerSearch}
+                                            onChange={e => setWorkerSearch(e.target.value)} autoFocus
+                                            className="w-full h-9 pl-10 pr-4 bg-slate-50 dark:bg-slate-800 text-sm border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                                    </div>
+                                    <select
+                                        value={siteFilter}
+                                        onChange={e => setSiteFilter(e.target.value)}
+                                        className="h-9 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all max-w-[160px] truncate"
+                                    >
+                                        <option value="">Toate șantierele</option>
+                                        {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 dark:text-slate-300 font-semibold select-none">
+                                        <input type="checkbox" checked={allChecked}
+                                            onChange={() => {
+                                                if (allChecked) setSelectedUserIds(p => p.filter(id => !filteredW.map(u => u.id).includes(id)))
+                                                else setSelectedUserIds(p => [...new Set([...p, ...filteredW.map(u => u.id)])])
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        />
+                                        Selectează Toți ({filteredW.length})
+                                    </label>
+                                    {selectedUserIds.length > 0 && (
+                                        <button onClick={() => setSelectedUserIds([])} className="text-xs text-slate-400 hover:text-red-500 transition-colors">Golire selecție</button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto flex-1 px-2 py-2">
+                                {filteredW.length === 0 ? (
+                                    <p className="text-center text-slate-400 text-sm py-8">Nu s-a găsit niciun angajat disponibil.</p>
+                                ) : filteredW.map(u => {
+                                    const checked = selectedUserIds.includes(u.id)
+                                    return (
+                                        <label key={u.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${checked ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                                            <input type="checkbox" checked={checked}
+                                                onChange={() => setSelectedUserIds(p => checked ? p.filter(id => id !== u.id) : [...p, u.id])}
+                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0" />
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                                                {u.full_name?.charAt(0) || '?'}
+                                            </div>
+                                            <span className={`text-sm font-semibold ${checked ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>{u.full_name}</span>
+                                        </label>
+                                    )
+                                })}
+                            </div>
+                            <form onSubmit={handleAssign} className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">De la</label>
+                                        <input type="date" value={assignDates.assigned_from} onChange={e => setAssignDates(p => ({ ...p, assigned_from: e.target.value }))}
+                                            className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Până la</label>
+                                        <input type="date" value={assignDates.assigned_until} onChange={e => setAssignDates(p => ({ ...p, assigned_until: e.target.value }))}
+                                            className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 justify-end">
+                                    <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                                    <button type="submit" disabled={assigning || !selectedUserIds.length}
+                                        className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
+                                        {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                                        Adaugă {selectedUserIds.length > 0 ? `(${selectedUserIds.length})` : ''}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        <form onSubmit={handleAssign} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Angajat *</label>
-                                <select value={assignForm.user_id} onChange={e => setAssignForm(p => ({ ...p, user_id: e.target.value }))}
-                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all">
-                                    <option value="">Selectează angajat...</option>
-                                    {allUsers.filter(u => !detailAcc.assignments?.some(a => a.user_id === u.id)).map(u => (
-                                        <option key={u.id} value={u.id}>{u.full_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">De la</label>
-                                    <input type="date" value={assignForm.assigned_from} onChange={e => setAssignForm(p => ({ ...p, assigned_from: e.target.value }))}
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Până la</label>
-                                    <input type="date" value={assignForm.assigned_until} onChange={e => setAssignForm(p => ({ ...p, assigned_until: e.target.value }))}
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
-                                </div>
-                            </div>
-                            <div className="flex gap-3 justify-end pt-2">
-                                <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
-                                <button type="submit" disabled={assigning || !assignForm.user_id}
-                                    className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
-                                    {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                                    Adaugă
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                )
+            })()}
         </>
     )
 }
