@@ -63,9 +63,9 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
             WarehouseTransaction.item_id,
             WarehouseTransaction.transaction_type,
             func.sum(WarehouseTransaction.quantity).label('total')
-        ).filter(WarehouseTransaction.item_id.in_([i.id for i in items])).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type).all()
+        ).filter(WarehouseTransaction.item_id.in_([i[0].id for i in items])).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type).all()
         
-        for i, holder_name in items:
+        for item_id, tx_type, total in stats:
             if tx_type == "IN":
                 in_map[item_id] = total
             else:
