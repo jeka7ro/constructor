@@ -287,9 +287,11 @@ def get_site_details(
     vehicles_list = [
         {
             "id": v.id,
-            "brand": v.brand,
-            "model": v.model,
+            "name": v.name,
+            "type": v.type,
             "plate_number": v.plate_number,
+            "chassis_number": v.chassis_number,
+            "year": v.year,
             "assigned_at": str(va.created_at)
         }
         for va, v in vehicles_assigned
