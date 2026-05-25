@@ -618,7 +618,9 @@ export default function WarehouseManagement() {
                                     </th>
                                     <th className="px-6 py-4">{t('warehouse.date')}</th>
                                     <th className="px-6 py-4">{t('warehouse.type')}</th>
-                                    <th className="px-6 py-4 text-right">{t('warehouse.quantity')}</th>
+                                    {!historyItem?.inventory_code && (
+                                        <th className="px-6 py-4 text-right">{t('warehouse.quantity')}</th>
+                                    )}
                                     <th className="px-6 py-4">{t('warehouse.site')}</th>
                                     <th className="px-6 py-4">{t('warehouse.recipient')}</th>
                                     <th className="px-6 py-4">Notițe / Atașament</th>
@@ -628,7 +630,7 @@ export default function WarehouseManagement() {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredHistory.length === 0 ? (
-                                    <tr><td colSpan="9" className="px-6 py-12 text-center text-slate-500">Nu s-au găsit tranzacții.</td></tr>
+                                    <tr><td colSpan={historyItem?.inventory_code ? "8" : "9"} className="px-6 py-12 text-center text-slate-500">Nu s-au găsit tranzacții.</td></tr>
                                 ) : (
                                     filteredHistory.slice((historyCurrentPage - 1) * historyItemsPerPage, historyCurrentPage * historyItemsPerPage).map(t => (
                                         <tr key={t.id} className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors ${selectedTxIds.includes(t.id) ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
@@ -653,9 +655,11 @@ export default function WarehouseManagement() {
                                                     {t.transaction_type}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white">
-                                                {t.transaction_type === 'IN' ? '+' : '-'}{t.quantity}
-                                            </td>
+                                            {!historyItem?.inventory_code && (
+                                                <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white">
+                                                    {t.transaction_type === 'IN' ? '+' : '-'}{t.quantity}
+                                                </td>
+                                            )}
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                                                 {t.assigned_site || 'Companie General'}
                                             </td>
