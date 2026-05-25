@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -43,6 +43,20 @@ export default function AdminDashboard() {
         return () => clearInterval(t)
     }, [])
 
+    // Fetch open complaints count for badge
+    const [openComplaintsCount, setOpenComplaintsCount] = useState(0)
+    const fetchComplaintsCount = async () => {
+        try {
+            const res = await api.get('/admin/complaints/unread-count')
+            setOpenComplaintsCount(res.data?.count || 0)
+        } catch { /* silently */ }
+    }
+    useEffect(() => {
+        fetchComplaintsCount()
+        const t = setInterval(fetchComplaintsCount, 60000)
+        return () => clearInterval(t)
+    }, [])
+
     // Close panel on outside click
     useEffect(() => {
         const handler = (e) => {
@@ -68,6 +82,8 @@ export default function AdminDashboard() {
         { path: '/admin/teams', icon: Users, label: t('nav.teams') },
         { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
         { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
+        { path: '/admin/accommodations', icon: BedDouble, label: 'Cazări' },
+        { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
         { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
         { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
         { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
@@ -132,7 +148,15 @@ export default function AdminDashboard() {
                             }
                         >
                             <item.icon className="w-5 h-5 shrink-0" />
-                            {sidebarOpen && <span className="text-sm truncate">{item.label}</span>}
+                            {sidebarOpen && <span className="text-sm truncate flex-1">{item.label}</span>}
+                            {sidebarOpen && item.badge > 0 && (
+                                <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                    {item.badge > 99 ? '99+' : item.badge}
+                                </span>
+                            )}
+                            {!sidebarOpen && item.badge > 0 && (
+                                <span className="absolute left-7 top-1 w-2 h-2 bg-orange-500 rounded-full" />
+                            )}
                         </NavLink>
                     ))}
                 </nav>

@@ -29,6 +29,9 @@ const TeamsManagement = lazy(() => import('./pages/admin/TeamsManagement'))
 const NotificationsPage = lazy(() => import('./pages/admin/NotificationsPage'))
 const FleetManagement = lazy(() => import('./pages/admin/FleetManagement'))
 const WarehouseManagement = lazy(() => import('./pages/admin/WarehouseManagement'))
+const ComplaintsManagement = lazy(() => import('./pages/admin/ComplaintsManagement'))
+const AccommodationsManagement = lazy(() => import('./pages/admin/AccommodationsManagement'))
+const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
 
@@ -71,6 +74,8 @@ function App() {
                         <Route path="teams" element={<TeamsManagement />} />
                         <Route path="fleet" element={<FleetManagement />} />
                         <Route path="warehouse" element={<WarehouseManagement />} />
+                        <Route path="complaints" element={<ComplaintsManagement />} />
+                        <Route path="accommodations" element={<AccommodationsManagement />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                     </Route>
 
@@ -86,6 +91,7 @@ function App() {
                             <Route path="/timesheets" element={<TimesheetsPage />} />
                             <Route path="/timesheets/new" element={<TimesheetForm />} />
                             <Route path="/timesheets/:id" element={<TimesheetForm />} />
+                            <Route path="/sesizari" element={<EmployeeComplaints />} />
                         </>
                     ) : null}
 

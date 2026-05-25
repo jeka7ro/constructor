@@ -7,7 +7,7 @@ import {
     Clock, Play, Square, Coffee, MapPin, Loader2, Timer, Calendar,
     ClipboardList, Plus, Trash2, CheckCircle, CheckCircle2, AlertCircle, ShieldAlert,
     Navigation, ChevronDown, ChevronRight, LogOut, Users, Settings, XCircle,
-    Building2, ShieldCheck, ArrowLeftRight
+    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning
 } from 'lucide-react'
 import TeamLeaderPanel from './TeamLeaderPanel'
 import SiteManagerPanel from './SiteManagerPanel'
@@ -758,6 +758,13 @@ export default function ClockInPage() {
                             title={t('common.my_history')}
                         >
                             <Calendar className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => navigate('/sesizari')}
+                            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            title="Sesizări și Reclamații"
+                        >
+                            <MessageSquareWarning className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => { logout(); navigate('/login'); }}

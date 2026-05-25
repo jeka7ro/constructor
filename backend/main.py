@@ -11,7 +11,7 @@ from pathlib import Path
 load_dotenv()
 
 # Import routers
-from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients
+from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients, admin_complaints, admin_accommodations
 
 import threading
 
@@ -199,6 +199,54 @@ app.include_router(admin_teams.router, prefix="/api", tags=["admin-teams"])
 app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
 app.include_router(warehouse.router, prefix="/api", tags=["warehouse"])
 app.include_router(admin_clients.router, prefix="/api/admin/clients", tags=["admin-clients"])
+app.include_router(admin_complaints.router, prefix="/api", tags=["admin-complaints"])
+app.include_router(admin_accommodations.router, prefix="/api", tags=["admin-accommodations"])
+
+# ─── User: Sesizari ───────────────────────────────────────────────────────────
+from fastapi import Body
+from app.api.auth import get_current_user
+from app.models import Complaint as ComplaintModel, User as UserModel
+from app.database import get_db as _get_db
+
+@app.post("/api/user/complaints", tags=["user-complaints"], status_code=201)
+def user_submit_complaint(
+    title: str = Body(...),
+    content: str = Body(...),
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    c = ComplaintModel(
+        organization_id=current_user.organization_id,
+        user_id=current_user.id,
+        title=title,
+        content=content,
+        status="open",
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return {"id": c.id, "title": c.title, "status": c.status, "created_at": str(c.created_at)}
+
+@app.get("/api/user/complaints", tags=["user-complaints"])
+def user_list_complaints(
+    db=Depends(_get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    complaints = db.query(ComplaintModel).filter(
+        ComplaintModel.user_id == current_user.id
+    ).order_by(ComplaintModel.created_at.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "title": c.title,
+            "content": c.content,
+            "status": c.status,
+            "admin_response": c.admin_response,
+            "responded_at": str(c.responded_at) if c.responded_at else None,
+            "created_at": str(c.created_at),
+        }
+        for c in complaints
+    ]
 
 # Serve uploaded files (ID cards, etc.)
 uploads_dir = Path(__file__).parent / "uploads"

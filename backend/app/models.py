@@ -511,3 +511,71 @@ class WarehouseTransaction(Base):
     assigned_to_user = relationship("User", foreign_keys=[assigned_to_user_id])
     assigned_to_vehicle = relationship("Vehicle", foreign_keys=[assigned_to_vehicle_id])
     site = relationship("ConstructionSite", foreign_keys=[site_id])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SESIZARI SI RECLAMATII
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Complaint(Base):
+    """Sesizare / Reclamatie trimisa de un angajat"""
+    __tablename__ = "complaints"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=False)
+
+    # Valori posibile: open, in_review, resolved, closed
+    status = Column(String(20), nullable=False, default="open")
+
+    admin_response = Column(Text, nullable=True)
+    responded_by = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    responded_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", foreign_keys=[user_id])
+    responder = relationship("Admin", foreign_keys=[responded_by])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CAZARI
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Accommodation(Base):
+    """Cazare (pensiune, apartament, etc.) unde sunt cazati muncitorii"""
+    __tablename__ = "accommodations"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+
+    name = Column(String(200), nullable=False)
+    address = Column(String(500), nullable=True)
+    capacity = Column(Integer, nullable=True)  # numar maxim persoane
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    assignments = relationship("AccommodationAssignment", back_populates="accommodation", cascade="all, delete-orphan")
+
+
+class AccommodationAssignment(Base):
+    """Repartizare muncitor la o cazare"""
+    __tablename__ = "accommodation_assignments"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    accommodation_id = Column(String(36), ForeignKey("accommodations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    assigned_from = Column(Date, nullable=True)
+    assigned_until = Column(Date, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    accommodation = relationship("Accommodation", back_populates="assignments")
+    user = relationship("User", foreign_keys=[user_id])
