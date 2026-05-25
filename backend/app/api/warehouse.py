@@ -48,8 +48,8 @@ class WarehouseTransactionCreate(BaseModel):
 @router.get("/warehouse/items")
 def get_items(category: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     is_admin_or_logistic(current_admin)
-    from app.models import Site
-    query = db.query(WarehouseItem, Site.name.label("site_name")).outerjoin(Site, WarehouseItem.current_site_id == Site.id).filter(WarehouseItem.organization_id == current_admin.organization_id)
+    from app.models import Site, User
+    query = db.query(WarehouseItem, Site.name.label("site_name"), User.full_name.label("holder_name")).outerjoin(Site, WarehouseItem.current_site_id == Site.id).outerjoin(User, WarehouseItem.current_holder_id == User.id).filter(WarehouseItem.organization_id == current_admin.organization_id)
     if category:
         query = query.filter(WarehouseItem.category == category)
     items = query.order_by(WarehouseItem.name).all()
@@ -83,11 +83,13 @@ def get_items(category: Optional[str] = None, db: Session = Depends(get_db), cur
             "inventory_code": i.inventory_code,
             "current_site_id": i.current_site_id,
             "current_site_name": site_name,
+            "current_holder_id": i.current_holder_id,
+            "current_holder_name": holder_name,
             "checked_out_at": i.checked_out_at,
             "is_defective": i.is_defective,
             "total_in": in_map.get(i.id, 0),
             "total_out": out_map.get(i.id, 0)
-        } for i, site_name in items
+        } for i, site_name, holder_name in items
     ]
 
 # CREATE item
@@ -323,6 +325,7 @@ async def edit_transaction(
 
 class ToolCheckout(BaseModel):
     site_id: str
+    user_id: Optional[str] = None
     date: str
 
 @router.post("/warehouse/items/{item_id}/checkout")
@@ -331,13 +334,14 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
     db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
-    if db_item.current_site_id:
-        raise HTTPException(status_code=400, detail="Scula este deja pe un șantier")
+    if db_item.current_site_id or db_item.current_holder_id:
+        raise HTTPException(status_code=400, detail="Scula este deja repartizată")
     if db_item.is_defective:
         raise HTTPException(status_code=400, detail="Nu se poate repartiza o sculă defectă")
 
     # update status
     db_item.current_site_id = data.site_id
+    db_item.current_holder_id = data.user_id if data.user_id and data.user_id != "null" else None
     from datetime import datetime
     db_item.checked_out_at = datetime.utcnow()
 
@@ -352,7 +356,8 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
         date=date_obj,
         operated_by_id=current_admin.id,
         site_id=data.site_id,
-        notes="Repartizare pe șantier"
+        assigned_to_user_id=data.user_id if data.user_id and data.user_id != "null" else None,
+        notes="Repartizare"
     )
     db.add(tx)
     # the total_quantity goes from 1 to 0 (since it's an individual item)
@@ -369,14 +374,16 @@ def checkin_tool(item_id: str, data: ToolCheckin, db: Session = Depends(get_db),
     db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
-    if not db_item.current_site_id:
+    if not db_item.current_site_id and not db_item.current_holder_id:
         raise HTTPException(status_code=400, detail="Scula este deja în magazie")
 
     # record from where it returned
     returned_from_site_id = db_item.current_site_id
+    returned_from_user_id = db_item.current_holder_id
 
     # clear status
     db_item.current_site_id = None
+    db_item.current_holder_id = None
     db_item.checked_out_at = None
 
     # create IN transaction representing check-in
@@ -390,6 +397,7 @@ def checkin_tool(item_id: str, data: ToolCheckin, db: Session = Depends(get_db),
         date=date_obj,
         operated_by_id=current_admin.id,
         site_id=returned_from_site_id,
+        assigned_to_user_id=returned_from_user_id,
         notes="Primire din șantier"
     )
     db.add(tx)

@@ -115,7 +115,7 @@ export default function WarehouseManagement() {
     const [showHistoryModal, setShowHistoryModal] = useState(false)
 
     // Tool Check-Out Modal
-    const [toolModal, setToolModal] = useState({ isOpen: false, item: null, siteId: '', date: new Date().toISOString().split('T')[0] })
+    const [toolModal, setToolModal] = useState({ isOpen: false, item: null, siteId: '', userId: '', date: new Date().toISOString().split('T')[0] })
     const [isSubmittingTool, setIsSubmittingTool] = useState(false)
 
     useEffect(() => {
@@ -274,14 +274,15 @@ export default function WarehouseManagement() {
 
     const handleCheckOut = async (e) => {
         e.preventDefault()
-        if (isSubmittingTool || !toolModal.siteId) return
+        if (isSubmittingTool || (!toolModal.siteId && !toolModal.userId)) return
         try {
             setIsSubmittingTool(true)
             await api.post(`/warehouse/items/${toolModal.item.id}/checkout`, {
                 site_id: toolModal.siteId,
+                user_id: toolModal.userId,
                 date: toolModal.date
             })
-            showToast('Sculă repartizată cu succes pe șantier', 'success')
+            showToast('Sculă repartizată cu succes', 'success')
             setToolModal({ ...toolModal, isOpen: false })
             fetchItems()
         } catch (error) {
@@ -293,10 +294,20 @@ export default function WarehouseManagement() {
 
     const handleCheckIn = async (item) => {
         if (isSubmittingTool) return
+        
+        let msg = 'Sunteți sigur că ați primit scula înapoi?';
+        if (item.current_site_name && item.current_holder_name) {
+            msg = `Sunteți sigur că ați primit scula înapoi de la ${item.current_holder_name} (șantierul ${item.current_site_name})?`
+        } else if (item.current_site_name) {
+            msg = `Sunteți sigur că ați primit scula înapoi de pe șantierul ${item.current_site_name}?`
+        } else if (item.current_holder_name) {
+            msg = `Sunteți sigur că ați primit scula înapoi de la ${item.current_holder_name}?`
+        }
+
         setConfirmModal({
             isOpen: true,
             title: 'Primire Sculă în Magazie',
-            message: `Sunteți sigur că ați primit scula înapoi de pe șantierul ${item.current_site_name}?`,
+            message: msg,
             onConfirm: async () => {
                 try {
                     setIsSubmittingTool(true)
@@ -765,10 +776,14 @@ export default function WarehouseManagement() {
                                         {item.inventory_code ? (
                                             <td colSpan="3" className="px-6 py-4 text-center">
                                                 <div className="flex flex-col items-center gap-2">
-                                                    {item.current_site_id ? (
-                                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
-                                                            <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                                                            Pe șantier: {item.current_site_name}
+                                                    {(item.current_site_id || item.current_holder_id) ? (
+                                                        <div className={`inline-flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50'}`}>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className={`w-2 h-2 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                                                                Repartizată
+                                                            </div>
+                                                            {item.current_site_name && <span className="font-medium opacity-90">🏢 {item.current_site_name}</span>}
+                                                            {item.current_holder_name && <span className="font-medium opacity-90">👤 {item.current_holder_name}</span>}
                                                         </div>
                                                     ) : (
                                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${item.is_defective ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-900/50'}`}>
@@ -809,15 +824,15 @@ export default function WarehouseManagement() {
                                                         >
                                                             Defect
                                                         </button>
-                                                        {item.current_site_id ? (
+                                                        {item.current_site_id || item.current_holder_id ? (
                                                             <button onClick={(e) => { e.stopPropagation(); handleCheckIn(item); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-bold" title="Primire">
                                                                 Primire
                                                             </button>
                                                         ) : (
                                                             <button 
-                                                                onClick={(e) => { e.stopPropagation(); setToolModal({ isOpen: true, item, siteId: '', date: new Date().toISOString().split('T')[0] }); }} 
+                                                                onClick={(e) => { e.stopPropagation(); setToolModal({ isOpen: true, item, siteId: '', userId: '', date: new Date().toISOString().split('T')[0] }); }} 
                                                                 className={`flex items-center justify-center px-3 h-8 rounded-full border border-blue-200 dark:border-blue-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-xs font-bold ${item.is_defective ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                title="Repartizare Șantier"
+                                                                title="Repartizare"
                                                                 disabled={item.is_defective}
                                                             >
                                                                 Repartizare
@@ -935,16 +950,28 @@ export default function WarehouseManagement() {
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{toolModal.item?.name} ({toolModal.item?.inventory_code})</p>
                             <form onSubmit={handleCheckOut} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație (Opțional)</label>
                                     <select
-                                        required
                                         value={toolModal.siteId}
                                         onChange={e => setToolModal({ ...toolModal, siteId: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                     >
-                                        <option value="">Alege șantier...</option>
+                                        <option value="">Nu asocia cu șantier...</option>
                                         {sites.map(s => (
                                             <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană (Opțional)</label>
+                                    <select
+                                        value={toolModal.userId}
+                                        onChange={e => setToolModal({ ...toolModal, userId: e.target.value })}
+                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                    >
+                                        <option value="">Nu asocia cu angajat...</option>
+                                        {users.map(u => (
+                                            <option key={u.id} value={u.id}>{u.full_name} {u.employee_code ? `(${u.employee_code})` : ''}</option>
                                         ))}
                                     </select>
                                 </div>
