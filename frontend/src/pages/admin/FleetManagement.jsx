@@ -241,10 +241,17 @@ export default function FleetManagement() {
             )
         },
         {
-            key: 'site_ids', label: t('fleet.assigned_sites'),
+            key: 'site_ids', label: 'Șantiere Alocate',
             render: (v) => {
-                const count = v.site_ids?.length || 0
-                return <span className="text-slate-500 dark:text-slate-400 text-sm">{count > 0 ? `${count} ${count === 1 ? t('common.site') : t('common.sites')}` : '—'}</span>
+                const siteList = (v.site_ids || []).map(id => sites.find(s => s.id === id)?.name).filter(Boolean)
+                if (siteList.length === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>
+                if (siteList.length === 1) return <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{siteList[0]}</span>
+                return (
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{siteList[0]}</span>
+                        <span className="text-xs text-slate-400">+{siteList.length - 1} alte șantiere</span>
+                    </div>
+                )
             }
         },
         {
@@ -472,30 +479,38 @@ export default function FleetManagement() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 flex justify-between items-center text-white shrink-0 border-b border-slate-200 dark:border-slate-700">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Car className="w-6 h-6" />
-                                {editingVehicle ? t('common.edit') + ' ' + t('fleet.vehicle') : t('fleet.add_vehicle')}
-                            </h2>
-                            <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                        <div className="px-6 py-5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                                    <Car className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                                        {editingVehicle ? 'Editează Vehicul' : 'Vehicul Nou'}
+                                    </h2>
+                                    {editingVehicle && <p className="text-xs text-slate-400 mt-0.5">{editingVehicle.name} · {editingVehicle.plate_number}</p>}
+                                </div>
+                            </div>
+                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        {/* Tabs */}
-                        <div className="flex border-b border-slate-200 dark:border-slate-700 px-6">
+                        {/* Tabs — pill style */}
+                        <div className="flex gap-1.5 px-6 pt-4 pb-2">
                             {[
-                                { key: 'info', label: t('fleet.tab_info') },
-                                { key: 'sites', label: t('fleet.tab_sites') },
-                                { key: 'drivers', label: t('fleet.tab_drivers') },
+                                { key: 'info', label: 'Informații' },
+                                { key: 'sites', label: 'Alocări Șantiere' },
+                                { key: 'drivers', label: 'Șoferi / Operatori' },
                                 ...(editingVehicle && CAR_TYPES.includes(editingVehicle?.type) ? [{ key: 'documents', label: 'Documente' }] : [])
                             ].map(tab => (
                                 <button
                                     key={tab.key}
                                     onClick={() => setActiveTab(tab.key)}
-                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === tab.key
-                                        ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                                        activeTab === tab.key
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                     }`}
                                 >
                                     {tab.label}

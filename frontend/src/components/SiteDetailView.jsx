@@ -396,5 +396,6 @@ export default function SiteDetailView({ site, onBack }) {
                 </div>
             )}
         </div>
+    </div>
     )
 }
