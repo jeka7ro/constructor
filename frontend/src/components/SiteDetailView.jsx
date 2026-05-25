@@ -135,47 +135,80 @@ export default function SiteDetailView({ site, onBack }) {
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
                     {/* GENERAL TAB */}
                     {activeTab === 'general' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-lg border-b pb-2">Informații Client & Sistem</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div className="bg-slate-50 p-3 rounded-xl">
-                                        <p className="text-slate-500 text-xs mb-1">Client</p>
-                                        <p className="font-semibold">{data.site.client_name || '-'}</p>
+                        <div className="space-y-6">
+                            {/* Info cards row */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {/* Client & Sistem */}
+                                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-5">
+                                    <h3 className="font-bold text-base text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                                        <Building2 className="w-4 h-4 text-blue-500" />
+                                        Informații Client & Sistem
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Client</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.client_name || '-'}</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Putere Sistem</p>
+                                            <p className="font-semibold text-amber-600">{data.site.system_power_kw || 0} kW</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Panouri</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.panel_count || 0} buc</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Tip Instalare</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white capitalize">{data.site.installation_type || 'N/A'}</p>
+                                        </div>
                                     </div>
-                                    <div className="bg-slate-50 p-3 rounded-xl">
-                                        <p className="text-slate-500 text-xs mb-1">Putere Sistem</p>
-                                        <p className="font-semibold text-amber-600">{data.site.system_power_kw || 0} kW</p>
-                                    </div>
-                                    <div className="bg-slate-50 p-3 rounded-xl">
-                                        <p className="text-slate-500 text-xs mb-1">Panouri</p>
-                                        <p className="font-semibold">{data.site.panel_count || 0} buc</p>
-                                    </div>
-                                    <div className="bg-slate-50 p-3 rounded-xl">
-                                        <p className="text-slate-500 text-xs mb-1">Tip Instalare</p>
-                                        <p className="font-semibold capitalize">{data.site.installation_type || 'N/A'}</p>
+                                </div>
+
+                                {/* Program & Locatie */}
+                                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-5">
+                                    <h3 className="font-bold text-base text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-blue-500" />
+                                        Program & Locație
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Program Lucru</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.work_start_time || '—'} - {data.site.work_end_time || '—'}</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 text-xs mb-1">Pauză Masă</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.lunch_break_start || '—'} - {data.site.lunch_break_end || '—'}</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 col-span-2">
+                                            <p className="text-slate-400 text-xs mb-1">Data Creării</p>
+                                            <p className="font-semibold text-slate-800 dark:text-white">{data.site.created_at ? new Date(data.site.created_at).toLocaleString('ro-RO') : 'N/A'}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-lg border-b pb-2">Program & Locație</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div className="bg-slate-50 p-3 rounded-xl">
-                                        <p className="text-slate-500 text-xs mb-1">Program Lucru</p>
-                                        <p className="font-semibold">{data.site.work_start_time} - {data.site.work_end_time}</p>
+
+                            {/* Map */}
+                            {data.site.address && (
+                                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+                                    <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700">
+                                        <MapPin className="w-4 h-4 text-blue-500" />
+                                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Locație pe hartă</span>
+                                        <span className="text-xs text-slate-400 ml-1">— {data.site.address}</span>
                                     </div>
-                                    <div className="bg-slate-50 p-3 rounded-xl">
-                                        <p className="text-slate-500 text-xs mb-1">Pauză Masă</p>
-                                        <p className="font-semibold">{data.site.lunch_break_start} - {data.site.lunch_break_end}</p>
-                                    </div>
-                                    <div className="bg-slate-50 p-3 rounded-xl col-span-2">
-                                        <p className="text-slate-500 text-xs mb-1">Data Creării</p>
-                                        <p className="font-semibold">{data.site.created_at ? new Date(data.site.created_at).toLocaleString('ro-RO') : 'N/A'}</p>
-                                    </div>
+                                    <iframe
+                                        title="Locatie santier"
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(data.site.address)}&output=embed&z=15`}
+                                        width="100%"
+                                        height="340"
+                                        style={{ border: 0, display: 'block' }}
+                                        allowFullScreen
+                                        loading="lazy"
+                                    />
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
+
 
                     {/* TEAMS TAB */}
                     {activeTab === 'teams' && (
