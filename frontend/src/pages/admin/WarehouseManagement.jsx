@@ -141,6 +141,8 @@ export default function WarehouseManagement() {
     const { t } = useTranslation()
     const { showToast } = useUIStore()
     const [activeTab, setActiveTab] = useState('TOATE')
+    const [allSites, setAllSites] = useState([])
+    const [selectedSite, setSelectedSite] = useState('')
     const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
     const [transactions, setTransactions] = useState([])
@@ -186,6 +188,7 @@ export default function WarehouseManagement() {
 
     useEffect(() => {
         fetchItems()
+        fetchSites()
         fetchDropdownData()
     }, [])
 
@@ -260,6 +263,7 @@ export default function WarehouseManagement() {
                     showToast('Tranzacție ștearsă', 'success')
                     fetchTransactions(selectedItem.id)
                     fetchItems()
+        fetchSites()
                 } catch (error) {
                     showToast('Eroare la ștergerea tranzacției', 'error')
                 }
@@ -281,6 +285,7 @@ export default function WarehouseManagement() {
                     setSelectedTxIds([])
                     fetchTransactions(selectedItem.id)
                     fetchItems()
+        fetchSites()
                 } catch (error) {
                     showToast('Eroare la ștergerea tranzacțiilor', 'error')
                 }
@@ -309,6 +314,7 @@ export default function WarehouseManagement() {
             }
             setShowItemModal(false)
             fetchItems()
+        fetchSites()
         } catch (error) {
             showToast('Eroare la salvare', 'error')
         } finally {
@@ -326,6 +332,7 @@ export default function WarehouseManagement() {
                     await api.delete(`/warehouse/items/${itemId}`)
                     showToast('Articol șters', 'success')
                     fetchItems()
+        fetchSites()
                 } catch (error) {
                     showToast('Eroare la ștergerea articolului', 'error')
                 }
@@ -346,6 +353,7 @@ export default function WarehouseManagement() {
             showToast('Sculă repartizată cu succes', 'success')
             setToolModal({ ...toolModal, isOpen: false })
             fetchItems()
+        fetchSites()
         } catch (error) {
             showToast(error.response?.data?.detail || 'Eroare la repartizare', 'error')
         } finally {
@@ -377,6 +385,7 @@ export default function WarehouseManagement() {
                     })
                     showToast('Sculă primită în magazie', 'success')
                     fetchItems()
+        fetchSites()
                 } catch (error) {
                     showToast(error.response?.data?.detail || 'Eroare la primire', 'error')
                 } finally {
@@ -392,6 +401,7 @@ export default function WarehouseManagement() {
             await api.post(`/warehouse/items/${item.id}/toggle-defective`)
             showToast(item.is_defective ? 'Scula a fost marcată ca funcțională' : 'Scula a fost marcată ca defectă', 'success')
             fetchItems()
+        fetchSites()
         } catch (error) {
             showToast('Eroare la actualizarea stării', 'error')
         }
@@ -451,6 +461,7 @@ export default function WarehouseManagement() {
             
             setShowTxModal(false)
             fetchItems()
+        fetchSites()
             if (historyItem && historyItem.id === selectedItem.id) {
                 fetchTransactions(selectedItem.id)
             }
