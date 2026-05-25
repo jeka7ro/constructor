@@ -220,6 +220,14 @@ export default function AdminDashboard() {
                                    : <Sun className="w-4 h-4 text-amber-400" />
                                }
                            </button>
+                           <button onClick={() => navigate('/admin/complaints')} className={`p-2.5 rounded-full transition-colors relative text-slate-300 hover:text-white hover:bg-white/10`} title="Sesizări Noi">
+                               <MessageSquareWarning className="w-5 h-5" />
+                               {openComplaintsCount > 0 && (
+                                   <span className="absolute top-0 right-0 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-slate-900">
+                                       {openComplaintsCount > 99 ? '99+' : openComplaintsCount}
+                                   </span>
+                               )}
+                           </button>
                            <button className={`p-2.5 rounded-full transition-colors relative text-slate-300 hover:text-white hover:bg-white/10`} onClick={() => setShowNotifications(!showNotifications)}>
                                <Bell className="w-5 h-5" />
                                {unreadCount > 0 && (
