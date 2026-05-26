@@ -158,14 +158,29 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [] }) 
 
             const checkInTime = new Date(worker.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' })
             
+            let statusText = worker.status
+            if (worker.status === 'geofence') statusText = 'În afara perimetrului'
+            if (worker.status === 'gps_pierdut') statusText = 'GPS Pierdut'
+            if (worker.status === 'activ') statusText = 'Activ pe șantier'
+            if (worker.status === 'pauză') statusText = 'În pauză'
+
             const marker = L.marker([worker.latitude, worker.longitude], { icon, zIndexOffset: 1000 })
                 .bindTooltip(`
-                    <div class="text-center">
+                    <div class="text-left leading-tight py-1 px-0.5">
                         <b class="text-[13px] text-slate-800">${worker.worker_name}</b><br/>
-                        <span class="text-[11px] font-bold text-slate-500 uppercase">${worker.status}</span><br/>
-                        <span class="text-[10px] text-slate-400">Check-in: ${checkInTime}</span>
+                        <span class="text-[10px] text-slate-500 font-medium">Cod: ${worker.employee_code || 'N/A'}</span>
+                        
+                        <div class="mt-2 mb-1 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
+                            <span class="text-[11px] font-bold text-slate-700">${statusText}</span>
+                        </div>
+                        
+                        <div class="text-[10px] text-slate-400 mt-1 flex flex-col gap-0.5">
+                            <span>Check-in: <strong class="text-slate-600">${checkInTime}</strong></span>
+                            ${worker.worked_hours > 0 ? `<span>Ore lucrate: <strong class="text-slate-600">${worker.worked_hours}h</strong></span>` : ''}
+                        </div>
                     </div>
-                `, { direction: 'top', offset: [0, -14], opacity: 0.95 })
+                `, { direction: 'top', offset: [0, -14], opacity: 0.98 })
                 .addTo(map)
 
             workerMarkersRef.current.push(marker)
