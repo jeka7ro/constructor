@@ -816,18 +816,7 @@ export default function ClockInPage() {
                         >
                             <Calendar className="w-5 h-5" />
                         </button>
-                        <button
-                            onClick={() => navigate('/sesizari')}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors relative"
-                            title="Sesizări și Reclamații"
-                        >
-                            <MessageSquareWarning className="w-5 h-5" />
-                            {unreadComplaints > 0 && (
-                                <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border border-blue-600">
-                                    {unreadComplaints > 9 ? '9+' : unreadComplaints}
-                                </span>
-                            )}
-                        </button>
+
                         <button
                             onClick={() => { logout(); navigate('/login'); }}
                             className="p-2 hover:bg-red-500/30 rounded-lg transition-colors"
@@ -938,54 +927,41 @@ export default function ClockInPage() {
                         </MapContainer>
                     </div>
 
-                    {/* Module Magazie */}
-                    <div className="mt-2 mb-2 space-y-2">
+                    {/* Module Magazie & Action Buttons */}
+                    <div className="mt-2 mb-2 grid grid-cols-3 gap-2">
                         <button
                             onClick={() => navigate('/material-requests')}
-                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                            className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white/20 rounded-xl">
-                                    <PackageSearch className="w-6 h-6" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-lg leading-tight">Necesar Materiale</h3>
-                                    <p className="text-xs text-amber-50 font-medium mt-0.5">Trimite o cerere din șantier</p>
-                                </div>
+                            <div className="p-2 bg-white/20 rounded-xl mb-1.5">
+                                <PackageSearch className="w-7 h-7" />
                             </div>
-                            <ChevronRight className="w-6 h-6 text-white/70" />
+                            <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Necesar<br/>Materiale</h3>
                         </button>
                         
                         <button
                             onClick={() => navigate('/sesizari')}
-                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                            className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-rose-500 to-red-600 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white/20 rounded-xl">
-                                    <MessageSquareWarning className="w-6 h-6" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-lg leading-tight">Sesizări / Incidente</h3>
-                                    <p className="text-xs text-rose-100 font-medium mt-0.5">Raportează o problemă rapid</p>
-                                </div>
+                            <div className="p-2 bg-white/20 rounded-xl mb-1.5 relative">
+                                <MessageSquareWarning className="w-7 h-7" />
+                                {unreadComplaints > 0 && (
+                                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-white text-rose-600 text-[10px] font-black rounded-full shadow-sm">
+                                        {unreadComplaints > 9 ? '9+' : unreadComplaints}
+                                    </span>
+                                )}
                             </div>
-                            <ChevronRight className="w-6 h-6 text-white/70" />
+                            <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Sesizări<br/>Incidente</h3>
                         </button>
 
                         <button
                             onClick={() => navigate('/my-inventory')}
-                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                            className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white/20 rounded-xl">
-                                    <Wrench className="w-6 h-6" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="font-bold text-lg leading-tight">Inventarul Meu</h3>
-                                    <p className="text-xs text-emerald-50 font-medium mt-0.5">Vezi sculele și consumabilele tale</p>
-                                </div>
+                            <div className="p-2 bg-white/20 rounded-xl mb-1.5">
+                                <Wrench className="w-7 h-7" />
                             </div>
-                            <ChevronRight className="w-6 h-6 text-white/70" />
+                            <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Inventarul<br/>Meu</h3>
                         </button>
                     </div>
 
