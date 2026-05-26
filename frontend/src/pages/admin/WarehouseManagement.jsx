@@ -164,6 +164,7 @@ export default function WarehouseManagement() {
     const [showAssignPanel, setShowAssignPanel] = useState(false)
     const [assignUserId, setAssignUserId] = useState('')
     const [assignSiteId, setAssignSiteId] = useState('')
+    const [linkedRequest, setLinkedRequest] = useState(null)
     const [vehicles, setVehicles] = useState([])
     const [sites, setSites] = useState([])
 
@@ -604,6 +605,73 @@ export default function WarehouseManagement() {
                         </div>
                     </div>
 
+                    {/* TIMELINE CERERE LEGATA */}
+                    {linkedRequest && (
+                        <div className="mx-6 mb-4">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Istoricul complet al sculei</p>
+                            <div className="relative">
+                                <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                                <div className="space-y-3">
+
+                                    {/* SOLICITAT */}
+                                    <div className="flex gap-3 items-start relative">
+                                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 z-10">
+                                            <span className="text-white text-[10px] font-black">S</span>
+                                        </div>
+                                        <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-2.5">
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Solicitat de muncitor</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.requested_by}</p>
+                                            <p className="text-xs text-slate-500">{linkedRequest.site_name && `Santier: ${linkedRequest.site_name} · `}{linkedRequest.requested_at && new Date(linkedRequest.requested_at).toLocaleString('ro-RO')}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* APROBAT */}
+                                    {linkedRequest.approved_by && (
+                                        <div className="flex gap-3 items-start relative">
+                                            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0 z-10">
+                                                <span className="text-white text-[10px] font-black">A</span>
+                                            </div>
+                                            <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-2.5">
+                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Aprobat de admin</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.approved_by}</p>
+                                                <p className="text-xs text-slate-500">{linkedRequest.approved_at && new Date(linkedRequest.approved_at).toLocaleString('ro-RO')}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PREDAT / LIVRAT */}
+                                    {linkedRequest.approved_at && (
+                                        <div className="flex gap-3 items-start relative">
+                                            <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center shrink-0 z-10">
+                                                <span className="text-white text-[10px] font-black">P</span>
+                                            </div>
+                                            <div className="flex-1 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl px-4 py-2.5">
+                                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-wider">Predat pe santier</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.approved_by}</p>
+                                                <p className="text-xs text-slate-500">{linkedRequest.approved_at && new Date(linkedRequest.approved_at).toLocaleString('ro-RO')}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* CONFIRMAT DE MUNCITOR */}
+                                    {linkedRequest.confirmed_by && (
+                                        <div className="flex gap-3 items-start relative">
+                                            <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0 z-10">
+                                                <span className="text-white text-[10px] font-black">C</span>
+                                            </div>
+                                            <div className="flex-1 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-2.5">
+                                                <p className="text-[10px] font-black text-violet-600 uppercase tracking-wider">Confirmat de muncitor</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.confirmed_by} <span className="text-xs font-normal text-slate-400">· Semnat digital</span></p>
+                                                <p className="text-xs text-slate-500">{linkedRequest.confirmed_at && new Date(linkedRequest.confirmed_at).toLocaleString('ro-RO')}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* LOCATIE CURENTA */}
                     <div className={`mx-6 my-4 rounded-2xl border-2 overflow-hidden ${historyItem.current_holder_name ? 'border-amber-300 dark:border-amber-700' : 'border-slate-200 dark:border-slate-700'}`}>
                         <div className={`flex items-center justify-between px-5 py-3 ${historyItem.current_holder_name ? 'bg-amber-500' : 'bg-slate-500'}`}>
@@ -940,7 +1008,11 @@ export default function WarehouseManagement() {
                                         onClick={() => {
                                             setHistoryItem(item)
                                             setHistorySearch('')
+                                            setLinkedRequest(null)
                                             fetchTransactions(item.id)
+                                            api.get(`/warehouse/items/${item.id}/linked-request`)
+                                              .then(r => setLinkedRequest(r.data))
+                                              .catch(() => {})
                                         }}
                                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                                     >

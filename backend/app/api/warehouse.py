@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from datetime import date, datetime
 
 from app.database import get_db
-from app.models import WarehouseItem, WarehouseTransaction, Admin, Vehicle, User, Site
+from app.models import WarehouseItem, WarehouseTransaction, Admin, Vehicle, User, Site, MaterialRequest
 from app.api.admin_auth import get_current_admin
 from app.storage import upload_file, get_content_type
 import os
@@ -475,3 +475,80 @@ def toggle_defective(item_id: str, db: Session = Depends(get_db), current_admin:
     db_item.is_defective = not db_item.is_defective
     db.commit()
     return {"success": True, "is_defective": db_item.is_defective}
+
+@router.get("/warehouse/items/{item_id}/linked-request")
+def get_linked_request(item_id: str, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    """Find the most recent completed material request linked to this warehouse item by inventory_code."""
+    is_admin_or_logistic(current_admin)
+    db_item = db.query(WarehouseItem).filter(
+        WarehouseItem.id == item_id,
+        WarehouseItem.organization_id == current_admin.organization_id
+    ).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
+
+    import json
+
+    # Search all material requests for this org, look for inventory_code in items_json or items_text
+    requests = db.query(MaterialRequest).filter(
+        MaterialRequest.organization_id == current_admin.organization_id
+    ).order_by(desc(MaterialRequest.created_at)).all()
+
+    matched = None
+    for req in requests:
+        # Check items_json first
+        if req.items_json:
+            try:
+                items = json.loads(req.items_json)
+                for it in items:
+                    if (db_item.inventory_code and str(it.get("id", "")) == db_item.id) or \
+                       (db_item.inventory_code and db_item.inventory_code in str(it.get("name", ""))) or \
+                       (db_item.name and db_item.name.lower() in str(it.get("name", "")).lower()):
+                        matched = req
+                        break
+            except Exception:
+                pass
+        # Check items_text
+        if not matched and req.items_text:
+            if (db_item.inventory_code and db_item.inventory_code in req.items_text) or \
+               (db_item.name and db_item.name.lower() in req.items_text.lower()):
+                matched = req
+        if matched:
+            break
+
+    if not matched:
+        return None
+
+    # Get current holder info
+    holder = None
+    if db_item.current_holder_id:
+        holder = db.query(User).filter(User.id == db_item.current_holder_id).first()
+    elif matched.user_id:
+        # fallback: if request is completed, the requester likely has it
+        if matched.status in ("completed", "delivered"):
+            holder = db.query(User).filter(User.id == matched.user_id).first()
+
+    holder_site = None
+    if db_item.current_site_id:
+        holder_site = db.query(Site).filter(Site.id == db_item.current_site_id).first()
+    elif matched.site_id:
+        holder_site = db.query(Site).filter(Site.id == matched.site_id).first()
+
+    responder_name = matched.responder.full_name if matched.responder else None
+
+    return {
+        "request_id": matched.id,
+        "status": matched.status,
+        "requested_by": matched.user.full_name if matched.user else None,
+        "requested_by_id": matched.user_id,
+        "requested_at": matched.created_at.isoformat() if matched.created_at else None,
+        "site_name": matched.site.name if matched.site else None,
+        "approved_by": responder_name,
+        "approved_at": matched.responded_at.isoformat() if matched.responded_at else None,
+        "confirmed_by": matched.user.full_name if matched.status in ("completed", "delivered") else None,
+        "confirmed_at": matched.updated_at.isoformat() if matched.status in ("completed", "delivered") else None,
+        "current_holder": holder.full_name if holder else None,
+        "current_site": holder_site.name if holder_site else None,
+        "items_text": matched.items_text,
+    }
+
