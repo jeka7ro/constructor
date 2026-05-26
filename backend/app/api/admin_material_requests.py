@@ -12,9 +12,11 @@ from sqlalchemy.orm import joinedload
 
 router = APIRouter(prefix="/admin/material-requests", tags=["Admin - Necesar Materiale"])
 
-class MaterialStatusBody(BaseModel):
-    status: str  # pending, approved, rejected, delivered
-    admin_response: Optional[str] = None
+class MaterialRequestStatusUpdate(BaseModel):
+    status: str
+    response: Optional[str] = None
+    carrier: Optional[str] = None
+    linked_items_json: Optional[str] = None
 
 def mr_to_dict(mr: MaterialRequest) -> dict:
     return {
@@ -76,7 +78,7 @@ def unread_count(
 @router.put("/{mr_id}/status")
 def change_status(
     mr_id: str,
-    body: MaterialStatusBody,
+    body: MaterialRequestStatusUpdate,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
 ):
@@ -93,15 +95,22 @@ def change_status(
         raise HTTPException(status_code=404, detail="Cerere negasita")
 
     c.status = body.status
-    if body.admin_response is not None:
-        c.admin_response = body.admin_response
+    if body.response is not None:
+        c.admin_response = body.response
+        
+    if body.status == "delivered":
+        if body.carrier:
+            c.admin_response = (c.admin_response or "") + f"\n[Predat prin: {body.carrier}]"
+    
+    if body.linked_items_json:
+        c.items_json = body.linked_items_json
+        
     c.responded_by = current_admin.id
     c.responded_at = datetime.utcnow()
     c.updated_at = datetime.utcnow()
     
     db.commit()
     
-    db.commit()
     db.refresh(c)
     return mr_to_dict(c)
 

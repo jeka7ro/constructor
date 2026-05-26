@@ -39,7 +39,20 @@ export default function AdminMaterialRequests() {
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
 
-    useEffect(() => { fetchRequests() }, [statusFilter])
+    const [warehouseItems, setWarehouseItems] = useState([])
+    const [linkedItems, setLinkedItems] = useState([])
+
+    useEffect(() => { 
+        fetchRequests() 
+        fetchWarehouse()
+    }, [statusFilter])
+
+    const fetchWarehouse = async () => {
+        try {
+            const res = await api.get('/warehouse/items')
+            setWarehouseItems(res.data)
+        } catch {}
+    }
 
     const fetchRequests = async () => {
         setLoading(true)
@@ -60,8 +73,9 @@ export default function AdminMaterialRequests() {
         setSubmitting(true)
         try {
             await api.put(`/admin/material-requests/${detailReq.id}/status`, {
-                admin_response: responseText.trim() ? responseText : null,
+                response: responseText.trim() ? responseText : null,
                 status: responseStatus,
+                linked_items_json: linkedItems.length > 0 ? JSON.stringify(linkedItems) : null
             })
             showToast('Actualizat cu succes', 'success')
             setDetailReq(null)
@@ -176,7 +190,12 @@ export default function AdminMaterialRequests() {
                                     const StatusIcon = sc.icon
                                     return (
                                         <tr key={c.id}
-                                            onClick={() => { setDetailReq(c); setResponseText(c.admin_response || ''); setResponseStatus(c.status === 'pending' ? 'approved' : c.status) }}
+                                            onClick={() => { 
+                                                setDetailReq(c); 
+                                                setResponseText(c.admin_response || ''); 
+                                                setResponseStatus(c.status === 'pending' ? 'approved' : c.status);
+                                                setLinkedItems([]); 
+                                            }}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                                         >
                                             <td className="px-6 py-4 font-mono text-xs text-slate-500">#{c.id.substring(0, 6).toUpperCase()}</td>
@@ -264,6 +283,98 @@ export default function AdminMaterialRequests() {
                                         <p className="text-sm text-slate-600 dark:text-slate-400 italic">{detailReq.notes}</p>
                                     </div>
                                 )}
+                                
+                                {/* WAREHOUSE LINKER */}
+                                {['pending', 'approved'].includes(detailReq.status) && (
+                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                        <p className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <PackageSearch className="w-3.5 h-3.5" /> Adaugă Scule din Magazie
+                                        </p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Sculele selectate aici vor fi tăiate automat din stoc atunci când muncitorul confirmă primirea pe telefon.</p>
+                                        
+                                        <div className="flex gap-2 mb-3">
+                                            <select
+                                                id="warehouseSelect"
+                                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500 transition-colors"
+                                            >
+                                                <option value="">-- Alege o sculă / material --</option>
+                                                {warehouseItems.map(item => (
+                                                    <option key={item.id} value={item.id}>
+                                                        {item.name} {item.inventory_code ? `(Cod: ${item.inventory_code})` : ''} - Stoc: {item.total_quantity} {item.unit}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <input 
+                                                type="number" 
+                                                id="warehouseQty" 
+                                                placeholder="Cant" 
+                                                defaultValue={1}
+                                                min={1}
+                                                className="w-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500 transition-colors"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    const select = document.getElementById('warehouseSelect');
+                                                    const qtyInput = document.getElementById('warehouseQty');
+                                                    const itemId = select.value;
+                                                    const qty = parseFloat(qtyInput.value);
+                                                    if (!itemId || isNaN(qty) || qty <= 0) return;
+                                                    
+                                                    const item = warehouseItems.find(i => i.id === itemId);
+                                                    if (!item) return;
+
+                                                    if (qty > item.total_quantity) {
+                                                        showToast(`Stoc insuficient. Maxim disponibil: ${item.total_quantity}`, 'error');
+                                                        return;
+                                                    }
+
+                                                    if (item.inventory_code && qty > 1) {
+                                                        showToast('Sculele unice se pot adăuga doar bucată cu bucată!', 'error');
+                                                        return;
+                                                    }
+
+                                                    if (linkedItems.some(li => li.id === itemId)) {
+                                                        showToast('Acest articol este deja pe listă!', 'error');
+                                                        return;
+                                                    }
+
+                                                    setLinkedItems(prev => [...prev, {
+                                                        id: item.id,
+                                                        name: item.name,
+                                                        qty: qty,
+                                                        unit: item.unit,
+                                                        inventory_code: item.inventory_code,
+                                                        type: "warehouse"
+                                                    }]);
+                                                    
+                                                    select.value = '';
+                                                    qtyInput.value = 1;
+                                                }}
+                                                className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-400 font-bold rounded-xl text-sm transition-colors cursor-pointer"
+                                            >
+                                                Adaugă
+                                            </button>
+                                        </div>
+
+                                        {linkedItems.length > 0 && (
+                                            <div className="space-y-2 mb-2 mt-3">
+                                                {linkedItems.map((li, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
+                                                        <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">
+                                                            {li.qty} {li.unit} x {li.name} {li.inventory_code ? `(${li.inventory_code})` : ''}
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => setLinkedItems(prev => prev.filter(x => x.id !== li.id))}
+                                                            className="text-indigo-400 hover:text-indigo-600 p-1 cursor-pointer transition-colors"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* ISTORIC CARD */}
@@ -338,8 +449,10 @@ export default function AdminMaterialRequests() {
                                                 }
 
                                                 await api.put(`/admin/material-requests/${detailReq.id}/status`, {
-                                                    admin_response: finalResponse ? finalResponse : null,
+                                                    response: finalResponse ? finalResponse : null,
                                                     status: 'delivered',
+                                                    carrier: carrier || null,
+                                                    linked_items_json: linkedItems.length > 0 ? JSON.stringify(linkedItems) : null
                                                 });
                                                 showToast('Cerere trimisă spre semnare pe șantier!', 'success');
                                                 setDetailReq(null);
