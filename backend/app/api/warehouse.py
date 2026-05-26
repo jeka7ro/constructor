@@ -405,6 +405,26 @@ def checkout_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db
     db.commit()
     return {"success": True}
 
+@router.post("/warehouse/items/{item_id}/force-assign")
+def force_assign_tool(item_id: str, data: ToolCheckout, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    """Force-set current holder/site for a warehouse item, even if already assigned. Used to correct data."""
+    is_admin_or_logistic(current_admin)
+    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id, WarehouseItem.organization_id == current_admin.organization_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articolul nu a fost găsit")
+
+    site_id_val = data.site_id if data.site_id and data.site_id != "null" else None
+    user_id_val = data.user_id if data.user_id and data.user_id != "null" else None
+
+    db_item.current_site_id = site_id_val
+    db_item.current_holder_id = user_id_val
+    from datetime import datetime
+    db_item.checked_out_at = datetime.utcnow()
+    db_item.total_quantity = 0.0 if (site_id_val or user_id_val) else 1.0
+
+    db.commit()
+    return {"success": True}
+
 class ToolCheckin(BaseModel):
     date: str
 

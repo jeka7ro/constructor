@@ -161,6 +161,9 @@ export default function WarehouseManagement() {
 
     // Data for dropdowns
     const [users, setUsers] = useState([])
+    const [showAssignPanel, setShowAssignPanel] = useState(false)
+    const [assignUserId, setAssignUserId] = useState('')
+    const [assignSiteId, setAssignSiteId] = useState('')
     const [vehicles, setVehicles] = useState([])
     const [sites, setSites] = useState([])
 
@@ -631,6 +634,61 @@ export default function WarehouseManagement() {
                             )}
                         </div>
                     </div>
+
+                    {/* Buton + Panou corectie detinator */}
+                    <div className="mx-6 mb-2 flex justify-end">
+                        <button
+                            onClick={() => { setShowAssignPanel(p => !p); setAssignUserId(''); setAssignSiteId('') }}
+                            className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            {showAssignPanel ? 'Anuleaza' : 'Corecteaza detinator'}
+                        </button>
+                    </div>
+                    {showAssignPanel && (
+                        <div className="mx-6 mb-4 p-4 bg-white dark:bg-slate-800 border-2 border-blue-300 dark:border-blue-700 rounded-2xl">
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3">Cine detine aceasta scula acum?</p>
+                            <div className="flex flex-wrap gap-3 items-end">
+                                <div className="flex-1 min-w-[180px]">
+                                    <label className="text-xs text-slate-500 mb-1 block">Muncitor</label>
+                                    <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">-- Nimeni (inapoi in magazie) --</option>
+                                        {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1 min-w-[180px]">
+                                    <label className="text-xs text-slate-500 mb-1 block">Santier</label>
+                                    <select value={assignSiteId} onChange={e => setAssignSiteId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">-- Alege santier --</option>
+                                        {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await api.post(`/warehouse/items/${historyItem.id}/force-assign`, {
+                                                user_id: assignUserId || null,
+                                                site_id: assignSiteId || null,
+                                                date: new Date().toISOString().split('T')[0]
+                                            })
+                                            showToast('Detinatorul a fost actualizat!', 'success')
+                                            setShowAssignPanel(false)
+                                            setHistoryItem(prev => ({
+                                                ...prev,
+                                                current_holder_name: users.find(u => u.id === assignUserId)?.full_name || null,
+                                                current_site_name: allSites.find(s => s.id === assignSiteId)?.name || null,
+                                                total_quantity: (assignUserId || assignSiteId) ? 0 : 1
+                                            }))
+                                        } catch(e) {
+                                            showToast('Eroare la actualizare', 'error')
+                                        }
+                                    }}
+                                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
+                                >
+                                    Salveaza
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Batch Delete Actions */}
                     {selectedTxIds.length > 0 && (
