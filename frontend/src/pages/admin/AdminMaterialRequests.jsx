@@ -153,13 +153,13 @@ export default function AdminMaterialRequests() {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                 <tr>
-                                    <th className="w-10"></th>
+                                    <th className="px-6 py-4 w-24">ID</th>
                                     <th className="px-6 py-4">Angajat</th>
                                     <th className="px-6 py-4">Șantier</th>
                                     <th className="px-6 py-4">Materiale</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Data</th>
-                                    <th className="w-10"></th>
+                                    <th className="px-6 py-4 text-right"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -175,7 +175,7 @@ export default function AdminMaterialRequests() {
                                             onClick={() => { setDetailReq(c); setResponseText(c.admin_response || ''); setResponseStatus(c.status === 'pending' ? 'approved' : c.status) }}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                                         >
-                                            <td className="px-4"></td>
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-500">#{c.id.substring(0, 6).toUpperCase()}</td>
                                             <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{c.user_name}</td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {c.site_name}</div>
@@ -191,14 +191,53 @@ export default function AdminMaterialRequests() {
                                             <td className="px-6 py-4 text-slate-500 text-sm">
                                                 {new Date(c.created_at).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' })}
                                             </td>
-                                            <td className="px-4"></td>
+                                            <td className="px-6 py-4 text-right"></td>
                                         </tr>
                                     )
                                 })}
                             </tbody>
                         </table>
                     </div>
-                    {/* Pagination omitted for brevity, but could be added easily */}
+                    {/* PAGINATION CONTROLS */}
+                    <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/50">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm text-slate-500 dark:text-slate-400">Rânduri pe pagină:</span>
+                            <select 
+                                value={itemsPerPage} 
+                                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                className="border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </div>
+                        
+                        {totalPages > 0 && (
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm text-slate-500 dark:text-slate-400">
+                                    Pagina <span className="font-semibold text-slate-700 dark:text-slate-200">{currentPage}</span> din <span className="font-semibold text-slate-700 dark:text-slate-200">{totalPages}</span>
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                    >
+                                        Următor
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -224,34 +263,46 @@ export default function AdminMaterialRequests() {
                             </div>
 
                             {/* ISTORIC CARD */}
-                            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Istoric & Trasabilitate</p>
+                            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Clock className="w-4 h-4" /> Istoric & Trasabilitate
+                                </p>
                                 <div className="space-y-3">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-500">Solicitat la:</span>
+                                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2">
+                                        <span className="text-slate-500">Solicitat la data:</span>
                                         <span className="font-medium text-slate-800 dark:text-slate-200">
                                             {new Date(detailReq.created_at).toLocaleString('ro-RO')}
                                         </span>
                                     </div>
+                                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2">
+                                        <span className="text-slate-500">Status curent:</span>
+                                        <span className={`font-bold ${STATUS_CONFIG[detailReq.status]?.cls}`}>
+                                            {STATUS_CONFIG[detailReq.status]?.label.toUpperCase()}
+                                        </span>
+                                    </div>
                                     {detailReq.responded_at && (
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-500">Ultimul răspuns:</span>
-                                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                                        <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2">
+                                            <span className="text-slate-500">
+                                                {detailReq.status === 'delivered' ? 'Livrată la data:' : 
+                                                 detailReq.status === 'approved' ? 'Aprobată la data:' : 
+                                                 detailReq.status === 'rejected' ? 'Respinsă la data:' : 'Procesată la data:'}
+                                            </span>
+                                            <span className="font-bold text-slate-800 dark:text-slate-200">
                                                 {new Date(detailReq.responded_at).toLocaleString('ro-RO')}
                                             </span>
                                         </div>
                                     )}
                                     {detailReq.responder_name && (
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-500">Aprobat/Procesat de:</span>
-                                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                                            <span className="text-slate-500">De către:</span>
+                                            <span className="font-bold text-slate-800 dark:text-slate-200">
                                                 {detailReq.responder_name}
                                             </span>
                                         </div>
                                     )}
                                     {detailReq.admin_response && (
-                                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-sm">
-                                            <span className="text-slate-500 block mb-1">Comentariu admin:</span>
+                                        <div className="mt-2 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Comentariu:</span>
                                             <span className="font-medium text-slate-800 dark:text-slate-200 italic">"{detailReq.admin_response}"</span>
                                         </div>
                                     )}
