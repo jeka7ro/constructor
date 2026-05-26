@@ -30,7 +30,16 @@ export default function EmployeeMaterialRequests() {
 
     useEffect(() => { 
         fetchData() 
+        const interval = setInterval(fetchSilent, 3000)
+        return () => clearInterval(interval)
     }, [])
+
+    const fetchSilent = async () => {
+        try {
+            const reqRes = await api.get('/user/material-requests')
+            setRequests(reqRes.data)
+        } catch { /* silent */ }
+    }
 
     const fetchData = async () => {
         setLoading(true)
