@@ -22,7 +22,8 @@ export default function AdminOverview() {
     const { t } = useTranslation()
     const [stats, setStats] = useState({ total_users: 0, total_sites: 0, pending: 0, total_hours_week: 0 })
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
-    const [loading, setLoading] = useState(true)
+    const [statsLoading, setStatsLoading] = useState(true)
+    const [chartLoading, setChartLoading] = useState(true)
     const [activeWorkers, setActiveWorkers] = useState([])
     const [fleetAlerts, setFleetAlerts] = useState([])
     const [workersLoading, setWorkersLoading] = useState(true)
@@ -69,12 +70,12 @@ export default function AdminOverview() {
     }
 
     useEffect(() => {
-        const isBackground = !isInitialLoad;
-        Promise.all([fetchStats(isBackground), fetchChartData(), fetchActiveWorkers(), fetchFleetAlerts()]).finally(() => {
-            setIsInitialLoad(false);
-            setLoading(false);
-        });
-        
+        // Fire all requests in parallel — dashboard shows immediately, each section fills in
+        fetchStats()
+        fetchChartData()
+        fetchActiveWorkers()
+        fetchFleetAlerts()
+
         if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
             fetchStats(true)
@@ -82,13 +83,13 @@ export default function AdminOverview() {
             fetchChartData()
             fetchFleetAlerts()
         }, 15000)
-        
+
         return () => clearInterval(refreshTimer.current)
     }, [globalSiteFilter])
 
     const fetchStats = async (isBackground = false) => {
+        if (!isBackground) setStatsLoading(true)
         try {
-            if (!isBackground) setLoading(true)
             const url = globalSiteFilter ? `/admin/timesheets/stats?site_id=${globalSiteFilter}` : '/admin/timesheets/stats'
             const res = await api.get(url)
             const tsStats = res.data || {}
@@ -99,15 +100,17 @@ export default function AdminOverview() {
                 total_hours_week: tsStats.total_hours_week || 0,
             })
         } catch (e) { console.error(e) }
-        finally { if (!isBackground) setLoading(false) }
+        finally { setStatsLoading(false) }
     }
 
     const fetchChartData = async () => {
+        setChartLoading(true)
         try {
             const url = globalSiteFilter ? `/admin/dashboard-stats?site_id=${globalSiteFilter}` : '/admin/dashboard-stats'
             const res = await api.get(url)
             setChartData(res.data)
         } catch (e) { console.error(e) }
+        finally { setChartLoading(false) }
     }
 
     const fetchFleetAlerts = async () => {
@@ -194,19 +197,15 @@ export default function AdminOverview() {
         return checkin.getHours() > 8 || (checkin.getHours() === 8 && checkin.getMinutes() > 30)
     })
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="text-center">
-                    <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-3" />
-                    <p className="text-sm text-slate-500">Se încarcă dashboard-ul...</p>
-                </div>
-            </div>
-        )
-    }
 
     return (
         <div className="p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
+            {/* Subtle loading bar at very top */}
+            {(statsLoading || workersLoading) && (
+                <div className="fixed top-0 left-0 right-0 z-[999] h-1 bg-blue-100 overflow-hidden">
+                    <div className="h-full bg-blue-500 animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ width: '40%', animation: 'moveRight 1.5s linear infinite', background: 'linear-gradient(90deg, #3b82f6, #6366f1)' }} />
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -238,12 +237,20 @@ export default function AdminOverview() {
 
             {/* KPI Row */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-                <KPICard label={t('dashboard.employees')} value={stats.total_users} icon={Users} gradient="from-[#0f172a] to-[#1e3a5f]" onClick={() => navigate('/admin/users')} />
-                <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} gradient="from-[#1e3a5f] to-[#1e40af]" onClick={() => navigate('/admin/sites')} />
-                <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} gradient="from-[#0f172a] to-[#164e63]" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} gradient="from-[#1e3a5f] to-[#7c3aed]" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} gradient="from-[#0f172a] to-[#1e40af]" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                <KPICard label={t('dashboard.hours_week')} value={`${stats.total_hours_week}h`} icon={TrendingUp} gradient="from-[#1e3a5f] to-[#0f172a]" isText onClick={() => navigate('/admin/reports')} />
+                {statsLoading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="h-24 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+                    ))
+                ) : (
+                    <>
+                        <KPICard label={t('dashboard.employees')} value={stats.total_users} icon={Users} gradient="from-[#0f172a] to-[#1e3a5f]" onClick={() => navigate('/admin/users')} />
+                        <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} gradient="from-[#1e3a5f] to-[#1e40af]" onClick={() => navigate('/admin/sites')} />
+                        <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} gradient="from-[#0f172a] to-[#164e63]" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} gradient="from-[#1e3a5f] to-[#7c3aed]" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} gradient="from-[#0f172a] to-[#1e40af]" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('dashboard.hours_week')} value={`${stats.total_hours_week}h`} icon={TrendingUp} gradient="from-[#1e3a5f] to-[#0f172a]" isText onClick={() => navigate('/admin/reports')} />
+                    </>
+                )}
             </div>
 
             {/* Live Site Map — full width below KPIs */}
