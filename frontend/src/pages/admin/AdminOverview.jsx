@@ -875,10 +875,41 @@ export default function AdminOverview() {
 
 function AvatarImg({ path, name, size = 'w-8 h-8', textSize = 'text-xs' }) {
     const [showFallback, setShowFallback] = useState(false)
+    const [fullScreen, setFullScreen] = useState(false)
     const initial = name?.charAt(0) || '?'
+    
     if (path && !showFallback) {
         const src = path.startsWith('http') ? path : `${API_BASE}${path}`
-        return <img src={src} alt="" className={`${size} rounded-full object-cover object-top`} onError={() => setShowFallback(true)} />
+        return (
+            <>
+                <img 
+                    src={src} 
+                    alt="" 
+                    className={`${size} rounded-full object-cover object-left cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all shadow-sm`} 
+                    onClick={(e) => { e.stopPropagation(); setFullScreen(true); }}
+                    onError={() => setShowFallback(true)} 
+                />
+                {fullScreen && (
+                    <div 
+                        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                        onClick={(e) => { e.stopPropagation(); setFullScreen(false); }}
+                    >
+                        <img 
+                            src={src} 
+                            className="max-w-full max-h-full rounded-xl shadow-2xl border border-slate-700 object-contain" 
+                            alt="Full Avatar" 
+                            onClick={(e) => e.stopPropagation()} 
+                        />
+                        <button 
+                            className="absolute top-6 right-6 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 p-2 rounded-full backdrop-blur-md transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setFullScreen(false); }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                    </div>
+                )}
+            </>
+        )
     }
     return (
         <div className={`${size} rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white ${textSize} font-bold`}>
