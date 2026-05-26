@@ -188,14 +188,16 @@ def get_item_transactions(item_id: str, db: Session = Depends(get_db), current_a
     
     result = []
     
-    # Pre-fetch all admins and users to match operator_id
+    # Pre-fetch all entities to match IDs
     all_admins = {a.id: a.full_name for a in db.query(Admin).all()}
     all_users = {u.id: u.full_name for u in db.query(User).all()}
+    all_vehicles = {v.id: v.name for v in db.query(Vehicle).all()}
+    all_sites = {s.id: s.name for s in db.query(Site).all()}
 
     for t in transactions:
-        assigned_user = t.assigned_to_user.full_name if t.assigned_to_user else None
-        assigned_vehicle = t.assigned_to_vehicle.name if t.assigned_to_vehicle else None
-        assigned_site = t.site.name if t.site else None
+        assigned_user = all_users.get(t.assigned_to_user_id) if t.assigned_to_user_id else None
+        assigned_vehicle = all_vehicles.get(t.assigned_to_vehicle_id) if t.assigned_to_vehicle_id else None
+        assigned_site = all_sites.get(t.site_id) if t.site_id else None
         
         # Look up operator in admins first, then users
         operator = all_admins.get(t.operated_by_id) or all_users.get(t.operated_by_id) or "Necunoscut"

@@ -654,9 +654,11 @@ export default function WarehouseManagement() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-slate-700 dark:text-slate-300 font-medium">{t.date}</span>
+                                                    <span className="text-slate-700 dark:text-slate-300 font-bold">{t.date}</span>
                                                     {t.created_at && (
-                                                        <span className="text-[10px] text-slate-400">Adăugat: {new Date(t.created_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin', hour: '2-digit', minute:'2-digit'})}</span>
+                                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded w-fit mt-1">
+                                                            Ora: {new Date(t.created_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute:'2-digit'})}
+                                                        </span>
                                                     )}
                                                 </div>
                                             </td>
