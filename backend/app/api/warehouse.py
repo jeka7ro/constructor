@@ -74,7 +74,7 @@ def get_items(category: Optional[str] = None, site_id: Optional[str] = None, db:
         for i_id, tx_type, total, tx_site_id in stats:
             if tx_type == "IN":
                 in_map[i_id] = in_map.get(i_id, 0) + total
-            else:
+            elif tx_type == "OUT":
                 out_map[i_id] = out_map.get(i_id, 0) + total
                 
             if tx_site_id:
@@ -85,7 +85,7 @@ def get_items(category: Optional[str] = None, site_id: Optional[str] = None, db:
                 
                 if tx_type == "OUT": 
                     site_stock_map[i_id][tx_site_id] += total
-                elif tx_type == "IN":
+                elif tx_type == "IN" or tx_type == "CONSUME":
                     site_stock_map[i_id][tx_site_id] -= total
 
     results = []

@@ -5,7 +5,8 @@ from typing import Optional
 from datetime import datetime
 
 from app.database import get_db
-from app.models import MaterialRequest, Admin
+from app.models import MaterialRequest, Admin, WarehouseItem, WarehouseTransaction
+import json
 from app.api.admin_auth import get_current_admin
 
 router = APIRouter(prefix="/admin/material-requests", tags=["Admin - Necesar Materiale"])
@@ -93,6 +94,61 @@ def change_status(
     c.responded_by = current_admin.id
     c.responded_at = datetime.utcnow()
     c.updated_at = datetime.utcnow()
+    
+    # Process automated warehouse fulfillment
+    if c.status in ["approved", "delivered"] and not c.is_fulfilled and c.items_json:
+        try:
+            items = json.loads(c.items_json)
+            for item in items:
+                db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item["id"]).first()
+                if not db_item:
+                    continue
+                    
+                if item["type"] == "warehouse":
+                    # Deduct from warehouse, assign to user/site
+                    qty = float(item.get("qty", 0))
+                    
+                    if db_item.inventory_code:
+                        # Unique Tool
+                        db_tx = WarehouseTransaction(
+                            item_id=db_item.id,
+                            transaction_type="OUT",
+                            quantity=1.0,
+                            date=datetime.utcnow().date(),
+                            operated_by_id=current_admin.id,
+                            assigned_to_user_id=c.user_id,
+                            site_id=c.site_id,
+                            notes="Preluat automat din cerere necesar"
+                        )
+                        db.add(db_tx)
+                        db_item.total_quantity -= 1.0
+                        db_item.current_holder_id = c.user_id
+                        db_item.current_site_id = c.site_id
+                    else:
+                        # Bulk / Consumable
+                        db_tx = WarehouseTransaction(
+                            item_id=db_item.id,
+                            transaction_type="OUT",
+                            quantity=qty,
+                            date=datetime.utcnow().date(),
+                            operated_by_id=current_admin.id,
+                            assigned_to_user_id=c.user_id,
+                            site_id=c.site_id,
+                            notes="Eliberat automat din cerere necesar"
+                        )
+                        db.add(db_tx)
+                        db_item.total_quantity -= qty
+                        
+                elif item["type"] == "site_transfer":
+                    # Item is already at the site, just transfer ownership
+                    if db_item.inventory_code:
+                        db_item.current_holder_id = c.user_id
+                        db_item.current_site_id = c.site_id # Should be the same, but just in case
+            
+            c.is_fulfilled = True
+        except Exception as e:
+            print("Error processing automated fulfillment:", e)
+    
     db.commit()
     db.refresh(c)
     return mr_to_dict(c)

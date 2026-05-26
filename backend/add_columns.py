@@ -1,21 +1,20 @@
-from sqlalchemy import create_engine, text
-import os
-from dotenv import load_dotenv
+from app.database import engine
+from sqlalchemy import text
 
-load_dotenv()
-engine = create_engine(os.getenv("DATABASE_URL"), isolation_level="AUTOCOMMIT")
+def add_columns():
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE material_requests ADD COLUMN items_json TEXT;"))
+            print("Added items_json column")
+        except Exception as e:
+            print("items_json column might already exist:", e)
+            
+        try:
+            conn.execute(text("ALTER TABLE material_requests ADD COLUMN is_fulfilled BOOLEAN NOT NULL DEFAULT FALSE;"))
+            print("Added is_fulfilled column")
+        except Exception as e:
+            print("is_fulfilled column might already exist:", e)
 
-with engine.connect() as conn:
-    try:
-        conn.execute(text('ALTER TABLE warehouse_items ADD COLUMN current_holder_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL;'))
-        print("Added current_holder_id to warehouse_items")
-    except Exception as e:
-        print(f"Error adding current_holder_id: {e}")
-
-    try:
-        conn.execute(text('ALTER TABLE warehouse_transactions ADD COLUMN assigned_to_user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL;'))
-        print("Added assigned_to_user_id to warehouse_transactions")
-    except Exception as e:
-        print(f"Error adding assigned_to_user_id: {e}")
-
-print("Done")
+if __name__ == "__main__":
+    add_columns()
+    print("Database update complete!")

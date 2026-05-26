@@ -12,6 +12,8 @@ router = APIRouter(prefix="/user/material-requests", tags=["User - Necesar Mater
 
 class MaterialRequestCreate(BaseModel):
     items_text: str
+    items_json: Optional[str] = None
+    site_id: Optional[str] = None
     notes: Optional[str] = None
 
 def get_user_active_site_id(db: Session, user_id: str) -> Optional[str]:
@@ -54,15 +56,20 @@ def create_material_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    site_id = get_user_active_site_id(db, current_user.id)
+    # If the app sends a specific site_id, use it. Otherwise find the active site.
+    site_id = body.site_id
+    if not site_id:
+        site_id = get_user_active_site_id(db, current_user.id)
     
     new_request = MaterialRequest(
         organization_id=current_user.organization_id,
         user_id=current_user.id,
         site_id=site_id,
         items_text=body.items_text,
+        items_json=body.items_json,
         notes=body.notes,
-        status="pending"
+        status="pending",
+        is_fulfilled=False
     )
     
     db.add(new_request)

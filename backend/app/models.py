@@ -537,10 +537,12 @@ class MaterialRequest(Base):
     site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
 
     items_text = Column(Text, nullable=False)
+    items_json = Column(Text, nullable=True) # stores JSON array of {id, qty, name, type}
     notes = Column(Text, nullable=True)
     
     # Valori posibile: pending, approved, rejected, delivered
     status = Column(String(20), nullable=False, default="pending")
+    is_fulfilled = Column(Boolean, nullable=False, default=False)
 
     admin_response = Column(Text, nullable=True)
     responded_by = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)

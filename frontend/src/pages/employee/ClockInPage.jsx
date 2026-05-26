@@ -7,7 +7,7 @@ import {
     Clock, Play, Square, Coffee, MapPin, Loader2, Timer, Calendar,
     ClipboardList, Plus, Trash2, CheckCircle, CheckCircle2, AlertCircle, ShieldAlert,
     Navigation, ChevronDown, ChevronRight, LogOut, Users, Settings, XCircle,
-    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch
+    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch, Wrench
 } from 'lucide-react'
 import TeamLeaderPanel from './TeamLeaderPanel'
 import SiteManagerPanel from './SiteManagerPanel'
@@ -910,8 +910,8 @@ export default function ClockInPage() {
                         </MapContainer>
                     </div>
 
-                    {/* Cerere Materiale Button - Sub Harta */}
-                    <div className="mt-2 mb-2">
+                    {/* Module Magazie */}
+                    <div className="mt-2 mb-2 space-y-2">
                         <button
                             onClick={() => navigate('/material-requests')}
                             className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
@@ -923,6 +923,22 @@ export default function ClockInPage() {
                                 <div className="text-left">
                                     <h3 className="font-bold text-lg leading-tight">Necesar Materiale</h3>
                                     <p className="text-xs text-amber-50 font-medium mt-0.5">Trimite o cerere din șantier</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-6 h-6 text-white/70" />
+                        </button>
+                        
+                        <button
+                            onClick={() => navigate('/my-inventory')}
+                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-xl">
+                                    <Wrench className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-bold text-lg leading-tight">Inventarul Meu</h3>
+                                    <p className="text-xs text-emerald-50 font-medium mt-0.5">Vezi sculele și consumabilele tale</p>
                                 </div>
                             </div>
                             <ChevronRight className="w-6 h-6 text-white/70" />

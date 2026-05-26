@@ -37,6 +37,7 @@ const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
 const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
+const EmployeeInventory = lazy(() => import('./pages/employee/EmployeeInventory'))
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
 
@@ -101,6 +102,7 @@ function App() {
                             <Route path="/timesheets/:id" element={<TimesheetForm />} />
                             <Route path="/sesizari" element={<EmployeeComplaints />} />
                             <Route path="/material-requests" element={<EmployeeMaterialRequests />} />
+                            <Route path="/my-inventory" element={<EmployeeInventory />} />
                             <Route path="/emergencies" element={<EmployeeEmergencies />} />
                         </>
                     ) : null}

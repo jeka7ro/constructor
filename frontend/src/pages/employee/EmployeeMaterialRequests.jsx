@@ -14,6 +14,8 @@ export default function EmployeeMaterialRequests() {
     const navigate = useNavigate()
     const [requests, setRequests] = useState([])
     const [inventory, setInventory] = useState([])
+    const [sites, setSites] = useState([])
+    const [selectedSiteId, setSelectedSiteId] = useState('')
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
     const [itemsText, setItemsText] = useState('')
@@ -29,12 +31,14 @@ export default function EmployeeMaterialRequests() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [reqRes, invRes] = await Promise.all([
+            const [reqRes, invRes, sitesRes] = await Promise.all([
                 api.get('/user/material-requests'),
-                api.get('/user/warehouse/inventory').catch(() => ({ data: [] }))
+                api.get('/user/warehouse/inventory').catch(() => ({ data: [] })),
+                api.get('/sites').catch(() => ({ data: [] }))
             ])
             setRequests(reqRes.data)
             setInventory(invRes.data)
+            setSites(sitesRes.data || [])
         } catch { /* silent */ }
         finally { setLoading(false) }
     }
@@ -59,10 +63,23 @@ export default function EmployeeMaterialRequests() {
         // Build the requested items text
         let finalItemsText = itemsText.trim()
         
+        let itemsJsonArray = []
+        
         const selectedList = Object.entries(selectedItems)
             .map(([id, qty]) => {
                 const item = inventory.find(i => i.id === id)
-                return item ? `${qty} ${item.unit} x ${item.name}` : null
+                if (item) {
+                    itemsJsonArray.push({
+                        id: item.id,
+                        name: item.name,
+                        qty: qty,
+                        unit: item.unit,
+                        inventory_code: item.inventory_code,
+                        type: "warehouse"
+                    })
+                    return `${qty} ${item.unit} x ${item.name}`
+                }
+                return null
             })
             .filter(Boolean)
             
@@ -70,14 +87,37 @@ export default function EmployeeMaterialRequests() {
             const listText = "Materiale din stoc:\n- " + selectedList.join("\n- ")
             finalItemsText = finalItemsText ? `${listText}\n\nAlte materiale/notițe:\n${finalItemsText}` : listText
         }
+        
+        // Also add site transfer requests to json
+        if (finalItemsText.includes("Solicit preluarea pe numele meu:")) {
+            // Find which items were requested based on the text
+            siteItems.forEach(item => {
+                if (finalItemsText.includes(item.name)) {
+                    itemsJsonArray.push({
+                        id: item.id,
+                        name: item.name,
+                        qty: 1,
+                        unit: item.unit,
+                        inventory_code: item.inventory_code,
+                        type: "site_transfer"
+                    })
+                }
+            })
+        }
 
         if (!finalItemsText) return
 
         setSubmitting(true)
         try {
-            await api.post('/user/material-requests', { items_text: finalItemsText, notes })
+            await api.post('/user/material-requests', { 
+                items_text: finalItemsText, 
+                items_json: JSON.stringify(itemsJsonArray),
+                site_id: selectedSiteId || null,
+                notes 
+            })
             setItemsText('')
             setNotes('')
+            setSelectedSiteId('')
             setSelectedItems({})
             setShowForm(false)
             setSuccessMsg('Necesarul a fost trimis cu succes!')
@@ -215,6 +255,18 @@ export default function EmployeeMaterialRequests() {
                             )}
 
                             <div className="p-5 space-y-4 bg-slate-50/50">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Șantier Destinație (Dacă nu ești pontat)</label>
+                                    <select
+                                        value={selectedSiteId} onChange={e => setSelectedSiteId(e.target.value)}
+                                        className="w-full px-4 h-11 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 bg-white text-slate-900 outline-none transition-all shadow-sm"
+                                    >
+                                        <option value="">(Șantierul curent automat)</option>
+                                        {sites.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Alte Materiale (Opțional)</label>
                                     <textarea
