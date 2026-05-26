@@ -390,9 +390,9 @@ export default function AdminMaterialRequests() {
                                     <div className="relative mb-4">
                                         <div className="absolute -left-4 w-4 h-4 rounded-full bg-blue-500 border-2 border-white dark:border-slate-800 shadow" />
                                         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
-                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">📋 Solicitat</p>
+                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">Solicitat</p>
                                             <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{detailReq.user_name || 'Muncitor'}</p>
-                                            {detailReq.site_name && <p className="text-xs text-slate-500 dark:text-slate-400">📍 {detailReq.site_name}</p>}
+                                            {detailReq.site_name && <p className="text-xs text-slate-500 dark:text-slate-400">Santier: {detailReq.site_name}</p>}
                                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">{new Date(detailReq.created_at).toLocaleString('ro-RO')}</p>
                                         </div>
                                     </div>
@@ -403,11 +403,11 @@ export default function AdminMaterialRequests() {
                                             <div className={`absolute -left-4 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'bg-red-500' : 'bg-emerald-500'}`} />
                                             <div className={`border rounded-xl p-3 ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800'}`}>
                                                 <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'text-red-500' : 'text-emerald-600'}`}>
-                                                    {detailReq.status === 'rejected' ? '❌ Respins' : '✅ Aprobat'}
+                                                    {detailReq.status === 'rejected' ? 'Respins' : 'Aprobat'}
                                                 </p>
                                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{detailReq.responder_name || 'Administrator'}</p>
-                                                {detailReq.admin_response && (
-                                                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic">"{detailReq.admin_response}"</p>
+                                                {detailReq.admin_response && !detailReq.admin_response.startsWith('[Predat prin:') && (
+                                                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic">"{detailReq.admin_response.replace(/\[Predat prin:[^\]]+\]\s*/g, '').trim()}"</p>
                                                 )}
                                                 <p className={`text-xs mt-1 font-medium ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'text-red-500' : 'text-emerald-600'}`}>
                                                     {new Date(detailReq.responded_at).toLocaleString('ro-RO')}

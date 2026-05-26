@@ -684,7 +684,9 @@ export default function WarehouseManagement() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col gap-1.5">
-                                                    {t.notes && <span className="text-xs text-slate-500 truncate max-w-xs" title={t.notes}>{t.notes}</span>}
+                                                    {t.notes && (
+                                                        <span className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-w-sm">{t.notes}</span>
+                                                    )}
                                                     {t.attachment_url && (
                                                         <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 px-2.5 py-1.5 rounded-md w-fit transition-colors">
                                                             <FileText className="w-3.5 h-3.5" />
