@@ -147,36 +147,17 @@ export default function AdminMaterialRequests() {
                         </div>
                     </div>
 
-                    {selectedIds.length > 0 && (
-                        <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
-                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} selectate</span>
-                            <button
-                                onClick={() => setConfirmModal({
-                                    isOpen: true,
-                                    title: 'Ștergere multiplă',
-                                    message: `Ștergi ${selectedIds.length} cereri?`,
-                                    onConfirm: async () => {
-                                        for (const id of selectedIds) await api.delete(`/admin/material-requests/${id}`)
-                                        showToast('Cereri șterse', 'success')
-                                        fetchRequests()
-                                    }
-                                })}
-                                className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors"
-                            >Șterge Selectatele</button>
-                        </div>
-                    )}
+                    {/* Removed bulk delete action bar */}
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                 <tr>
-                                    <th className="px-4 py-4 w-10 text-center"><input type="checkbox" onChange={toggleAll} className="rounded" /></th>
                                     <th className="px-6 py-4">Angajat</th>
                                     <th className="px-6 py-4">Șantier</th>
                                     <th className="px-6 py-4">Materiale</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Data</th>
-                                    <th className="px-6 py-4 text-right">Acțiuni</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -192,9 +173,6 @@ export default function AdminMaterialRequests() {
                                             onClick={() => { setDetailReq(c); setResponseText(c.admin_response || ''); setResponseStatus(c.status === 'pending' ? 'approved' : c.status) }}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                                         >
-                                            <td className="px-4 py-4 text-center" onClick={e => e.stopPropagation()}>
-                                                <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelect(c.id)} className="rounded" />
-                                            </td>
                                             <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{c.user_name}</td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {c.site_name}</div>
@@ -209,9 +187,6 @@ export default function AdminMaterialRequests() {
                                             </td>
                                             <td className="px-6 py-4 text-slate-500 text-sm">
                                                 {new Date(c.created_at).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' })}
-                                            </td>
-                                            <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
-                                                <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-600"><X className="w-4 h-4" /></button>
                                             </td>
                                         </tr>
                                     )
@@ -244,6 +219,72 @@ export default function AdminMaterialRequests() {
                                 )}
                             </div>
 
+                            {/* ISTORIC CARD */}
+                            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Istoric & Trasabilitate</p>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-500">Solicitat la:</span>
+                                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                                            {new Date(detailReq.created_at).toLocaleString('ro-RO')}
+                                        </span>
+                                    </div>
+                                    {detailReq.responded_at && (
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500">Ultimul răspuns:</span>
+                                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                                                {new Date(detailReq.responded_at).toLocaleString('ro-RO')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {detailReq.responder_name && (
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500">Aprobat/Procesat de:</span>
+                                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                                                {detailReq.responder_name}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {detailReq.admin_response && (
+                                        <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-sm">
+                                            <span className="text-slate-500 block mb-1">Comentariu admin:</span>
+                                            <span className="font-medium text-slate-800 dark:text-slate-200 italic">"{detailReq.admin_response}"</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* QUICK ACTION: DELIVER */}
+                            {detailReq.status === 'approved' && (
+                                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 flex flex-col items-center text-center">
+                                    <PackageSearch className="w-8 h-8 text-emerald-600 mb-2" />
+                                    <h3 className="text-emerald-800 dark:text-emerald-400 font-bold mb-1">Materialele au ajuns?</h3>
+                                    <p className="text-sm text-emerald-600 dark:text-emerald-500 mb-4">Marchează cererea ca livrată pentru a transfera automat stocul în inventarul muncitorului.</p>
+                                    <button 
+                                        onClick={async () => {
+                                            try {
+                                                setSubmitting(true);
+                                                await api.put(`/admin/material-requests/${detailReq.id}/status`, {
+                                                    admin_response: responseText.trim() ? responseText : null,
+                                                    status: 'delivered',
+                                                });
+                                                showToast('Materiale Livrate cu succes!', 'success');
+                                                setDetailReq(null);
+                                                fetchRequests();
+                                            } catch {
+                                                showToast('Eroare la livrare', 'error');
+                                            } finally {
+                                                setSubmitting(false);
+                                            }
+                                        }}
+                                        disabled={submitting}
+                                        className="w-full py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
+                                    >
+                                        {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Confirmă Livrarea pe Șantier"}
+                                    </button>
+                                </div>
+                            )}
+
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Acțiuni</p>
                                 <select value={responseStatus} onChange={e => setResponseStatus(e.target.value)}
@@ -275,18 +316,7 @@ export default function AdminMaterialRequests() {
                 </div>
             )}
             
-            {confirmModal.isOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-[100]">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm p-6 text-center shadow-xl">
-                        <h3 className="text-xl font-bold mb-2">{confirmModal.title}</h3>
-                        <p className="text-slate-500 mb-6">{confirmModal.message}</p>
-                        <div className="flex gap-3 justify-center">
-                            <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="px-5 h-10 rounded-full bg-slate-100 font-bold">Anulează</button>
-                            <button onClick={() => { confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }} className="px-5 h-10 rounded-full bg-red-600 text-white font-bold">Șterge</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* REMOVED CONFIRM MODAL */}
         </>
     )
 }
