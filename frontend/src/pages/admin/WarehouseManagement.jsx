@@ -556,7 +556,20 @@ export default function WarehouseManagement() {
                             <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 {historyItem.name}
                             </h2>
-                            <p className="text-sm text-slate-500 mt-1">Stoc curent: <span className="font-bold text-slate-800 dark:text-slate-200">{historyItem.total_quantity} {historyItem.unit}</span></p>
+                            {historyItem.inventory_code ? (
+                                <p className="text-sm text-slate-500 mt-1">
+                                    Status: <span className={`font-bold ${(historyItem.current_holder_id || historyItem.current_site_id) ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                        {historyItem.current_holder_name
+                                            ? `În teren · ${historyItem.current_holder_name}${historyItem.current_site_name ? ` · ${historyItem.current_site_name}` : ''}`
+                                            : historyItem.current_site_name
+                                                ? `La șantier · ${historyItem.current_site_name}`
+                                                : 'La magazie'
+                                        }
+                                    </span>
+                                </p>
+                            ) : (
+                                <p className="text-sm text-slate-500 mt-1">Stoc curent: <span className="font-bold text-slate-800 dark:text-slate-200">{historyItem.total_quantity} {historyItem.unit}</span></p>
+                            )}
                         </div>
                         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                             <div className="relative flex-1 lg:w-64 min-w-[200px]">
@@ -810,7 +823,7 @@ export default function WarehouseManagement() {
                                                 </td>
                                             )}
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                                                {t.assigned_site || 'Companie General'}
+                                                {t.assigned_site || '—'}
                                             </td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">
                                                 <div className="flex flex-col gap-0.5">
