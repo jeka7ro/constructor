@@ -15,11 +15,12 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
-export default function SiteMap({ selectedSiteId, onSiteSelect }) {
+export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [] }) {
     const { t } = useTranslation()
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const markersRef = useRef([])
+    const workerMarkersRef = useRef([])
     const circleRef = useRef(null)
     const [sites, setSites] = useState([])
     const [selectedSite, setSelectedSite] = useState(null)
@@ -116,7 +117,7 @@ export default function SiteMap({ selectedSiteId, onSiteSelect }) {
             markersRef.current.push(marker)
         })
 
-        // Auto-fit bounds to all markers
+        // Auto-fit bounds to all markers (sites only)
         if (withCoords.length > 0 && !selectedSite) {
             try {
                 const group = L.featureGroup(markersRef.current)
@@ -124,6 +125,53 @@ export default function SiteMap({ selectedSiteId, onSiteSelect }) {
             } catch (e) { /* ignore if bounds fail */ }
         }
     }, [sites])
+
+    // Draw worker markers based on GPS Check-in
+    useEffect(() => {
+        const map = mapInstanceRef.current
+        if (!map) return
+
+        // Clear old worker markers
+        workerMarkersRef.current.forEach(m => m.remove())
+        workerMarkersRef.current = []
+
+        const liveWorkers = workers.filter(w => w.status !== 'terminat' && w.latitude && w.longitude)
+
+        liveWorkers.forEach(worker => {
+            const initial = worker.worker_name ? worker.worker_name.charAt(0).toUpperCase() : 'W'
+            // Color based on status
+            let color = '#10b981' // Green for active
+            if (worker.status === 'gps_pierdut') color = '#f59e0b'
+            if (worker.status === 'geofence') color = '#ef4444'
+            if (worker.status === 'pauză') color = '#6366f1'
+
+            const iconHtml = worker.avatar_path 
+                ? `<div style="width:28px;height:28px;border-radius:50%;border:2.5px solid ${color};background-image:url(${worker.avatar_path});background-size:cover;background-position:center;box-shadow:0 3px 6px rgba(0,0,0,0.4);"></div>`
+                : `<div style="width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:${color};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;box-shadow:0 3px 6px rgba(0,0,0,0.4);">${initial}</div>`
+
+            const icon = L.divIcon({
+                className: '',
+                html: iconHtml,
+                iconAnchor: [14, 14],
+                popupAnchor: [0, -14],
+            })
+
+            const checkInTime = new Date(worker.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' })
+            
+            const marker = L.marker([worker.latitude, worker.longitude], { icon, zIndexOffset: 1000 })
+                .bindTooltip(`
+                    <div class="text-center">
+                        <b class="text-[13px] text-slate-800">${worker.worker_name}</b><br/>
+                        <span class="text-[11px] font-bold text-slate-500 uppercase">${worker.status}</span><br/>
+                        <span class="text-[10px] text-slate-400">Check-in: ${checkInTime}</span>
+                    </div>
+                `, { direction: 'top', offset: [0, -14], opacity: 0.95 })
+                .addTo(map)
+
+            workerMarkersRef.current.push(marker)
+        })
+
+    }, [workers, sites])
 
     const handleSitePillClick = (site) => {
         if (!site.latitude || !site.longitude) return
