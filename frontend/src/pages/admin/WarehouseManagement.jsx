@@ -605,8 +605,8 @@ export default function WarehouseManagement() {
                         </div>
                     </div>
 
-                    {/* TIMELINE COMPACT */}
-                    {linkedRequest && (
+                    {/* TIMELINE COMPACT — doar pentru scule unice (cu inventory_code) */}
+                    {linkedRequest && historyItem.inventory_code && (
                         <div className="mx-6 mb-4 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                             <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Traseul sculei</span>
@@ -648,8 +648,8 @@ export default function WarehouseManagement() {
                         </div>
                     )}
 
-                    {/* LOCATIE CURENTA — cu fallback din linkedRequest */}
-                    {(() => {
+                    {/* LOCATIE CURENTA — doar pentru scule unice */}
+                    {historyItem.inventory_code && (() => {
                         const holderName = historyItem.current_holder_name || (linkedRequest?.status === 'completed' ? linkedRequest?.current_holder || linkedRequest?.confirmed_by : null)
                         const siteName = historyItem.current_site_name || linkedRequest?.current_site || linkedRequest?.site_name
                         const isOut = !!holderName
@@ -1052,17 +1052,29 @@ export default function WarehouseManagement() {
                                         </td>
                                         {/* Stoc Santier */}
                                         <td className="px-3 py-2 text-center">
-                                            {(item.current_site_id || item.current_holder_id) ? (
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                    <div className="inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
-                                                        {item.inventory_code ? '1' : '—'}
+                                            {item.inventory_code ? (
+                                                /* Sculă unică */
+                                                (item.current_site_id || item.current_holder_id) ? (
+                                                    <div className="flex flex-col items-center gap-0.5">
+                                                        <div className="inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                                                            1
+                                                        </div>
+                                                        {item.current_site_name && (
+                                                            <span className="text-[10px] text-amber-600 font-semibold">{item.current_site_name}</span>
+                                                        )}
                                                     </div>
-                                                    {item.current_site_name && (
-                                                        <span className="text-[10px] text-amber-600 font-semibold">{item.current_site_name}</span>
-                                                    )}
-                                                </div>
+                                                ) : (
+                                                    <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                                )
                                             ) : (
-                                                <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                                /* Consumabil — stoc total la toate santierele */
+                                                (item.site_total > 0) ? (
+                                                    <div className="inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                                                        {item.site_total}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                                )
                                             )}
                                         </td>
                                         <td className="px-3 py-2 text-right">

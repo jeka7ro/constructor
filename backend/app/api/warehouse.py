@@ -103,6 +103,12 @@ def get_items(category: Optional[str] = None, site_id: Optional[str] = None, db:
         else:
             effective_qty = i.total_quantity
 
+        # Calculate total site stock for consumables
+        site_total = 0
+        if not i.inventory_code:
+            item_sites = site_stock_map.get(i.id, {})
+            site_total = sum(v for v in item_sites.values() if v > 0)
+
         results.append({
             "id": i.id,
             "name": i.name,
@@ -118,7 +124,8 @@ def get_items(category: Optional[str] = None, site_id: Optional[str] = None, db:
             "checked_out_at": i.checked_out_at,
             "is_defective": i.is_defective,
             "total_in": in_map.get(i.id, 0),
-            "total_out": out_map.get(i.id, 0)
+            "total_out": out_map.get(i.id, 0),
+            "site_total": site_total
         })
         
     return results
