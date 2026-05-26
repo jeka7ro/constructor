@@ -732,8 +732,8 @@ export default function AdminOverview() {
 
             {/* Worker Detail Drawer */}
             {selectedWorker && (
-                <div className="fixed inset-0 z-50 flex">
-                    <div className="flex-1 bg-black/40" onClick={closeWorkerDetail} />
+                <div className="fixed inset-0 z-[9999] flex">
+                    <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={closeWorkerDetail} />
                     <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.25s ease-out' }}>
                         <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
                             <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
