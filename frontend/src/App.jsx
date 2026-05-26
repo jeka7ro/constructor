@@ -1,28 +1,30 @@
-import { useState, useEffect, Suspense, lazy } from 'react'
+import React, { useState, useEffect, Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useAdminStore } from './store/adminStore'
 import Login from './pages/Login'
 import { Loader2 } from 'lucide-react'
 
-// Lazy load heavy pages - these load AFTER the initial bundle
+// Eager load core admin pages for INSTANT navigation and 0 delays
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminOverview from './pages/admin/AdminOverview'
+import TimesheetApprovalPage from './pages/admin/TimesheetApprovalPage'
+import ReportsPage from './pages/admin/ReportsPage'
+import EmployeesManagement from './pages/admin/EmployeesManagement'
+import SitesManagement from './pages/admin/SitesManagement'
+import ActivitiesManagement from './pages/admin/ActivitiesManagement'
+
+// Lazy load secondary/heavy pages
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const TodayTimesheet = lazy(() => import('./pages/TodayTimesheet'))
 const History = lazy(() => import('./pages/History'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
-const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'))
 const UsersManagement = lazy(() => import('./pages/admin/UsersManagement'))
-const EmployeesManagement = lazy(() => import('./pages/admin/EmployeesManagement'))
 const ClientsManagement = lazy(() => import('./pages/admin/ClientsManagement'))
-const SitesManagement = lazy(() => import('./pages/admin/SitesManagement'))
 const PhotoTestPage = lazy(() => import('./pages/admin/PhotoTestPage'))
-const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
 const TimesheetsPage = lazy(() => import('./pages/employee/TimesheetsPage'))
 const TimesheetForm = lazy(() => import('./pages/employee/TimesheetForm'))
 const ClockInPage = lazy(() => import('./pages/employee/ClockInPage'))
-const TimesheetApprovalPage = lazy(() => import('./pages/admin/TimesheetApprovalPage'))
-const ActivitiesManagement = lazy(() => import('./pages/admin/ActivitiesManagement'))
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 const SitePhotosPage = lazy(() => import('./pages/admin/SitePhotosPage'))
 const TeamsManagement = lazy(() => import('./pages/admin/TeamsManagement'))
@@ -53,11 +55,43 @@ function PageLoader() {
     )
 }
 
+class GlobalErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props)
+        this.state = { hasError: false }
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true }
+    }
+    componentDidCatch(error, errorInfo) {
+        console.error('App routing error:', error)
+        // Auto-refresh if it's a chunk load error (network glitch / new deployment)
+        if (error.name === 'ChunkLoadError' || (error.message && error.message.includes('fetch dynamically imported module'))) {
+            window.location.reload()
+        }
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                    <h2 className="text-xl font-bold text-slate-800 mb-2">A apărut o eroare de navigare.</h2>
+                    <p className="text-sm text-slate-500 mb-4">Te rugăm să reîncarci pagina.</p>
+                    <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">
+                        Reîncarcă Pagina
+                    </button>
+                </div>
+            )
+        }
+        return this.props.children
+    }
+}
+
 function App() {
     const { user } = useAuthStore()
 
     return (
-        <Router>
+        <GlobalErrorBoundary>
+            <Router>
             <DialogOverlay />
             <ToastOverlay />
             <Suspense fallback={<PageLoader />}>
@@ -112,6 +146,7 @@ function App() {
                 </Routes>
             </Suspense>
         </Router>
+        </GlobalErrorBoundary>
     )
 }
 

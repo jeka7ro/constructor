@@ -563,6 +563,7 @@ async def reject_timesheet(
 
 @router.get("/admin/timesheets/stats")
 async def get_timesheet_stats(
+    site_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -574,23 +575,30 @@ async def get_timesheet_stats(
     now = now_ro()
     
     # Count all timesheets today
-    today_count = db.query(Timesheet).filter(
+    ts_query = db.query(Timesheet).filter(
         Timesheet.date == today,
         Timesheet.owner_type == "USER"
-    ).count()
+    )
+    if site_id:
+        ts_query = ts_query.join(TimesheetSegment).filter(TimesheetSegment.site_id == site_id)
+    today_count = ts_query.count()
     
     # Total hours this week — BULK fetch
-    week_timesheets = db.query(Timesheet).filter(
+    week_ts_query = db.query(Timesheet).filter(
         Timesheet.date >= week_start,
         Timesheet.owner_type == "USER"
-    ).all()
+    )
+    if site_id:
+        week_ts_query = week_ts_query.join(TimesheetSegment).filter(TimesheetSegment.site_id == site_id)
+    week_timesheets = week_ts_query.all()
     
     total_hours_week = 0
     if week_timesheets:
         ts_ids = [ts.id for ts in week_timesheets]
-        all_segs = db.query(TimesheetSegment).filter(
-            TimesheetSegment.timesheet_id.in_(ts_ids)
-        ).all()
+        seg_query = db.query(TimesheetSegment).filter(TimesheetSegment.timesheet_id.in_(ts_ids))
+        if site_id:
+            seg_query = seg_query.filter(TimesheetSegment.site_id == site_id)
+        all_segs = seg_query.all()
         for seg in all_segs:
             end_time = seg.check_out_time or now
             hours = (end_time - seg.check_in_time).total_seconds() / 3600
@@ -614,6 +622,7 @@ async def get_timesheet_stats(
 
 @router.get("/admin/dashboard-stats")
 async def get_dashboard_stats(
+    site_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -625,16 +634,22 @@ async def get_dashboard_stats(
     
     # ── Bulk Fetch Last 7 Days ──
     start_date = today - timedelta(days=6)
-    all_7d_ts = db.query(Timesheet).filter(
+    ts_query = db.query(Timesheet).filter(
         Timesheet.date >= start_date,
         Timesheet.date <= today,
         Timesheet.owner_type == "USER"
-    ).all()
+    )
+    if site_id:
+        ts_query = ts_query.join(TimesheetSegment).filter(TimesheetSegment.site_id == site_id)
+    all_7d_ts = ts_query.all()
     
     ts_ids = [ts.id for ts in all_7d_ts]
-    all_7d_segs = db.query(TimesheetSegment).filter(
+    seg_query = db.query(TimesheetSegment).filter(
         TimesheetSegment.timesheet_id.in_(ts_ids)
-    ).all() if ts_ids else []
+    )
+    if site_id:
+        seg_query = seg_query.filter(TimesheetSegment.site_id == site_id)
+    all_7d_segs = seg_query.all() if ts_ids else []
     
     # Map segments by timesheet_id for fast lookup
     segs_by_ts = {}
@@ -744,6 +759,7 @@ async def get_dashboard_stats(
 
 @router.get("/admin/timesheets/active-workers")
 async def get_active_workers(
+    site_id: Optional[str] = None,
     target_date: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -755,10 +771,13 @@ async def get_active_workers(
     now = now_ro()
     
     # ── BULK FETCH 1: All timesheets for the date ──
-    today_timesheets = db.query(Timesheet).filter(
+    ts_query = db.query(Timesheet).filter(
         Timesheet.date == query_date,
         Timesheet.owner_type == "USER"
-    ).all()
+    )
+    if site_id:
+        ts_query = ts_query.join(TimesheetSegment).filter(TimesheetSegment.site_id == site_id)
+    today_timesheets = ts_query.all()
     
     if not today_timesheets:
         return {"active_workers": [], "total_active": 0, "total_today": 0, "timestamp": str(now)}

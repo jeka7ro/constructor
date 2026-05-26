@@ -13,6 +13,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area, PieChart, Pie, Cell, Legend, ComposedChart, Line
 } from 'recharts'
+import DataTable from '../../components/DataTable'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
@@ -32,6 +33,10 @@ export default function AdminOverview() {
     const [selectedWorker, setSelectedWorker] = useState(null)
     const [workerDetail, setWorkerDetail] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
+
+    // Global Site Filter
+    const [globalSiteFilter, setGlobalSiteFilter] = useState(null)
+    const [isInitialLoad, setIsInitialLoad] = useState(true)
 
     // Live clock — use ref to avoid re-rendering charts every second
     const nowRef = useRef(Date.now())
@@ -64,20 +69,28 @@ export default function AdminOverview() {
     }
 
     useEffect(() => {
-        Promise.all([fetchStats(), fetchChartData(), fetchActiveWorkers(), fetchFleetAlerts()])
+        const isBackground = !isInitialLoad;
+        Promise.all([fetchStats(isBackground), fetchChartData(), fetchActiveWorkers(), fetchFleetAlerts()]).finally(() => {
+            setIsInitialLoad(false);
+            setLoading(false);
+        });
+        
+        if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
             fetchStats(true)
             fetchActiveWorkers()
             fetchChartData()
             fetchFleetAlerts()
         }, 15000)
+        
         return () => clearInterval(refreshTimer.current)
-    }, [])
+    }, [globalSiteFilter])
 
     const fetchStats = async (isBackground = false) => {
         try {
             if (!isBackground) setLoading(true)
-            const res = await api.get('/admin/timesheets/stats')
+            const url = globalSiteFilter ? `/admin/timesheets/stats?site_id=${globalSiteFilter}` : '/admin/timesheets/stats'
+            const res = await api.get(url)
             const tsStats = res.data || {}
             setStats({
                 total_users: tsStats.total_users || 0,
@@ -91,7 +104,8 @@ export default function AdminOverview() {
 
     const fetchChartData = async () => {
         try {
-            const res = await api.get('/admin/dashboard-stats')
+            const url = globalSiteFilter ? `/admin/dashboard-stats?site_id=${globalSiteFilter}` : '/admin/dashboard-stats'
+            const res = await api.get(url)
             setChartData(res.data)
         } catch (e) { console.error(e) }
     }
@@ -106,7 +120,8 @@ export default function AdminOverview() {
     const fetchActiveWorkers = async () => {
         try {
             setWorkersLoading(true)
-            const res = await api.get('/admin/timesheets/active-workers')
+            const url = globalSiteFilter ? `/admin/timesheets/active-workers?site_id=${globalSiteFilter}` : '/admin/timesheets/active-workers'
+            const res = await api.get(url)
             setActiveWorkers(res.data.active_workers || [])
             setLastRefresh(new Date())
         } catch (e) { console.error(e) }
@@ -231,7 +246,7 @@ export default function AdminOverview() {
 
             {/* Live Site Map — full width below KPIs */}
             <div className="mb-6">
-                <SiteMap />
+                <SiteMap selectedSiteId={globalSiteFilter} onSiteSelect={setGlobalSiteFilter} />
             </div>
 
             {/* Row 2: Weekly Comparison + Site Live Map */}
@@ -365,39 +380,64 @@ export default function AdminOverview() {
                     </div>
                 </div>
 
-                {/* Top Performers */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col">
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
-                        <Trophy className="w-4 h-4 text-amber-500" />
-                        {t('dashboard.top_performers_today')}
-                    </h3>
-                    {topPerformers.length === 0 ? (
-                        <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">
-                            <p>{t('dashboard.no_workers_today')}</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2 overflow-y-auto flex-1">
-                            {topPerformers.map((w, idx) => (
-                                <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                                        idx === 0 ? 'bg-amber-100 text-amber-700' :
-                                        idx === 1 ? 'bg-slate-200 text-slate-600' :
-                                        idx === 2 ? 'bg-orange-100 text-orange-600' :
-                                        'bg-slate-100 text-slate-500'
-                                    }`}>
-                                        {`#${idx + 1}`}
+                {/* Top Performers & Late Arrivals */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col max-h-[500px] overflow-y-auto custom-scrollbar">
+                    <div className="flex-1">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
+                            <Trophy className="w-4 h-4 text-amber-500" />
+                            {t('dashboard.top_performers_today')}
+                        </h3>
+                        {topPerformers.length === 0 ? (
+                            <div className="flex items-center justify-center py-4 text-slate-400 text-sm">
+                                <p>{t('dashboard.no_workers_today')}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {topPerformers.map((w, idx) => (
+                                    <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                            idx === 0 ? 'bg-amber-100 text-amber-700' :
+                                            idx === 1 ? 'bg-slate-200 text-slate-600' :
+                                            idx === 2 ? 'bg-orange-100 text-orange-600' :
+                                            'bg-slate-100 text-slate-500'
+                                        }`}>
+                                            {`#${idx + 1}`}
+                                        </div>
+                                        <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-8 h-8" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{w.worker_name}</p>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{w.site_name}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-sm font-bold text-blue-600">{formatTime(w.live_hours)}</span>
+                                            {w.status !== 'terminat' && !w.gps_lost && w.status !== 'gps_pierdut' && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+                                        </div>
                                     </div>
-                                    <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-8 h-8" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{w.worker_name}</p>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{w.site_name}</p>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {lateArrivals.length > 0 && <div className="border-t border-slate-100 dark:border-slate-700 my-4" />}
+
+                    {/* Late Arrivals */}
+                    {lateArrivals.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                {t('dashboard.late_arrivals')} ({lateArrivals.length})
+                            </h3>
+                            <div className="space-y-2">
+                                {lateArrivals.slice(0, 4).map(w => (
+                                    <div key={w.worker_id} className="flex items-center gap-2 text-sm p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg">
+                                        <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-6 h-6" textSize="text-[10px]" />
+                                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate flex-1">{w.worker_name}</span>
+                                        <span className="text-[11px] font-bold text-amber-700 bg-white dark:bg-amber-950 px-2 py-0.5 rounded-full shadow-sm">
+                                            {new Date(w.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="text-sm font-bold text-blue-600">{formatTime(w.live_hours)}</span>
-                                        {w.status !== 'terminat' && !w.gps_lost && w.status !== 'gps_pierdut' && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -427,28 +467,6 @@ export default function AdminOverview() {
                                     </div>
                                 ))}
                             </div>
-                            {(lateArrivals.length > 0 || (chartData.activities || []).length > 0) && <div className="border-t border-slate-100 dark:border-slate-700 mt-4" />}
-                        </div>
-                    )}
-
-                    {/* Late Arrivals */}
-                    {lateArrivals.length > 0 && (
-                        <div>
-                            <h3 className="text-sm font-bold text-amber-700 mb-3 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                {t('dashboard.late_arrivals')} ({lateArrivals.length})
-                            </h3>
-                            <div className="space-y-2">
-                                {lateArrivals.slice(0, 4).map(w => (
-                                    <div key={w.worker_id} className="flex items-center gap-2 text-sm">
-                                        <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-6 h-6" textSize="text-[10px]" />
-                                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate flex-1">{w.worker_name}</span>
-                                        <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                            {new Date(w.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
                             {(chartData.activities || []).length > 0 && <div className="border-t border-slate-100 dark:border-slate-700 mt-4" />}
                         </div>
                     )}
@@ -471,7 +489,7 @@ export default function AdminOverview() {
                                 ))}
                             </div>
                         </div>
-                    ) : lateArrivals.length === 0 && fleetAlerts.length === 0 && (
+                    ) : fleetAlerts.length === 0 && (
                         <div className="flex items-center justify-center flex-1 text-center">
                             <div>
                                 <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
@@ -555,21 +573,20 @@ export default function AdminOverview() {
             {(() => {
                 const liveWorkers = activeWorkers.filter(w => w.status !== 'terminat')
                 const doneWorkers = activeWorkers.filter(w => w.status === 'terminat')
-                const tableHead = (
-                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.worker')}</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.site')}</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.check_in')}</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.hours_worked')}</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('common.status')}</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{t('dashboard.activities')}</th>
-                        </tr>
-                    </thead>
-                )
-                const renderWorkerRow = (worker) => (
-                    <tr key={worker.worker_id} className="hover:bg-blue-50/50 transition-colors">
-                        <td className="px-5 py-3">
+                
+                const columns = [
+                    {
+                        key: 'index',
+                        label: '#',
+                        sortable: false,
+                        render: (_, idx) => <span className="text-xs font-medium text-slate-400">{idx + 1}</span>
+                    },
+                    {
+                        key: 'worker',
+                        label: t('dashboard.worker'),
+                        sortable: true,
+                        sortFn: (a, b) => (a.worker_name || '').localeCompare(b.worker_name || ''),
+                        render: (worker) => (
                             <div className="flex items-center gap-3">
                                 <AvatarImg path={worker.avatar_path} name={worker.worker_name} size="w-8 h-8" />
                                 <div>
@@ -577,37 +594,62 @@ export default function AdminOverview() {
                                     <div className="text-xs text-slate-500">{worker.employee_code}</div>
                                 </div>
                             </div>
-                        </td>
-                        <td className="px-5 py-3">
+                        )
+                    },
+                    {
+                        key: 'site_name',
+                        label: t('dashboard.site'),
+                        sortable: true,
+                        render: (worker) => (
                             <div className="flex items-center gap-1.5 text-sm text-slate-700">
                                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
                                 {worker.site_name || '—'}
                             </div>
-                        </td>
-                        <td className="px-5 py-3 text-sm text-slate-600">
-                            {worker.check_in_time ? new Date(worker.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                        </td>
-                        <td className="px-5 py-3">
-                            <span className={`text-sm font-bold ${worker.status === 'terminat' ? 'text-slate-600' : 'text-blue-600'}`}>
-                                {formatTime(getLiveHours(worker))}
-                            </span>
-                            {worker.status !== 'terminat' && !worker.gps_lost && worker.status !== 'gps_pierdut' && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
-                            {worker.break_hours > 0 && <span className="text-xs text-orange-500 ml-2">({t('dashboard.break')}: {formatTime(worker.break_hours)})</span>}
-                        </td>
-                        <td className="px-5 py-3">
-                            <StatusBadge status={worker.status} is_on_break={worker.is_on_break} is_outside_geofence={worker.is_outside_geofence} gps_lost={worker.gps_lost} />
-                        </td>
-                        <td className="px-5 py-3">
-                            {worker.activities && worker.activities.length > 0 ? (
+                        )
+                    },
+                    {
+                        key: 'check_in_time',
+                        label: t('dashboard.check_in'),
+                        sortable: true,
+                        render: (worker) => <span className="text-sm text-slate-600">{worker.check_in_time ? new Date(worker.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                    },
+                    {
+                        key: 'worked_hours',
+                        label: t('dashboard.hours_worked'),
+                        sortable: true,
+                        sortFn: (a, b) => getLiveHours(a) - getLiveHours(b),
+                        render: (worker) => (
+                            <>
+                                <span className={`text-sm font-bold ${worker.status === 'terminat' ? 'text-slate-600' : 'text-blue-600'}`}>
+                                    {formatTime(getLiveHours(worker))}
+                                </span>
+                                {worker.status !== 'terminat' && !worker.gps_lost && worker.status !== 'gps_pierdut' && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+                                {worker.break_hours > 0 && <span className="text-xs text-orange-500 ml-2">({t('dashboard.break')}: {formatTime(worker.break_hours)})</span>}
+                            </>
+                        )
+                    },
+                    {
+                        key: 'status',
+                        label: t('common.status'),
+                        sortable: true,
+                        render: (worker) => <StatusBadge status={worker.status} is_on_break={worker.is_on_break} is_outside_geofence={worker.is_outside_geofence} gps_lost={worker.gps_lost} />
+                    },
+                    {
+                        key: 'activities',
+                        label: t('dashboard.activities'),
+                        sortable: false,
+                        render: (worker) => (
+                            worker.activities && worker.activities.length > 0 ? (
                                 <div className="relative group inline-block">
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 cursor-pointer hover:bg-violet-200 transition-colors">
                                         <Activity className="w-3 h-3" />
                                         {worker.activities.length} activit{worker.activities.length > 1 ? 'ăți' : 'ate'}
                                     </span>
-                                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-80">
-                                        <div className="bg-slate-900 text-white rounded-xl p-3 shadow-xl border border-slate-700">
-                                            <div className="text-[11px] font-semibold text-slate-400 uppercase mb-2">{t('dashboard.reported_activities')}</div>
-                                            <div className="space-y-2">
+                                    <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-[99] w-80">
+                                        <div className="bg-slate-900 text-white rounded-xl p-3 shadow-xl border border-slate-700 relative">
+                                            <div className="absolute left-4 -top-1 w-2 h-2 bg-slate-900 rotate-45 border-l border-t border-slate-700" />
+                                            <div className="text-[11px] font-semibold text-slate-400 uppercase mb-2 relative z-10">{t('dashboard.reported_activities')}</div>
+                                            <div className="space-y-2 relative z-10">
                                                 {worker.activities.map((act, i) => (
                                                     <div key={i} className="flex items-start justify-between text-sm gap-2">
                                                         <span className="text-slate-200 flex-1 leading-tight">{act.name}</span>
@@ -615,25 +657,24 @@ export default function AdminOverview() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            <div className="absolute left-4 -bottom-1 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700" />
                                         </div>
                                     </div>
                                 </div>
-                            ) : <span className="text-xs text-slate-400">—</span>}
-                        </td>
-                    </tr>
-                )
+                            ) : <span className="text-xs text-slate-400">—</span>
+                        )
+                    }
+                ]
+
                 return (
                     <>
                         {/* Active Workers */}
-                        <div id="live-workers-table" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-4 scroll-mt-6">
+                        <div id="live-workers-table" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-visible mb-4 scroll-mt-6">
                             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                                     {t('dashboard.live_workers_title')}
                                 </h3>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xs text-slate-400">{liveWorkers.length} {t('dashboard.workers').toLowerCase()}</span>
                                     <button onClick={() => navigate('/admin/timesheets')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
                                         <Eye className="w-3 h-3" /> {t('nav.timesheets')}
                                     </button>
@@ -649,26 +690,37 @@ export default function AdminOverview() {
                                     <p className="text-xs mt-1">{t('dashboard.will_appear_on_checkin')}</p>
                                 </div>
                             ) : (
-                                <table className="w-full">
-                                    {tableHead}
-                                    <tbody className="divide-y divide-slate-100">{liveWorkers.map(renderWorkerRow)}</tbody>
-                                </table>
+                                <div className="p-4">
+                                    <DataTable
+                                        columns={columns}
+                                        data={liveWorkers}
+                                        searchable={true}
+                                        searchPlaceholder="Caută muncitor..."
+                                        pagination={true}
+                                        itemsPerPage={10}
+                                    />
+                                </div>
                             )}
                         </div>
 
                         {/* Finished Workers */}
                         {doneWorkers.length > 0 && (
-                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden mb-6">
+                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-visible mb-6">
                                 <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                                     <h3 className="text-sm font-bold text-slate-500 flex items-center gap-2">
                                         <CheckCircle className="w-4 h-4 text-slate-400" /> {t('dashboard.finished_today')}
                                     </h3>
-                                    <span className="text-xs text-slate-400">{doneWorkers.length} {t('dashboard.workers').toLowerCase()}</span>
                                 </div>
-                                <table className="w-full">
-                                    {tableHead}
-                                    <tbody className="divide-y divide-slate-100">{doneWorkers.map(renderWorkerRow)}</tbody>
-                                </table>
+                                <div className="p-4">
+                                    <DataTable
+                                        columns={columns}
+                                        data={doneWorkers}
+                                        searchable={true}
+                                        searchPlaceholder="Caută muncitor terminat..."
+                                        pagination={true}
+                                        itemsPerPage={5}
+                                    />
+                                </div>
                             </div>
                         )}
                     </>

@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
-export default function SiteMap() {
+export default function SiteMap({ selectedSiteId, onSiteSelect }) {
     const { t } = useTranslation()
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
@@ -102,6 +102,7 @@ export default function SiteMap() {
                 .addTo(map)
                 .on('click', () => {
                     setSelectedSite(site)
+                    if (onSiteSelect) onSiteSelect(site.id)
                     if (circleRef.current) circleRef.current.remove()
                     circleRef.current = L.circle([site.latitude, site.longitude], {
                         radius: site.geofence_radius || 100,
@@ -127,6 +128,7 @@ export default function SiteMap() {
         if (!site.latitude || !site.longitude) return
         const map = mapInstanceRef.current
         setSelectedSite(site)
+        if (onSiteSelect) onSiteSelect(site.id)
         if (map) {
             map.flyTo([site.latitude, site.longitude], 14, { duration: 1.0 })
             if (circleRef.current) circleRef.current.remove()
@@ -157,6 +159,7 @@ export default function SiteMap() {
                     <button
                         onClick={() => {
                             setSelectedSite(null)
+                            if (onSiteSelect) onSiteSelect(null)
                             if (circleRef.current) { circleRef.current.remove(); circleRef.current = null }
                             const map = mapInstanceRef.current
                             if (map && sitesWithCoords.length > 0) {
@@ -258,6 +261,27 @@ export default function SiteMap() {
 
             {/* Footer pills */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 min-h-[48px]">
+                <button
+                    onClick={() => {
+                        setSelectedSite(null)
+                        if (onSiteSelect) onSiteSelect(null)
+                        if (circleRef.current) { circleRef.current.remove(); circleRef.current = null }
+                        const map = mapInstanceRef.current
+                        if (map && sitesWithCoords.length > 0) {
+                            try {
+                                const group = L.featureGroup(markersRef.current)
+                                map.fitBounds(group.getBounds().pad(0.2))
+                            } catch (e) {}
+                        }
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        !selectedSite
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                >
+                    Toate
+                </button>
                 {sitesWithCoords.map(s => (
                     <button
                         key={s.id}

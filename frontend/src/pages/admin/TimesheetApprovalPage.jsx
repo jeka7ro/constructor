@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../lib/api'
-import { Calendar, Clock, Users, Coffee, Building2, Activity, RefreshCw, CheckCircle, Loader2, Timer, Image, X, ChevronLeft, ChevronRight, Phone, Mail, MapPin, FileText, ArrowLeft, FileDown, FileSpreadsheet } from 'lucide-react'
+import { Calendar, Clock, Users, Coffee, Building2, Activity, RefreshCw, CheckCircle, Loader2, Timer, Image, X, ChevronLeft, ChevronRight, Phone, Mail, MapPin, FileText, ArrowLeft, FileDown, FileSpreadsheet, Search } from 'lucide-react'
+import DataTable from '../../components/DataTable'
 import { useTranslation } from 'react-i18next'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -46,6 +47,9 @@ export default function TimesheetApprovalPage() {
     const [photos, setPhotos] = useState([])
     const [showPhotoModal, setShowPhotoModal] = useState(false)
     const [selectedPhoto, setSelectedPhoto] = useState(null)
+
+    // Filtering
+    const [searchTerm, setSearchTerm] = useState('')
 
     // Live clock
     const [now, setNow] = useState(Date.now())
@@ -201,6 +205,136 @@ export default function TimesheetApprovalPage() {
     const totalWorked = workers.reduce((sum, w) => sum + getLiveHours(w).worked, 0)
     const totalBreak = workers.reduce((sum, w) => sum + (w.break_hours || 0), 0)
 
+    const filteredWorkers = workers.filter(w => {
+        if (!searchTerm) return true
+        const term = searchTerm.toLowerCase()
+        return (
+            w.worker_name?.toLowerCase().includes(term) ||
+            w.site_name?.toLowerCase().includes(term) ||
+            w.employee_code?.toLowerCase().includes(term)
+        )
+    })
+
+    const columns = [
+        {
+            key: 'worker_name',
+            label: t('users.employee_col'),
+            sortable: true,
+            render: (w) => (
+                <button onClick={() => openWorkerDetail(w)} className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity group">
+                    <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-9 h-9" textSize="text-sm" />
+                    <div>
+                        <p className="text-sm font-semibold text-blue-600 group-hover:text-blue-700 group-hover:underline">{w.worker_name}</p>
+                        <p className="text-xs text-slate-500">{w.employee_code}</p>
+                    </div>
+                </button>
+            )
+        },
+        {
+            key: 'site_name',
+            label: t('common.site'),
+            sortable: true,
+            render: (w) => (
+                <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                    {w.site_name || '—'}
+                </span>
+            )
+        },
+        ...(isRange ? [{
+            key: 'days_count',
+            label: t('common.days'),
+            sortable: true,
+            render: (w) => (
+                <div>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{w.days_count || 1}</span>
+                    <span className="text-xs text-slate-400 ml-1">zile</span>
+                </div>
+            )
+        }] : [{
+            key: 'check_in_time',
+            label: t('dashboard.check_in'),
+            sortable: true,
+            render: (w) => (
+                <div>
+                    <div className="text-sm text-slate-700 dark:text-slate-300">
+                        {w.check_in_time ? new Date(w.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    </div>
+                    {w.check_out_time && (
+                        <div className="text-xs text-slate-400">
+                            → {new Date(w.check_out_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
+                </div>
+            )
+        }]),
+        {
+            key: 'onSite',
+            label: t('timesheets.time_on_site'),
+            sortable: false,
+            render: (w) => {
+                const live = getLiveHours(w)
+                return <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatHours(live.onSite)}</span>
+            }
+        },
+        {
+            key: 'break_hours',
+            label: t('timesheets.kpi.on_break'),
+            sortable: false,
+            render: (w) => {
+                const live = getLiveHours(w)
+                return live.breakH > 0 ? (
+                    <span className="text-sm text-orange-500 font-medium">{formatHours(live.breakH)}</span>
+                ) : <span className="text-sm text-slate-400">—</span>
+            }
+        },
+        {
+            key: 'worked_hours',
+            label: t('timesheets.total_shift'),
+            sortable: false,
+            render: (w) => {
+                const live = getLiveHours(w)
+                return (
+                    <div className="flex items-center gap-1">
+                        <span className={`text-sm font-bold ${w.status === 'terminat' ? 'text-slate-700 dark:text-slate-300' : 'text-blue-600 dark:text-blue-400'}`}>
+                            {formatHours(live.worked)}
+                        </span>
+                        {w.status !== 'terminat' && isToday && (
+                            <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        )}
+                    </div>
+                )
+            }
+        },
+        {
+            key: 'status',
+            label: t('common.status'),
+            sortable: true,
+            render: (w) => <StatusBadge status={w.status} is_on_break={w.is_on_break} />
+        },
+        {
+            key: 'activities',
+            label: t('dashboard.activities'),
+            sortable: false,
+            render: (w) => (
+                w.activities && w.activities.length > 0 ? (
+                    <button
+                        onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setActivityPopup(activityPopup?.worker_id === w.worker_id ? null : { ...w, anchorRect: rect })
+                        }}
+                        className="flex flex-wrap gap-1 text-left group cursor-pointer"
+                    >
+                        <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100 font-medium group-hover:bg-blue-100 transition-colors">
+                            <Activity className="w-3 h-3" />
+                            {w.activities.length} activit{w.activities.length === 1 ? 'ate' : 'ăți'}
+                        </span>
+                    </button>
+                ) : <span className="text-xs text-slate-400">—</span>
+            )
+        }
+    ]
+
     return (
         <div className="p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Header */}
@@ -245,14 +379,14 @@ export default function TimesheetApprovalPage() {
             </div>
 
             {/* Period Selector */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sm:p-5 mb-6">
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 w-full lg:flex-1">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-2 mb-6 overflow-x-auto hide-scrollbar">
+                <div className="flex items-center justify-between w-full min-w-max gap-4 px-1">
+                    <div className="flex items-center gap-2">
                         {PERIOD_PRESETS.map(preset => (
                             <button
                                 key={preset.key}
                                 onClick={() => handlePreset(preset)}
-                                className={`px-2 py-2 rounded-lg text-xs font-semibold transition-all w-full text-center ${
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                                     activePeriod === preset.key 
                                         ? 'bg-blue-600 text-white shadow-md' 
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -262,16 +396,17 @@ export default function TimesheetApprovalPage() {
                             </button>
                         ))}
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                    
+                    <div className="flex items-center gap-3 pl-2 sm:border-l border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2">
                             <label className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('timesheets.from')}:</label>
                             <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setActivePeriod('custom') }}
-                                className="w-full sm:w-auto px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                                className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer" />
                         </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="flex items-center gap-2">
                             <label className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('timesheets.to')}:</label>
                             <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setActivePeriod('custom') }}
-                                className="w-full sm:w-auto px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                                className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-slate-50 dark:bg-slate-900 dark:text-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer" />
                         </div>
                     </div>
                 </div>
@@ -332,127 +467,38 @@ export default function TimesheetApprovalPage() {
                     </div>
                 </div>
             )}
+            
+            {/* Search Filter & Summary */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                <div className="relative w-full max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Caută muncitor sau șantier..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                    />
+                </div>
+                {workers.length > 0 && (
+                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl shadow-sm">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {workers.length} {workers.length !== 1 ? 'muncitori' : 'muncitor'} • {activeCount} {activeCount !== 1 ? 'activi' : 'activ'} • {finishedCount} terminat{finishedCount !== 1 ? 'e' : ''}
+                        </span>
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Total Ore: {formatHours(totalWorked)}</span>
+                    </div>
+                )}
+            </div>
 
             {/* Workers Table */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden relative">
-                <table className="w-full">
-                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
-                        <tr>
-                            <th className="px-4 py-3 text-left">{t('users.employee_col')}</th>
-                            <th className="px-4 py-3 text-left">{t('common.site')}</th>
-                            {isRange && <th className="px-4 py-3 text-left">{t('common.days')}</th>}
-                            {!isRange && <th className="px-4 py-3 text-left">{t('dashboard.check_in')}</th>}
-                            <th className="px-4 py-3 text-left">{t('timesheets.time_on_site')}</th>
-                            <th className="px-4 py-3 text-left">{t('timesheets.kpi.on_break')}</th>
-                            <th className="px-4 py-3 text-left">{t('timesheets.total_shift')}</th>
-                            <th className="px-4 py-3 text-left">{t('common.status')}</th>
-                            <th className="px-4 py-3 text-left">{t('dashboard.activities')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {loading && workers.length === 0 ? (
-                            <tr><td colSpan={9} className="px-4 py-12 text-center">
-                                <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
-                                <p className="text-sm text-slate-500">{t('common.loading')}</p>
-                            </td></tr>
-                        ) : workers.length === 0 ? (
-                            <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">
-                                <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                <p className="text-sm">{t('timesheets.no_workers')}</p>
-                            </td></tr>
-                        ) : (
-                            workers.map((w, idx) => {
-                                const live = getLiveHours(w)
-                                return (
-                                    <tr key={`${w.worker_id}_${idx}`} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors">
-                                        {/* Worker — clickable */}
-                                        <td className="px-4 py-3">
-                                            <button onClick={() => openWorkerDetail(w)} className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity group">
-                                                <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-9 h-9" textSize="text-sm" />
-                                                <div>
-                                                    <p className="text-sm font-semibold text-blue-600 group-hover:text-blue-700 group-hover:underline">{w.worker_name}</p>
-                                                    <p className="text-xs text-slate-500">{w.employee_code}</p>
-                                                </div>
-                                            </button>
-                                        </td>
-
-                                        {/* Site */}
-                                        <td className="px-4 py-3">
-                                            <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                                                <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                                                {w.site_name || '—'}
-                                            </span>
-                                        </td>
-
-                                        {/* Days count (range) or Check-in (single day) */}
-                                        {isRange ? (
-                                            <td className="px-4 py-3">
-                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{w.days_count || 1}</span>
-                                                <span className="text-xs text-slate-400 ml-1">zile</span>
-                                            </td>
-                                        ) : (
-                                            <td className="px-4 py-3">
-                                                <div className="text-sm text-slate-700 dark:text-slate-300">
-                                                    {w.check_in_time ? new Date(w.check_in_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                </div>
-                                                {w.check_out_time && (
-                                                    <div className="text-xs text-slate-400">
-                                                        → {new Date(w.check_out_time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
-                                                    </div>
-                                                )}
-                                            </td>
-                                        )}
-
-                                        {/* On Site */}
-                                        <td className="px-4 py-3">
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatHours(live.onSite)}</span>
-                                        </td>
-
-                                        {/* Break */}
-                                        <td className="px-4 py-3">
-                                            {live.breakH > 0 ? (
-                                                <span className="text-sm text-orange-500 font-medium">{formatHours(live.breakH)}</span>
-                                            ) : <span className="text-sm text-slate-400">—</span>}
-                                        </td>
-
-                                        {/* Total */}
-                                        <td className="px-4 py-3">
-                                            <span className={`text-sm font-bold ${w.status === 'terminat' ? 'text-slate-700 dark:text-slate-300' : 'text-blue-600 dark:text-blue-400'}`}>
-                                                {formatHours(live.worked)}
-                                            </span>
-                                            {w.status !== 'terminat' && isToday && (
-                                                <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                            )}
-                                        </td>
-
-                                        {/* Status */}
-                                        <td className="px-4 py-3">
-                                            <StatusBadge status={w.status} is_on_break={w.is_on_break} />
-                                        </td>
-
-                                        {/* Activities — clickable */}
-                                        <td className="px-4 py-3">
-                                            {w.activities && w.activities.length > 0 ? (
-                                                <button
-                                                    onClick={(e) => {
-                                                        const rect = e.currentTarget.getBoundingClientRect()
-                                                        setActivityPopup(activityPopup?.worker_id === w.worker_id ? null : { ...w, anchorRect: rect })
-                                                    }}
-                                                    className="flex flex-wrap gap-1 text-left group cursor-pointer"
-                                                >
-                                                    <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100 font-medium group-hover:bg-blue-100 transition-colors">
-                                                        <Activity className="w-3 h-3" />
-                                                        {w.activities.length} activit{w.activities.length === 1 ? 'ate' : 'ăți'}
-                                                    </span>
-                                                </button>
-                                            ) : <span className="text-xs text-slate-400">—</span>}
-                                        </td>
-                                    </tr>
-                                )
-                            })
-                        )}
-                    </tbody>
-                </table>
+                <DataTable
+                    columns={columns}
+                    data={filteredWorkers}
+                    loading={loading}
+                    emptyText={t('timesheets.no_workers')}
+                />
 
                 {/* Activity Detail Popup */}
                 {activityPopup && (
@@ -484,15 +530,6 @@ export default function TimesheetApprovalPage() {
                             </div>
                         </div>
                     </>
-                )}
-
-                {workers.length > 0 && (
-                    <div className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {workers.length} muncitor{workers.length !== 1 ? 'i' : ''} • {activeCount} activ{activeCount !== 1 ? 'i' : ''} • {finishedCount} terminat{finishedCount !== 1 ? 'e' : ''}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('timesheets.total_hours_worked')}: {formatHours(totalWorked)}</span>
-                    </div>
                 )}
             </div>
 
