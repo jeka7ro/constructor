@@ -29,6 +29,9 @@ export default function EmployeeMaterialRequests() {
     const [successMsg, setSuccessMsg] = useState('')
 
     useEffect(() => { 
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
         fetchData() 
         const interval = setInterval(fetchSilent, 3000)
         return () => clearInterval(interval)
@@ -37,7 +40,19 @@ export default function EmployeeMaterialRequests() {
     const fetchSilent = async () => {
         try {
             const reqRes = await api.get('/user/material-requests')
-            setRequests(reqRes.data)
+            setRequests(prev => {
+                const prevDelivered = prev.filter(r => r.status === 'delivered').map(r => r.id);
+                const currentDelivered = reqRes.data.filter(r => r.status === 'delivered').map(r => r.id);
+                
+                const hasNew = currentDelivered.some(id => !prevDelivered.includes(id));
+                if (hasNew && 'Notification' in window && Notification.permission === 'granted') {
+                    new Notification('📦 Semnătură Digitală Necesară', {
+                        body: 'Administratorul ți-a predat materiale noi. Intră în aplicație pentru a confirma primirea!',
+                        icon: '/vite.svg'
+                    });
+                }
+                return reqRes.data;
+            })
         } catch { /* silent */ }
     }
 
