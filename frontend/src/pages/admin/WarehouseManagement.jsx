@@ -656,7 +656,7 @@ export default function WarehouseManagement() {
                                                 <div className="flex flex-col">
                                                     <span className="text-slate-700 dark:text-slate-300 font-medium">{t.date}</span>
                                                     {t.created_at && (
-                                                        <span className="text-[10px] text-slate-400">Adăugat: {new Date(t.created_at).toLocaleTimeString('ro-RO', {hour: '2-digit', minute:'2-digit'})}</span>
+                                                        <span className="text-[10px] text-slate-400">Adăugat: {new Date(t.created_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin', hour: '2-digit', minute:'2-digit'})}</span>
                                                     )}
                                                 </div>
                                             </td>

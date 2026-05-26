@@ -9,7 +9,7 @@ from datetime import datetime, date, time as dtime, timedelta
 from typing import Optional
 from math import radians, cos, sin, asin, sqrt
 
-from app.timezone import now_ro, today_ro
+from app.timezone import get_local_now, get_local_today
 
 from app.database import get_db
 from app.models import User, ConstructionSite, Timesheet, TimesheetSegment, GeofencePause, Role, TimesheetLine, Activity
@@ -99,7 +99,7 @@ def get_geofence_pause_seconds(db: Session, segment_id: str) -> float:
         GeofencePause.segment_id == segment_id
     ).all()
     total = 0.0
-    now = now_ro()
+    now = get_local_now()
     for p in pauses:
         end = p.pause_end or now
         total += (end - p.pause_start).total_seconds()
@@ -125,7 +125,7 @@ def clock_in(
     """Start a new work shift with GPS verification"""
     
     # Check if user already has an active shift
-    today = today_ro()
+    today = get_local_today()
     active_timesheet = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
         Timesheet.date == today,
@@ -161,7 +161,7 @@ def clock_in(
         )
     
     # ----- SCHEDULE ENFORCEMENT -----
-    now = now_ro()
+    now = get_local_now()
     current_time = now.time()
     schedule_info = {}
     
@@ -225,7 +225,7 @@ def clock_in(
     
     # Create new segment (clock-in)
     # Clamp check-in time: if before site start, record as site start
-    effective_checkin = now_ro()
+    effective_checkin = get_local_now()
     if work_start_time:
         site_start_dt = datetime.combine(today, work_start_time)
         if effective_checkin < site_start_dt:
@@ -268,7 +268,7 @@ def clock_out(
     """End current work shift with GPS verification"""
     
     # Find active segment
-    today = today_ro()
+    today = get_local_today()
     active_timesheet = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
         Timesheet.date == today,
@@ -290,7 +290,7 @@ def clock_out(
     
     # End any active break
     if active_segment.break_start_time and not active_segment.break_end_time:
-        active_segment.break_end_time = now_ro()
+        active_segment.break_end_time = get_local_now()
     
     # Close any active geofence pause
     active_geo_pause = db.query(GeofencePause).filter(
@@ -298,10 +298,10 @@ def clock_out(
         GeofencePause.pause_end == None
     ).first()
     if active_geo_pause:
-        active_geo_pause.pause_end = now_ro()
+        active_geo_pause.pause_end = get_local_now()
     
     # Update segment with clock-out
-    active_segment.check_out_time = now_ro()
+    active_segment.check_out_time = get_local_now()
     if request.latitude is not None:
         active_segment.check_out_latitude = request.latitude
     if request.longitude is not None:
@@ -322,8 +322,8 @@ def clock_out(
     lunch_break_end = ensure_time(site.lunch_break_end) if site else None
     
     if site and lunch_break_start and lunch_break_end:
-        lunch_start_dt = datetime.combine(today_ro(), lunch_break_start)
-        lunch_end_dt = datetime.combine(today_ro(), lunch_break_end)
+        lunch_start_dt = datetime.combine(get_local_today(), lunch_break_start)
+        lunch_end_dt = datetime.combine(get_local_today(), lunch_break_end)
         
         overlap_start = max(active_segment.check_in_time, lunch_start_dt)
         overlap_end = min(active_segment.check_out_time, lunch_end_dt)
@@ -343,7 +343,7 @@ def clock_out(
     
     work_end_time = ensure_time(site.work_end_time) if site else None
     if site and work_end_time:
-        schedule_end_dt = datetime.combine(today_ro(), work_end_time)
+        schedule_end_dt = datetime.combine(get_local_today(), work_end_time)
         if active_segment.check_out_time > schedule_end_dt:
             overtime_minutes = int((active_segment.check_out_time - schedule_end_dt).total_seconds() / 60)
             active_segment.overtime_minutes = overtime_minutes
@@ -375,7 +375,7 @@ def start_break(
     """Start meal break"""
     
     # Find active segment
-    today = today_ro()
+    today = get_local_today()
     active_timesheet = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
         Timesheet.date == today,
@@ -397,7 +397,7 @@ def start_break(
         raise HTTPException(status_code=400, detail="Ai deja o pauză activă")
     
     # Start break
-    active_segment.break_start_time = now_ro()
+    active_segment.break_start_time = get_local_now()
     active_segment.break_start_latitude = request.latitude
     active_segment.break_start_longitude = request.longitude
     
@@ -417,7 +417,7 @@ def end_break(
     """End meal break"""
     
     # Find active segment with active break
-    today = today_ro()
+    today = get_local_today()
     active_timesheet = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
         Timesheet.date == today,
@@ -437,7 +437,7 @@ def end_break(
         raise HTTPException(status_code=404, detail="Nu ai o pauză activă")
     
     # End break
-    active_segment.break_end_time = now_ro()
+    active_segment.break_end_time = get_local_now()
     
     # Calculate break duration
     break_duration = active_segment.break_end_time - active_segment.break_start_time
@@ -459,7 +459,7 @@ def get_active_shift(
 ):
     """Get current active shift if any"""
     try:
-        today = today_ro()
+        today = get_local_today()
         active_timesheet = db.query(Timesheet).filter(
             Timesheet.owner_user_id == current_user.id,
             Timesheet.date == today,
@@ -483,7 +483,7 @@ def get_active_shift(
         work_end_time = ensure_time(site.work_end_time) if site else None
         
         # ---- AUTO-CLOSE at schedule end ----
-        now = now_ro()
+        now = get_local_now()
         if site and work_end_time:
             schedule_end = datetime.combine(today, work_end_time)
             
@@ -507,7 +507,7 @@ def get_active_shift(
                 return JSONResponse(content=None)  # Shift closed at schedule end
         
         # Calculate elapsed time
-        now = now_ro()
+        now = get_local_now()
         elapsed = now - active_segment.check_in_time
         elapsed_hours = elapsed.total_seconds() / 3600
         
@@ -607,7 +607,7 @@ def location_ping(
         return {"geofence_applicable": False, "message": "Geofence nu se aplică pentru rolul tău"}
     
     # Find active segment
-    today = today_ro()
+    today = get_local_today()
     active_timesheet = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
         Timesheet.date == today,
@@ -634,7 +634,7 @@ def location_ping(
         }
     
     # Record last ping time
-    active_segment.last_ping_at = now_ro()
+    active_segment.last_ping_at = get_local_now()
     db.commit()
     
     # Calculate distance
@@ -658,7 +658,7 @@ def location_ping(
         # Worker left the zone — create a pause
         new_pause = GeofencePause(
             segment_id=active_segment.id,
-            pause_start=now_ro(),
+            pause_start=get_local_now(),
             distance_at_pause=round(distance, 1),
             latitude=request.latitude,
             longitude=request.longitude
@@ -679,7 +679,7 @@ def location_ping(
     
     elif is_within and active_pause:
         # Worker returned — close the pause
-        active_pause.pause_end = now_ro()
+        active_pause.pause_end = get_local_now()
         db.commit()
         
         pause_duration = (active_pause.pause_end - active_pause.pause_start).total_seconds()
@@ -717,7 +717,7 @@ def my_today_status(
     db: Session = Depends(get_db)
 ):
     """Check if user has completed segments today (for 'Continuă tura' UX)"""
-    today = today_ro()
+    today = get_local_today()
     ts = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
         Timesheet.date == today,
@@ -745,7 +745,7 @@ def my_history(
     if target_date:
         d = date.fromisoformat(target_date)
     else:
-        d = today_ro()
+        d = get_local_today()
     
     ts = db.query(Timesheet).filter(
         Timesheet.owner_user_id == current_user.id,
@@ -767,11 +767,11 @@ def my_history(
         if seg.check_out_time:
             seg_hours = (seg.check_out_time - seg.check_in_time).total_seconds() / 3600
         else:
-            seg_hours = (now_ro() - seg.check_in_time).total_seconds() / 3600
+            seg_hours = (get_local_now() - seg.check_in_time).total_seconds() / 3600
         
         brk = 0
         if seg.break_start_time:
-            be = seg.break_end_time or now_ro()
+            be = seg.break_end_time or get_local_now()
             brk = (be - seg.break_start_time).total_seconds() / 3600
             
         site = db.query(ConstructionSite).filter(ConstructionSite.id == seg.site_id).first()
@@ -783,7 +783,7 @@ def my_history(
             lunch_start_dt = datetime.combine(d, lunch_break_start)
             lunch_end_dt = datetime.combine(d, lunch_break_end)
             
-            check_out = seg.check_out_time or now_ro()
+            check_out = seg.check_out_time or get_local_now()
             overlap_start = max(seg.check_in_time, lunch_start_dt)
             overlap_end = min(check_out, lunch_end_dt)
             
@@ -837,7 +837,7 @@ def my_dates(
 ):
     """Get list of dates where employee has timesheets (last 60 days)"""
     from sqlalchemy import func
-    cutoff = today_ro() - timedelta(days=60)
+    cutoff = get_local_today() - timedelta(days=60)
     
     dates = db.query(Timesheet.date).filter(
         Timesheet.owner_user_id == current_user.id,
@@ -859,7 +859,7 @@ def cleanup_zombie_segments(
     if not role or role.code not in ("ADMIN", "SITE_MANAGER"):
         raise HTTPException(status_code=403, detail="Acces interzis")
     
-    d = date.fromisoformat(target_date) if target_date else today_ro()
+    d = date.fromisoformat(target_date) if target_date else get_local_today()
     
     # Find all timesheets for this date
     timesheets = db.query(Timesheet).filter(Timesheet.date == d).all()

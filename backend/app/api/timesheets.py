@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, date
-from app.timezone import now_ro, today_ro
+from app.timezone import get_local_now, get_local_today
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -136,7 +136,7 @@ async def list_my_timesheets(
                 # Subtract geofence pause time
                 geo_pauses = db.query(GeofencePause).filter(GeofencePause.segment_id == seg.id).all()
                 for gp in geo_pauses:
-                    gp_end = gp.pause_end or now_ro()
+                    gp_end = gp.pause_end or get_local_now()
                     hours -= (gp_end - gp.pause_start).total_seconds() / 3600
                 total_hours += max(0, hours)
         
@@ -471,7 +471,7 @@ async def list_pending_timesheets(
                 # Subtract geofence pause time
                 geo_pauses = db.query(GeofencePause).filter(GeofencePause.segment_id == seg.id).all()
                 for gp in geo_pauses:
-                    gp_end = gp.pause_end or now_ro()
+                    gp_end = gp.pause_end or get_local_now()
                     hours -= (gp_end - gp.pause_start).total_seconds() / 3600
                 total_hours += max(0, hours)
         
@@ -570,9 +570,9 @@ async def get_timesheet_stats(
     """Get timesheet statistics for admin dashboard"""
     from datetime import datetime, timedelta
     
-    today = today_ro()
+    today = get_local_today()
     week_start = today - timedelta(days=today.weekday())
-    now = now_ro()
+    now = get_local_now()
     
     # Count all timesheets today
     ts_query = db.query(Timesheet).filter(
@@ -629,8 +629,8 @@ async def get_dashboard_stats(
     """Comprehensive dashboard stats with daily breakdown for charts"""
     from datetime import datetime, timedelta
     
-    today = today_ro()
-    now = now_ro()
+    today = get_local_today()
+    now = get_local_now()
     
     # ── Bulk Fetch Last 7 Days ──
     start_date = today - timedelta(days=6)
@@ -767,8 +767,8 @@ async def get_active_workers(
     """Get all workers who have a timesheet for a given date (defaults to today)"""
     from datetime import datetime
     
-    query_date = date.fromisoformat(target_date) if target_date else today_ro()
-    now = now_ro()
+    query_date = date.fromisoformat(target_date) if target_date else get_local_today()
+    now = get_local_now()
     
     # ── BULK FETCH 1: All timesheets for the date ──
     ts_query = db.query(Timesheet).filter(
@@ -1027,7 +1027,7 @@ async def get_worker_history(
             ConstructionSite.id == first_seg.site_id
         ).first()
         
-        now = now_ro()
+        now = get_local_now()
         total_worked = 0
         total_break = 0
         is_on_break = False
@@ -1615,8 +1615,8 @@ async def get_notification_feed(
     """Get real-time event feed from today's activity"""
     from datetime import datetime
     
-    today = today_ro()
-    now = now_ro()
+    today = get_local_today()
+    now = get_local_now()
     
     # ── Bulk fetch all data in 4 queries ──
     today_timesheets = db.query(Timesheet).filter(
@@ -1737,7 +1737,7 @@ async def export_timesheets_excel(
     from fastapi.responses import StreamingResponse
     import io
 
-    today = today_ro()
+    today = get_local_today()
     start = date.fromisoformat(date_from) if date_from else today - timedelta(days=30)
     end = date.fromisoformat(date_to) if date_to else today
 
@@ -1770,7 +1770,7 @@ async def export_timesheets_excel(
         cell.border = thin_border
 
     row = 2
-    now = now_ro()
+    now = get_local_now()
     for ts in timesheets:
         worker = db.query(User).filter(User.id == ts.owner_user_id).first()
         segments = db.query(TimesheetSegment).filter(

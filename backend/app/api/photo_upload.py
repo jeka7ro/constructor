@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from app.timezone import now_ro, today_ro
+from app.timezone import get_local_now, get_local_today
 import os
 import shutil
 import io
@@ -102,7 +102,7 @@ async def upload_photo(
         raise HTTPException(status_code=404, detail="Timesheet not found")
     
     # Generate unique filename with timestamp
-    timestamp = now_ro().strftime("%Y%m%d_%H%M%S")
+    timestamp = get_local_now().strftime("%Y%m%d_%H%M%S")
     ext = Path(file.filename).suffix.lower()
     safe_filename = f"{timestamp}_{hashlib.md5(file.filename.encode()).hexdigest()[:8]}{ext}"
     

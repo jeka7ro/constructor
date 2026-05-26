@@ -1034,7 +1034,7 @@ export default function EmployeesManagement() {
                                 <InfoField label="Prenume" value={viewingUser.first_name} />
                                 <InfoField label="CNP" value={viewingUser.cnp} />
                                 <InfoField label="Serie Buletin" value={viewingUser.id_card_series} icon={<CreditCard className="w-4 h-4" />} />
-                                <InfoField label="Data Nașterii" value={viewingUser.birth_date ? new Date(viewingUser.birth_date).toLocaleDateString('ro-RO') : null} />
+                                <InfoField label="Data Nașterii" value={viewingUser.birth_date ? new Date(viewingUser.birth_date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' }) : null} />
                                 <InfoField label="Loc Naștere" value={viewingUser.birth_place} icon={<MapPin className="w-4 h-4" />} />
                                 <InfoField label="Telefon" value={viewingUser.phone} icon={<Phone className="w-4 h-4" />} />
                                 <InfoField label="Email" value={viewingUser.email} icon={<Mail className="w-4 h-4" />} />

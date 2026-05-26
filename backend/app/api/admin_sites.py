@@ -591,10 +591,10 @@ def get_map_data(
     for the Leaflet map dashboard.
     """
     from app.models import Timesheet, TimesheetSegment, VehicleSiteAssignment
-    from app.timezone import today_ro
+    from app.timezone import get_local_today
     import sqlalchemy
 
-    today = today_ro()
+    today = get_local_today()
     sites = db.query(ConstructionSite).filter(ConstructionSite.status == "active").all()
     result = []
 

@@ -143,7 +143,7 @@ export default function ReportsPage() {
             dayMap[day].workers++
         })
         const byDay = Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date))
-            .map(d => ({ ...d, date: new Date(d.date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short' }), hours: Math.round(d.hours * 10) / 10 }))
+            .map(d => ({ ...d, date: new Date(d.date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin',  day: '2-digit', month: 'short' }), hours: Math.round(d.hours * 10) / 10 }))
 
         // Summary
         const totalHours = ts.reduce((s, t) => s + (t.hours_worked || 0), 0)
@@ -162,7 +162,7 @@ export default function ReportsPage() {
     const charts = preview ? computeCharts() : null
 
     const timesheetColumns = [
-        { key: 'date', label: t('users.date'), sortable: true, render: (r) => new Date(r.date).toLocaleDateString('ro-RO') },
+        { key: 'date', label: t('users.date'), sortable: true, render: (r) => new Date(r.date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' }) },
         { key: 'employee_name', label: t('users.employee_col'), sortable: true, render: (r) => <span className="font-medium text-slate-900 dark:text-slate-100">{r.employee_name}</span> },
         { key: 'employee_code', label: t('users.code'), sortable: true, render: (r) => <span className="text-slate-500">{r.employee_code}</span> },
         { key: 'role', label: t('users.role'), sortable: true, render: (r) => <span className="text-slate-500">{r.role}</span> },

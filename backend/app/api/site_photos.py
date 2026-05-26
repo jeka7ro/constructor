@@ -13,7 +13,7 @@ from app.models import User, ConstructionSite, SitePhoto, Role, Admin
 from app.api.auth import get_current_user
 from app.api.admin_auth import get_current_admin
 from app.storage import upload_file, get_content_type
-from app.timezone import now_ro, today_ro
+from app.timezone import get_local_now, get_local_today
 
 
 def get_current_user_or_admin(request: Request, db: Session = Depends(get_db)):
@@ -81,7 +81,7 @@ async def upload_site_photo(
     
     # Upload to storage
     ext = "jpg"
-    filename = f"site_photos/{site_id}/{now_ro().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.{ext}"
+    filename = f"site_photos/{site_id}/{get_local_now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.{ext}"
     photo_url = upload_file(contents, filename, "image/jpeg")
     
     # Save record
@@ -90,7 +90,7 @@ async def upload_site_photo(
         uploaded_by_user_id=current_user.id,
         photo_path=photo_url,
         description=description,
-        created_at=now_ro()
+        created_at=get_local_now()
     )
     db.add(photo)
     db.commit()

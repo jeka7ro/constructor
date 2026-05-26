@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, date
-from app.timezone import now_ro, today_ro
+from app.timezone import get_local_now, get_local_today
 from typing import Optional
 import io
 
@@ -79,7 +79,7 @@ def _build_report_data(db: Session, date_from=None, date_to=None, employee_id=No
         lines_by_ts.setdefault(tl.timesheet_id, []).append(tl)
 
     # ── 3. Build results in memory ────────────────────────────────────────
-    now = now_ro()
+    now = get_local_now()
     results = []
 
     for ts in timesheets:

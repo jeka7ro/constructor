@@ -9,7 +9,7 @@ from sqlalchemy import or_, func
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime, date
-from app.timezone import now_ro, today_ro
+from app.timezone import get_local_now, get_local_today
 import hashlib
 import os
 import uuid
@@ -470,7 +470,7 @@ def export_users_excel(
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
-    filename = f"angajati_{now_ro().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"angajati_{get_local_now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     return StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f"attachment; filename={filename}"})
 
