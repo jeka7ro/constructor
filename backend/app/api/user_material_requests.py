@@ -5,7 +5,8 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.database import get_db
-from app.models import MaterialRequest, User, Timesheet, TimesheetSegment
+from app.models import MaterialRequest, User, Timesheet, TimesheetSegment, WarehouseItem, WarehouseTransaction
+import json
 from app.api.auth import get_current_user
 
 router = APIRouter(prefix="/user/material-requests", tags=["User - Necesar Materiale"])
@@ -15,6 +16,10 @@ class MaterialRequestCreate(BaseModel):
     items_json: Optional[str] = None
     site_id: Optional[str] = None
     notes: Optional[str] = None
+
+class MaterialRequestConfirm(BaseModel):
+    action: str
+    reason: Optional[str] = None
 
 def get_user_active_site_id(db: Session, user_id: str) -> Optional[str]:
     # Look for an open timesheet segment for this user
@@ -76,4 +81,81 @@ def create_material_request(
     db.commit()
     db.refresh(new_request)
     
-    return {"id": new_request.id, "success": True}
+    return {"id": new_request.id, "status": "pending"}
+
+@router.put("/{mr_id}/confirm")
+def confirm_material_request(
+    mr_id: str,
+    body: MaterialRequestConfirm,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    c = db.query(MaterialRequest).filter(
+        MaterialRequest.id == mr_id,
+        MaterialRequest.user_id == current_user.id
+    ).first()
+    
+    if not c:
+        raise HTTPException(status_code=404, detail="Cerere negasita")
+        
+    if c.status != "delivered":
+        raise HTTPException(status_code=400, detail="Cererea nu este in stadiul de livrare si nu poate fi confirmata")
+        
+    if body.action == "reject":
+        c.status = "disputed"
+        c.admin_response = (c.admin_response or "") + f"\n[Refuzat Angajat]: {body.reason or 'Nu am primit materialele.'}"
+    elif body.action == "confirm":
+        c.status = "completed"
+        # Process automated warehouse fulfillment
+        if not c.is_fulfilled and c.items_json:
+            try:
+                items = json.loads(c.items_json)
+                for item in items:
+                    db_item = db.query(WarehouseItem).filter(WarehouseItem.id == item["id"]).first()
+                    if not db_item:
+                        continue
+                        
+                    if item["type"] == "warehouse":
+                        qty = float(item.get("qty", 0))
+                        
+                        if db_item.inventory_code:
+                            db_tx = WarehouseTransaction(
+                                item_id=db_item.id,
+                                transaction_type="OUT",
+                                quantity=1.0,
+                                date=datetime.utcnow().date(),
+                                operated_by_id=current_user.id,
+                                assigned_to_user_id=c.user_id,
+                                site_id=c.site_id,
+                                notes="Preluat automat din cerere necesar (Confirmat Muncitor)"
+                            )
+                            db.add(db_tx)
+                            db_item.total_quantity -= 1.0
+                            db_item.current_holder_id = c.user_id
+                            db_item.current_site_id = c.site_id
+                        else:
+                            db_tx = WarehouseTransaction(
+                                item_id=db_item.id,
+                                transaction_type="OUT",
+                                quantity=qty,
+                                date=datetime.utcnow().date(),
+                                operated_by_id=current_user.id,
+                                assigned_to_user_id=c.user_id,
+                                site_id=c.site_id,
+                                notes="Eliberat automat din cerere necesar (Confirmat Muncitor)"
+                            )
+                            db.add(db_tx)
+                            db_item.total_quantity -= qty
+                            
+                    elif item["type"] == "site_transfer":
+                        if db_item.inventory_code:
+                            db_item.current_holder_id = c.user_id
+                            db_item.current_site_id = c.site_id
+                
+                c.is_fulfilled = True
+            except Exception as e:
+                print("Error processing automated fulfillment on confirm:", e)
+                
+    db.commit()
+    db.refresh(c)
+    return {"ok": True, "status": c.status}

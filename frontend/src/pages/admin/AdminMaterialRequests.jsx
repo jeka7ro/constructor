@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PackageSearch, Search, X, ChevronLeft, ChevronRight, Loader2, CheckCircle, Clock, XCircle, Send, User, MapPin } from 'lucide-react'
+import { PackageSearch, Search, X, ChevronLeft, ChevronRight, Loader2, CheckCircle, Clock, XCircle, Send, User, MapPin, AlertCircle } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 
@@ -8,14 +8,18 @@ const STATUSES = [
     { id: 'pending',   label: 'În Așteptare',color: 'amber' },
     { id: 'approved',  label: 'Aprobate',    color: 'blue' },
     { id: 'rejected',  label: 'Respinse',    color: 'rose' },
-    { id: 'delivered', label: 'Livrate',     color: 'emerald' },
+    { id: 'delivered', label: 'Predate',     color: 'emerald' },
+    { id: 'completed', label: 'Semnate',     color: 'emerald' },
+    { id: 'disputed',  label: 'Refuzate',    color: 'rose' },
 ]
 
 const STATUS_CONFIG = {
     pending:   { label: 'În Așteptare', icon: Clock,         cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
     approved:  { label: 'Aprobată',     icon: CheckCircle,   cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
     rejected:  { label: 'Respinsă',     icon: XCircle,       cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
-    delivered: { label: 'Livrată',      icon: PackageSearch, cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    delivered: { label: 'Predată',      icon: PackageSearch, cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    completed: { label: 'Semnată',      icon: CheckCircle,   cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    disputed:  { label: 'Refuzată',     icon: AlertCircle,   cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
 }
 
 export default function AdminMaterialRequests() {
@@ -313,17 +317,31 @@ export default function AdminMaterialRequests() {
                             {detailReq.status === 'approved' && (
                                 <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 flex flex-col items-center text-center">
                                     <PackageSearch className="w-8 h-8 text-emerald-600 mb-2" />
-                                    <h3 className="text-emerald-800 dark:text-emerald-400 font-bold mb-1">Materialele au ajuns?</h3>
-                                    <p className="text-sm text-emerald-600 dark:text-emerald-500 mb-4">Marchează cererea ca livrată pentru a transfera automat stocul în inventarul muncitorului.</p>
+                                    <h3 className="text-emerald-800 dark:text-emerald-400 font-bold mb-1">Materialele pleacă din stoc?</h3>
+                                    <p className="text-sm text-emerald-600 dark:text-emerald-500 mb-4">Marchează cererea ca predată. Muncitorul va trebui să confirme primirea în aplicație pentru a finaliza transferul.</p>
+                                    
+                                    <input 
+                                        type="text"
+                                        id="carrierNameInput"
+                                        placeholder="Prin cine le trimiți? (Opțional, ex: Șoferul Radu)"
+                                        className="w-full mb-4 px-4 py-2.5 text-sm bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 placeholder-slate-400"
+                                    />
+
                                     <button 
                                         onClick={async () => {
                                             try {
                                                 setSubmitting(true);
+                                                const carrier = document.getElementById('carrierNameInput')?.value?.trim();
+                                                let finalResponse = responseText.trim();
+                                                if (carrier) {
+                                                    finalResponse = `[Predat prin: ${carrier}] ${finalResponse}`.trim();
+                                                }
+
                                                 await api.put(`/admin/material-requests/${detailReq.id}/status`, {
-                                                    admin_response: responseText.trim() ? responseText : null,
+                                                    admin_response: finalResponse ? finalResponse : null,
                                                     status: 'delivered',
                                                 });
-                                                showToast('Materiale Livrate cu succes!', 'success');
+                                                showToast('Cerere trimisă spre semnare pe șantier!', 'success');
                                                 setDetailReq(null);
                                                 fetchRequests();
                                             } catch {
@@ -335,19 +353,21 @@ export default function AdminMaterialRequests() {
                                         disabled={submitting}
                                         className="w-full py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98] disabled:opacity-50"
                                     >
-                                        {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Confirmă Livrarea pe Șantier"}
+                                        {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Trimite spre Semnare Muncitorului"}
                                     </button>
                                 </div>
                             )}
 
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Acțiuni</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Acțiuni Forțate</p>
                                 <select value={responseStatus} onChange={e => setResponseStatus(e.target.value)}
-                                    className="w-full mb-3 px-4 h-10 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500">
-                                    <option value="pending">În Așteptare</option>
-                                    <option value="approved">Aprobată (Spre livrare)</option>
-                                    <option value="delivered">Livrată pe șantier</option>
-                                    <option value="rejected">Respinsă</option>
+                                    className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 mb-4 transition-all"
+                                >
+                                    <option value="pending">În așteptare (Revenire)</option>
+                                    <option value="approved">Aprobă cererea (Selecție stoc necesară separat)</option>
+                                    <option value="rejected">Respinge cererea</option>
+                                    <option value="delivered">Predă pe șantier (Așteaptă Semnătură Angajat)</option>
+                                    <option value="completed">Finalizează forțat (Transferă stocul fără semnătură)</option>
                                 </select>
 
                                 <textarea

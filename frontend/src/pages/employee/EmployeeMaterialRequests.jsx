@@ -2,16 +2,20 @@ import { useState, useEffect } from 'react'
 import { PackageSearch, Plus, ChevronLeft, Send, Loader2, CheckCircle, Clock, XCircle, Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
+import { useAuthStore } from '../../store/authStore'
 
 const STATUS_CONFIG = {
     pending:   { label: 'În Așteptare',  icon: Clock,        cls: 'bg-amber-100 text-amber-700' },
     approved:  { label: 'Aprobată',      icon: CheckCircle,  cls: 'bg-blue-100 text-blue-700' },
     rejected:  { label: 'Respinsă',      icon: XCircle,      cls: 'bg-rose-100 text-rose-700' },
-    delivered: { label: 'Livrată',       icon: PackageSearch,cls: 'bg-emerald-100 text-emerald-700' },
+    delivered: { label: 'De Confirmat',  icon: PackageSearch,cls: 'bg-indigo-100 text-indigo-700' },
+    completed: { label: 'Semnată',       icon: CheckCircle,  cls: 'bg-emerald-100 text-emerald-700' },
+    disputed:  { label: 'Refuzată',      icon: XCircle,      cls: 'bg-rose-100 text-rose-700' },
 }
 
 export default function EmployeeMaterialRequests() {
     const navigate = useNavigate()
+    const { user } = useAuthStore()
     const [requests, setRequests] = useState([])
     const [inventory, setInventory] = useState([])
     const [sites, setSites] = useState([])
@@ -130,7 +134,7 @@ export default function EmployeeMaterialRequests() {
     const handleRequestSiteItem = (item) => {
         setItemsText(prev => {
             const prefix = prev ? prev + '\n' : ''
-            return prefix + `Solicit preluarea pe numele meu: ${item.name}` + (item.inventory_code ? ` (Cod: ${item.inventory_code})` : '')
+            return prefix + `Solicit preluarea pe numele: ${user?.full_name || 'meu'} -> ${item.name}` + (item.inventory_code ? ` (Cod: ${item.inventory_code})` : '')
         })
         setShowForm(true)
     }
@@ -138,6 +142,19 @@ export default function EmployeeMaterialRequests() {
     // Categories
     const siteItems = inventory.filter(i => i.site_stock > 0)
     const availableItems = inventory.filter(i => i.central_stock > 0)
+
+    const handleConfirm = async (id, action, reason = null) => {
+        try {
+            await api.put(`/user/material-requests/${id}/confirm`, { action, reason })
+            setSuccessMsg(action === 'confirm' ? 'Preluare semnată cu succes!' : 'Refuz trimis adminului.')
+            setTimeout(() => setSuccessMsg(''), 4000)
+            fetchData()
+        } catch {
+            alert('A apărut o eroare la confirmare.')
+        }
+    }
+
+    const unconfirmedReq = requests.find(r => r.status === 'delivered')
     
     // Group available items
     const groupedItems = availableItems.reduce((acc, item) => {
@@ -303,6 +320,42 @@ export default function EmployeeMaterialRequests() {
                 {/* List */}
                 {!showForm && (
                     <>
+                        {unconfirmedReq && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                                <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <PackageSearch className="w-8 h-8" />
+                                    </div>
+                                    <h2 className="text-xl font-black text-slate-800 text-center mb-2">Semnează Primirea</h2>
+                                    <p className="text-sm text-slate-500 text-center mb-6">
+                                        Administratorul a predat următoarea solicitare către șantier. Te rugăm să confirmi că ai intrat în posesia ei.
+                                    </p>
+                                    <div className="bg-slate-50 p-4 rounded-2xl mb-6">
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Materiale Vizate</p>
+                                        <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{unconfirmedReq.items_text}</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <button 
+                                            onClick={() => handleConfirm(unconfirmedReq.id, 'confirm')}
+                                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98]"
+                                        >
+                                            Confirm Primirea
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                const reason = prompt('Motivul refuzului (opțional, ex. lipsă produse):');
+                                                if (reason !== null) {
+                                                    handleConfirm(unconfirmedReq.id, 'reject', reason);
+                                                }
+                                            }}
+                                            className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-[0.98]"
+                                        >
+                                            Refuz (Nu am primit)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mt-4 px-1">Istoric Cereri</h3>
                         {loading ? (
                             <div className="flex justify-center py-12">
