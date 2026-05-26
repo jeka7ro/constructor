@@ -575,14 +575,7 @@ export default function AdminOverview() {
             {(() => {
                 const liveWorkers = activeWorkers.filter(w => w.status !== 'terminat')
                 const doneWorkers = activeWorkers.filter(w => w.status === 'terminat')
-                
                 const columns = [
-                    {
-                        key: 'index',
-                        label: '#',
-                        sortable: false,
-                        render: (_, idx) => <span className="text-xs font-medium text-slate-400">{idx + 1}</span>
-                    },
                     {
                         key: 'worker',
                         label: t('dashboard.worker'),
