@@ -4,7 +4,7 @@ import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
-    X, Phone, Mail, FileText, ArrowLeft
+    X, Phone, Mail, FileText, ArrowLeft, Package
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +26,8 @@ export default function AdminOverview() {
     const [chartLoading, setChartLoading] = useState(true)
     const [activeWorkers, setActiveWorkers] = useState([])
     const [fleetAlerts, setFleetAlerts] = useState([])
+    const [sesizari, setSesizari] = useState([])       // cereri de material pending
+    const [necesar, setNecesar] = useState([])         // cereri neîndeplinite / în așteptare
     const [workersLoading, setWorkersLoading] = useState(true)
     const [lastRefresh, setLastRefresh] = useState(null)
     const refreshTimer = useRef(null)
@@ -75,6 +77,7 @@ export default function AdminOverview() {
         fetchChartData()
         fetchActiveWorkers()
         fetchFleetAlerts()
+        fetchSesizariNecesar()
 
         if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
@@ -82,6 +85,7 @@ export default function AdminOverview() {
             fetchActiveWorkers()
             fetchChartData()
             fetchFleetAlerts()
+            fetchSesizariNecesar()
         }, 15000)
 
         return () => clearInterval(refreshTimer.current)
@@ -117,6 +121,17 @@ export default function AdminOverview() {
         try {
             const res = await api.get('/admin/vehicles/expiring-documents')
             setFleetAlerts(res.data)
+        } catch (e) { console.error(e) }
+    }
+
+    const fetchSesizariNecesar = async () => {
+        try {
+            const res = await api.get('/admin/material-requests?limit=20')
+            const all = res.data || []
+            // Sesizări = cereri noi, neaprobate încă (pending / submitted)
+            setSesizari(all.filter(r => r.status === 'pending' || r.status === 'submitted'))
+            // Necesar = cereri aprobate dar nelivrate (approved / in_progress)
+            setNecesar(all.filter(r => r.status === 'approved' || r.status === 'in_progress'))
         } catch (e) { console.error(e) }
     }
 
@@ -575,6 +590,91 @@ export default function AdminOverview() {
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+            </div>
+
+            {/* ── Sesizări + Necesar ──────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Sesizări — cereri noi neaprobate */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            Sesizări Magazie
+                            {sesizari.length > 0 && (
+                                <span className="ml-1 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                                    {sesizari.length}
+                                </span>
+                            )}
+                        </h3>
+                        <button onClick={() => navigate('/admin/warehouse/requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
+                            <ChevronRight className="w-3 h-3" /> Toate
+                        </button>
+                    </div>
+                    {sesizari.length === 0 ? (
+                        <div className="px-5 py-8 text-center">
+                            <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500 font-medium">Nicio sesizare nouă</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                            {sesizari.slice(0, 5).map(req => (
+                                <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 60)}…</p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">NOU</span>
+                                            <p className="text-[10px] text-slate-400 mt-1">{req.site_name || '—'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Necesar — aprobat dar nelivrat */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                            <Package className="w-4 h-4 text-blue-500" />
+                            Necesar de Livrat
+                            {necesar.length > 0 && (
+                                <span className="ml-1 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                                    {necesar.length}
+                                </span>
+                            )}
+                        </h3>
+                        <button onClick={() => navigate('/admin/warehouse/requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
+                            <ChevronRight className="w-3 h-3" /> Toate
+                        </button>
+                    </div>
+                    {necesar.length === 0 ? (
+                        <div className="px-5 py-8 text-center">
+                            <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500 font-medium">Totul a fost livrat</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                            {necesar.slice(0, 5).map(req => (
+                                <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 60)}…</p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">APROBAT</span>
+                                            <p className="text-[10px] text-slate-400 mt-1">{req.site_name || '—'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

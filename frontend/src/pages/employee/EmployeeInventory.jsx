@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
-import { ChevronLeft, Wrench, Package, Flame, CheckCircle, Loader2, Minus, PackageSearch, RotateCcw, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, Wrench, Package, Flame, CheckCircle, Loader2, Minus, PackageSearch, RotateCcw, AlertTriangle, X } from 'lucide-react'
+
+// ─── Generic Modal Shell ─────────────────────────────────────────────────────
+function Modal({ onClose, children }) {
+    return (
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-4"
+                onClick={e => e.stopPropagation()}
+            >
+                {children}
+            </div>
+        </div>
+    )
+}
 
 export default function EmployeeInventory() {
     const navigate = useNavigate()
@@ -11,11 +25,27 @@ export default function EmployeeInventory() {
     const [successMsg, setSuccessMsg] = useState('')
     const [actionLoading, setActionLoading] = useState(null)
 
+    // ── Consume modal ────────────────────────────────────────────────────────
     const [showConsumeForm, setShowConsumeForm] = useState(false)
     const [consumeItem, setConsumeItem] = useState(null)
     const [consumeQty, setConsumeQty] = useState('')
     const [consumeNotes, setConsumeNotes] = useState('')
     const [submitting, setSubmitting] = useState(false)
+
+    // ── Return tool confirm modal ────────────────────────────────────────────
+    const [returnModal, setReturnModal] = useState(null) // { item }
+
+    // ── Return consumable (qty picker) modal ─────────────────────────────────
+    const [returnConsModal, setReturnConsModal] = useState(null) // { item }
+    const [returnQty, setReturnQty] = useState('')
+
+    // ── Defective report modal ───────────────────────────────────────────────
+    const [defectModal, setDefectModal] = useState(null) // { item }
+    const [defectNotes, setDefectNotes] = useState('')
+
+    // ── Reject reason modal ──────────────────────────────────────────────────
+    const [rejectModal, setRejectModal] = useState(null) // { reqId }
+    const [rejectReason, setRejectReason] = useState('')
 
     const fetchData = async () => {
         setLoading(true)
@@ -42,91 +72,73 @@ export default function EmployeeInventory() {
         } catch {}
     }
 
+    const flash = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 5000) }
+
     const handleConfirm = async (id, action, reason = null) => {
         try {
             await api.put(`/user/material-requests/${id}/confirm`, { action, reason })
-            setSuccessMsg(action === 'confirm' ? 'Preluare semnată cu succes!' : 'Refuz trimis adminului.')
-            setTimeout(() => setSuccessMsg(''), 4000)
-            fetchData()
-            fetchSilent()
-        } catch { /* silent */ }
+            flash(action === 'confirm' ? 'Preluare semnată cu succes!' : 'Refuz trimis adminului.')
+            fetchData(); fetchSilent()
+        } catch {}
     }
 
-    const handleReturn = async (item) => {
-        let qty = null
-        if (!item.inventory_code) {
-            // Consumabil — cer cantitatea
-            const input = window.prompt(`Câte ${item.unit} returnezi din "${item.name}"? (disponibil: ${item.quantity} ${item.unit})`)
-            if (input === null) return
-            qty = parseFloat(input)
-            if (!qty || qty <= 0 || qty > item.quantity) {
-                alert('Cantitate invalidă.')
-                return
-            }
-        } else {
-            if (!window.confirm(`Confirmi returnarea sculei "${item.name}" în magazie?`)) return
-        }
+    // ── Return tool (unique, full return) ────────────────────────────────────
+    const confirmReturn = async () => {
+        const item = returnModal.item
+        setReturnModal(null)
+        setActionLoading(item.id + '_return')
+        try {
+            await api.post('/user/warehouse/return-tool', { item_id: item.id })
+            flash(`"${item.name}" a fost returnată în magazie.`)
+            fetchData()
+        } catch { flash('Eroare la returnare.') }
+        finally { setActionLoading(null) }
+    }
+
+    // ── Return consumable (partial qty) ─────────────────────────────────────
+    const confirmReturnCons = async () => {
+        const item = returnConsModal.item
+        const qty = parseFloat(returnQty)
+        if (!qty || qty <= 0 || qty > item.quantity) return
+        setReturnConsModal(null)
         setActionLoading(item.id + '_return')
         try {
             await api.post('/user/warehouse/return-tool', { item_id: item.id, quantity: qty })
-            setSuccessMsg(item.inventory_code ? `"${item.name}" a fost returnată în magazie.` : `${qty} ${item.unit} din "${item.name}" au fost returnate în magazie.`)
-            setTimeout(() => setSuccessMsg(''), 5000)
+            flash(`${qty} ${item.unit} din "${item.name}" au fost returnate în magazie.`)
             fetchData()
-        } catch (e) {
-            setSuccessMsg('Eroare la returnare.')
-        } finally {
-            setActionLoading(null)
-        }
+        } catch { flash('Eroare la returnare.') }
+        finally { setActionLoading(null) }
     }
 
-    const handleDefective = async (item) => {
-        const notes = window.prompt(`Descrie defectul pentru "${item.name}" (opțional):`)
-        if (notes === null) return
+    // ── Report defective ────────────────────────────────────────────────────
+    const confirmDefective = async () => {
+        const item = defectModal.item
+        setDefectModal(null)
         setActionLoading(item.id + '_defect')
         try {
-            await api.post('/user/warehouse/report-defective', { item_id: item.id, notes })
-            setSuccessMsg(`"${item.name}" a fost raportată ca DEFECTĂ și returnată în magazie.`)
-            setTimeout(() => setSuccessMsg(''), 5000)
+            await api.post('/user/warehouse/report-defective', { item_id: item.id, notes: defectNotes })
+            flash(`"${item.name}" a fost raportată ca DEFECTĂ și returnată în magazie.`)
             fetchData()
-        } catch (e) {
-            setSuccessMsg('Eroare la raportare.')
-        } finally {
-            setActionLoading(null)
-        }
+        } catch { flash('Eroare la raportare.') }
+        finally { setActionLoading(null); setDefectNotes('') }
     }
 
-    const unconfirmedReq = requests.find(r => r.status === 'delivered')
-
-    const handleConsumeClick = (item) => {
-        setConsumeItem(item)
-        setConsumeQty('')
-        setConsumeNotes('')
-        setShowConsumeForm(true)
-    }
-
+    // ── Consume submit ───────────────────────────────────────────────────────
     const handleConsumeSubmit = async (e) => {
         e.preventDefault()
         const qty = parseFloat(consumeQty)
         if (!qty || qty <= 0 || qty > consumeItem.quantity) return
-
         setSubmitting(true)
         try {
-            await api.post('/user/warehouse/consume', {
-                item_id: consumeItem.id,
-                quantity: qty,
-                notes: consumeNotes
-            })
-            setSuccessMsg(`Ai raportat consumul pentru ${consumeItem.name}`)
-            setTimeout(() => setSuccessMsg(''), 4000)
+            await api.post('/user/warehouse/consume', { item_id: consumeItem.id, quantity: qty, notes: consumeNotes })
+            flash(`Ai raportat consumul pentru ${consumeItem.name}`)
             setShowConsumeForm(false)
             fetchData()
-        } catch (error) {
-            console.error(error)
-        } finally {
-            setSubmitting(false)
-        }
+        } catch (error) { console.error(error) }
+        finally { setSubmitting(false) }
     }
 
+    const unconfirmedReq = requests.find(r => r.status === 'delivered')
     const tools = inventory.filter(i => i.inventory_code)
     const consumables = inventory.filter(i => !i.inventory_code)
 
@@ -153,34 +165,30 @@ export default function EmployeeInventory() {
                     </div>
                 )}
 
+                {/* ── Confirm Delivery Modal ─────────────────────────────── */}
                 {unconfirmedReq && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
                             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <PackageSearch className="w-8 h-8" />
                             </div>
                             <h2 className="text-xl font-black text-slate-800 text-center mb-2">Semnează Primirea</h2>
                             <p className="text-sm text-slate-500 text-center mb-6">
-                                Administratorul a predat următoarea solicitare către șantier. Te rugăm să confirmi că ai intrat în posesia ei.
+                                Administratorul a predat următoarea solicitare. Confirmă că ai intrat în posesia ei.
                             </p>
                             <div className="bg-slate-50 p-4 rounded-2xl mb-6">
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Materiale Vizate</p>
                                 <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{unconfirmedReq.items_text}</p>
                             </div>
                             <div className="space-y-3">
-                                <button 
+                                <button
                                     onClick={() => handleConfirm(unconfirmedReq.id, 'confirm')}
                                     className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98]"
                                 >
-                                    Confirm Primirea
+                                    ✓ Confirm Primirea
                                 </button>
-                                <button 
-                                    onClick={() => {
-                                        const reason = prompt('Motivul refuzului (opțional, ex. lipsă produse):');
-                                        if (reason !== null) {
-                                            handleConfirm(unconfirmedReq.id, 'reject', reason);
-                                        }
-                                    }}
+                                <button
+                                    onClick={() => { setRejectReason(''); setRejectModal({ reqId: unconfirmedReq.id }) }}
                                     className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-[0.98]"
                                 >
                                     Refuz (Nu am primit)
@@ -231,7 +239,7 @@ export default function EmployeeInventory() {
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => handleReturn(item)}
+                                                    onClick={() => setReturnModal({ item })}
                                                     disabled={actionLoading === item.id + '_return'}
                                                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors active:scale-[0.97]"
                                                 >
@@ -239,7 +247,7 @@ export default function EmployeeInventory() {
                                                     Returnează
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDefective(item)}
+                                                    onClick={() => { setDefectNotes(''); setDefectModal({ item }) }}
                                                     disabled={actionLoading === item.id + '_defect'}
                                                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors active:scale-[0.97]"
                                                 >
@@ -275,14 +283,14 @@ export default function EmployeeInventory() {
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => handleConsumeClick(item)}
+                                                    onClick={() => { setConsumeItem(item); setConsumeQty(''); setConsumeNotes(''); setShowConsumeForm(true) }}
                                                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors active:scale-[0.97]"
                                                 >
                                                     <Minus className="w-3 h-3" />
                                                     Consum
                                                 </button>
                                                 <button
-                                                    onClick={() => handleReturn(item)}
+                                                    onClick={() => { setReturnQty(''); setReturnConsModal({ item }) }}
                                                     disabled={actionLoading === item.id + '_return'}
                                                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors active:scale-[0.97]"
                                                 >
@@ -299,61 +307,178 @@ export default function EmployeeInventory() {
                 )}
             </div>
 
-            {/* Consume Modal */}
-            {showConsumeForm && consumeItem && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">Raportează Consum</h3>
-                        <p className="text-sm text-slate-500 mb-4">{consumeItem.name}</p>
-                        
-                        <form onSubmit={handleConsumeSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                                    Cantitate consumată ({consumeItem.unit})
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0.01"
-                                        max={consumeItem.quantity}
-                                        value={consumeQty}
-                                        onChange={e => setConsumeQty(e.target.value)}
-                                        className="w-full pl-4 pr-12 h-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-lg font-bold text-slate-900 shadow-sm outline-none"
-                                        placeholder="0.00"
-                                        required
-                                    />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                                        {consumeItem.unit}
-                                    </div>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-1">Stoc disponibil pe numele tău: {consumeItem.quantity} {consumeItem.unit}</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Notițe (Opțional)</label>
-                                <textarea
-                                    value={consumeNotes}
-                                    onChange={e => setConsumeNotes(e.target.value)}
-                                    placeholder="Detalii despre unde a fost folosit..."
-                                    rows={2}
-                                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-sm text-slate-900 shadow-sm outline-none resize-none"
-                                />
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowConsumeForm(false)}
-                                    className="flex-1 h-11 rounded-xl text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
-                                    Anulează
-                                </button>
-                                <button type="submit" disabled={submitting || !consumeQty}
-                                    className="flex-1 h-11 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
-                                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmă'}
-                                </button>
-                            </div>
-                        </form>
+            {/* ── MODAL: Return Tool Confirm ─────────────────────────────── */}
+            {returnModal && (
+                <Modal onClose={() => setReturnModal(null)}>
+                    <div className="text-center">
+                        <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <RotateCcw className="w-7 h-7 text-slate-600" />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 mb-1">Returnezi scula?</h3>
+                        <p className="text-sm text-slate-500">„<strong>{returnModal.item.name}</strong>" va fi marcată ca returnată în magazie.</p>
                     </div>
-                </div>
+                    <div className="flex gap-3 pt-2">
+                        <button onClick={() => setReturnModal(null)} className="flex-1 h-11 rounded-2xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                            Anulează
+                        </button>
+                        <button onClick={confirmReturn} className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-sm">
+                            Da, Returnez
+                        </button>
+                    </div>
+                </Modal>
+            )}
+
+            {/* ── MODAL: Return Consumable (qty picker) ─────────────────── */}
+            {returnConsModal && (
+                <Modal onClose={() => setReturnConsModal(null)}>
+                    <div className="text-center">
+                        <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <RotateCcw className="w-7 h-7 text-orange-600" />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 mb-1">Retur {returnConsModal.item.name}</h3>
+                        <p className="text-sm text-slate-500 mb-4">Disponibil: <strong>{returnConsModal.item.quantity} {returnConsModal.item.unit}</strong></p>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Cantitate de returnat ({returnConsModal.item.unit})</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            max={returnConsModal.item.quantity}
+                            value={returnQty}
+                            onChange={e => setReturnQty(e.target.value)}
+                            autoFocus
+                            className="w-full px-4 h-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-400 bg-white text-lg font-bold text-slate-900 outline-none"
+                            placeholder="0.00"
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => setReturnConsModal(null)} className="flex-1 h-11 rounded-2xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                            Anulează
+                        </button>
+                        <button
+                            onClick={confirmReturnCons}
+                            disabled={!returnQty || parseFloat(returnQty) <= 0 || parseFloat(returnQty) > returnConsModal.item.quantity}
+                            className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-sm disabled:opacity-40"
+                        >
+                            Confirmă Retur
+                        </button>
+                    </div>
+                </Modal>
+            )}
+
+            {/* ── MODAL: Report Defective ────────────────────────────────── */}
+            {defectModal && (
+                <Modal onClose={() => setDefectModal(null)}>
+                    <div className="text-center">
+                        <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <AlertTriangle className="w-7 h-7 text-red-600" />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 mb-1">Raportează Defect</h3>
+                        <p className="text-sm text-slate-500 mb-4">„<strong>{defectModal.item.name}</strong>"</p>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Descrie defectul (opțional)</label>
+                        <textarea
+                            value={defectNotes}
+                            onChange={e => setDefectNotes(e.target.value)}
+                            placeholder="Ex: Nu pornește, cablu rupt..."
+                            rows={3}
+                            autoFocus
+                            className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-400 bg-white text-sm text-slate-900 outline-none resize-none"
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => setDefectModal(null)} className="flex-1 h-11 rounded-2xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                            Anulează
+                        </button>
+                        <button onClick={confirmDefective} className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
+                            Raportez Defect
+                        </button>
+                    </div>
+                </Modal>
+            )}
+
+            {/* ── MODAL: Reject Reason ──────────────────────────────────── */}
+            {rejectModal && (
+                <Modal onClose={() => setRejectModal(null)}>
+                    <div className="text-center">
+                        <h3 className="text-lg font-black text-slate-800 mb-1">Motivul Refuzului</h3>
+                        <p className="text-sm text-slate-500 mb-4">Opțional — descrie ce lipsea sau de ce refuzi.</p>
+                    </div>
+                    <textarea
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        placeholder="Ex: Lipseau 3 burghie..."
+                        rows={3}
+                        autoFocus
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-400 bg-white text-sm text-slate-900 outline-none resize-none"
+                    />
+                    <div className="flex gap-3">
+                        <button onClick={() => setRejectModal(null)} className="flex-1 h-11 rounded-2xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                            Înapoi
+                        </button>
+                        <button
+                            onClick={() => { handleConfirm(rejectModal.reqId, 'reject', rejectReason); setRejectModal(null) }}
+                            className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm"
+                        >
+                            Trimite Refuz
+                        </button>
+                    </div>
+                </Modal>
+            )}
+
+            {/* ── MODAL: Consume ────────────────────────────────────────── */}
+            {showConsumeForm && consumeItem && (
+                <Modal onClose={() => setShowConsumeForm(false)}>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Raportează Consum</h3>
+                    <p className="text-sm text-slate-500">{consumeItem.name}</p>
+                    <form onSubmit={handleConsumeSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                                Cantitate consumată ({consumeItem.unit})
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    max={consumeItem.quantity}
+                                    value={consumeQty}
+                                    onChange={e => setConsumeQty(e.target.value)}
+                                    className="w-full pl-4 pr-12 h-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-lg font-bold text-slate-900 shadow-sm outline-none"
+                                    placeholder="0.00"
+                                    required
+                                    autoFocus
+                                />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                                    {consumeItem.unit}
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">Disponibil: {consumeItem.quantity} {consumeItem.unit}</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Notițe (Opțional)</label>
+                            <textarea
+                                value={consumeNotes}
+                                onChange={e => setConsumeNotes(e.target.value)}
+                                placeholder="Detalii despre unde a fost folosit..."
+                                rows={2}
+                                className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 bg-white text-sm text-slate-900 shadow-sm outline-none resize-none"
+                            />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button type="button" onClick={() => setShowConsumeForm(false)}
+                                className="flex-1 h-11 rounded-xl text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors">
+                                Anulează
+                            </button>
+                            <button type="submit" disabled={submitting || !consumeQty}
+                                className="flex-1 h-11 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50">
+                                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmă'}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
             )}
         </div>
     )
