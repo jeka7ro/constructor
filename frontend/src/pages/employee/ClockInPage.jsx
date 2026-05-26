@@ -127,6 +127,7 @@ export default function ClockInPage() {
     }
 
     const timerInterval = useRef(null)
+    const lastGeocodedCoords = useRef(null)
 
     // Auto-dismiss error message after 5 seconds
     useEffect(() => {
@@ -221,6 +222,18 @@ export default function ClockInPage() {
 
     useEffect(() => {
         if (!location) return
+
+        // Only fetch if moved more than 150 meters from the last geocoded location
+        if (lastGeocodedCoords.current) {
+            const dist = calcDistance(
+                location.latitude, location.longitude,
+                lastGeocodedCoords.current.latitude, lastGeocodedCoords.current.longitude
+            )
+            if (dist < 150) {
+                return
+            }
+        }
+
         const controller = new AbortController()
         fetch(`/api/reverse-geocode?lat=${location.latitude}&lon=${location.longitude}`, {
             signal: controller.signal
@@ -231,6 +244,10 @@ export default function ClockInPage() {
                     // Simplify: take first 3 parts of the address
                     const parts = data.display_name.split(', ')
                     setCurrentAddress(parts.slice(0, 3).join(', '))
+                    lastGeocodedCoords.current = {
+                        latitude: location.latitude,
+                        longitude: location.longitude
+                    }
                 }
             })
             .catch(() => { })

@@ -182,19 +182,45 @@ async def health():
 
 # Reverse geocode proxy (avoids CORS issues with Nominatim from browser)
 import requests as _requests
+import time as _time
+
+# Simple in-memory cache for reverse geocoding
+# key: (round(lat, 3), round(lon, 3)), value: (timestamp, data_dict)
+_geocode_cache = {}
+_geocode_cache_lock = threading.Lock()
 
 @app.get("/api/reverse-geocode")
 def reverse_geocode(lat: float, lon: float):
     """Proxy reverse geocoding to Nominatim to avoid browser CORS"""
+    key = (round(lat, 3), round(lon, 3))
+    now = _time.time()
+    
+    # Check cache
+    with _geocode_cache_lock:
+        if key in _geocode_cache:
+            ts, cached_data = _geocode_cache[key]
+            if now - ts < 1800:  # cache for 30 minutes
+                return cached_data
+                
     try:
         resp = _requests.get(
             "https://nominatim.openstreetmap.org/reverse",
             params={"lat": lat, "lon": lon, "format": "json", "accept-language": "ro"},
             headers={"User-Agent": "PontajDigital/1.0"},
-            timeout=5
+            timeout=2.0
         )
-        return resp.json()
+        data = resp.json()
+        
+        # Save to cache
+        with _geocode_cache_lock:
+            _geocode_cache[key] = (now, data)
+            
+        return data
     except Exception:
+        # Fallback to cache if expired is available
+        with _geocode_cache_lock:
+            if key in _geocode_cache:
+                return _geocode_cache[key][1]
         return {"display_name": ""}
 
 # Include routers
