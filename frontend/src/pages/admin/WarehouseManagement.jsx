@@ -915,7 +915,8 @@ export default function WarehouseManagement() {
                                 <th className="px-6 py-3 text-center">UM</th>
                                 <th className="px-6 py-3 text-center">Intrări</th>
                                 <th className="px-6 py-3 text-center">Ieșiri</th>
-                                <th className="px-6 py-3 text-center">Stoc</th>
+                                <th className="px-6 py-3 text-center">Stoc Magazie</th>
+                                <th className="px-6 py-3 text-center">Stoc Santier</th>
                                 <th className="px-6 py-3 text-right">Acțiuni</th>
                             </tr>
                         </thead>
@@ -958,13 +959,16 @@ export default function WarehouseManagement() {
                                                         {(item.current_site_id || item.current_holder_id) ? (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                                <span className="text-[11px] text-amber-600 font-semibold truncate">Repartizat</span>
+                                                                <span className="text-[11px] text-amber-700 font-semibold">
+                                                                    {item.current_holder_name || 'Repartizat'}
+                                                                    {item.current_site_name && <span className="text-amber-500 font-normal"> · {item.current_site_name}</span>}
+                                                                </span>
                                                             </div>
                                                         ) : (
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className={`w-1.5 h-1.5 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
                                                                 <span className={`text-[11px] font-semibold ${item.is_defective ? 'text-red-600 uppercase tracking-wider' : 'text-emerald-600'}`}>
-                                                                    {item.is_defective ? 'Defect' : 'În Depozit'}
+                                                                    {item.is_defective ? 'Defect' : 'In Depozit'}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -990,14 +994,30 @@ export default function WarehouseManagement() {
                                                 </td>
                                             </>
                                         )}
+                                        {/* Stoc Magazie */}
                                         <td className="px-6 py-3 text-center">
                                             <div className={`inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold ${
                                                 (item.inventory_code ? (item.current_site_id || item.current_holder_id) : (item.total_quantity === 0))
-                                                    ? 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                                                    ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500'
                                                     : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
                                             }`}>
-                                                • {item.inventory_code ? (item.current_site_id || item.current_holder_id ? '0' : '1') : item.total_quantity}
+                                                {item.inventory_code ? ((item.current_site_id || item.current_holder_id) ? '0' : '1') : item.total_quantity}
                                             </div>
+                                        </td>
+                                        {/* Stoc Santier */}
+                                        <td className="px-6 py-3 text-center">
+                                            {(item.current_site_id || item.current_holder_id) ? (
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <div className="inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                                                        {item.inventory_code ? '1' : '—'}
+                                                    </div>
+                                                    {item.current_site_name && (
+                                                        <span className="text-[10px] text-amber-600 font-semibold">{item.current_site_name}</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-3 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
