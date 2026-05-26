@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
-import { ChevronLeft, Wrench, Package, Flame, CheckCircle, Loader2, Minus } from 'lucide-react'
+import { ChevronLeft, Wrench, Package, Flame, CheckCircle, Loader2, Minus, PackageSearch } from 'lucide-react'
 
 export default function EmployeeInventory() {
     const navigate = useNavigate()
     const [inventory, setInventory] = useState([])
+    const [requests, setRequests] = useState([])
     const [loading, setLoading] = useState(true)
     const [successMsg, setSuccessMsg] = useState('')
 
@@ -29,7 +30,28 @@ export default function EmployeeInventory() {
 
     useEffect(() => {
         fetchData()
+        const interval = setInterval(fetchSilent, 3000)
+        return () => clearInterval(interval)
     }, [])
+
+    const fetchSilent = async () => {
+        try {
+            const reqRes = await api.get('/user/material-requests')
+            setRequests(reqRes.data)
+        } catch {}
+    }
+
+    const handleConfirm = async (id, action, reason = null) => {
+        try {
+            await api.put(`/user/material-requests/${id}/confirm`, { action, reason })
+            setSuccessMsg(action === 'confirm' ? 'Preluare semnată cu succes!' : 'Refuz trimis adminului.')
+            setTimeout(() => setSuccessMsg(''), 4000)
+            fetchData()
+            fetchSilent()
+        } catch { /* silent */ }
+    }
+
+    const unconfirmedReq = requests.find(r => r.status === 'delivered')
 
     const handleConsumeClick = (item) => {
         setConsumeItem(item)
@@ -84,6 +106,43 @@ export default function EmployeeInventory() {
                     <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-800 text-sm font-medium shadow-sm">
                         <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
                         {successMsg}
+                    </div>
+                )}
+
+                {unconfirmedReq && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <PackageSearch className="w-8 h-8" />
+                            </div>
+                            <h2 className="text-xl font-black text-slate-800 text-center mb-2">Semnează Primirea</h2>
+                            <p className="text-sm text-slate-500 text-center mb-6">
+                                Administratorul a predat următoarea solicitare către șantier. Te rugăm să confirmi că ai intrat în posesia ei.
+                            </p>
+                            <div className="bg-slate-50 p-4 rounded-2xl mb-6">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Materiale Vizate</p>
+                                <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{unconfirmedReq.items_text}</p>
+                            </div>
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={() => handleConfirm(unconfirmedReq.id, 'confirm')}
+                                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-[0.98]"
+                                >
+                                    Confirm Primirea
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        const reason = prompt('Motivul refuzului (opțional, ex. lipsă produse):');
+                                        if (reason !== null) {
+                                            handleConfirm(unconfirmedReq.id, 'reject', reason);
+                                        }
+                                    }}
+                                    className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-[0.98]"
+                                >
+                                    Refuz (Nu am primit)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 

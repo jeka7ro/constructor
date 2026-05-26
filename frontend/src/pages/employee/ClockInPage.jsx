@@ -77,6 +77,7 @@ export default function ClockInPage() {
 
     const [loading, setLoading] = useState(true)
     const [unreadComplaints, setUnreadComplaints] = useState(0)
+    const [pendingSignatures, setPendingSignatures] = useState(0)
     const [activeShift, setActiveShift] = useState(null)
     const [sites, setSites] = useState([])
     const [selectedSite, setSelectedSite] = useState(null)
@@ -256,13 +257,18 @@ export default function ClockInPage() {
     }, [location?.latitude, location?.longitude])
 
     useEffect(() => {
-        const fetchUnread = () => {
+        const fetchBadges = () => {
+            api.get('/user/notifications/badges')
+                .then(res => {
+                    setPendingSignatures(res.data?.material_requests || 0)
+                })
+                .catch(() => {})
             api.get('/user/complaints/unread-count')
                 .then(res => setUnreadComplaints(res.data?.count || 0))
                 .catch(() => {})
         }
-        fetchUnread()
-        const t = setInterval(fetchUnread, 60000)
+        fetchBadges()
+        const t = setInterval(fetchBadges, 10000)
         return () => clearInterval(t)
     }, [])
 
@@ -933,8 +939,13 @@ export default function ClockInPage() {
                             onClick={() => navigate('/material-requests')}
                             className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
                         >
-                            <div className="p-2 bg-white/20 rounded-xl mb-1.5">
+                            <div className="p-2 bg-white/20 rounded-xl mb-1.5 relative">
                                 <PackageSearch className="w-7 h-7" />
+                                {pendingSignatures > 0 && (
+                                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full shadow-md animate-pulse">
+                                        {pendingSignatures > 9 ? '9+' : pendingSignatures}
+                                    </span>
+                                )}
                             </div>
                             <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Necesar<br/>Materiale</h3>
                         </button>
@@ -958,8 +969,13 @@ export default function ClockInPage() {
                             onClick={() => navigate('/my-inventory')}
                             className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
                         >
-                            <div className="p-2 bg-white/20 rounded-xl mb-1.5">
+                            <div className="p-2 bg-white/20 rounded-xl mb-1.5 relative">
                                 <Wrench className="w-7 h-7" />
+                                {pendingSignatures > 0 && (
+                                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full shadow-md animate-pulse">
+                                        {pendingSignatures > 9 ? '9+' : pendingSignatures}
+                                    </span>
+                                )}
                             </div>
                             <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Inventarul<br/>Meu</h3>
                         </button>

@@ -12,7 +12,13 @@ from pathlib import Path
 load_dotenv()
 
 # Import routers
-from app.api import auth, admin_auth, admin_users, admin_sites, admin_roles, admin_reports, clockin, timesheets, teams, sites, photo_upload, site_photos, admin_teams, admin_vehicles, warehouse, admin_clients, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies, admin_material_requests, user_material_requests, user_warehouse
+from app.api import (
+    auth, admin_auth, admin_users, admin_sites, admin_roles, photo_upload,
+    admin_reports, clockin, timesheets, teams, sites, site_photos,
+    admin_teams, admin_vehicles, warehouse, admin_clients,
+    admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
+    admin_material_requests, user_material_requests, user_warehouse, user_notifications
+)
 
 import threading
 
@@ -247,6 +253,7 @@ app.include_router(admin_emergencies.router, prefix="/api", tags=["admin-emergen
 app.include_router(admin_material_requests.router, prefix="/api", tags=["admin-material-requests"])
 app.include_router(user_material_requests.router, prefix="/api")
 app.include_router(user_warehouse.router, prefix="/api")
+app.include_router(user_notifications.router, prefix="/api")
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body

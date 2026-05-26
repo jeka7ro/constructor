@@ -119,6 +119,14 @@ def confirm_material_request(
                         qty = float(item.get("qty", 0))
                         
                         if db_item.inventory_code:
+                            history_notes = (
+                                f"Flux Cerere #{c.id[:6]}:\n"
+                                f"• Solicitat: {c.created_at.strftime('%d.%m %H:%M')}\n"
+                                f"• Livrat (Admin): {c.responded_at.strftime('%d.%m %H:%M') if c.responded_at else '-'}\n"
+                                f"• Confirmat (Muncitor): {datetime.utcnow().strftime('%d.%m %H:%M')}\n"
+                                f"Discuție: {c.admin_response or '-'}"
+                            )
+                            
                             db_tx = WarehouseTransaction(
                                 item_id=db_item.id,
                                 transaction_type="OUT",
@@ -127,13 +135,21 @@ def confirm_material_request(
                                 operated_by_id=current_user.id,
                                 assigned_to_user_id=c.user_id,
                                 site_id=c.site_id,
-                                notes="Preluat automat din cerere necesar (Confirmat Muncitor)"
+                                notes=history_notes
                             )
                             db.add(db_tx)
                             db_item.total_quantity -= 1.0
                             db_item.current_holder_id = c.user_id
                             db_item.current_site_id = c.site_id
                         else:
+                            history_notes = (
+                                f"Flux Cerere #{c.id[:6]}:\n"
+                                f"• Solicitat: {c.created_at.strftime('%d.%m %H:%M')}\n"
+                                f"• Livrat (Admin): {c.responded_at.strftime('%d.%m %H:%M') if c.responded_at else '-'}\n"
+                                f"• Confirmat (Muncitor): {datetime.utcnow().strftime('%d.%m %H:%M')}\n"
+                                f"Discuție: {c.admin_response or '-'}"
+                            )
+                            
                             db_tx = WarehouseTransaction(
                                 item_id=db_item.id,
                                 transaction_type="OUT",
@@ -142,7 +158,7 @@ def confirm_material_request(
                                 operated_by_id=current_user.id,
                                 assigned_to_user_id=c.user_id,
                                 site_id=c.site_id,
-                                notes="Eliberat automat din cerere necesar (Confirmat Muncitor)"
+                                notes=history_notes
                             )
                             db.add(db_tx)
                             db_item.total_quantity -= qty
