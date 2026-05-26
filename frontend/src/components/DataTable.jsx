@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -20,23 +20,38 @@ export default function DataTable({
     loading = false,
     defaultPageSize = 25,
     emptyText,
+    searchable = false,
+    searchPlaceholder = 'Caută...'
 }) {
     const { t } = useTranslation()
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(defaultPageSize)
     const [sortKey, setSortKey] = useState(null)
     const [sortDir, setSortDir] = useState('asc') // 'asc' | 'desc'
+    const [searchTerm, setSearchTerm] = useState('')
 
+    // 1. Filter
+    const filtered = useMemo(() => {
+        if (!searchTerm) return data
+        const lower = searchTerm.toLowerCase()
+        return data.filter(row => 
+            Object.values(row).some(val => 
+                val != null && String(val).toLowerCase().includes(lower)
+            )
+        )
+    }, [data, searchTerm])
+
+    // 2. Sort
     const sorted = useMemo(() => {
-        if (!sortKey) return data
-        return [...data].sort((a, b) => {
+        if (!sortKey) return filtered
+        return [...filtered].sort((a, b) => {
             const av = a[sortKey] ?? ''
             const bv = b[sortKey] ?? ''
             if (av === bv) return 0
             const cmp = av < bv ? -1 : 1
             return sortDir === 'asc' ? cmp : -cmp
         })
-    }, [data, sortKey, sortDir])
+    }, [filtered, sortKey, sortDir])
 
     const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
     const safePage = Math.min(page, totalPages)
@@ -68,6 +83,22 @@ export default function DataTable({
 
     return (
         <div className="flex flex-col min-h-0">
+            {/* Toolbar (Search) */}
+            {searchable && (
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="relative max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder={searchPlaceholder}
+                            value={searchTerm}
+                            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* Table */}
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
