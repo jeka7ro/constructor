@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models import MaterialRequest, Admin, WarehouseItem, WarehouseTransaction
 import json
 from app.api.admin_auth import get_current_admin
+from sqlalchemy.orm import joinedload
 
 router = APIRouter(prefix="/admin/material-requests", tags=["Admin - Necesar Materiale"])
 
@@ -47,7 +48,10 @@ def list_material_requests(
     current_admin: Admin = Depends(get_current_admin),
 ):
     check_mr_permission(current_admin)
-    q = db.query(MaterialRequest).filter(MaterialRequest.organization_id == current_admin.organization_id)
+    q = db.query(MaterialRequest).options(
+        joinedload(MaterialRequest.site),
+        joinedload(MaterialRequest.user)
+    ).filter(MaterialRequest.organization_id == current_admin.organization_id)
     if status_filter and status_filter != "all":
         q = q.filter(MaterialRequest.status == status_filter)
     requests = q.order_by(MaterialRequest.created_at.desc()).all()

@@ -957,6 +957,22 @@ export default function ClockInPage() {
                         </button>
                         
                         <button
+                            onClick={() => navigate('/sesizari')}
+                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-xl">
+                                    <MessageSquareWarning className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-bold text-lg leading-tight">Sesizări / Incidente</h3>
+                                    <p className="text-xs text-rose-100 font-medium mt-0.5">Raportează o problemă rapid</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-6 h-6 text-white/70" />
+                        </button>
+
+                        <button
                             onClick={() => navigate('/my-inventory')}
                             className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
                         >
