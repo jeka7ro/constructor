@@ -7,7 +7,7 @@ import {
     Clock, Play, Square, Coffee, MapPin, Loader2, Timer, Calendar,
     ClipboardList, Plus, Trash2, CheckCircle, CheckCircle2, AlertCircle, ShieldAlert,
     Navigation, ChevronDown, ChevronRight, LogOut, Users, Settings, XCircle,
-    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning
+    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch
 } from 'lucide-react'
 import TeamLeaderPanel from './TeamLeaderPanel'
 import SiteManagerPanel from './SiteManagerPanel'
@@ -908,6 +908,25 @@ export default function ClockInPage() {
                                 }
                             />
                         </MapContainer>
+                    </div>
+
+                    {/* Cerere Materiale Button - Sub Harta */}
+                    <div className="mt-2 mb-2">
+                        <button
+                            onClick={() => navigate('/material-requests')}
+                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/20 rounded-xl">
+                                    <PackageSearch className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-bold text-lg leading-tight">Necesar Materiale</h3>
+                                    <p className="text-xs text-amber-50 font-medium mt-0.5">Trimite o cerere din șantier</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-6 h-6 text-white/70" />
+                        </button>
                     </div>
 
                     {/* Current Address */}
