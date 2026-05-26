@@ -30,6 +30,7 @@ const EMPTY_SITE = {
     address: '',
     latitude: '',
     longitude: '',
+    geofence_radius: 100,
     description: '',
     status: 'active',
     client_id: '',
@@ -210,6 +211,7 @@ export default function SitesManagement() {
             address: site.address || '',
             latitude: site.latitude || '',
             longitude: site.longitude || '',
+            geofence_radius: site.geofence_radius ?? 100,
             description: site.description || '',
             status: site.status || 'active',
             client_id: site.client_id || '',
@@ -282,6 +284,7 @@ export default function SitesManagement() {
                 ...formData,
                 latitude: formData.latitude ? parseFloat(formData.latitude) : null,
                 longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+                geofence_radius: formData.geofence_radius ? parseInt(formData.geofence_radius) : 100,
                 panel_count: formData.panel_count ? parseInt(formData.panel_count) : null,
                 system_power_kw: formData.system_power_kw ? parseFloat(formData.system_power_kw) : null,
                 max_overtime_minutes: formData.max_overtime_minutes ? parseInt(formData.max_overtime_minutes) : 120,
@@ -739,7 +742,7 @@ export default function SitesManagement() {
                                                 Detectează automat
                                             </button>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Latitudine</label>
                                                 <input
@@ -760,6 +763,18 @@ export default function SitesManagement() {
                                                     onChange={e => setFormData({ ...formData, longitude: e.target.value })}
                                                     className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                                     placeholder="ex: 26.1025"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Rază Geofence (m)</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.geofence_radius}
+                                                    onChange={e => setFormData({ ...formData, geofence_radius: e.target.value })}
+                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                    placeholder="ex: 100"
+                                                    min="10"
+                                                    max="5000"
                                                 />
                                             </div>
                                         </div>
