@@ -87,6 +87,14 @@ export default function EmployeeMaterialRequests() {
         finally { setSubmitting(false) }
     }
 
+    const handleRequestSiteItem = (item) => {
+        setItemsText(prev => {
+            const prefix = prev ? prev + '\n' : ''
+            return prefix + `Solicit preluarea pe numele meu: ${item.name}` + (item.inventory_code ? ` (Cod: ${item.inventory_code})` : '')
+        })
+        setShowForm(true)
+    }
+
     // Categories
     const siteItems = inventory.filter(i => i.site_stock > 0)
     const availableItems = inventory.filter(i => i.central_stock > 0)
@@ -140,14 +148,23 @@ export default function EmployeeMaterialRequests() {
                         </div>
                         <div className="divide-y divide-slate-100">
                             {siteItems.map(item => (
-                                <div key={item.id} className="p-3 flex justify-between items-center hover:bg-slate-50">
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800">{item.name}</p>
-                                        <p className="text-xs text-slate-500">{item.category} {item.model ? `• ${item.model}` : ''}</p>
+                                <div key={item.id} className="p-3 hover:bg-slate-50">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+                                            <p className="text-xs text-slate-500">{item.category} {item.model ? `• ${item.model}` : ''}</p>
+                                        </div>
+                                        <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-bold border border-slate-200 shadow-sm">
+                                            {item.site_stock} {item.unit}
+                                        </div>
                                     </div>
-                                    <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-bold border border-slate-200 shadow-sm">
-                                        {item.site_stock} {item.unit}
-                                    </div>
+                                    <button 
+                                        onClick={() => handleRequestSiteItem(item)}
+                                        className="w-full mt-1 py-2 bg-white border border-orange-200 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-50 transition-colors flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                        Solicită Preluarea
+                                    </button>
                                 </div>
                             ))}
                         </div>
