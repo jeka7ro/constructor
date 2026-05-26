@@ -153,11 +153,13 @@ export default function AdminMaterialRequests() {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                 <tr>
+                                    <th className="w-10"></th>
                                     <th className="px-6 py-4">Angajat</th>
                                     <th className="px-6 py-4">Șantier</th>
                                     <th className="px-6 py-4">Materiale</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Data</th>
+                                    <th className="w-10"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -173,6 +175,7 @@ export default function AdminMaterialRequests() {
                                             onClick={() => { setDetailReq(c); setResponseText(c.admin_response || ''); setResponseStatus(c.status === 'pending' ? 'approved' : c.status) }}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                                         >
+                                            <td className="px-4"></td>
                                             <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{c.user_name}</td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {c.site_name}</div>
@@ -188,6 +191,7 @@ export default function AdminMaterialRequests() {
                                             <td className="px-6 py-4 text-slate-500 text-sm">
                                                 {new Date(c.created_at).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' })}
                                             </td>
+                                            <td className="px-4"></td>
                                         </tr>
                                     )
                                 })}
