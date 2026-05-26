@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
-export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [] }) {
+export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], onWorkerSelect }) {
     const { t } = useTranslation()
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
@@ -164,27 +164,66 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [] }) 
             if (worker.status === 'activ') statusText = 'Activ pe șantier'
             if (worker.status === 'pauză') statusText = 'În pauză'
 
-            const marker = L.marker([worker.latitude, worker.longitude], { icon, zIndexOffset: 1000 })
-                .bindTooltip(`
-                    <div class="text-left leading-tight py-1 px-0.5">
-                        <b class="text-[13px] text-slate-800">${worker.worker_name}</b><br/>
-                        <span class="text-[10px] text-slate-500 font-medium">Cod: ${worker.employee_code || 'N/A'}</span>
-                        
-                        <div class="mt-2 mb-1 flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
-                            <span class="text-[11px] font-bold text-slate-700">${statusText}</span>
-                        </div>
-                        
-                        <div class="text-[10px] text-slate-400 mt-1 flex flex-col gap-0.5">
-                            <span>Check-in: <strong class="text-slate-600">${checkInTime}</strong></span>
-                            ${worker.worked_hours > 0 ? `<span>Ore lucrate: <strong class="text-slate-600">${worker.worked_hours}h</strong></span>` : ''}
+            const popupHtml = `
+                <div class="p-1 min-w-[200px] font-sans">
+                    <div class="flex items-center gap-3 mb-3 border-b border-slate-100 pb-2">
+                        ${iconHtml}
+                        <div>
+                            <b class="text-sm text-slate-800 leading-none block">${worker.worker_name}</b>
+                            <span class="text-[10px] text-slate-500">Cod: ${worker.employee_code || 'N/A'}</span>
                         </div>
                     </div>
-                `, { direction: 'top', offset: [0, -14], opacity: 0.98 })
+                    <div class="space-y-1.5 text-xs text-slate-600 mb-4">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Check-in:</span>
+                            <span class="font-bold text-slate-700">${checkInTime}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Ore lucrate:</span>
+                            <span class="font-bold text-slate-700">${worker.worked_hours > 0 ? worker.worked_hours + 'h' : '0h'}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">Status:</span>
+                            <div class="flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full" style="background:${color}"></span>
+                                <span class="font-bold text-slate-700">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between mt-2 pt-2 border-t border-slate-100">
+                            <span class="text-slate-400">Activități raportate:</span>
+                            <span class="font-bold text-blue-600">${worker.activities ? worker.activities.length : 0}</span>
+                        </div>
+                    </div>
+                    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-sm worker-detail-btn" data-worker-id="${worker.worker_id}">
+                        Vezi Profil Complet
+                    </button>
+                </div>
+            `
+
+            const marker = L.marker([worker.latitude, worker.longitude], { icon, zIndexOffset: 1000 })
+                .bindTooltip(`<b>${worker.worker_name}</b>`, { direction: 'top', offset: [0, -14], opacity: 0.9 })
+                .bindPopup(popupHtml, { minWidth: 220, offset: [0, -10], className: 'rounded-xl overflow-hidden shadow-2xl' })
                 .addTo(map)
 
             workerMarkersRef.current.push(marker)
         })
+
+        const handlePopupOpen = (e) => {
+            const btn = e.popup._contentNode?.querySelector('.worker-detail-btn')
+            if (btn && onWorkerSelect) {
+                btn.onclick = () => {
+                    const wid = btn.getAttribute('data-worker-id')
+                    const w = liveWorkers.find(x => String(x.worker_id) === wid)
+                    if (w) onWorkerSelect(w)
+                }
+            }
+        }
+        
+        map.on('popupopen', handlePopupOpen)
+
+        return () => {
+            map.off('popupopen', handlePopupOpen)
+        }
 
     }, [workers, sites])
 

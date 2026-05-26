@@ -248,7 +248,7 @@ export default function AdminOverview() {
 
             {/* Live Site Map — full width below KPIs */}
             <div className="mb-6">
-                <SiteMap selectedSiteId={globalSiteFilter} workers={activeWorkers} onSiteSelect={setGlobalSiteFilter} />
+                <SiteMap selectedSiteId={globalSiteFilter} workers={activeWorkers} onSiteSelect={setGlobalSiteFilter} onWorkerSelect={openWorkerDetail} />
             </div>
 
             {/* Row 2: Weekly Comparison + Site Live Map */}
