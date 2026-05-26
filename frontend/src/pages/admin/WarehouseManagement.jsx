@@ -604,91 +604,95 @@ export default function WarehouseManagement() {
                         </div>
                     </div>
 
-                    {/* LOCATIE CURENTA - card vizibil */}
-                    <div className={`mx-6 my-4 rounded-2xl p-4 border-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center ${historyItem.current_holder_name ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700'}`}>
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${historyItem.current_holder_name ? 'bg-amber-200 dark:bg-amber-800' : 'bg-emerald-200 dark:bg-emerald-800'}`}>
-                            <MapPin className={`w-6 h-6 ${historyItem.current_holder_name ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`} />
-                        </div>
-                        <div className="flex-1">
-                            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${historyItem.current_holder_name ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                {historyItem.current_holder_name ? 'In teren — pe mana unui muncitor' : 'In magazie — disponibil'}
-                            </p>
-                            {historyItem.current_holder_name ? (
-                                <div className="flex flex-wrap gap-x-6 gap-y-1 items-center">
-                                    <div>
-                                        <span className="text-xs text-slate-500">Preluat de:</span>
-                                        <span className="ml-2 text-sm font-black text-slate-900 dark:text-white">{historyItem.current_holder_name}</span>
-                                    </div>
-                                    {historyItem.current_site_name && (
-                                        <div>
-                                            <span className="text-xs text-slate-500">Santier:</span>
-                                            <span className="ml-2 text-sm font-black text-slate-900 dark:text-white">{historyItem.current_site_name}</span>
-                                        </div>
-                                    )}
-                                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isFromWorkerRequest ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
-                                        {isFromWorkerRequest ? 'Solicitat de muncitor' : 'Atribuit manual de admin'}
-                                    </span>
-                                </div>
-                            ) : (
-                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Disponibil in magazia centrala</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Buton + Panou corectie detinator */}
-                    <div className="mx-6 mb-2 flex justify-end">
-                        <button
-                            onClick={() => { setShowAssignPanel(p => !p); setAssignUserId(''); setAssignSiteId('') }}
-                            className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                        >
-                            {showAssignPanel ? 'Anuleaza' : 'Corecteaza detinator'}
-                        </button>
-                    </div>
-                    {showAssignPanel && (
-                        <div className="mx-6 mb-4 p-4 bg-white dark:bg-slate-800 border-2 border-blue-300 dark:border-blue-700 rounded-2xl">
-                            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3">Cine detine aceasta scula acum?</p>
-                            <div className="flex flex-wrap gap-3 items-end">
-                                <div className="flex-1 min-w-[180px]">
-                                    <label className="text-xs text-slate-500 mb-1 block">Muncitor</label>
-                                    <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">-- Nimeni (inapoi in magazie) --</option>
-                                        {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="flex-1 min-w-[180px]">
-                                    <label className="text-xs text-slate-500 mb-1 block">Santier</label>
-                                    <select value={assignSiteId} onChange={e => setAssignSiteId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">-- Alege santier --</option>
-                                        {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            await api.post(`/warehouse/items/${historyItem.id}/force-assign`, {
-                                                user_id: assignUserId || null,
-                                                site_id: assignSiteId || null,
-                                                date: new Date().toISOString().split('T')[0]
-                                            })
-                                            showToast('Detinatorul a fost actualizat!', 'success')
-                                            setShowAssignPanel(false)
-                                            setHistoryItem(prev => ({
-                                                ...prev,
-                                                current_holder_name: users.find(u => u.id === assignUserId)?.full_name || null,
-                                                current_site_name: allSites.find(s => s.id === assignSiteId)?.name || null,
-                                                total_quantity: (assignUserId || assignSiteId) ? 0 : 1
-                                            }))
-                                        } catch(e) {
-                                            showToast('Eroare la actualizare', 'error')
-                                        }
-                                    }}
-                                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
-                                >
-                                    Salveaza
-                                </button>
+                    {/* LOCATIE CURENTA */}
+                    <div className={`mx-6 my-4 rounded-2xl border-2 overflow-hidden ${historyItem.current_holder_name ? 'border-amber-300 dark:border-amber-700' : 'border-slate-200 dark:border-slate-700'}`}>
+                        <div className={`flex items-center justify-between px-5 py-3 ${historyItem.current_holder_name ? 'bg-amber-500' : 'bg-slate-500'}`}>
+                            <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-white" />
+                                <span className="text-xs font-black text-white uppercase tracking-widest">
+                                    {historyItem.current_holder_name ? 'In teren — pe mana muncitorului' : 'In magazie — disponibil'}
+                                </span>
                             </div>
+                            <button
+                                onClick={() => { setShowAssignPanel(p => !p); setAssignUserId(''); setAssignSiteId('') }}
+                                className="flex items-center gap-1.5 text-[11px] font-bold text-white/80 hover:text-white transition-colors"
+                                title="Modifica detinatorul"
+                            >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                {showAssignPanel ? 'Anuleaza' : 'Modifica'}
+                            </button>
                         </div>
-                    )}
+
+                        {!showAssignPanel && (
+                            <div className="px-5 py-4 bg-white dark:bg-slate-900">
+                                {historyItem.current_holder_name ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Muncitor</p>
+                                            <p className="text-sm font-black text-slate-900 dark:text-white">{historyItem.current_holder_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Santier</p>
+                                            <p className="text-sm font-black text-slate-900 dark:text-white">{historyItem.current_site_name || '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Sursa</p>
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isFromWorkerRequest ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                {isFromWorkerRequest ? 'Cerere muncitor' : 'Atribuit de admin'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-slate-500">Nicio scula in afara magaziei.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {showAssignPanel && (
+                            <div className="px-5 py-4 bg-white dark:bg-slate-900">
+                                <div className="flex flex-wrap gap-3 items-end">
+                                    <div className="flex-1 min-w-[180px]">
+                                        <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Muncitor</label>
+                                        <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="">— Nimeni (inapoi in magazie) —</option>
+                                            {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex-1 min-w-[180px]">
+                                        <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Santier</label>
+                                        <select value={assignSiteId} onChange={e => setAssignSiteId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="">— Alege santier —</option>
+                                            {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.post(`/warehouse/items/${historyItem.id}/force-assign`, {
+                                                    user_id: assignUserId || null,
+                                                    site_id: assignSiteId || null,
+                                                    date: new Date().toISOString().split('T')[0]
+                                                })
+                                                showToast('Detinatorul actualizat!', 'success')
+                                                setShowAssignPanel(false)
+                                                setHistoryItem(prev => ({
+                                                    ...prev,
+                                                    current_holder_name: users.find(u => u.id === assignUserId)?.full_name || null,
+                                                    current_site_name: allSites.find(s => s.id === assignSiteId)?.name || null,
+                                                    total_quantity: (assignUserId || assignSiteId) ? 0 : 1
+                                                }))
+                                            } catch(e) {
+                                                showToast('Eroare la actualizare', 'error')
+                                            }
+                                        }}
+                                        className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
+                                    >
+                                        Salveaza
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Batch Delete Actions */}
                     {selectedTxIds.length > 0 && (
