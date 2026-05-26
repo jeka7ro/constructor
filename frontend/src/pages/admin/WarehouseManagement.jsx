@@ -906,18 +906,18 @@ export default function WarehouseManagement() {
                         </button>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
+                <div>
+                    <table className="w-full text-left text-sm">
                         <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-3 w-12 text-center">NR.</th>
-                                <th className="px-6 py-3">Articol</th>
-                                <th className="px-6 py-3 text-center">UM</th>
-                                <th className="px-6 py-3 text-center">Intrări</th>
-                                <th className="px-6 py-3 text-center">Ieșiri</th>
-                                <th className="px-6 py-3 text-center">Stoc Magazie</th>
-                                <th className="px-6 py-3 text-center">Stoc Santier</th>
-                                <th className="px-6 py-3 text-right">Acțiuni</th>
+                                <th className="px-3 py-3 w-10 text-center">Nr.</th>
+                                <th className="px-3 py-3">Articol</th>
+                                <th className="px-3 py-3 text-center">UM</th>
+                                <th className="px-3 py-3 text-center">Intr.</th>
+                                <th className="px-3 py-3 text-center">Ieș.</th>
+                                <th className="px-3 py-3 text-center">Mag.</th>
+                                <th className="px-3 py-3 text-center">Santier</th>
+                                <th className="px-3 py-3 text-right">Acțiuni</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -944,10 +944,10 @@ export default function WarehouseManagement() {
                                         }}
                                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                                     >
-                                        <td className="px-6 py-3 text-center text-slate-500 font-medium">
+                                        <td className="px-3 py-2 text-center text-slate-500 font-medium">
                                             {(currentPage - 1) * itemsPerPage + index + 1}
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-3 py-2">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{item.name}</span>
                                                 {item.inventory_code && (
@@ -976,26 +976,26 @@ export default function WarehouseManagement() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-3 text-center text-slate-600 dark:text-slate-400 font-medium">
+                                        <td className="px-3 py-2 text-center text-slate-600 dark:text-slate-400 font-medium">
                                             {item.unit}
                                         </td>
                                         {item.inventory_code ? (
                                             <>
-                                                <td className="px-6 py-3 text-center text-slate-400 dark:text-slate-500 font-medium">-</td>
-                                                <td className="px-6 py-3 text-center text-slate-400 dark:text-slate-500 font-medium">-</td>
+                                                <td className="px-3 py-2 text-center text-slate-400 dark:text-slate-500 font-medium">-</td>
+                                                <td className="px-3 py-2 text-center text-slate-400 dark:text-slate-500 font-medium">-</td>
                                             </>
                                         ) : (
                                             <>
-                                                <td className="px-6 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">
+                                                <td className="px-3 py-2 text-center text-blue-600 dark:text-blue-400 font-bold">
                                                     {item.total_in > 0 ? `+${item.total_in}` : '-'}
                                                 </td>
-                                                <td className="px-6 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">
+                                                <td className="px-3 py-2 text-center text-rose-500 dark:text-rose-400 font-bold">
                                                     {item.total_out > 0 ? `-${item.total_out}` : '-'}
                                                 </td>
                                             </>
                                         )}
                                         {/* Stoc Magazie */}
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-3 py-2 text-center">
                                             <div className={`inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold ${
                                                 (item.inventory_code ? (item.current_site_id || item.current_holder_id) : (item.total_quantity === 0))
                                                     ? 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500'
@@ -1005,7 +1005,7 @@ export default function WarehouseManagement() {
                                             </div>
                                         </td>
                                         {/* Stoc Santier */}
-                                        <td className="px-6 py-3 text-center">
+                                        <td className="px-3 py-2 text-center">
                                             {(item.current_site_id || item.current_holder_id) ? (
                                                 <div className="flex flex-col items-center gap-0.5">
                                                     <div className="inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
@@ -1019,7 +1019,7 @@ export default function WarehouseManagement() {
                                                 <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-3 text-right">
+                                        <td className="px-3 py-2 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                                 {item.inventory_code ? (
                                                     <>
