@@ -48,6 +48,7 @@ export default function SiteMap({ selectedSiteId, onSiteSelect }) {
             center: [45.75, 24.5], // Romania
             zoom: 7,
             zoomControl: true,
+            scrollWheelZoom: false, // Prevents page scrolling trap
         })
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
