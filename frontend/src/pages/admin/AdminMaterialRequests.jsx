@@ -377,50 +377,80 @@ export default function AdminMaterialRequests() {
                                 )}
                             </div>
 
-                            {/* ISTORIC CARD */}
+                            {/* TIMELINE COMPLET */}
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <Clock className="w-4 h-4" /> Istoric & Trasabilitate
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Clock className="w-4 h-4" /> Timeline Complet
                                 </p>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2">
-                                        <span className="text-slate-500">Solicitat la data:</span>
-                                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                                            {new Date(detailReq.created_at).toLocaleString('ro-RO')}
-                                        </span>
+                                <div className="relative pl-6">
+                                    {/* Linia verticală */}
+                                    <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-600" />
+
+                                    {/* Eveniment 1: Solicitare */}
+                                    <div className="relative mb-4">
+                                        <div className="absolute -left-4 w-4 h-4 rounded-full bg-blue-500 border-2 border-white dark:border-slate-800 shadow" />
+                                        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
+                                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">📋 Solicitat</p>
+                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{detailReq.user_name || 'Muncitor'}</p>
+                                            {detailReq.site_name && <p className="text-xs text-slate-500 dark:text-slate-400">📍 {detailReq.site_name}</p>}
+                                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">{new Date(detailReq.created_at).toLocaleString('ro-RO')}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2">
-                                        <span className="text-slate-500">Status curent:</span>
-                                        <span className={`font-bold ${STATUS_CONFIG[detailReq.status]?.cls}`}>
-                                            {STATUS_CONFIG[detailReq.status]?.label.toUpperCase()}
-                                        </span>
-                                    </div>
+
+                                    {/* Eveniment 2: Raspuns Admin */}
                                     {detailReq.responded_at && (
-                                        <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700 pb-2">
-                                            <span className="text-slate-500">
-                                                {detailReq.status === 'delivered' ? 'Livrată la data:' : 
-                                                 detailReq.status === 'approved' ? 'Aprobată la data:' : 
-                                                 detailReq.status === 'rejected' ? 'Respinsă la data:' : 'Procesată la data:'}
-                                            </span>
-                                            <span className="font-bold text-slate-800 dark:text-slate-200">
-                                                {new Date(detailReq.responded_at).toLocaleString('ro-RO')}
-                                            </span>
+                                        <div className="relative mb-4">
+                                            <div className={`absolute -left-4 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                                            <div className={`border rounded-xl p-3 ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800'}`}>
+                                                <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                    {detailReq.status === 'rejected' ? '❌ Respins' : '✅ Aprobat'}
+                                                </p>
+                                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{detailReq.responder_name || 'Administrator'}</p>
+                                                {detailReq.admin_response && (
+                                                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic">"{detailReq.admin_response}"</p>
+                                                )}
+                                                <p className={`text-xs mt-1 font-medium ${detailReq.status === 'rejected' || detailReq.status === 'disputed' ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                    {new Date(detailReq.responded_at).toLocaleString('ro-RO')}
+                                                </p>
+                                            </div>
                                         </div>
                                     )}
-                                    {detailReq.responder_name && (
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-500">De către:</span>
-                                            <span className="font-bold text-slate-800 dark:text-slate-200">
-                                                {detailReq.responder_name}
-                                            </span>
+
+                                    {/* Eveniment 3: Livrat */}
+                                    {(detailReq.status === 'delivered' || detailReq.status === 'completed') && detailReq.responded_at && (
+                                        <div className="relative mb-4">
+                                            <div className="absolute -left-4 w-4 h-4 rounded-full bg-orange-500 border-2 border-white dark:border-slate-800 shadow" />
+                                            <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">🚚 Predat pe Șantier</p>
+                                                {detailReq.admin_response && detailReq.admin_response.includes('[Predat prin:') && (
+                                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                                        {detailReq.admin_response.match(/\[Predat prin: ([^\]]+)\]/)?.[1] || ''}
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-orange-600 mt-1 font-medium">{new Date(detailReq.responded_at).toLocaleString('ro-RO')}</p>
+                                            </div>
                                         </div>
                                     )}
-                                    {detailReq.admin_response && (
-                                        <div className="mt-2 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm">
-                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Comentariu:</span>
-                                            <span className="font-medium text-slate-800 dark:text-slate-200 italic">"{detailReq.admin_response}"</span>
+
+                                    {/* Eveniment 4: Confirmat Muncitor */}
+                                    {detailReq.status === 'completed' && (
+                                        <div className="relative">
+                                            <div className="absolute -left-4 w-4 h-4 rounded-full bg-purple-500 border-2 border-white dark:border-slate-800 shadow" />
+                                            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">✍️ Confirmat de Muncitor</p>
+                                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{detailReq.user_name || 'Muncitor'}</p>
+                                                <p className="text-xs text-purple-500 mt-1 font-medium">Semnat digital ✓</p>
+                                            </div>
                                         </div>
                                     )}
+
+                                    {/* Status curent */}
+                                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-600 flex justify-between items-center">
+                                        <span className="text-xs text-slate-400">Status curent:</span>
+                                        <span className={`text-xs font-black px-3 py-1 rounded-full ${STATUS_CONFIG[detailReq.status]?.cls}`}>
+                                            {STATUS_CONFIG[detailReq.status]?.label?.toUpperCase()}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 

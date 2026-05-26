@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import MaterialRequest, Issue, User
+from app.models import MaterialRequest, User
 from app.api.auth import get_current_user
 
 router = APIRouter(prefix="/user/notifications", tags=["User - Notificari"])
