@@ -127,18 +127,20 @@ export default function AdminOverview() {
 
     const fetchSesizariNecesar = async () => {
         try {
-            const res = await api.get('/admin/material-requests?limit=50')
+            const res = await api.get('/admin/material-requests')
             const all = res.data || []
             setSesizari(all.filter(r => r.status === 'pending' || r.status === 'submitted'))
             setNecesar(all.filter(r => r.status === 'approved' || r.status === 'in_progress'))
-            // Livrat = doar AZI, finalizate
-            const todayStr = new Date().toISOString().slice(0, 10)
-            setLivrat(
-                all
-                    .filter(r => (r.status === 'completed' || r.status === 'delivered') &&
-                        (r.updated_at || r.created_at || '').startsWith(todayStr))
-                    .slice(0, 20)
-            )
+            // Livrat = completed sau delivered, cele mai recente primele
+            const completedAll = all.filter(r => r.status === 'completed' || r.status === 'delivered')
+            // Filtram cele de azi dupa updated_at (sau created_at ca fallback)
+            const todayStr = new Date().toLocaleDateString('sv-SE') // "2026-05-26" format sigur
+            const todayOnly = completedAll.filter(r => {
+                const dateStr = (r.updated_at || r.created_at || '')
+                return dateStr.slice(0, 10) === todayStr
+            })
+            // Daca nu-s livrari azi, aratam ultimele 5 din general
+            setLivrat(todayOnly.length > 0 ? todayOnly : completedAll.slice(0, 5))
         } catch (e) { console.error(e) }
     }
 
