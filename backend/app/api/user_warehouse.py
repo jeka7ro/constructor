@@ -131,27 +131,43 @@ def get_my_inventory(
     ).order_by(MaterialRequest.updated_at.desc()).all()
 
     for req in completed_requests:
-        if not req.items_json:
-            continue
-        try:
-            items_list = json.loads(req.items_json)
-        except Exception:
-            continue
-        for it in items_list:
-            item_id = it.get("id")
-            if not item_id or item_id in seen_ids:
+        matched_items = []
+
+        # Strategy A: structured items_json
+        if req.items_json:
+            try:
+                items_list = json.loads(req.items_json)
+                for it in items_list:
+                    item_id = it.get("id")
+                    if item_id and item_id not in seen_ids:
+                        db_item = db.query(WarehouseItem).filter(
+                            WarehouseItem.id == item_id,
+                            WarehouseItem.organization_id == current_user.organization_id
+                        ).first()
+                        if db_item:
+                            matched_items.append(db_item)
+            except Exception:
+                pass
+
+        # Strategy B: text-only request — search all org tools by name
+        if not matched_items and req.items_text:
+            text_lower = req.items_text.lower()
+            all_tools = db.query(WarehouseItem).filter(
+                WarehouseItem.organization_id == current_user.organization_id,
+                WarehouseItem.inventory_code != None
+            ).all()
+            for t in all_tools:
+                if t.id not in seen_ids and t.name.lower() in text_lower:
+                    matched_items.append(t)
+
+        for db_item in matched_items:
+            if db_item.id in seen_ids:
                 continue
-            db_item = db.query(WarehouseItem).filter(
-                WarehouseItem.id == item_id,
-                WarehouseItem.organization_id == current_user.organization_id
-            ).first()
-            if not db_item:
-                continue
-            # Only show if still "out" (current_holder_id null means data inconsistency — still treat as held)
+            # Already reassigned to someone else — skip
             if db_item.current_holder_id and db_item.current_holder_id != current_user.id:
-                continue  # already assigned to someone else
+                continue
+            # Back in warehouse (stoc >= 1, nobody has it) — skip
             if db_item.inventory_code and not db_item.current_site_id and not db_item.current_holder_id:
-                # if checkedin back to warehouse, skip
                 if db_item.total_quantity and db_item.total_quantity >= 1:
                     continue
             seen_ids.add(db_item.id)
