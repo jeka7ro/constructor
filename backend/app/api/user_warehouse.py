@@ -4,7 +4,7 @@ from sqlalchemy import func
 from typing import Optional, List
 
 from app.database import get_db
-from app.models import WarehouseItem, WarehouseTransaction, User, Site
+from app.models import WarehouseItem, WarehouseTransaction, User, Site, MaterialRequest
 from app.api.auth import get_current_user
 from app.api.user_material_requests import get_user_active_site_id
 from pydantic import BaseModel
@@ -99,14 +99,76 @@ def get_my_inventory(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Returns items assigned to the current user."""
-    # 1. Unique Tools
+    """Returns items assigned to the current user — via current_holder_id OR completed material requests."""
+    import json
+    results = []
+    seen_ids = set()
+
+    # 1. Unique Tools — current_holder_id set
     unique_tools = db.query(WarehouseItem).filter(
         WarehouseItem.organization_id == current_user.organization_id,
         WarehouseItem.current_holder_id == current_user.id
     ).all()
-    
-    # 2. Bulk Materials/Consumables assigned to user
+    for t in unique_tools:
+        seen_ids.add(t.id)
+        results.append({
+            "id": t.id,
+            "name": t.name,
+            "category": t.category,
+            "unit": t.unit,
+            "inventory_code": t.inventory_code,
+            "model": t.model,
+            "is_defective": t.is_defective,
+            "quantity": 1,
+            "source": "assigned"
+        })
+
+    # 2. Unique Tools — from completed material requests (current_holder_id may be null)
+    completed_requests = db.query(MaterialRequest).filter(
+        MaterialRequest.organization_id == current_user.organization_id,
+        MaterialRequest.user_id == current_user.id,
+        MaterialRequest.status == "completed"
+    ).order_by(MaterialRequest.updated_at.desc()).all()
+
+    for req in completed_requests:
+        if not req.items_json:
+            continue
+        try:
+            items_list = json.loads(req.items_json)
+        except Exception:
+            continue
+        for it in items_list:
+            item_id = it.get("id")
+            if not item_id or item_id in seen_ids:
+                continue
+            db_item = db.query(WarehouseItem).filter(
+                WarehouseItem.id == item_id,
+                WarehouseItem.organization_id == current_user.organization_id
+            ).first()
+            if not db_item:
+                continue
+            # Only show if still "out" (current_holder_id null means data inconsistency — still treat as held)
+            if db_item.current_holder_id and db_item.current_holder_id != current_user.id:
+                continue  # already assigned to someone else
+            if db_item.inventory_code and not db_item.current_site_id and not db_item.current_holder_id:
+                # if checkedin back to warehouse, skip
+                if db_item.total_quantity and db_item.total_quantity >= 1:
+                    continue
+            seen_ids.add(db_item.id)
+            results.append({
+                "id": db_item.id,
+                "name": db_item.name,
+                "category": db_item.category,
+                "unit": db_item.unit,
+                "inventory_code": db_item.inventory_code,
+                "model": db_item.model,
+                "is_defective": db_item.is_defective,
+                "quantity": 1,
+                "source": "material_request",
+                "request_id": req.id
+            })
+
+    # 3. Bulk Materials/Consumables assigned to user via transactions
     bulk_stats = db.query(
         WarehouseTransaction.item_id,
         WarehouseTransaction.transaction_type,
@@ -120,43 +182,111 @@ def get_my_inventory(
          WarehouseTransaction.item_id,
          WarehouseTransaction.transaction_type
      ).all()
-     
+
     user_stock_map = {}
     for i_id, tx_type, total in bulk_stats:
         if i_id not in user_stock_map:
             user_stock_map[i_id] = 0
-        if tx_type == "OUT": # Out of warehouse -> into user hands
+        if tx_type == "OUT":
             user_stock_map[i_id] += total
-        elif tx_type == "IN" or tx_type == "CONSUME": # Back to warehouse or consumed
+        elif tx_type in ("IN", "CONSUME"):
             user_stock_map[i_id] -= total
-            
-    bulk_item_ids = [k for k, v in user_stock_map.items() if v > 0]
-    bulk_items = []
+
+    bulk_item_ids = [k for k, v in user_stock_map.items() if v > 0 and k not in seen_ids]
     if bulk_item_ids:
         bulk_items = db.query(WarehouseItem).filter(WarehouseItem.id.in_(bulk_item_ids)).all()
+        for b in bulk_items:
+            results.append({
+                "id": b.id,
+                "name": b.name,
+                "category": b.category,
+                "unit": b.unit,
+                "inventory_code": None,
+                "model": None,
+                "is_defective": False,
+                "quantity": user_stock_map[b.id],
+                "source": "consumable"
+            })
 
-    results = []
-    for t in unique_tools:
-        results.append({
-            "id": t.id,
-            "name": t.name,
-            "category": t.category,
-            "unit": t.unit,
-            "inventory_code": t.inventory_code,
-            "quantity": 1
-        })
-        
-    for b in bulk_items:
-        results.append({
-            "id": b.id,
-            "name": b.name,
-            "category": b.category,
-            "unit": b.unit,
-            "inventory_code": None,
-            "quantity": user_stock_map[b.id]
-        })
-        
     return results
+
+
+class ReturnToolRequest(BaseModel):
+    item_id: str
+    notes: Optional[str] = None
+
+class ReportDefectiveRequest(BaseModel):
+    item_id: str
+    notes: Optional[str] = None
+
+@router.post("/return-tool")
+def return_tool(
+    body: ReturnToolRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Worker returns a tool back to warehouse."""
+    db_item = db.query(WarehouseItem).filter(
+        WarehouseItem.id == body.item_id,
+        WarehouseItem.organization_id == current_user.organization_id
+    ).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articol negasit")
+
+    returned_from_site = db_item.current_site_id
+    db_item.current_holder_id = None
+    db_item.current_site_id = None
+    db_item.checked_out_at = None
+    db_item.total_quantity = 1.0
+
+    tx = WarehouseTransaction(
+        item_id=body.item_id,
+        transaction_type="IN",
+        quantity=1.0,
+        date=datetime.utcnow().date(),
+        operated_by_id=current_user.id,
+        assigned_to_user_id=current_user.id,
+        site_id=returned_from_site,
+        notes=body.notes or f"Returnat de muncitor: {current_user.full_name}"
+    )
+    db.add(tx)
+    db.commit()
+    return {"success": True}
+
+@router.post("/report-defective")
+def report_defective(
+    body: ReportDefectiveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Worker reports a tool as defective. Returns it to warehouse marked as defective."""
+    db_item = db.query(WarehouseItem).filter(
+        WarehouseItem.id == body.item_id,
+        WarehouseItem.organization_id == current_user.organization_id
+    ).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Articol negasit")
+
+    returned_from_site = db_item.current_site_id
+    db_item.current_holder_id = None
+    db_item.current_site_id = None
+    db_item.checked_out_at = None
+    db_item.total_quantity = 1.0
+    db_item.is_defective = True
+
+    tx = WarehouseTransaction(
+        item_id=body.item_id,
+        transaction_type="IN",
+        quantity=1.0,
+        date=datetime.utcnow().date(),
+        operated_by_id=current_user.id,
+        assigned_to_user_id=current_user.id,
+        site_id=returned_from_site,
+        notes=body.notes or f"Raportat DEFECT de: {current_user.full_name}"
+    )
+    db.add(tx)
+    db.commit()
+    return {"success": True}
 
 @router.post("/consume")
 def consume_item(

@@ -605,162 +605,136 @@ export default function WarehouseManagement() {
                         </div>
                     </div>
 
-                    {/* TIMELINE CERERE LEGATA */}
+                    {/* TIMELINE COMPACT */}
                     {linkedRequest && (
-                        <div className="mx-6 mb-4">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Istoricul complet al sculei</p>
-                            <div className="relative">
-                                <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
-                                <div className="space-y-3">
-
-                                    {/* SOLICITAT */}
-                                    <div className="flex gap-3 items-start relative">
-                                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 z-10">
-                                            <span className="text-white text-[10px] font-black">S</span>
-                                        </div>
-                                        <div className="flex-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-2.5">
-                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Solicitat de muncitor</p>
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.requested_by}</p>
-                                            <p className="text-xs text-slate-500">{linkedRequest.site_name && `Santier: ${linkedRequest.site_name} · `}{linkedRequest.requested_at && new Date(linkedRequest.requested_at).toLocaleString('ro-RO')}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* APROBAT */}
-                                    {linkedRequest.approved_by && (
-                                        <div className="flex gap-3 items-start relative">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0 z-10">
-                                                <span className="text-white text-[10px] font-black">A</span>
-                                            </div>
-                                            <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-2.5">
-                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Aprobat de admin</p>
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.approved_by}</p>
-                                                <p className="text-xs text-slate-500">{linkedRequest.approved_at && new Date(linkedRequest.approved_at).toLocaleString('ro-RO')}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* PREDAT / LIVRAT */}
-                                    {linkedRequest.approved_at && (
-                                        <div className="flex gap-3 items-start relative">
-                                            <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center shrink-0 z-10">
-                                                <span className="text-white text-[10px] font-black">P</span>
-                                            </div>
-                                            <div className="flex-1 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl px-4 py-2.5">
-                                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-wider">Predat pe santier</p>
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.approved_by}</p>
-                                                <p className="text-xs text-slate-500">{linkedRequest.approved_at && new Date(linkedRequest.approved_at).toLocaleString('ro-RO')}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* CONFIRMAT DE MUNCITOR */}
-                                    {linkedRequest.confirmed_by && (
-                                        <div className="flex gap-3 items-start relative">
-                                            <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0 z-10">
-                                                <span className="text-white text-[10px] font-black">C</span>
-                                            </div>
-                                            <div className="flex-1 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-2.5">
-                                                <p className="text-[10px] font-black text-violet-600 uppercase tracking-wider">Confirmat de muncitor</p>
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{linkedRequest.confirmed_by} <span className="text-xs font-normal text-slate-400">· Semnat digital</span></p>
-                                                <p className="text-xs text-slate-500">{linkedRequest.confirmed_at && new Date(linkedRequest.confirmed_at).toLocaleString('ro-RO')}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                </div>
+                        <div className="mx-6 mb-4 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                            <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Traseul sculei</span>
                             </div>
+                            <table className="w-full text-sm">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr>
+                                        <td className="px-4 py-2 w-28 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Solicitat</td>
+                                        <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.requested_by}</td>
+                                        <td className="px-4 py-2 text-xs text-slate-500">{linkedRequest.site_name || '—'}</td>
+                                        <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.requested_at ? new Date(linkedRequest.requested_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+                                    </tr>
+                                    {linkedRequest.approved_by && (
+                                        <tr>
+                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Aprobat</td>
+                                            <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.approved_by}</td>
+                                            <td className="px-4 py-2 text-xs text-slate-500">—</td>
+                                            <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.approved_at ? new Date(linkedRequest.approved_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+                                        </tr>
+                                    )}
+                                    {linkedRequest.approved_at && (
+                                        <tr>
+                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Predat</td>
+                                            <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.approved_by}</td>
+                                            <td className="px-4 py-2 text-xs text-slate-500">{linkedRequest.site_name || '—'}</td>
+                                            <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.approved_at ? new Date(linkedRequest.approved_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+                                        </tr>
+                                    )}
+                                    {linkedRequest.confirmed_by && (
+                                        <tr className="bg-slate-50 dark:bg-slate-800/50">
+                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Confirmat</td>
+                                            <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.confirmed_by}</td>
+                                            <td className="px-4 py-2 text-xs text-slate-500">Semnat digital</td>
+                                            <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.confirmed_at ? new Date(linkedRequest.confirmed_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     )}
 
-                    {/* LOCATIE CURENTA */}
-                    <div className={`mx-6 my-4 rounded-2xl border-2 overflow-hidden ${historyItem.current_holder_name ? 'border-amber-300 dark:border-amber-700' : 'border-slate-200 dark:border-slate-700'}`}>
-                        <div className={`flex items-center justify-between px-5 py-3 ${historyItem.current_holder_name ? 'bg-amber-500' : 'bg-slate-500'}`}>
-                            <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-white" />
-                                <span className="text-xs font-black text-white uppercase tracking-widest">
-                                    {historyItem.current_holder_name ? 'In teren — pe mana muncitorului' : 'In magazie — disponibil'}
-                                </span>
-                            </div>
-                            <button
-                                onClick={() => { setShowAssignPanel(p => !p); setAssignUserId(''); setAssignSiteId('') }}
-                                className="flex items-center gap-1.5 text-[11px] font-bold text-white/80 hover:text-white transition-colors"
-                                title="Modifica detinatorul"
-                            >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                {showAssignPanel ? 'Anuleaza' : 'Modifica'}
-                            </button>
-                        </div>
-
-                        {!showAssignPanel && (
-                            <div className="px-5 py-4 bg-white dark:bg-slate-900">
-                                {historyItem.current_holder_name ? (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                        <div>
-                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Muncitor</p>
-                                            <p className="text-sm font-black text-slate-900 dark:text-white">{historyItem.current_holder_name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Santier</p>
-                                            <p className="text-sm font-black text-slate-900 dark:text-white">{historyItem.current_site_name || '—'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Sursa</p>
-                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isFromWorkerRequest ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
-                                                {isFromWorkerRequest ? 'Cerere muncitor' : 'Atribuit de admin'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-slate-500">Nicio scula in afara magaziei.</p>
-                                )}
-                            </div>
-                        )}
-
-                        {showAssignPanel && (
-                            <div className="px-5 py-4 bg-white dark:bg-slate-900">
-                                <div className="flex flex-wrap gap-3 items-end">
-                                    <div className="flex-1 min-w-[180px]">
-                                        <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Muncitor</label>
-                                        <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                            <option value="">— Nimeni (inapoi in magazie) —</option>
-                                            {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="flex-1 min-w-[180px]">
-                                        <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Santier</label>
-                                        <select value={assignSiteId} onChange={e => setAssignSiteId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                            <option value="">— Alege santier —</option>
-                                            {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                await api.post(`/warehouse/items/${historyItem.id}/force-assign`, {
-                                                    user_id: assignUserId || null,
-                                                    site_id: assignSiteId || null,
-                                                    date: new Date().toISOString().split('T')[0]
-                                                })
-                                                showToast('Detinatorul actualizat!', 'success')
-                                                setShowAssignPanel(false)
-                                                setHistoryItem(prev => ({
-                                                    ...prev,
-                                                    current_holder_name: users.find(u => u.id === assignUserId)?.full_name || null,
-                                                    current_site_name: allSites.find(s => s.id === assignSiteId)?.name || null,
-                                                    total_quantity: (assignUserId || assignSiteId) ? 0 : 1
-                                                }))
-                                            } catch(e) {
-                                                showToast('Eroare la actualizare', 'error')
-                                            }
-                                        }}
-                                        className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
-                                    >
-                                        Salveaza
-                                    </button>
+                    {/* LOCATIE CURENTA — cu fallback din linkedRequest */}
+                    {(() => {
+                        const holderName = historyItem.current_holder_name || (linkedRequest?.status === 'completed' ? linkedRequest?.current_holder || linkedRequest?.confirmed_by : null)
+                        const siteName = historyItem.current_site_name || linkedRequest?.current_site || linkedRequest?.site_name
+                        const isOut = !!holderName
+                        return (
+                        <div className={`mx-6 my-3 rounded-xl border-2 overflow-hidden ${isOut ? 'border-amber-300 dark:border-amber-700' : 'border-slate-200 dark:border-slate-700'}`}>
+                            <div className={`flex items-center justify-between px-4 py-2.5 ${isOut ? 'bg-amber-500' : 'bg-slate-400'}`}>
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="w-3.5 h-3.5 text-white" />
+                                    <span className="text-[11px] font-black text-white uppercase tracking-widest">
+                                        {isOut ? 'In teren' : 'In magazie — disponibil'}
+                                    </span>
                                 </div>
+                                <button
+                                    onClick={() => { setShowAssignPanel(p => !p); setAssignUserId(''); setAssignSiteId('') }}
+                                    className="flex items-center gap-1 text-[10px] font-bold text-white/80 hover:text-white transition-colors"
+                                >
+                                    <Edit2 className="w-3 h-3" />
+                                    {showAssignPanel ? 'Anuleaza' : 'Modifica'}
+                                </button>
                             </div>
-                        )}
-                    </div>
+                            {!showAssignPanel && isOut && (
+                                <div className="px-4 py-3 bg-white dark:bg-slate-900 grid grid-cols-3 gap-4">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Muncitor</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{holderName}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Santier</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{siteName || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Sursa</p>
+                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                            {isFromWorkerRequest || linkedRequest?.status === 'completed' ? 'Cerere muncitor' : 'Atribuit de admin'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            {showAssignPanel && (
+                                <div className="px-4 py-3 bg-white dark:bg-slate-900">
+                                    <div className="flex flex-wrap gap-3 items-end">
+                                        <div className="flex-1 min-w-[160px]">
+                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Muncitor</label>
+                                            <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="">— Nimeni (inapoi in magazie) —</option>
+                                                {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex-1 min-w-[160px]">
+                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Santier</label>
+                                            <select value={assignSiteId} onChange={e => setAssignSiteId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="">— Alege santier —</option>
+                                                {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await api.post(`/warehouse/items/${historyItem.id}/force-assign`, {
+                                                        user_id: assignUserId || null,
+                                                        site_id: assignSiteId || null,
+                                                        date: new Date().toISOString().split('T')[0]
+                                                    })
+                                                    showToast('Detinatorul actualizat!', 'success')
+                                                    setShowAssignPanel(false)
+                                                    setHistoryItem(prev => ({
+                                                        ...prev,
+                                                        current_holder_name: users.find(u => u.id === assignUserId)?.full_name || null,
+                                                        current_site_name: allSites.find(s => s.id === assignSiteId)?.name || null,
+                                                        total_quantity: (assignUserId || assignSiteId) ? 0 : 1
+                                                    }))
+                                                } catch(e) {
+                                                    showToast('Eroare la actualizare', 'error')
+                                                }
+                                            }}
+                                            className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
+                                        >
+                                            Salveaza
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        )
+                    })()}
 
                     {/* Batch Delete Actions */}
                     {selectedTxIds.length > 0 && (
