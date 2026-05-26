@@ -28,6 +28,7 @@ export default function AdminOverview() {
     const [fleetAlerts, setFleetAlerts] = useState([])
     const [sesizari, setSesizari] = useState([])       // cereri de material pending
     const [necesar, setNecesar] = useState([])         // cereri neîndeplinite / în așteptare
+    const [livrat, setLivrat] = useState([])           // cereri finalizate / livrate
     const [workersLoading, setWorkersLoading] = useState(true)
     const [lastRefresh, setLastRefresh] = useState(null)
     const refreshTimer = useRef(null)
@@ -126,12 +127,18 @@ export default function AdminOverview() {
 
     const fetchSesizariNecesar = async () => {
         try {
-            const res = await api.get('/admin/material-requests?limit=20')
+            const res = await api.get('/admin/material-requests?limit=50')
             const all = res.data || []
-            // Sesizări = cereri noi, neaprobate încă (pending / submitted)
             setSesizari(all.filter(r => r.status === 'pending' || r.status === 'submitted'))
-            // Necesar = cereri aprobate dar nelivrate (approved / in_progress)
             setNecesar(all.filter(r => r.status === 'approved' || r.status === 'in_progress'))
+            // Livrat = doar AZI, finalizate
+            const todayStr = new Date().toISOString().slice(0, 10)
+            setLivrat(
+                all
+                    .filter(r => (r.status === 'completed' || r.status === 'delivered') &&
+                        (r.updated_at || r.created_at || '').startsWith(todayStr))
+                    .slice(0, 20)
+            )
         } catch (e) { console.error(e) }
     }
 
@@ -623,7 +630,7 @@ export default function AdminOverview() {
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
-                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 60)}…</p>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 50)}</p>
                                         </div>
                                         <div className="text-right shrink-0">
                                             <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">NOU</span>
@@ -636,8 +643,9 @@ export default function AdminOverview() {
                     )}
                 </div>
 
-                {/* Necesar — aprobat dar nelivrat */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                {/* Necesar + Livrat — aprobat nelivrat + istoric */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden flex flex-col">
+                    {/* Secțiunea: De Livrat */}
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                             <Package className="w-4 h-4 text-blue-500" />
@@ -653,18 +661,18 @@ export default function AdminOverview() {
                         </button>
                     </div>
                     {necesar.length === 0 ? (
-                        <div className="px-5 py-8 text-center">
-                            <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                        <div className="px-5 py-5 text-center">
+                            <CheckCircle className="w-7 h-7 text-emerald-400 mx-auto mb-1" />
                             <p className="text-sm text-slate-500 font-medium">Totul a fost livrat</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-50 dark:divide-slate-800">
-                            {necesar.slice(0, 5).map(req => (
+                            {necesar.slice(0, 4).map(req => (
                                 <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
-                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 60)}…</p>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 50)}</p>
                                         </div>
                                         <div className="text-right shrink-0">
                                             <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">APROBAT</span>
@@ -675,6 +683,45 @@ export default function AdminOverview() {
                             ))}
                         </div>
                     )}
+
+                    {/* Divider + Secțiunea: Livrat Azi */}
+                    <div className="border-t-4 border-slate-100 dark:border-slate-700/80 mt-auto">
+                        <div className="px-5 py-2 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <CheckCircle className="w-3 h-3 text-emerald-500" />
+                                Livrat Azi
+                                {livrat.length > 0 && (
+                                    <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{livrat.length}</span>
+                                )}
+                            </p>
+                        </div>
+                        {livrat.length === 0 ? (
+                            <div className="px-5 py-4 text-center">
+                                <p className="text-xs text-slate-400">Nicio livrare azi</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-52 overflow-y-auto">
+                                {livrat.map(req => (
+                                    <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                        {/* Linia 1: Cui + Santier */}
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
+                                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0 ml-2">LIVRAT</span>
+                                        </div>
+                                        {/* Linia 2: Santier */}
+                                        {req.site_name && (
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate">{req.site_name}</span>
+                                            </div>
+                                        )}
+                                        {/* Linia 3: Ce s-a livrat */}
+                                        <p className="text-xs text-slate-500 truncate">{req.items_text?.split('\n')[0]?.substring(0, 60)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
