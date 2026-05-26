@@ -224,17 +224,24 @@ def clock_in(
         db.flush()
     
     # Create new segment (clock-in)
-    # Clamp check-in time: if before site start, record as site start
-    effective_checkin = get_local_now()
+    actual_time = get_local_now()
+    effective_checkin = actual_time
+    is_early_checkin = False
+    billable_start_time = None
+    
+    # Clamp check-in time: if before site start, record as site start for billing
     if work_start_time:
         site_start_dt = datetime.combine(today, work_start_time)
-        if effective_checkin < site_start_dt:
+        if actual_time < site_start_dt:
             effective_checkin = site_start_dt
+            is_early_checkin = True
+            billable_start_time = site_start_dt.strftime('%H:%M')
 
     segment = TimesheetSegment(
         timesheet_id=active_timesheet.id,
         site_id=request.site_id,
         check_in_time=effective_checkin,
+        actual_check_in_time=actual_time,
         check_out_time=None,
         check_in_latitude=request.latitude,
         check_in_longitude=request.longitude,
@@ -250,13 +257,17 @@ def clock_in(
         "timesheet_id": active_timesheet.id,
         "segment_id": segment.id,
         "check_in_time": segment.check_in_time,
+        "actual_check_in_time": segment.actual_check_in_time,
         "is_within_geofence": is_within_geofence,
         "self_declared": self_declared,
         "gps_available": gps_available,
         "distance_from_site": distance_from_site,
         "site_name": site.name,
+        "is_early_checkin": is_early_checkin,
+        "billable_start_time": billable_start_time,
         **schedule_info
     }
+
 
 
 @router.post("/timesheets/clock-out")

@@ -97,6 +97,7 @@ export default function ClockInPage() {
     const [showClockOutConfirm, setShowClockOutConfirm] = useState(false)
     const [clockOutResult, setClockOutResult] = useState(null)
     const [errorMessage, setErrorMessage] = useState(null)
+    const [earlyClockinData, setEarlyClockinData] = useState(null)
     const [breakMessage, setBreakMessage] = useState(null)
     const [activeTab, setActiveTab] = useState('pontaj')
     const [teamInfo, setTeamInfo] = useState(null)
@@ -611,6 +612,10 @@ export default function ClockInPage() {
             }
             const response = await api.post('/timesheets/clock-in', payload)
 
+            if (response.data?.is_early_checkin) {
+                setEarlyClockinData(response.data.billable_start_time)
+            }
+
             const shiftData = await fetchActiveShift()
             setSelfDeclaration(false)
         } catch (error) {
@@ -755,6 +760,29 @@ export default function ClockInPage() {
                             className="text-white/70 hover:text-white transition-colors ml-2 mt-0.5"
                         >
                             <XCircle className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Early Clock-in Success Banner */}
+            {earlyClockinData && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center transform animate-[slideUp_0.3s_ease-out]">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+                            <CheckCircle className="w-10 h-10 text-green-600" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-slate-800 mb-2">Check-in Reușit!</h3>
+                        <p className="text-slate-600 mb-6 text-[15px] leading-relaxed">
+                            Te-ai pontat mai devreme cu succes. Ești <strong>Activ</strong>, dar timpul tău va fi calculat automat începând cu ora <strong className="text-blue-600 font-bold text-lg">{earlyClockinData}</strong>.
+                            <br/><br/>
+                            <span className="text-sm text-slate-500">Nu este nevoie să mai dai check-in încă o dată!</span>
+                        </p>
+                        <button
+                            onClick={() => setEarlyClockinData(null)}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] text-lg"
+                        >
+                            Am Înțeles
                         </button>
                     </div>
                 </div>

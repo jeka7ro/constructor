@@ -163,6 +163,7 @@ class TimesheetSegment(Base):
     timesheet_id = Column(String(36), ForeignKey("timesheets.id", ondelete="CASCADE"), nullable=False)
     site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="RESTRICT"), nullable=False)
     check_in_time = Column(DateTime, nullable=False)
+    actual_check_in_time = Column(DateTime, nullable=True)
     break_start_time = Column(DateTime)
     break_end_time = Column(DateTime)
     check_out_time = Column(DateTime, nullable=True)
