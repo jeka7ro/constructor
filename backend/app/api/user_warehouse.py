@@ -123,7 +123,7 @@ def get_my_inventory(
             "source": "assigned"
         })
 
-    # 2. Unique Tools — from completed material requests (current_holder_id may be null)
+    # 2. Items (tools + consumables) — from completed material requests
     completed_requests = db.query(MaterialRequest).filter(
         MaterialRequest.organization_id == current_user.organization_id,
         MaterialRequest.user_id == current_user.id,
@@ -149,42 +149,78 @@ def get_my_inventory(
             except Exception:
                 pass
 
-        # Strategy B: text-only request — search all org tools by name
+        # Strategy B: text-only — match all org items by name
         if not matched_items and req.items_text:
             text_lower = req.items_text.lower()
-            all_tools = db.query(WarehouseItem).filter(
-                WarehouseItem.organization_id == current_user.organization_id,
-                WarehouseItem.inventory_code != None
+            all_items = db.query(WarehouseItem).filter(
+                WarehouseItem.organization_id == current_user.organization_id
             ).all()
-            for t in all_tools:
+            for t in all_items:
                 if t.id not in seen_ids and t.name.lower() in text_lower:
                     matched_items.append(t)
 
         for db_item in matched_items:
             if db_item.id in seen_ids:
                 continue
-            # Already reassigned to someone else — skip
-            if db_item.current_holder_id and db_item.current_holder_id != current_user.id:
-                continue
-            # Back in warehouse (stoc >= 1, nobody has it) — skip
-            if db_item.inventory_code and not db_item.current_site_id and not db_item.current_holder_id:
-                if db_item.total_quantity and db_item.total_quantity >= 1:
-                    continue
-            seen_ids.add(db_item.id)
-            results.append({
-                "id": db_item.id,
-                "name": db_item.name,
-                "category": db_item.category,
-                "unit": db_item.unit,
-                "inventory_code": db_item.inventory_code,
-                "model": db_item.model,
-                "is_defective": db_item.is_defective,
-                "quantity": 1,
-                "source": "material_request",
-                "request_id": req.id
-            })
 
-    # 3. Bulk Materials/Consumables assigned to user via transactions
+            if db_item.inventory_code:
+                # SCULĂ UNICĂ
+                if db_item.current_holder_id and db_item.current_holder_id != current_user.id:
+                    continue  # la altcineva
+                if not db_item.current_site_id and not db_item.current_holder_id:
+                    if db_item.total_quantity and db_item.total_quantity >= 1:
+                        continue  # înapoi în magazie
+                seen_ids.add(db_item.id)
+                results.append({
+                    "id": db_item.id,
+                    "name": db_item.name,
+                    "category": db_item.category,
+                    "unit": db_item.unit,
+                    "inventory_code": db_item.inventory_code,
+                    "model": db_item.model,
+                    "is_defective": db_item.is_defective,
+                    "quantity": 1,
+                    "source": "material_request",
+                    "request_id": req.id
+                })
+            else:
+                # CONSUMABIL — calculez cantitatea rămasă la user/site
+                # Cantitate OUT către site-ul cererii sau către user
+                site_id_req = req.site_id
+                tx_stats = db.query(
+                    WarehouseTransaction.transaction_type,
+                    func.sum(WarehouseTransaction.quantity).label('total')
+                ).filter(
+                    WarehouseTransaction.item_id == db_item.id,
+                    (
+                        (WarehouseTransaction.assigned_to_user_id == current_user.id) |
+                        (WarehouseTransaction.site_id == site_id_req if site_id_req else False)
+                    )
+                ).group_by(WarehouseTransaction.transaction_type).all()
+
+                qty = 0
+                for tx_type, total in tx_stats:
+                    if tx_type == "OUT":
+                        qty += total
+                    elif tx_type in ("IN", "CONSUME"):
+                        qty -= total
+
+                if qty > 0:
+                    seen_ids.add(db_item.id)
+                    results.append({
+                        "id": db_item.id,
+                        "name": db_item.name,
+                        "category": db_item.category,
+                        "unit": db_item.unit,
+                        "inventory_code": None,
+                        "model": None,
+                        "is_defective": False,
+                        "quantity": qty,
+                        "source": "consumable_request",
+                        "request_id": req.id
+                    })
+
+    # 3. Consumabile atribuite direct userului via tranzacții (fără cerere)
     bulk_stats = db.query(
         WarehouseTransaction.item_id,
         WarehouseTransaction.transaction_type,
@@ -212,6 +248,7 @@ def get_my_inventory(
     if bulk_item_ids:
         bulk_items = db.query(WarehouseItem).filter(WarehouseItem.id.in_(bulk_item_ids)).all()
         for b in bulk_items:
+            seen_ids.add(b.id)
             results.append({
                 "id": b.id,
                 "name": b.name,
@@ -227,9 +264,11 @@ def get_my_inventory(
     return results
 
 
+
 class ReturnToolRequest(BaseModel):
     item_id: str
     notes: Optional[str] = None
+    quantity: Optional[float] = None  # pentru consumabile, None = total (1 buc pentru scule)
 
 class ReportDefectiveRequest(BaseModel):
     item_id: str
@@ -241,7 +280,7 @@ def return_tool(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Worker returns a tool back to warehouse."""
+    """Worker returns a tool or consumable back to warehouse."""
     db_item = db.query(WarehouseItem).filter(
         WarehouseItem.id == body.item_id,
         WarehouseItem.organization_id == current_user.organization_id
@@ -250,15 +289,22 @@ def return_tool(
         raise HTTPException(status_code=404, detail="Articol negasit")
 
     returned_from_site = db_item.current_site_id
-    db_item.current_holder_id = None
-    db_item.current_site_id = None
-    db_item.checked_out_at = None
-    db_item.total_quantity = 1.0
+
+    if db_item.inventory_code:
+        # SCULĂ UNICĂ — returnare completă
+        db_item.current_holder_id = None
+        db_item.current_site_id = None
+        db_item.checked_out_at = None
+        db_item.total_quantity = 1.0
+        qty = 1.0
+    else:
+        # CONSUMABIL — returnare parțială sau totală
+        qty = body.quantity or 1.0
 
     tx = WarehouseTransaction(
         item_id=body.item_id,
         transaction_type="IN",
-        quantity=1.0,
+        quantity=qty,
         date=datetime.utcnow().date(),
         operated_by_id=current_user.id,
         assigned_to_user_id=current_user.id,
@@ -266,6 +312,8 @@ def return_tool(
         notes=body.notes or f"Returnat de muncitor: {current_user.full_name}"
     )
     db.add(tx)
+    if not db_item.inventory_code:
+        db_item.total_quantity = (db_item.total_quantity or 0) + qty
     db.commit()
     return {"success": True}
 

@@ -53,11 +53,23 @@ export default function EmployeeInventory() {
     }
 
     const handleReturn = async (item) => {
-        if (!window.confirm(`Confirmi returnarea sculei "${item.name}" în magazie?`)) return
+        let qty = null
+        if (!item.inventory_code) {
+            // Consumabil — cer cantitatea
+            const input = window.prompt(`Câte ${item.unit} returnezi din "${item.name}"? (disponibil: ${item.quantity} ${item.unit})`)
+            if (input === null) return
+            qty = parseFloat(input)
+            if (!qty || qty <= 0 || qty > item.quantity) {
+                alert('Cantitate invalidă.')
+                return
+            }
+        } else {
+            if (!window.confirm(`Confirmi returnarea sculei "${item.name}" în magazie?`)) return
+        }
         setActionLoading(item.id + '_return')
         try {
-            await api.post('/user/warehouse/return-tool', { item_id: item.id })
-            setSuccessMsg(`"${item.name}" a fost returnată în magazie.`)
+            await api.post('/user/warehouse/return-tool', { item_id: item.id, quantity: qty })
+            setSuccessMsg(item.inventory_code ? `"${item.name}" a fost returnată în magazie.` : `${qty} ${item.unit} din "${item.name}" au fost returnate în magazie.`)
             setTimeout(() => setSuccessMsg(''), 5000)
             fetchData()
         } catch (e) {
@@ -247,26 +259,37 @@ export default function EmployeeInventory() {
                                 <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
                                     <Flame className="w-5 h-5 text-orange-500" />
                                     <h3 className="font-bold text-slate-800">Consumabile & Materiale</h3>
+                                    <span className="ml-auto bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">{consumables.length}</span>
                                 </div>
                                 <div className="divide-y divide-slate-100">
                                     {consumables.map(item => (
-                                        <div key={item.id} className="p-4 hover:bg-slate-50 flex flex-col gap-3">
-                                            <div className="flex justify-between items-start">
+                                        <div key={item.id} className="p-4">
+                                            <div className="flex justify-between items-start mb-3">
                                                 <div>
                                                     <p className="font-bold text-slate-800">{item.name}</p>
                                                     <p className="text-xs text-slate-500">{item.category}</p>
                                                 </div>
-                                                <div className="bg-slate-100 text-slate-800 px-3 py-1 rounded-lg text-sm font-bold border border-slate-200 shadow-sm">
+                                                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-lg text-sm font-bold border border-orange-200">
                                                     {item.quantity} {item.unit}
                                                 </div>
                                             </div>
-                                            <button 
-                                                onClick={() => handleConsumeClick(item)}
-                                                className="w-full py-2 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
-                                            >
-                                                <Minus className="w-3 h-3" />
-                                                Raportează Consum
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleConsumeClick(item)}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors active:scale-[0.97]"
+                                                >
+                                                    <Minus className="w-3 h-3" />
+                                                    Consum
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReturn(item)}
+                                                    disabled={actionLoading === item.id + '_return'}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors active:scale-[0.97]"
+                                                >
+                                                    {actionLoading === item.id + '_return' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                                                    Retur
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
