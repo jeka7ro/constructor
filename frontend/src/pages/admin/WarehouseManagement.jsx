@@ -600,32 +600,43 @@ export default function WarehouseManagement() {
                     </div>
 
                     {/* LOCATIE CURENTA - card vizibil */}
-                    <div className={`mx-6 my-4 rounded-2xl p-4 border-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center ${historyItem.current_holder_name ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700'}`}>
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${historyItem.current_holder_name ? 'bg-amber-200 dark:bg-amber-800' : 'bg-emerald-200 dark:bg-emerald-800'}`}>
-                            <MapPin className={`w-6 h-6 ${historyItem.current_holder_name ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`} />
-                        </div>
-                        <div className="flex-1">
-                            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${historyItem.current_holder_name ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                {historyItem.current_holder_name ? 'In teren — pe mana unui muncitor' : 'In magazie — disponibil'}
-                            </p>
-                            {historyItem.current_holder_name ? (
-                                <div className="flex flex-wrap gap-x-6 gap-y-1">
-                                    <div>
-                                        <span className="text-xs text-slate-500">Preluat de:</span>
-                                        <span className="ml-2 text-sm font-black text-slate-900 dark:text-white">{historyItem.current_holder_name}</span>
-                                    </div>
-                                    {historyItem.current_site_name && (
+                    {(() => {
+                        const lastOut = transactions?.filter(t => t.transaction_type === 'OUT').slice(-1)[0];
+                        const isFromRequest = lastOut?.notes?.includes('Flux Cerere');
+                        return (
+                        <div className={`mx-6 my-4 rounded-2xl p-4 border-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center ${historyItem.current_holder_name ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700'}`}>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${historyItem.current_holder_name ? 'bg-amber-200 dark:bg-amber-800' : 'bg-emerald-200 dark:bg-emerald-800'}`}>
+                                <MapPin className={`w-6 h-6 ${historyItem.current_holder_name ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`} />
+                            </div>
+                            <div className="flex-1">
+                                <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${historyItem.current_holder_name ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                    {historyItem.current_holder_name ? 'In teren — pe mana unui muncitor' : 'In magazie — disponibil'}
+                                </p>
+                                {historyItem.current_holder_name ? (
+                                    <div className="flex flex-wrap gap-x-6 gap-y-1 items-center">
                                         <div>
-                                            <span className="text-xs text-slate-500">Santier:</span>
-                                            <span className="ml-2 text-sm font-black text-slate-900 dark:text-white">{historyItem.current_site_name}</span>
+                                            <span className="text-xs text-slate-500">Preluat de:</span>
+                                            <span className="ml-2 text-sm font-black text-slate-900 dark:text-white">{historyItem.current_holder_name}</span>
                                         </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Disponibil in magazia centrala</p>
-                            )}
+                                        {historyItem.current_site_name && (
+                                            <div>
+                                                <span className="text-xs text-slate-500">Santier:</span>
+                                                <span className="ml-2 text-sm font-black text-slate-900 dark:text-white">{historyItem.current_site_name}</span>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isFromRequest ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                                {isFromRequest ? 'Solicitat de muncitor' : 'Atribuit manual de admin'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Disponibil in magazia centrala</p>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                        );
+                    })()}
 
                     {/* Batch Delete Actions */}
                     {selectedTxIds.length > 0 && (
