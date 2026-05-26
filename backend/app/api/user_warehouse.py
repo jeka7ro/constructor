@@ -184,18 +184,18 @@ def get_my_inventory(
                     "request_id": req.id
                 })
             else:
-                # CONSUMABIL — calculez cantitatea rămasă la user/site
-                # Cantitate OUT către site-ul cererii sau către user
+                # CONSUMABIL — calculez cantitatea rămasă la site-ul cererii
                 site_id_req = req.site_id
+                if not site_id_req:
+                    continue
+
+                # Toate tranzacțiile pentru acest item la acest site (OUT - IN - CONSUME)
                 tx_stats = db.query(
                     WarehouseTransaction.transaction_type,
                     func.sum(WarehouseTransaction.quantity).label('total')
                 ).filter(
                     WarehouseTransaction.item_id == db_item.id,
-                    (
-                        (WarehouseTransaction.assigned_to_user_id == current_user.id) |
-                        (WarehouseTransaction.site_id == site_id_req if site_id_req else False)
-                    )
+                    WarehouseTransaction.site_id == site_id_req
                 ).group_by(WarehouseTransaction.transaction_type).all()
 
                 qty = 0
@@ -215,7 +215,7 @@ def get_my_inventory(
                         "inventory_code": None,
                         "model": None,
                         "is_defective": False,
-                        "quantity": qty,
+                        "quantity": round(qty, 3),
                         "source": "consumable_request",
                         "request_id": req.id
                     })
