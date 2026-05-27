@@ -131,16 +131,8 @@ export default function AdminOverview() {
             const all = res.data || []
             setSesizari(all.filter(r => r.status === 'pending' || r.status === 'submitted'))
             setNecesar(all.filter(r => r.status === 'approved' || r.status === 'in_progress'))
-            // Livrat = completed sau delivered, cele mai recente primele
-            const completedAll = all.filter(r => r.status === 'completed' || r.status === 'delivered')
-            // Filtram cele de azi dupa updated_at (sau created_at ca fallback)
-            const todayStr = new Date().toLocaleDateString('sv-SE') // "2026-05-26" format sigur
-            const todayOnly = completedAll.filter(r => {
-                const dateStr = (r.updated_at || r.created_at || '')
-                return dateStr.slice(0, 10) === todayStr
-            })
-            // Daca nu-s livrari azi, aratam ultimele 5 din general
-            setLivrat(todayOnly.length > 0 ? todayOnly : completedAll.slice(0, 5))
+            // Livrat = ultimele completed/delivered, indiferent de data
+            setLivrat(all.filter(r => r.status === 'completed' || r.status === 'delivered').slice(0, 10))
         } catch (e) { console.error(e) }
     }
 
@@ -686,12 +678,12 @@ export default function AdminOverview() {
                         </div>
                     )}
 
-                    {/* Divider + Secțiunea: Livrat Azi */}
+                    {/* Divider + Secțiunea: Livrat Recent */}
                     <div className="border-t-4 border-slate-100 dark:border-slate-700/80 mt-auto">
                         <div className="px-5 py-2 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <CheckCircle className="w-3 h-3 text-emerald-500" />
-                                Livrat Azi
+                                Livrat Recent
                                 {livrat.length > 0 && (
                                     <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{livrat.length}</span>
                                 )}
@@ -699,25 +691,27 @@ export default function AdminOverview() {
                         </div>
                         {livrat.length === 0 ? (
                             <div className="px-5 py-4 text-center">
-                                <p className="text-xs text-slate-400">Nicio livrare azi</p>
+                                <p className="text-xs text-slate-400">Nicio livrare înregistrată</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-52 overflow-y-auto">
                                 {livrat.map(req => (
                                     <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-                                        {/* Linia 1: Cui + Santier */}
+                                        {/* Cui + data */}
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
-                                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full shrink-0 ml-2">LIVRAT</span>
+                                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                                                {req.updated_at ? new Date(req.updated_at).toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' }) : ''}
+                                            </span>
                                         </div>
-                                        {/* Linia 2: Santier */}
-                                        {req.site_name && (
+                                        {/* Unde */}
+                                        {req.site_name && req.site_name !== 'N/A' && (
                                             <div className="flex items-center gap-1 mb-1">
                                                 <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                                                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate">{req.site_name}</span>
                                             </div>
                                         )}
-                                        {/* Linia 3: Ce s-a livrat */}
+                                        {/* Ce s-a livrat */}
                                         <p className="text-xs text-slate-500 truncate">{req.items_text?.split('\n')[0]?.substring(0, 60)}</p>
                                     </div>
                                 ))}
