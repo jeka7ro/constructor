@@ -29,6 +29,7 @@ export default function AdminOverview() {
     const [sesizari, setSesizari] = useState([])       // cereri de material pending
     const [necesar, setNecesar] = useState([])         // cereri neîndeplinite / în așteptare
     const [livrat, setLivrat] = useState([])           // cereri finalizate / livrate
+    const [complaints, setComplaints] = useState([])   // sesizari reale de la muncitori
     const [workersLoading, setWorkersLoading] = useState(true)
     const [lastRefresh, setLastRefresh] = useState(null)
     const refreshTimer = useRef(null)
@@ -37,6 +38,7 @@ export default function AdminOverview() {
     const [selectedWorker, setSelectedWorker] = useState(null)
     const [workerDetail, setWorkerDetail] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
+    const [activityPopup, setActivityPopup] = useState(null)
 
     // Global Site Filter
     const [globalSiteFilter, setGlobalSiteFilter] = useState(null)
@@ -79,6 +81,7 @@ export default function AdminOverview() {
         fetchActiveWorkers()
         fetchFleetAlerts()
         fetchSesizariNecesar()
+        fetchComplaints()
 
         if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
@@ -87,6 +90,7 @@ export default function AdminOverview() {
             fetchChartData()
             fetchFleetAlerts()
             fetchSesizariNecesar()
+            fetchComplaints()
         }, 15000)
 
         return () => clearInterval(refreshTimer.current)
@@ -133,6 +137,14 @@ export default function AdminOverview() {
             setNecesar(all.filter(r => r.status === 'approved' || r.status === 'in_progress'))
             setLivrat(all.filter(r => r.status === 'completed' || r.status === 'delivered').slice(0, 10))
         } catch (e) { console.error('[NECESAR]', e?.response?.status, e?.message) }
+    }
+
+    const fetchComplaints = async () => {
+        try {
+            const res = await api.get('/admin/complaints/')
+            const all = res.data || []
+            setComplaints(all.filter(c => c.status === 'open' || c.status === 'in_review'))
+        } catch (e) { console.error('[COMPLAINTS]', e) }
     }
 
     const fetchActiveWorkers = async () => {
@@ -243,7 +255,7 @@ export default function AdminOverview() {
                     )}
                     <button
                         onClick={() => { fetchStats(true); fetchChartData(); fetchActiveWorkers() }}
-                        className="p-2 hover:bg-white rounded-lg transition-colors border border-slate-200 bg-white shadow-sm"
+                        className="p-2 hover:bg-white rounded-full transition-colors border border-slate-200 bg-white shadow-sm"
                     >
                         <RefreshCw className="w-4 h-4 text-slate-600" />
                     </button>
@@ -418,8 +430,8 @@ export default function AdminOverview() {
                         ) : (
                             <div className="space-y-2">
                                 {topPerformers.map((w, idx) => (
-                                    <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                    <div key={w.worker_id} className="flex items-center gap-3 p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                                             idx === 0 ? 'bg-amber-100 text-amber-700' :
                                             idx === 1 ? 'bg-slate-200 text-slate-600' :
                                             idx === 2 ? 'bg-orange-100 text-orange-600' :
@@ -453,7 +465,7 @@ export default function AdminOverview() {
                             </h3>
                             <div className="space-y-2">
                                 {lateArrivals.slice(0, 4).map(w => (
-                                    <div key={w.worker_id} className="flex items-center gap-2 text-sm p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg">
+                                    <div key={w.worker_id} className="flex items-center gap-2 text-sm p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-full">
                                         <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-6 h-6" textSize="text-[10px]" />
                                         <span className="font-medium text-slate-700 dark:text-slate-300 truncate flex-1">{w.worker_name}</span>
                                         <span className="text-[11px] font-bold text-amber-700 bg-white dark:bg-amber-950 px-2 py-0.5 rounded-full shadow-sm">
@@ -478,7 +490,7 @@ export default function AdminOverview() {
                             </h3>
                             <div className="space-y-2">
                                 {fleetAlerts.map((a, i) => (
-                                    <div key={i} className={`flex flex-col gap-1 text-sm bg-${a.status === 'expired' ? 'red' : 'orange'}-50 dark:bg-slate-800 p-2.5 rounded-lg border border-${a.status === 'expired' ? 'red' : 'orange'}-200 dark:border-slate-700`}>
+                                    <div key={i} className={`flex flex-col gap-1 text-sm bg-${a.status === 'expired' ? 'red' : 'orange'}-50 dark:bg-slate-800 p-2.5 rounded-full border border-${a.status === 'expired' ? 'red' : 'orange'}-200 dark:border-slate-700`}>
                                         <div className="flex justify-between items-start">
                                             <span className="font-bold text-slate-800 dark:text-white truncate" title={a.document_name}>{a.document_name}</span>
                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${a.status === 'expired' ? 'bg-red-200 text-red-700' : 'bg-orange-200 text-orange-700'}`}>
@@ -504,7 +516,7 @@ export default function AdminOverview() {
                             </h3>
                             <div className="space-y-2 overflow-y-auto">
                                 {(chartData.activities || []).slice(0, 8).map((act, i) => (
-                                    <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-100 dark:border-slate-700">
+                                    <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded-full px-3 py-2 border border-slate-100 dark:border-slate-700">
                                         <span className="text-sm text-slate-700 dark:text-slate-300">{act.name}</span>
                                         <span className="text-sm font-bold text-violet-600">
                                             {act.quantity} <span className="text-xs text-slate-400 font-normal">{act.unit_type}</span>
@@ -594,13 +606,54 @@ export default function AdminOverview() {
             </div>
 
             {/* ── Sesizări + Necesar ──────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* Sesizări — cereri noi neaprobate */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                
+                {/* Reclamații / Sesizări Reale */}
                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                            Sesizări Magazie
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                            Sesizări Muncitori
+                            {complaints.length > 0 && (
+                                <span className="ml-1 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                                    {complaints.length}
+                                </span>
+                            )}
+                        </h3>
+                        <button onClick={() => navigate('/admin/complaints')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
+                            <ChevronRight className="w-3 h-3" /> Toate
+                        </button>
+                    </div>
+                    {complaints.length === 0 ? (
+                        <div className="px-5 py-8 text-center">
+                            <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                            <p className="text-sm text-slate-500 font-medium">Nicio sesizare deschisă</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                            {complaints.slice(0, 5).map(c => (
+                                <div key={c.id} onClick={() => navigate('/admin/complaints')} className="px-5 py-3 hover:bg-red-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{c.user_name || 'Muncitor'}</p>
+                                            <p className="text-xs text-slate-500 truncate mt-0.5">{c.title || c.content?.substring(0, 50)}</p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">NOU</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Cereri Magazie — cereri noi neaprobate */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                            <Package className="w-4 h-4 text-amber-500" />
+                            Cereri Magazie (Noi)
                             {sesizari.length > 0 && (
                                 <span className="ml-1 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                                     {sesizari.length}
@@ -663,9 +716,12 @@ export default function AdminOverview() {
                             {necesar.slice(0, 4).map(req => (
                                 <div key={req.id} onClick={() => navigate('/admin/material-requests')} className="px-5 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                     <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
-                                            <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 50)}</p>
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <AvatarImg path={req.avatar_path} name={req.user_name} size="w-7 h-7" textSize="text-[10px]" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
+                                                <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 50)}</p>
+                                            </div>
                                         </div>
                                         <div className="text-right shrink-0">
                                             <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">APROBAT</span>
@@ -697,15 +753,18 @@ export default function AdminOverview() {
                                 {livrat.map(req => (
                                     <div key={req.id} onClick={() => navigate('/admin/material-requests')} className="px-5 py-3 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                         {/* Cui + data */}
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
-                                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                                        <div className="flex items-center justify-between mb-1 gap-2">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <AvatarImg path={req.avatar_path} name={req.user_name} size="w-6 h-6" textSize="text-[9px]" />
+                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
+                                            </div>
+                                            <span className="text-[10px] text-slate-400 shrink-0">
                                                 {req.updated_at ? new Date(req.updated_at).toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' }) : ''}
                                             </span>
                                         </div>
                                         {/* Unde */}
                                         {req.site_name && req.site_name !== 'N/A' && (
-                                            <div className="flex items-center gap-1 mb-1">
+                                            <div className="flex items-center gap-1 mb-1 mt-1">
                                                 <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                                                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate">{req.site_name}</span>
                                             </div>
@@ -732,7 +791,7 @@ export default function AdminOverview() {
                         sortFn: (a, b) => (a.worker_name || '').localeCompare(b.worker_name || ''),
                         render: (worker) => (
                             <div className="flex items-center gap-3">
-                                <AvatarImg path={worker.avatar_path} name={worker.worker_name} size="w-8 h-8" />
+                                <AvatarImg path={worker.avatar_path} name={worker.worker_name} size="w-10 h-10" />
                                 <div>
                                     <div className="text-sm font-semibold text-blue-700 hover:text-blue-900 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); openWorkerDetail(worker) }}>{worker.worker_name}</div>
                                     <div className="text-xs text-slate-500">{worker.employee_code}</div>
@@ -785,24 +844,16 @@ export default function AdminOverview() {
                         render: (worker) => (
                             worker.activities && worker.activities.length > 0 ? (
                                 <div className="relative group inline-block">
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 cursor-pointer hover:bg-violet-200 transition-colors">
+                                    <button 
+                                        onClick={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect()
+                                            setActivityPopup(activityPopup?.worker_id === worker.worker_id ? null : { ...worker, anchorRect: rect })
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 cursor-pointer hover:bg-violet-200 transition-colors"
+                                    >
                                         <Activity className="w-3 h-3" />
-                                        {worker.activities.length} activit{worker.activities.length > 1 ? 'ăți' : 'ate'}
-                                    </span>
-                                    <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-[99] w-80">
-                                        <div className="bg-slate-900 text-white rounded-xl p-3 shadow-xl border border-slate-700 relative">
-                                            <div className="absolute left-4 -top-1 w-2 h-2 bg-slate-900 rotate-45 border-l border-t border-slate-700" />
-                                            <div className="text-[11px] font-semibold text-slate-400 uppercase mb-2 relative z-10">{t('dashboard.reported_activities')}</div>
-                                            <div className="space-y-2 relative z-10">
-                                                {worker.activities.map((act, i) => (
-                                                    <div key={i} className="flex items-start justify-between text-sm gap-2">
-                                                        <span className="text-slate-200 flex-1 leading-tight">{act.name}</span>
-                                                        <span className="text-violet-300 font-bold whitespace-nowrap">{act.quantity} {act.unit_type}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
+                                        {worker.activities.length} {worker.activities.length === 1 ? 'activitate' : 'activități'}
+                                    </button>
                                 </div>
                             ) : <span className="text-xs text-slate-400">—</span>
                         )
@@ -822,7 +873,7 @@ export default function AdminOverview() {
                                     <button onClick={() => navigate('/admin/timesheets')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
                                         <Eye className="w-3 h-3" /> {t('nav.timesheets')}
                                     </button>
-                                    <button onClick={fetchActiveWorkers} disabled={workersLoading} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <button onClick={fetchActiveWorkers} disabled={workersLoading} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
                                         <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${workersLoading ? 'animate-spin' : ''}`} />
                                     </button>
                                 </div>
@@ -888,7 +939,7 @@ export default function AdminOverview() {
                             <button onClick={closeWorkerDetail} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 font-medium">
                                 <ArrowLeft className="w-4 h-4" /> {t('common.back')}
                             </button>
-                            <button onClick={closeWorkerDetail} className="p-1.5 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
+                            <button onClick={closeWorkerDetail} className="p-1.5 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
 
                         {detailLoading ? (
@@ -899,7 +950,12 @@ export default function AdminOverview() {
                                 <div className="flex items-center gap-4">
                                     <AvatarImg path={workerDetail.worker.avatar_path} name={workerDetail.worker.full_name} size="w-16 h-16" textSize="text-xl" />
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900">{workerDetail.worker.full_name}</h2>
+                                        <h2 
+                                            className="text-xl font-bold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors"
+                                            onClick={() => navigate(`/admin/employees/${workerDetail.worker.id}`)}
+                                        >
+                                            {workerDetail.worker.full_name}
+                                        </h2>
                                         <p className="text-sm text-slate-500">{workerDetail.worker.employee_code} • {workerDetail.worker.role_name}</p>
                                         <StatusBadge status={selectedWorker.status} is_on_break={selectedWorker.is_on_break} is_outside_geofence={selectedWorker.is_outside_geofence} gps_lost={selectedWorker.gps_lost} />
                                     </div>
@@ -1013,6 +1069,38 @@ export default function AdminOverview() {
                 </div>
             )}
 
+            {/* Activity Popup (Portal) */}
+            {activityPopup && (
+                <>
+                    <div className="fixed inset-0 z-[100]" onClick={() => setActivityPopup(null)} />
+                    <div
+                        className="fixed z-[110] bg-slate-900 text-white rounded-xl shadow-2xl p-3 min-w-[240px] max-w-[320px] animate-in fade-in zoom-in-95 duration-200"
+                        style={{
+                            top: Math.max(10, Math.min(activityPopup.anchorRect.top - 10, window.innerHeight - 200)),
+                            left: Math.max(10, Math.min(activityPopup.anchorRect.left, window.innerWidth - 260)),
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+                            <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Activity className="w-3.5 h-3.5 text-purple-400" />
+                                Activități Raportate
+                            </h4>
+                            <button onClick={() => setActivityPopup(null)} className="p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                        <div className="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar">
+                            {activityPopup.activities.map((a, i) => (
+                                <div key={i} className="flex justify-between items-center gap-4 bg-slate-800/50 rounded-lg p-2 border border-slate-700/50">
+                                    <span className="font-medium text-slate-200 text-xs">{a.name}</span>
+                                    <span className="font-bold text-purple-300 text-xs whitespace-nowrap">{a.quantity} <span className="text-[10px] text-slate-400 font-normal">{a.unit_type}</span></span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
+
             <style>{`
                 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
             `}</style>
@@ -1023,46 +1111,19 @@ export default function AdminOverview() {
 /* ─── Helper Components ─── */
 
 function AvatarImg({ path, name, size = 'w-8 h-8', textSize = 'text-xs' }) {
-    const [showFallback, setShowFallback] = useState(false)
-    const [fullScreen, setFullScreen] = useState(false)
-    const initial = name?.charAt(0) || '?'
-    
-    if (path && !showFallback) {
-        const src = path.startsWith('http') ? path : `${API_BASE}${path}`
+    if (path) {
         return (
-            <>
-                <img 
-                    src={src} 
-                    alt="" 
-                    className={`${size} rounded-full object-cover object-left cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all shadow-sm`} 
-                    onClick={(e) => { e.stopPropagation(); setFullScreen(true); }}
-                    onError={() => setShowFallback(true)} 
-                />
-                {fullScreen && (
-                    <div 
-                        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-                        onClick={(e) => { e.stopPropagation(); setFullScreen(false); }}
-                    >
-                        <img 
-                            src={src} 
-                            className="max-w-full max-h-full rounded-xl shadow-2xl border border-slate-700 object-contain" 
-                            alt="Full Avatar" 
-                            onClick={(e) => e.stopPropagation()} 
-                        />
-                        <button 
-                            className="absolute top-6 right-6 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 p-2 rounded-full backdrop-blur-md transition-colors"
-                            onClick={(e) => { e.stopPropagation(); setFullScreen(false); }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                        </button>
-                    </div>
-                )}
-            </>
+            <div className="relative shrink-0 group">
+                <img src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${path}`} alt="" className={`${size} rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700`} onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
+                <div className={`absolute inset-0 ${size} rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold ${textSize} text-slate-500 hidden`}>
+                    {name?.substring(0, 2).toUpperCase() || 'W'}
+                </div>
+            </div>
         )
     }
     return (
-        <div className={`${size} rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white ${textSize} font-bold`}>
-            {initial}
+        <div className={`${size} rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold ${textSize} text-slate-500 shrink-0`}>
+            {name?.substring(0, 2).toUpperCase() || 'W'}
         </div>
     )
 }
@@ -1107,7 +1168,7 @@ function QuickAction({ icon: Icon, title, desc, color, onClick }) {
     return (
         <div onClick={onClick} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all shadow-md">
             <div className="flex items-start gap-3">
-                <div className={`p-2 ${color} rounded-lg`}>
+                <div className={`p-2 ${color} rounded-full`}>
                     <Icon className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">

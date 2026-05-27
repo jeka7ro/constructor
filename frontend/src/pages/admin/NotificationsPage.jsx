@@ -16,18 +16,22 @@ const EVENT_STYLES = {
     break_end: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', label: 'Revenire', Icon: RotateCcw },
 }
 
-function AvatarImg({ path, name, size = 'w-9 h-9' }) {
-    const [err, setErr] = useState(false)
-    const initials = (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-    if (!path || err) {
+function AvatarImg({ path, name, size = 'w-8 h-8', textSize = 'text-xs' }) {
+    if (path) {
         return (
-            <div className={`${size} rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0`}>
-                {initials}
+            <div className="relative shrink-0 group">
+                <img src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${path}`} alt="" className={`${size} rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200`} onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
+                <div className={`absolute inset-0 ${size} rounded-lg bg-slate-100 flex items-center justify-center font-bold ${textSize} text-slate-500 hidden`}>
+                    {name?.substring(0, 2).toUpperCase() || 'W'}
+                </div>
             </div>
         )
     }
-    const src = path.startsWith('http') ? path : `${API_BASE}${path}`
-    return <img src={src} alt={name} className={`${size} rounded-full object-cover shrink-0`} onError={() => setErr(true)} />
+    return (
+        <div className={`${size} rounded-lg bg-slate-100 flex items-center justify-center font-bold ${textSize} text-slate-500 shrink-0`}>
+            {name?.substring(0, 2).toUpperCase() || 'W'}
+        </div>
+    )
 }
 
 export default function NotificationsPage() {
@@ -114,8 +118,13 @@ export default function NotificationsPage() {
                                 placeholder="Caută după nume, șantier..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                                className="w-full pl-9 pr-12 py-2 border border-slate-200 rounded-full text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
                             />
+                            {searchQuery && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center bg-blue-500 text-white text-[10px] font-bold rounded-full min-w-[20px] px-1 h-5 shadow-sm">
+                                    {filtered.length}
+                                </div>
+                            )}
                         </div>
                         {/* Type filter */}
                         <div className="flex items-center gap-2">
@@ -123,7 +132,7 @@ export default function NotificationsPage() {
                             <select
                                 value={typeFilter}
                                 onChange={(e) => setTypeFilter(e.target.value)}
-                                className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                                className="border border-slate-200 rounded-full px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
                             >
                                 <option value="">Toate evenimentele</option>
                                 <option value="check_in">🟢 Intrări</option>
@@ -133,7 +142,7 @@ export default function NotificationsPage() {
                             </select>
                         </div>
                         {/* Today date badge */}
-                        <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-3 py-2 rounded-full">
                             <Calendar className="w-4 h-4" />
                             <span className="font-medium">{today}</span>
                         </div>
@@ -174,7 +183,7 @@ export default function NotificationsPage() {
                                         <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                                             {/* Type badge */}
                                             <td className="px-5 py-3.5">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${style.bg} ${style.text} ${style.border} border`}>
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${style.bg} ${style.text} ${style.border} border`}>
                                                     <Icon className="w-3.5 h-3.5" />
                                                     {style.label}
                                                 </span>

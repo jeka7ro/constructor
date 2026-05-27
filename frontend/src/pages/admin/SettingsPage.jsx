@@ -146,7 +146,7 @@ export default function SettingsPage() {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => logoInputRef.current?.click()}
-                                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium"
+                                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full transition-colors text-sm font-medium"
                                         >
                                             <Upload className="w-4 h-4" />
                                             Alege fișier
@@ -156,7 +156,7 @@ export default function SettingsPage() {
                                                 <button
                                                     onClick={handleLogoUpload}
                                                     disabled={uploading}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors text-sm font-medium disabled:opacity-50"
                                                 >
                                                     {uploading ? 'Se încarcă...' : '📤 Încarcă'}
                                                 </button>
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                                 type="text"
                                 value={settings.org_name}
                                 onChange={(e) => setSettings({ ...settings, org_name: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
@@ -193,7 +193,7 @@ export default function SettingsPage() {
                                 type="email"
                                 value={settings.org_contact}
                                 onChange={(e) => setSettings({ ...settings, org_contact: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
@@ -203,7 +203,7 @@ export default function SettingsPage() {
                                 type="tel"
                                 value={settings.org_phone}
                                 onChange={(e) => setSettings({ ...settings, org_phone: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
                     </div>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                                     type="time"
                                     value={settings.work_hours_start}
                                     onChange={(e) => setSettings({ ...settings, work_hours_start: e.target.value })}
-                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 />
                             </div>
                             <div>
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                                     type="time"
                                     value={settings.work_hours_end}
                                     onChange={(e) => setSettings({ ...settings, work_hours_end: e.target.value })}
-                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 />
                             </div>
                         </div>
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                                 type="number"
                                 value={settings.break_duration}
                                 onChange={(e) => setSettings({ ...settings, break_duration: parseInt(e.target.value) })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                             <select
                                 value={settings.date_format}
                                 onChange={(e) => setSettings({ ...settings, date_format: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="DD/MM/YYYY">DD/MM/YYYY (17/02/2026)</option>
                                 <option value="MM/DD/YYYY">MM/DD/YYYY (02/17/2026)</option>
@@ -337,7 +337,7 @@ export default function SettingsPage() {
                             <select
                                 value={settings.time_format}
                                 onChange={(e) => setSettings({ ...settings, time_format: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="24h">24 ore (14:30)</option>
                                 <option value="12h">12 ore (2:30 PM)</option>
@@ -349,7 +349,7 @@ export default function SettingsPage() {
                             <select
                                 value={settings.language}
                                 onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="ro">Română</option>
                                 <option value="en">English</option>
@@ -361,7 +361,7 @@ export default function SettingsPage() {
                             <select
                                 value={settings.timezone}
                                 onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="Europe/Bucharest">Europe/Bucharest (GMT+2)</option>
                                 <option value="Europe/London">Europe/London (GMT+0)</option>

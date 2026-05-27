@@ -384,7 +384,7 @@ export default function SitesManagement() {
             industrial: 'Industrial'
         }
         return (
-            <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${badges[type] || badges.residential}`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${badges[type] || badges.residential}`}>
                 {labels[type] || type}
             </span>
         )
@@ -392,19 +392,19 @@ export default function SitesManagement() {
 
     const getStatusBadge = (status) => {
         if (status === 'active') return (
-            <span className="flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold">
+            <span className="flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
                 <CheckCircle className="w-3 h-3" />
                 Activ
             </span>
         )
         if (status === 'completed') return (
-            <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+            <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                 <CheckCircle className="w-3 h-3" />
                 Finalizat
             </span>
         )
         return (
-            <span className="flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold">
+            <span className="flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
                 <XCircle className="w-3 h-3" />
                 Suspendat
             </span>
@@ -613,7 +613,7 @@ export default function SitesManagement() {
                                         Client: {site.client_name}
                                     </p>
                                 )}
-                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3">
+                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-full p-3">
                                     <div className="flex items-center justify-between">
                                         <span className="flex items-center gap-1 text-amber-700 font-semibold">
                                             <Zap className="w-5 h-5" />
@@ -636,21 +636,21 @@ export default function SitesManagement() {
                             <div className="flex items-center gap-2 pt-4 border-t border-slate-200">
                                 <button
                                     onClick={() => handlePhotoClick(site)}
-                                    className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors flex items-center justify-center gap-2"
                                 >
                                     <Camera className="w-4 h-4" />
                                     Fotografii
                                 </button>
                                 <button
                                     onClick={() => handleEditSite(site)}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-medium transition-colors flex items-center gap-2"
                                 >
                                     <Edit2 className="w-4 h-4" />
                                     Editează
                                 </button>
                                 <button
                                     onClick={() => handleDeleteSite(site.id)}
-                                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-2 hover:bg-red-50 rounded-full transition-colors"
                                     title="Șterge"
                                 >
                                     <Trash2 className="w-4 h-4 text-red-600" />
@@ -988,7 +988,7 @@ export default function SitesManagement() {
                             </div>
                             <button
                                 onClick={() => setShowPhotoModal(false)}
-                                className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                                className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
                             >
                                 <X className="w-6 h-6" />
                             </button>

@@ -5,7 +5,7 @@ Supports Many-to-Many: Vehicle <-> Sites, Vehicle <-> Drivers
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 import os
-from sqlalchemy import and_
+from sqlalchemy import and_, desc
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime, date, timedelta
@@ -136,6 +136,127 @@ def list_vehicles(
     vehicles = q.order_by(Vehicle.name).all()
     return [get_vehicle_with_ids(v, db) for v in vehicles]
 
+
+@router.get("/expiring-documents", response_model=List[dict])
+def get_expiring_documents(
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Retrieve all fleet documents expiring within 45 days, or already expired."""
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.organization_id == current_admin.organization_id
+    ).all()
+    
+    alerts = []
+    threshold_date = date.today() + timedelta(days=45)
+    today_str = date.today().isoformat()
+    
+    for v in vehicles:
+        if v.documents:
+            for doc in v.documents:
+                exp_str = doc.get("expiry_date")
+                if exp_str:
+                    try:
+                        exp = date.fromisoformat(exp_str)
+                        if exp <= threshold_date:
+                            days_left = (exp - date.today()).days
+                            if days_left < 0:
+                                status = 'expired'
+                            elif days_left <= 7:
+                                status = 'critical'
+                            else:
+                                status = 'warning'
+                            alerts.append({
+                                "vehicle_id": v.id,
+                                "vehicle_name": v.name,
+                                "registration": v.registration_number or v.chassis_number or "N/A",
+                                "document_id": doc.get("id"),
+                                "document_name": doc.get("name"),
+                                "url": doc.get("url"),
+                                "expiry_date": exp_str,
+                                "days_left": days_left,
+                                "status": status
+                            })
+                    except ValueError:
+                        pass
+    
+    # Sort closest to expiration first
+    alerts.sort(key=lambda x: x["days_left"])
+    return alerts
+
+
+
+@router.get("/by-site/{site_id}", response_model=List[dict])
+def vehicles_for_site(
+    site_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Get all vehicles currently assigned to a specific site."""
+    assignments = db.query(VehicleSiteAssignment).filter(
+        VehicleSiteAssignment.site_id == site_id,
+        VehicleSiteAssignment.is_active == True,
+    ).all()
+    result = []
+    for a in assignments:
+        v = db.query(Vehicle).filter(Vehicle.id == a.vehicle_id).first()
+        if v:
+            result.append(get_vehicle_with_ids(v, db))
+    return result
+
+
+@router.get("/fleet-report")
+def fleet_report(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Aggregate equipment usage & fuel consumption per vehicle for a date range."""
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.organization_id == current_admin.organization_id
+    ).all()
+
+    d_from = date.fromisoformat(date_from) if date_from else date.today().replace(day=1)
+    d_to = date.fromisoformat(date_to) if date_to else date.today()
+
+    result = []
+    for v in vehicles:
+        logs = db.query(EquipmentDailyLog).filter(
+            EquipmentDailyLog.vehicle_id == v.id,
+            EquipmentDailyLog.date >= d_from,
+            EquipmentDailyLog.date <= d_to,
+        ).all()
+
+        days_used = sum(1 for l in logs if l.is_used)
+        total_fuel = sum((l.refuel_liters or 0) for l in logs if l.refueled)
+        refuel_events = sum(1 for l in logs if l.refueled)
+
+        last_op_name = None
+        last_logs = sorted(logs, key=lambda l: l.date, reverse=True)
+        if last_logs and last_logs[0].operator_id:
+            op = db.query(User).filter(User.id == last_logs[0].operator_id).first()
+            if op:
+                last_op_name = f"{op.first_name} {op.last_name}"
+
+        result.append({
+            "vehicle_id": v.id,
+            "vehicle_name": v.name,
+            "registration": v.registration_number or v.chassis_number or "N/A",
+            "type": v.vehicle_type or "—",
+            "status": v.status,
+            "days_used": days_used,
+            "days_idle": len(logs) - days_used,
+            "total_logs": len(logs),
+            "total_fuel_liters": round(total_fuel, 2),
+            "refuel_events": refuel_events,
+            "last_operator": last_op_name,
+            "date_from": str(d_from),
+            "date_to": str(d_to),
+        })
+
+    result.sort(key=lambda x: x["days_used"], reverse=True)
+    return result
 
 @router.get("/{vehicle_id}", response_model=dict)
 def get_vehicle(
@@ -289,74 +410,6 @@ async def upload_vehicle_document(
     db.refresh(v)
     return get_vehicle_with_ids(v, db)
 
-@router.get("/expiring-documents", response_model=List[dict])
-def get_expiring_documents(
-    current_admin: Admin = Depends(get_current_admin),
-    db: Session = Depends(get_db)
-):
-    """Retrieve all fleet documents expiring within 45 days, or already expired."""
-    vehicles = db.query(Vehicle).filter(
-        Vehicle.organization_id == current_admin.organization_id
-    ).all()
-    
-    alerts = []
-    threshold_date = date.today() + timedelta(days=45)
-    today_str = date.today().isoformat()
-    
-    for v in vehicles:
-        if v.documents:
-            for doc in v.documents:
-                exp_str = doc.get("expiry_date")
-                if exp_str:
-                    try:
-                        exp = date.fromisoformat(exp_str)
-                        if exp <= threshold_date:
-                            days_left = (exp - date.today()).days
-                            if days_left < 0:
-                                status = 'expired'
-                            elif days_left <= 7:
-                                status = 'critical'
-                            else:
-                                status = 'warning'
-                            alerts.append({
-                                "vehicle_id": v.id,
-                                "vehicle_name": v.name,
-                                "registration": v.registration_number or v.chassis_number or "N/A",
-                                "document_id": doc.get("id"),
-                                "document_name": doc.get("name"),
-                                "url": doc.get("url"),
-                                "expiry_date": exp_str,
-                                "days_left": days_left,
-                                "status": status
-                            })
-                    except ValueError:
-                        pass
-    
-    # Sort closest to expiration first
-    alerts.sort(key=lambda x: x["days_left"])
-    return alerts
-
-
-
-@router.get("/by-site/{site_id}", response_model=List[dict])
-def vehicles_for_site(
-    site_id: str,
-    current_admin: Admin = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """Get all vehicles currently assigned to a specific site."""
-    assignments = db.query(VehicleSiteAssignment).filter(
-        VehicleSiteAssignment.site_id == site_id,
-        VehicleSiteAssignment.is_active == True,
-    ).all()
-    result = []
-    for a in assignments:
-        v = db.query(Vehicle).filter(Vehicle.id == a.vehicle_id).first()
-        if v:
-            result.append(get_vehicle_with_ids(v, db))
-    return result
-
-
 @router.get("/by-user/{user_id}", response_model=List[dict])
 def vehicles_for_user(
     user_id: str,
@@ -418,6 +471,41 @@ def add_equipment_log(
     return {"message": "Log created", "id": log.id}
 
 
+@router.get("/equipment-logs/operator/{operator_id}")
+def get_equipment_logs_for_operator(
+    operator_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    logs = db.query(EquipmentDailyLog).filter(
+        EquipmentDailyLog.operator_id == operator_id
+    ).order_by(desc(EquipmentDailyLog.date)).all()
+    
+    result = []
+    # Pre-fetch vehicles
+    all_vehicles = {v.id: v for v in db.query(Vehicle).filter(Vehicle.organization_id == current_admin.organization_id).all()}
+    
+    for log in logs:
+        v = all_vehicles.get(log.vehicle_id)
+        if not v:
+            continue
+            
+        result.append({
+            "id": log.id,
+            "vehicle_id": log.vehicle_id,
+            "vehicle_name": v.name,
+            "plate_number": v.plate_number or v.chassis_number or "N/A",
+            "site_id": log.site_id,
+            "operator_id": log.operator_id,
+            "date": str(log.date),
+            "is_used": log.is_used,
+            "refueled": log.refueled,
+            "refuel_liters": log.refuel_liters,
+            "notes": log.notes
+        })
+    return result
+
+
 @router.get("/equipment-logs/{vehicle_id}/{date_str}")
 def get_equipment_log(
     vehicle_id: str,
@@ -446,56 +534,3 @@ def get_equipment_log(
         "notes": log.notes
     }
 
-
-@router.get("/fleet-report")
-def fleet_report(
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
-    current_admin: Admin = Depends(get_current_admin),
-    db: Session = Depends(get_db),
-):
-    """Aggregate equipment usage & fuel consumption per vehicle for a date range."""
-    vehicles = db.query(Vehicle).filter(
-        Vehicle.organization_id == current_admin.organization_id
-    ).all()
-
-    d_from = date.fromisoformat(date_from) if date_from else date.today().replace(day=1)
-    d_to = date.fromisoformat(date_to) if date_to else date.today()
-
-    result = []
-    for v in vehicles:
-        logs = db.query(EquipmentDailyLog).filter(
-            EquipmentDailyLog.vehicle_id == v.id,
-            EquipmentDailyLog.date >= d_from,
-            EquipmentDailyLog.date <= d_to,
-        ).all()
-
-        days_used = sum(1 for l in logs if l.is_used)
-        total_fuel = sum((l.refuel_liters or 0) for l in logs if l.refueled)
-        refuel_events = sum(1 for l in logs if l.refueled)
-
-        last_op_name = None
-        last_logs = sorted(logs, key=lambda l: l.date, reverse=True)
-        if last_logs and last_logs[0].operator_id:
-            op = db.query(User).filter(User.id == last_logs[0].operator_id).first()
-            if op:
-                last_op_name = f"{op.first_name} {op.last_name}"
-
-        result.append({
-            "vehicle_id": v.id,
-            "vehicle_name": v.name,
-            "registration": v.registration_number or v.chassis_number or "N/A",
-            "type": v.vehicle_type or "—",
-            "status": v.status,
-            "days_used": days_used,
-            "days_idle": len(logs) - days_used,
-            "total_logs": len(logs),
-            "total_fuel_liters": round(total_fuel, 2),
-            "refuel_events": refuel_events,
-            "last_operator": last_op_name,
-            "date_from": str(d_from),
-            "date_to": str(d_to),
-        })
-
-    result.sort(key=lambda x: x["days_used"], reverse=True)
-    return result

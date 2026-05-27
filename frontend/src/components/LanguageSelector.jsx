@@ -79,7 +79,7 @@ export default function LanguageSelector({ variant = 'dark' }) {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all ${
                     isDark 
                         ? 'border-slate-700/50 hover:bg-slate-800 text-slate-300' 
                         : 'border-slate-200 hover:bg-slate-50 text-slate-700'

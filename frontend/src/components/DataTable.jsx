@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -93,8 +93,22 @@ export default function DataTable({
                             placeholder={searchPlaceholder}
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
+                            className="w-full pl-9 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow"
                         />
+                        {searchTerm && (
+                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                <span className="text-[10px] font-bold text-white">
+                                    {filtered.length}/{data.length}
+                                </span>
+                                <button
+                                    onClick={() => { setSearchTerm(''); setPage(1); }}
+                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5 text-white"
+                                    title={t('common.clear')}
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

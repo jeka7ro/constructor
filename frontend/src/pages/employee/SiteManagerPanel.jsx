@@ -259,7 +259,7 @@ export default function SiteManagerPanel() {
                             {lastRefresh.toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
                         </span>
                     )}
-                    <button onClick={fetchTeams} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <button onClick={fetchTeams} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <RefreshCw className="w-4 h-4 text-slate-600" />
                     </button>
                 </div>

@@ -51,7 +51,7 @@ export default function EmployeeEmergencies() {
             <div className="bg-gradient-to-r from-rose-600 to-red-700 text-white p-4 shadow-lg">
                 <div className="flex items-center justify-between max-w-md mx-auto">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                         <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export default function EmployeeEmergencies() {
                     </div>
                     <button
                         onClick={() => setShowForm(!showForm)}
-                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                        className="p-2 hover:bg-white/20 rounded-full transition-colors"
                         title="Urgență nouă"
                     >
                         <Plus className="w-5 h-5" />

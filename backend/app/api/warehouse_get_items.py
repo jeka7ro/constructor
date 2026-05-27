@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models import WarehouseItem, WarehouseTransaction, Admin, Vehicle, User, Site
 from app.api.admin_auth import get_current_admin
 
-def get_items_logic(category: Optional[str] = None, site_id: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+def get_items_logic(category: Optional[str] = None, site_id: Optional[str] = None, assigned_to_user_id: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     query = db.query(WarehouseItem, Site.name.label("site_name"), User.full_name.label("holder_name"))\
               .outerjoin(Site, WarehouseItem.current_site_id == Site.id)\
               .outerjoin(User, WarehouseItem.current_holder_id == User.id)\
@@ -16,6 +16,8 @@ def get_items_logic(category: Optional[str] = None, site_id: Optional[str] = Non
               
     if category:
         query = query.filter(WarehouseItem.category == category)
+    if assigned_to_user_id:
+        query = query.filter(WarehouseItem.current_holder_id == assigned_to_user_id)
         
     items_with_relations = query.order_by(WarehouseItem.name).all()
     item_ids = [i[0].id for i in items_with_relations]

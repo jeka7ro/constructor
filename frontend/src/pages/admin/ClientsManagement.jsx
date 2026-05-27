@@ -156,13 +156,13 @@ export default function ClientsManagement() {
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
                         />
                         {searchQuery && (
-                            <div className="absolute right-1.5 flex items-center gap-1 bg-indigo-600 px-2 py-1 rounded-full shadow-sm">
+                            <div className="absolute right-1.5 flex items-center gap-1 bg-orange-600 px-2 py-1 rounded-full shadow-sm">
                                 <span className="text-[10px] font-bold text-white">
                                     {filteredClients.length}/{clients.length}
                                 </span>
                                 <button
                                     onClick={() => setSearchQuery('')}
-                                    className="p-0.5 hover:bg-indigo-700 rounded-full transition-colors ml-0.5"
+                                    className="p-0.5 hover:bg-orange-700 rounded-full transition-colors ml-0.5 cursor-pointer"
                                 >
                                     <X className="w-3 h-3 text-white/80 hover:text-white" />
                                 </button>
@@ -222,7 +222,7 @@ export default function ClientsManagement() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
                                                     <Building className="w-4 h-4 text-indigo-500" />
                                                 </div>
                                                 <span className="font-bold text-slate-900 dark:text-white">

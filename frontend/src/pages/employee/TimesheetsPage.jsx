@@ -55,12 +55,12 @@ export default function TimesheetsPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">📋 Pontajele Mele</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Pontajele Mele</h1>
                     <p className="text-slate-600">{t('timesheets.manage_daily')}</p>
                 </div>
                 <button
                     onClick={() => navigate('/timesheets/new')}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full font-semibold transition-all shadow-lg hover:shadow-xl"
                 >
                     <Plus className="w-5 h-5" />
                     Pontaj Nou
@@ -73,7 +73,7 @@ export default function TimesheetsPage() {
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === f
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                             }`}
@@ -99,7 +99,7 @@ export default function TimesheetsPage() {
                     </p>
                     <button
                         onClick={() => navigate('/timesheets/new')}
-                        className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                        className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors"
                     >
                         Creează Pontaj
                     </button>

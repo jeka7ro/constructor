@@ -43,7 +43,7 @@ const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, sear
                         </div>
                     </div>
                     <div className="max-h-48 overflow-y-auto p-1 custom-scrollbar">
-                        <label className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm font-semibold border-b border-slate-100 dark:border-slate-800 mb-1">
+                        <label className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full cursor-pointer text-sm font-semibold border-b border-slate-100 dark:border-slate-800 mb-1">
                             <input type="checkbox" checked={allChecked} onChange={() => {
                                 if (allChecked) onChange(selectedIds.filter(id => !filtered.find(o => o.id === id)))
                                 else onChange([...new Set([...selectedIds, ...filtered.map(o => o.id)])])
@@ -53,7 +53,7 @@ const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, sear
                         {filtered.length === 0 ? (
                             <div className="px-3 py-4 text-center text-xs text-slate-400">Nu s-au găsit rezultate.</div>
                         ) : filtered.map(o => (
-                            <label key={o.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm transition-colors">
+                            <label key={o.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full cursor-pointer text-sm transition-colors">
                                 <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={(e) => {
                                     if (e.target.checked) onChange([...selectedIds, o.id])
                                     else onChange(selectedIds.filter(id => id !== o.id))
@@ -113,12 +113,12 @@ const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, sear
                     <div className="max-h-48 overflow-y-auto p-1 custom-scrollbar">
                         <div 
                             onClick={() => { onChange(''); setIsOpen(false) }} 
-                            className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm mb-1 ${!selectedId ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' : ''}`}
+                            className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full cursor-pointer text-sm mb-1 ${!selectedId ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' : ''}`}
                         >
                             <span className="truncate">{placeholder}</span>
                         </div>
                         {filtered.map(o => (
-                            <div key={o.id} onClick={() => { onChange(o.id); setIsOpen(false) }} className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-sm ${selectedId === o.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 font-medium' : ''}`}>
+                            <div key={o.id} onClick={() => { onChange(o.id); setIsOpen(false) }} className={`flex items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full cursor-pointer text-sm ${selectedId === o.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 font-medium' : ''}`}>
                                 <span className="truncate">{displayFn(o)}</span>
                             </div>
                         ))}
@@ -215,9 +215,9 @@ export default function WarehouseManagement() {
         try {
             await api.post('/warehouse/confirm-return', { item_id: itemId, condition })
             showToast(
-                condition === 'functional' ? 'Sculă primită — FUNCȚIONALĂ ✓' :
-                condition === 'defective' ? 'Sculă primită — DEFECTĂ ⚠️' :
-                'Sculă marcată ca PIERDUTĂ 🔴',
+                condition === 'functional' ? 'Sculă primită — FUNCȚIONALĂ' :
+                condition === 'defective' ? 'Sculă primită — DEFECTĂ' :
+                'Sculă marcată ca PIERDUTĂ',
                 condition === 'functional' ? 'success' : 'warning'
             )
             setConfirmReturnModal(null)
@@ -912,14 +912,13 @@ export default function WarehouseManagement() {
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* ── Returnări în așteptare ─────────────────────────────────────── */}
             {pendingReturns.length > 0 && (
-                <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl overflow-hidden">
+                <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-3xl overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-3 bg-amber-400">
-                        <span className="text-lg">⏳</span>
                         <h3 className="font-black text-white text-sm uppercase tracking-wider">
                             {pendingReturns.length} Sculă{pendingReturns.length > 1 ? ' în' : ''} așteptare confirmare
                         </h3>
-                        <span className="ml-auto text-[11px] font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded-full">
-                            Muncitorii au predat — confirmați starea!
+                        <span className="ml-auto text-[11px] font-bold text-amber-900 bg-amber-200 px-3 py-1 rounded-full">
+                            Muncitorii au predat — confirmați starea
                         </span>
                     </div>
                     <div className="divide-y divide-amber-200">
@@ -942,18 +941,18 @@ export default function WarehouseManagement() {
                                     <button
                                         onClick={() => confirmPendingReturn(pr.id, 'functional')}
                                         disabled={confirmReturnLoading}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-green-500 hover:bg-green-600 rounded-xl transition-colors disabled:opacity-50"
-                                    >✓ Funcțională</button>
+                                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-full transition-colors disabled:opacity-50"
+                                    >Funcțională</button>
                                     <button
                                         onClick={() => confirmPendingReturn(pr.id, 'defective')}
                                         disabled={confirmReturnLoading}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors disabled:opacity-50"
-                                    >⚠ Defectă</button>
+                                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-full transition-colors disabled:opacity-50"
+                                    >Defectă</button>
                                     <button
                                         onClick={() => confirmPendingReturn(pr.id, 'lost')}
                                         disabled={confirmReturnLoading}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors disabled:opacity-50"
-                                    >✕ Pierdută</button>
+                                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-full transition-colors disabled:opacity-50"
+                                    >Pierdută</button>
                                 </div>
                             </div>
                         ))}

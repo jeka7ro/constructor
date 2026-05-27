@@ -194,8 +194,21 @@ export default function UsersManagement() {
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder="Caută după nume sau email..."
-                            className="w-64 pl-9 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                            className="w-64 pl-9 pr-9 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                         />
+                        {search && (
+                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                <span className="text-[10px] font-bold text-white">
+                                    {filtered.length}/{users.length}
+                                </span>
+                                <button
+                                    onClick={() => setSearch('')}
+                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5 text-white"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
                     {isSuperAdmin ? (
@@ -241,9 +254,9 @@ export default function UsersManagement() {
                                 <td className="px-5 py-3">
                                     <div className="flex items-center gap-3">
                                         {user.avatar_path ? (
-                                            <img src={`${API_BASE}${user.avatar_path}`} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100" />
+                                            <img src={`${API_BASE}${user.avatar_path}`} alt="" className="w-10 h-12 rounded-lg object-cover object-[center_20%] ring-2 ring-slate-100 shrink-0" />
                                         ) : (
-                                            <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm">
+                                            <div className="w-10 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm shrink-0">
                                                 {(user.last_name?.charAt(0) || '') + (user.first_name?.charAt(0) || '')}
                                             </div>
                                         )}

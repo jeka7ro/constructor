@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, Outlet, NavLink } from 'react-router-dom'
+import { useNavigate, Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 export default function AdminDashboard() {
     const { admin, logout } = useAdminStore()
     const navigate = useNavigate()
+    const location = useLocation()
     const { t } = useTranslation()
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [showNotifications, setShowNotifications] = useState(false)
@@ -70,31 +71,95 @@ export default function AdminDashboard() {
 
     const unreadCount = Math.max(0, notifCount - lastSeenCount)
 
-    const allNavItems = [
-        { path: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
-        { path: '/admin/employees', icon: HardHat, label: 'Angajați' },
-        { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
-        { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
-        { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
-        { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
-        { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
-        { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
-        { path: '/admin/teams', icon: Users, label: t('nav.teams') },
-        { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
-        { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
-        { path: '/admin/accommodations', icon: BedDouble, label: 'Cazări' },
-        { path: '/admin/expenses', icon: Wallet, label: 'Deconturi / Cheltuieli' },
-        { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
-        { path: '/admin/emergencies', icon: AlertTriangle, label: 'Urgențe' },
-        { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
-        { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
-        { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
-        { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
+    // Sidebar Categories
+    const categories = [
+        {
+            id: 'general',
+            label: 'General',
+            items: [
+                { path: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+                { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
+                { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
+            ]
+        },
+        {
+            id: 'hr',
+            label: 'Resurse Umane',
+            items: [
+                { path: '/admin/employees', icon: HardHat, label: 'Angajați' },
+                { path: '/admin/teams', icon: Users, label: t('nav.teams') },
+                { path: '/admin/accommodations', icon: BedDouble, label: 'Cazări' },
+            ]
+        },
+        {
+            id: 'operations',
+            label: 'Operațiuni',
+            items: [
+                { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
+                { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
+                { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
+                { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
+            ]
+        },
+        {
+            id: 'logistics',
+            label: 'Logistică & Financiar',
+            items: [
+                { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
+                { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
+                { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
+                { path: '/admin/expenses', icon: Wallet, label: 'Deconturi / Cheltuieli' },
+            ]
+        },
+        {
+            id: 'support',
+            label: 'Suport & Alerte',
+            items: [
+                { path: '/admin/emergencies', icon: AlertTriangle, label: 'Urgențe' },
+                { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
+            ]
+        },
+        {
+            id: 'system',
+            label: 'Sistem',
+            items: [
+                { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
+                { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
+                { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
+            ]
+        }
     ]
 
-    const navItems = admin?.role === 'LOGISTIC' 
-        ? allNavItems.filter(item => ['/admin/warehouse', '/admin/fleet', '/admin/settings', '/admin/notifications'].includes(item.path))
-        : allNavItems
+    const filteredCategories = categories.map(cat => ({
+        ...cat,
+        items: admin?.role === 'LOGISTIC'
+            ? cat.items.filter(item => ['/admin/warehouse', '/admin/fleet', '/admin/settings', '/admin/notifications'].includes(item.path))
+            : cat.items
+    })).filter(cat => cat.items.length > 0)
+
+    const [expandedCategories, setExpandedCategories] = useState({ general: true })
+
+    // Auto-expand category based on current route
+    useEffect(() => {
+        setExpandedCategories(prev => {
+            const next = { ...prev }
+            let found = false
+            filteredCategories.forEach(cat => {
+                if (cat.items.some(item => location.pathname.startsWith(item.path))) {
+                    next[cat.id] = true
+                    found = true
+                }
+            })
+            return found ? next : prev
+        })
+    }, [location.pathname])
+
+    const toggleCategory = (id) => {
+        setExpandedCategories(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }))
+    }
 
     const [darkMode, setDarkMode] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -142,29 +207,57 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActive
-                                    ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
-                                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                                }`
-                            }
-                        >
-                            <item.icon className="w-5 h-5 shrink-0" />
-                            {sidebarOpen && <span className="text-sm truncate flex-1">{item.label}</span>}
-                            {sidebarOpen && item.badge > 0 && (
-                                <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                    {item.badge > 99 ? '99+' : item.badge}
-                                </span>
+                <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {filteredCategories.map((cat, index) => (
+                        <div key={cat.id} className="space-y-1">
+                            {/* Category Header (Only visible if sidebar open) */}
+                            {sidebarOpen && (
+                                <div 
+                                    onClick={() => toggleCategory(cat.id)}
+                                    className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
+                                >
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-300 transition-colors">
+                                        {cat.label}
+                                    </span>
+                                    <ChevronRight className={`w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''}`} />
+                                </div>
                             )}
-                            {!sidebarOpen && item.badge > 0 && (
-                                <span className="absolute left-7 top-1 w-2 h-2 bg-orange-500 rounded-full" />
+
+                            {/* Items Container */}
+                            <div className={`space-y-1 overflow-hidden transition-all duration-300 ${sidebarOpen ? (expandedCategories[cat.id] ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0') : 'max-h-none opacity-100'}`}>
+                                {cat.items.map((item) => (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
+                                                ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
+                                                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                                            }`
+                                        }
+                                        title={!sidebarOpen ? item.label : undefined}
+                                    >
+                                        <item.icon className="w-5 h-5 shrink-0" />
+                                        {sidebarOpen && <span className="text-sm truncate flex-1">{item.label}</span>}
+                                        
+                                        {/* Badge Support */}
+                                        {sidebarOpen && item.badge > 0 && (
+                                            <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                                {item.badge > 99 ? '99+' : item.badge}
+                                            </span>
+                                        )}
+                                        {!sidebarOpen && item.badge > 0 && (
+                                            <span className="absolute left-7 top-1 w-2 h-2 bg-orange-500 rounded-full" />
+                                        )}
+                                    </NavLink>
+                                ))}
+                            </div>
+
+                            {/* Separator when collapsed */}
+                            {!sidebarOpen && index < filteredCategories.length - 1 && (
+                                <div className="h-px bg-white/5 my-3 mx-2" />
                             )}
-                        </NavLink>
+                        </div>
                     ))}
                 </nav>
 

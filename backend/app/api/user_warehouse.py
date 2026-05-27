@@ -15,6 +15,7 @@ class ConsumeRequest(BaseModel):
     item_id: str
     quantity: float
     notes: Optional[str] = None
+    request_id: Optional[str] = None
 
 router = APIRouter(prefix="/user/warehouse", tags=["User - Magazie"])
 
@@ -190,13 +191,17 @@ def get_my_inventory(
                 if not site_id_req:
                     continue
 
-                # Toate tranzacțiile pentru acest item la acest site (OUT - IN - CONSUME)
+                from sqlalchemy import or_, and_
+                # Toate tranzacțiile pentru acest item la acest site, PLUS consumurile orfane ale userului
                 tx_stats = db.query(
                     WarehouseTransaction.transaction_type,
                     func.sum(WarehouseTransaction.quantity).label('total')
                 ).filter(
                     WarehouseTransaction.item_id == db_item.id,
-                    WarehouseTransaction.site_id == site_id_req
+                    or_(
+                        WarehouseTransaction.site_id == site_id_req,
+                        and_(WarehouseTransaction.site_id.is_(None), WarehouseTransaction.assigned_to_user_id == current_user.id)
+                    )
                 ).group_by(WarehouseTransaction.transaction_type).all()
 
                 qty = 0
@@ -322,7 +327,7 @@ def report_defective(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Worker reports a tool as defective. Returns it to warehouse marked as defective."""
+    """Worker reports a tool as defective. Sends to pending returns with a note."""
     db_item = db.query(WarehouseItem).filter(
         WarehouseItem.id == body.item_id,
         WarehouseItem.organization_id == current_user.organization_id
@@ -330,26 +335,17 @@ def report_defective(
     if not db_item:
         raise HTTPException(status_code=404, detail="Articol negasit")
 
-    returned_from_site = db_item.current_site_id
-    db_item.current_holder_id = None
-    db_item.current_site_id = None
-    db_item.checked_out_at = None
-    db_item.total_quantity = 1.0
-    db_item.is_defective = True
-
-    tx = WarehouseTransaction(
-        item_id=body.item_id,
-        transaction_type="IN",
-        quantity=1.0,
-        date=datetime.utcnow().date(),
-        operated_by_id=current_user.id,
-        assigned_to_user_id=current_user.id,
-        site_id=returned_from_site,
-        notes=body.notes or f"Raportat DEFECT de: {current_user.full_name}"
-    )
-    db.add(tx)
-    db.commit()
-    return {"success": True}
+    if db_item.inventory_code:
+        # PUNE ÎN AȘTEPTARE CONFIRMARE (Pending Return) cu mentiunea de defect
+        db_item.pending_return = True
+        db_item.pending_return_by = current_user.id
+        db_item.pending_return_at = datetime.utcnow()
+        # Adaugam nota in denumire sau in notes ca adminul sa vada ca e defect
+        db_item.notes = (db_item.notes or "") + f" \n[RAPORTAT DEFECT DE {current_user.full_name} la {datetime.utcnow().strftime('%d.%m %H:%M')}]\nMotiv: {body.notes}"
+        db.commit()
+        return {"success": True, "pending": True, "message": "Sculă raportată ca defectă. Așteaptă confirmarea adminului."}
+    
+    return {"success": False, "detail": "Doar sculele unice pot fi raportate defecte."}
 
 @router.post("/consume")
 def consume_item(
@@ -359,6 +355,11 @@ def consume_item(
 ):
     site_id = get_user_active_site_id(db, current_user.id)
     
+    if body.request_id:
+        req = db.query(MaterialRequest).filter(MaterialRequest.id == body.request_id).first()
+        if req and req.site_id:
+            site_id = req.site_id
+            
     db_item = db.query(WarehouseItem).filter(
         WarehouseItem.id == body.item_id,
         WarehouseItem.organization_id == current_user.organization_id

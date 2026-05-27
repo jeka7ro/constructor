@@ -271,10 +271,10 @@ export default function TeamLeaderPanel() {
                                         placeholder={`${t('users.search_name')}...`}
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     />
                                 </div>
-                                <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-lg">
+                                <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-full">
                                     {filteredWorkers.map(w => (
                                         <label key={w.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0">
                                             <input
@@ -344,10 +344,10 @@ export default function TeamLeaderPanel() {
                                         if (e.key === 'Enter') handleRenameTeam(team.id)
                                         if (e.key === 'Escape') setEditingName(false)
                                     }}
-                                    className="px-3 py-1.5 rounded-lg text-slate-900 text-sm font-bold focus:ring-2 focus:ring-white/50 outline-none"
+                                    className="px-3 py-1.5 rounded-full text-slate-900 text-sm font-bold focus:ring-2 focus:ring-white/50 outline-none"
                                     autoFocus
                                 />
-                                <button onClick={() => handleRenameTeam(team.id)} className="p-1 bg-white/20 rounded-lg hover:bg-white/30">
+                                <button onClick={() => handleRenameTeam(team.id)} className="p-1 bg-white/20 rounded-full hover:bg-white/30">
                                     <CheckCircle className="w-4 h-4" />
                                 </button>
                             </div>
@@ -356,7 +356,7 @@ export default function TeamLeaderPanel() {
                                 <h2 className="text-lg font-bold">{team.name}</h2>
                                 <button
                                     onClick={() => { setEditingName(true); setEditName(team.name) }}
-                                    className="p-1 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                                    className="p-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                                     title="{t('common.rename')} echipa"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" />
@@ -405,19 +405,19 @@ export default function TeamLeaderPanel() {
                             placeholder="{t('users.search_name_code')}..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                     </div>
                     <div className="max-h-48 overflow-y-auto space-y-1">
                         {filteredWorkers.map(w => (
-                            <div key={w.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg">
+                            <div key={w.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-full">
                                 <div>
                                     <div className="text-sm font-medium text-slate-900">{w.full_name}</div>
                                     <div className="text-xs text-slate-500">{w.employee_code} · {w.role_name}</div>
                                 </div>
                                 <button
                                     onClick={() => handleAddMemberToTeam(team.id, w.id)}
-                                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-full transition-colors"
                                 >
                                     <Plus className="w-3 h-3 inline mr-1" />
                                     {t('common.add')}
@@ -441,7 +441,7 @@ export default function TeamLeaderPanel() {
                     <button
                         onClick={() => teamStatus && fetchTeamStatus(team.id)}
                         disabled={statusLoading}
-                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-slate-100 rounded-full transition-colors"
                     >
                         <RefreshCw className={`w-4 h-4 text-slate-500 ${statusLoading ? 'animate-spin' : ''}`} />
                     </button>
@@ -481,7 +481,7 @@ export default function TeamLeaderPanel() {
                                         >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                                 {m.avatar_path ? (
-                                                    <img src={m.avatar_path} alt="" className="w-9 h-9 rounded-full object-cover object-top flex-shrink-0" onError={e => { e.target.style.display = 'none' }} />
+                                                    <img src={m.avatar_path.startsWith('http') ? m.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${m.avatar_path}`} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_20%] flex-shrink-0 ring-1 ring-slate-200" onError={e => { e.target.style.display = 'none' }} />
                                                 ) : (
                                                     <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600 flex-shrink-0">
                                                         {m.full_name?.charAt(0)}
@@ -554,7 +554,7 @@ export default function TeamLeaderPanel() {
                                                     const totalOnSite = liveWorked + breakH
                                                     const dateStr = new Date().toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin',  day: 'numeric', month: 'long' })
                                                     return (
-                                                        <div className="mt-2 text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
+                                                        <div className="mt-2 text-xs text-slate-600 bg-slate-50 rounded-full px-3 py-2">
                                                             <span className="font-medium">Timp șantier</span> ({formatHours(totalOnSite)})
                                                             {breakH > 0 && <> − <span className="font-medium text-orange-500">{t('timesheets.status.break')}</span> ({formatHours(breakH)})</>}
                                                             {' '}= <span className="font-bold text-slate-900">{t('timesheets.total_shift')} {dateStr} = {formatHours(liveWorked)}</span>
@@ -600,14 +600,14 @@ export default function TeamLeaderPanel() {
                     <h3 className="font-bold text-slate-900 mb-3">👥 {t('teams.team_members')} ({team.members.length})</h3>
                     <div className="space-y-1">
                         {team.members.map(m => (
-                            <div key={m.user_id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3">
+                            <div key={m.user_id} className="flex items-center justify-between bg-white border border-slate-200 rounded-full px-4 py-3">
                                 <div>
                                     <div className="text-sm font-medium text-slate-900">{m.full_name}</div>
                                     <div className="text-xs text-slate-500">{m.employee_code} · {m.role_name}</div>
                                 </div>
                                 <button
                                     onClick={() => handleRemoveMember(team.id, m.user_id)}
-                                    className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors"
+                                    className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-full transition-colors"
                                     title="{t('teams.remove_member')}"
                                 >
                                     <Trash2 className="w-4 h-4" />

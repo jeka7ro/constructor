@@ -411,7 +411,7 @@ export default function ActivitiesManagement() {
                                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             onClick={() => handleAddActivityToCategory(cat.id)}
-                                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                            className="p-2 hover:bg-blue-50 rounded-full transition-colors"
                                             title={t('activities.add_cat_activity')}
                                         >
                                             <Plus className="w-4 h-4 text-blue-600" />
@@ -420,14 +420,14 @@ export default function ActivitiesManagement() {
                                             <>
                                                 <button
                                                     onClick={() => handleEditCategory(cat)}
-                                                    className="p-2 hover:bg-violet-50 rounded-lg transition-colors"
+                                                    className="p-2 hover:bg-violet-50 rounded-full transition-colors"
                                                     title={t('common.edit_category')}
                                                 >
                                                     <Edit2 className="w-4 h-4 text-violet-600" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteCategory(cat.id)}
-                                                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="p-2 hover:bg-red-50 rounded-full transition-colors"
                                                     title="Șterge categoria"
                                                 >
                                                     <Trash2 className="w-4 h-4 text-red-600" />
@@ -556,7 +556,7 @@ export default function ActivitiesManagement() {
                                 <Folder className="w-6 h-6" />
                                 {editingCategory ? t('activities.edit_category') : t('activities.new_category')}
                             </h2>
-                            <button onClick={() => { setShowCategoryModal(false); setEditingCategory(null); }} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                            <button onClick={() => { setShowCategoryModal(false); setEditingCategory(null); }} className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -640,7 +640,7 @@ export default function ActivitiesManagement() {
                                 <Activity className="w-6 h-6" />
                                 {editingActivity ? t('activities.edit_activity') : t('activities.new_activity')}
                             </h2>
-                            <button onClick={() => { setShowActivityModal(false); setEditingActivity(null); }} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                            <button onClick={() => { setShowActivityModal(false); setEditingActivity(null); }} className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>

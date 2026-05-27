@@ -11,6 +11,7 @@ import AdminOverview from './pages/admin/AdminOverview'
 import TimesheetApprovalPage from './pages/admin/TimesheetApprovalPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import EmployeesManagement from './pages/admin/EmployeesManagement'
+
 import SitesManagement from './pages/admin/SitesManagement'
 import ActivitiesManagement from './pages/admin/ActivitiesManagement'
 
@@ -76,7 +77,7 @@ class GlobalErrorBoundary extends React.Component {
                 <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
                     <h2 className="text-xl font-bold text-slate-800 mb-2">A apărut o eroare de navigare.</h2>
                     <p className="text-sm text-slate-500 mb-4">Te rugăm să reîncarci pagina.</p>
-                    <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">
+                    <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md transition-colors">
                         Reîncarcă Pagina
                     </button>
                 </div>
@@ -128,6 +129,8 @@ function App() {
                         <Route path="dashboard" element={<AdminOverview />} />
                         <Route path="users" element={<UsersManagement />} />
                         <Route path="employees" element={<EmployeesManagement />} />
+                        <Route path="employees/:id" element={<EmployeesManagement />} />
+
                         <Route path="clients" element={<ClientsManagement />} />
                         <Route path="sites" element={<SitesManagement />} />
                         <Route path="photos-test" element={<PhotoTestPage />} />

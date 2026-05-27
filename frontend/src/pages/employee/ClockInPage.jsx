@@ -896,14 +896,16 @@ export default function ClockInPage() {
                 <div className="flex items-center justify-between max-w-md mx-auto">
                     <div className="flex items-center gap-3">
                         {user?.avatar_path ? (
-                            <img
-                                src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
-                                alt=""
-                                className="w-12 h-12 rounded-full object-cover object-top ring-2 ring-white/40 shadow-lg"
-                                onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
-                            />
+                            <div className="relative shrink-0">
+                                <img
+                                    src={user.avatar_path.startsWith('http') ? user.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
+                                    alt=""
+                                    className="w-12 h-12 rounded-lg object-cover object-[center_20%] shrink-0 ring-2 ring-white/50"
+                                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.nextElementSibling.style.display = 'flex' }}
+                                />
+                            </div>
                         ) : null}
-                        <div className={`w-12 h-12 rounded-full bg-white/20 items-center justify-center text-lg font-bold ${user?.avatar_path ? 'hidden' : 'flex'}`}>
+                        <div className={`w-12 h-12 rounded-lg bg-white/20 items-center justify-center text-lg font-bold ${user?.avatar_path ? 'hidden' : 'flex'}`}>
                             {user?.full_name?.charAt(0) || '?'}
                         </div>
                         <div>
@@ -914,7 +916,7 @@ export default function ClockInPage() {
                     <div className="flex items-center gap-1">
                         <button
                             onClick={() => navigate('/history')}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
                             title={t('common.my_history')}
                         >
                             <Calendar className="w-5 h-5" />
@@ -922,7 +924,7 @@ export default function ClockInPage() {
 
                         <button
                             onClick={() => { logout(); navigate('/login'); }}
-                            className="p-2 hover:bg-red-500/30 rounded-lg transition-colors"
+                            className="p-2 hover:bg-red-500/30 rounded-full transition-colors"
                             title={t('common.logout')}
                         >
                             <LogOut className="w-5 h-5" />
@@ -1080,7 +1082,7 @@ export default function ClockInPage() {
 
                     {/* Current Address */}
                     {currentAddress && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur rounded-lg border border-gray-200 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur rounded-full border border-gray-200 text-sm text-gray-600">
                             <Navigation className="w-4 h-4 text-blue-500 flex-shrink-0" />
                             <span className="truncate">{currentAddress}</span>
                         </div>
@@ -1329,7 +1331,7 @@ export default function ClockInPage() {
                                     </div>
                                     <button
                                         onClick={() => setShowActivityPicker(!showActivityPicker)}
-                                        className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-medium hover:bg-blue-100 flex items-center gap-1"
+                                        className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full font-medium hover:bg-blue-100 flex items-center gap-1"
                                     >
                                         <Plus className="w-3.5 h-3.5" /> Adaugă
                                     </button>
@@ -1418,11 +1420,11 @@ export default function ClockInPage() {
                                                                                     onChange={e => setActivityQuantities(prev => ({ ...prev, [act.id]: e.target.value === '' ? '' : parseFloat(e.target.value) }))}
                                                                                     onBlur={e => { if (e.target.value === '' || parseFloat(e.target.value) < 1) setActivityQuantities(prev => ({ ...prev, [act.id]: 1 })) }}
                                                                                     onClick={e => e.target.select()}
-                                                                                    className="w-16 text-center border border-slate-200 rounded-lg py-1.5 text-sm"
+                                                                                    className="w-16 text-center border border-slate-200 rounded-full py-1.5 text-sm"
                                                                                 />
                                                                                 <button
                                                                                     onClick={() => handleAddActivity(act)}
-                                                                                    className={`text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${lastAddedActivityId === act.id
+                                                                                    className={`text-white px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${lastAddedActivityId === act.id
                                                                                         ? 'bg-green-500 scale-105'
                                                                                         : 'hover:opacity-90'
                                                                                         }`}

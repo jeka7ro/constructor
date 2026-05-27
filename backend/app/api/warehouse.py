@@ -46,8 +46,9 @@ class WarehouseTransactionCreate(BaseModel):
 
 # GET items
 @router.get("/warehouse/items")
-def get_items(category: Optional[str] = None, site_id: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
-    is_admin_or_logistic(current_admin)
+def get_items(category: Optional[str] = None, site_id: Optional[str] = None, assigned_to_user_id: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    from app.api.warehouse_get_items import get_items_logic
+    return get_items_logic(category, site_id, assigned_to_user_id, db, current_admin)
     query = db.query(WarehouseItem, Site.name.label("site_name"), User.full_name.label("holder_name"))\
               .outerjoin(Site, WarehouseItem.current_site_id == Site.id)\
               .outerjoin(User, WarehouseItem.current_holder_id == User.id)\
@@ -659,3 +660,47 @@ def confirm_return(
     db.commit()
 
     return {"success": True, "condition": body.condition, "item_name": item.name}
+
+
+@router.get("/warehouse/transactions/user/{user_id}")
+def get_user_warehouse_transactions(
+    user_id: str,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    # Fetch all transactions involving this user (either they requested it or it was assigned to them)
+    transactions = db.query(WarehouseTransaction).filter(
+        WarehouseTransaction.assigned_to_user_id == user_id
+    ).order_by(desc(WarehouseTransaction.created_at)).all()
+    
+    result = []
+    # Pre-fetch items to get names
+    all_items = {i.id: i for i in db.query(WarehouseItem).all()}
+    all_users = {u.id: u for u in db.query(User).all()}
+    
+    for tx in transactions:
+        item = all_items.get(tx.item_id)
+        if not item:
+            continue
+            
+        operator_name = "Admin"
+        if tx.operated_by_id:
+            op_user = all_users.get(tx.operated_by_id)
+            if op_user:
+                operator_name = op_user.full_name
+                
+        result.append({
+            "id": tx.id,
+            "item_id": tx.item_id,
+            "item_name": item.name,
+            "item_sku": item.inventory_code or item.model or "N/A",
+            "item_category": item.category,
+            "tx_type": tx.transaction_type.lower(),
+            "quantity": float(tx.quantity),
+            "date": str(tx.date),
+            "created_at": tx.created_at.isoformat() if tx.created_at else None,
+            "notes": tx.notes,
+            "user_name": operator_name
+        })
+        
+    return result

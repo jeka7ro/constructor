@@ -149,7 +149,7 @@ export default function TeamsManagement() {
             key: 'name', label: t('teams.team_name'), sortable: true,
             render: (team) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center">
                         <Users className="w-4 h-4" />
                     </div>
                     <span className="font-bold text-slate-900 dark:text-white">{team.name}</span>
@@ -188,10 +188,10 @@ export default function TeamsManagement() {
             key: 'actions', label: t('common.actions'),
             render: (team) => (
                 <div className="flex items-center gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); openEditModal(team) }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg transition-colors">
+                    <button onClick={(e) => { e.stopPropagation(); openEditModal(team) }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full transition-colors">
                         <Edit3 className="w-4 h-4" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(team.id) }} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors">
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(team.id) }} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-colors">
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
@@ -255,7 +255,7 @@ export default function TeamsManagement() {
                     <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-bold text-slate-900">{editingTeamId ? 'Editare Echipă' : t('teams.new_team')}</h2>
-                            <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 rounded-lg">
+                            <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 rounded-full">
                                 <X className="w-5 h-5 text-slate-500" />
                             </button>
                         </div>
@@ -303,7 +303,7 @@ export default function TeamsManagement() {
                                     <input
                                         type="text" placeholder={t('teams.search_worker')} value={searchQ}
                                         onChange={e => setSearchQ(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:border-blue-400 outline-none"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-full text-sm focus:border-blue-400 outline-none"
                                     />
                                 </div>
                                 <div className="border border-slate-200 rounded-xl max-h-60 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">

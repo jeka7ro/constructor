@@ -193,7 +193,7 @@ export default function EmployeeMaterialRequests() {
             <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg sticky top-0 z-10">
                 <div className="flex items-center justify-between max-w-md mx-auto">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                         <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export default function EmployeeMaterialRequests() {
                     </div>
                     <button
                         onClick={() => setShowForm(!showForm)}
-                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                        className="p-2 hover:bg-white/20 rounded-full transition-colors"
                         title="Cerere nouă"
                     >
                         <Plus className="w-5 h-5" />
@@ -235,13 +235,13 @@ export default function EmployeeMaterialRequests() {
                                             <p className="text-sm font-semibold text-slate-800">{item.name}</p>
                                             <p className="text-xs text-slate-500">{item.category} {item.model ? `• ${item.model}` : ''}</p>
                                         </div>
-                                        <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm font-bold border border-slate-200 shadow-sm">
+                                        <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm font-bold border border-slate-200 shadow-sm">
                                             {item.site_stock} {item.unit}
                                         </div>
                                     </div>
                                     <button 
                                         onClick={() => handleRequestSiteItem(item)}
-                                        className="w-full mt-1 py-2 bg-white border border-orange-200 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-50 transition-colors flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
+                                        className="w-full mt-1 py-2 bg-white border border-orange-200 text-orange-600 rounded-full text-xs font-bold hover:bg-orange-50 transition-colors flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
                                     >
                                         <Plus className="w-3 h-3" />
                                         Solicită Preluarea
@@ -280,7 +280,7 @@ export default function EmployeeMaterialRequests() {
                                                                     <p className="text-sm font-semibold text-slate-800 truncate">{item.name}</p>
                                                                     <p className="text-[11px] font-medium text-slate-500">Stoc: {item.central_stock} {item.unit}</p>
                                                                 </div>
-                                                                <div className="flex items-center gap-1 bg-white rounded-lg border border-slate-200 p-0.5 shadow-sm shrink-0">
+                                                                <div className="flex items-center gap-1 bg-white rounded-full border border-slate-200 p-0.5 shadow-sm shrink-0">
                                                                     <button type="button" onClick={() => handleQuantityChange(item.id, -1, item.central_stock)} className="w-8 h-8 flex items-center justify-center rounded bg-slate-50 text-slate-600 hover:bg-orange-100 hover:text-orange-600 transition-colors font-bold text-lg leading-none active:scale-95">-</button>
                                                                     <span className="w-8 text-center text-sm font-bold text-slate-800">{qty}</span>
                                                                     <button type="button" onClick={() => handleQuantityChange(item.id, 1, item.central_stock)} className="w-8 h-8 flex items-center justify-center rounded bg-slate-50 text-slate-600 hover:bg-orange-100 hover:text-orange-600 transition-colors font-bold text-lg leading-none active:scale-95">+</button>

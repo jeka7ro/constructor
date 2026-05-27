@@ -31,6 +31,7 @@ def mr_to_dict(mr: MaterialRequest) -> dict:
         "updated_at": str(mr.updated_at),
         "user_id": mr.user_id,
         "user_name": mr.user.full_name if mr.user else "N/A",
+        "avatar_path": mr.user.avatar_path if mr.user else None,
         "site_id": mr.site_id,
         "site_name": mr.site.name if mr.site else "N/A"
     }

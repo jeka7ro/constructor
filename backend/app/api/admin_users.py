@@ -174,27 +174,113 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
     try:
         from PIL import Image
         img = Image.open(image_path)
-        
-        # ===== Extract avatar (face photo) FIRST — works without easyocr =====
+          # ===== Extract avatar using OpenCV Face Detection and OCR Layout =====
         try:
-            w, h = img.size
-            # Romanian ID card: photo is on the left side
-            left = int(w * 0.02)
-            top = int(h * 0.15)
-            right = int(w * 0.35)
-            bottom = int(h * 0.85)
+            import cv2
+            import numpy as np
+            from PIL import ImageOps
+            import easyocr
             
-            face_crop = img.crop((left, top, right, bottom))
+            # Apply EXIF rotation to ensure correct pixel alignment
+            img = ImageOps.exif_transpose(img)
             
+            open_cv_image = np.array(img.convert('RGB'))
+            open_cv_image = open_cv_image[:, :, ::-1].copy() 
+            
+            cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+            face_cascade = cv2.CascadeClassifier(cascade_path)
+            
+            rotations = [
+                (0, None, img),
+                (90, cv2.ROTATE_90_CLOCKWISE, img.transpose(Image.ROTATE_270)),
+                (180, cv2.ROTATE_180, img.transpose(Image.ROTATE_180)),
+                (270, cv2.ROTATE_90_COUNTERCLOCKWISE, img.transpose(Image.ROTATE_90))
+            ]
+            
+            face_crop = None
+            
+            for angle, cv_rot, pil_rot in rotations:
+                rotated_cv = open_cv_image if angle == 0 else cv2.rotate(open_cv_image, cv_rot)
+                gray = cv2.cvtColor(rotated_cv, cv2.COLOR_BGR2GRAY)
+                
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+                
+                if len(faces) > 0:
+                    largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
+                    x, y, w, h = largest_face
+                    margin_x = int(w * 0.25)
+                    margin_y = int(h * 0.35)
+                    img_h, img_w = rotated_cv.shape[:2]
+                    
+                    x1 = max(0, x - margin_x)
+                    y1 = max(0, y - margin_y)
+                    x2 = min(img_w, x + w + margin_x)
+                    y2 = min(img_h, y + h + int(margin_y * 1.5))
+                    
+                    face_crop = pil_rot.crop((x1, y1, x2, y2))
+                    break
+            
+            # === FALLBACK: OCR Layout Analysis ===
+            if not face_crop:
+                reader = easyocr.Reader(['ro', 'en'], gpu=False, verbose=False)
+                ocr_results = reader.readtext(open_cv_image)
+                
+                # Filter out MRZ
+                valid_text = [r for r in ocr_results if '<' not in r[1]]
+                
+                if len(valid_text) > 3:
+                    all_x = []
+                    all_y = []
+                    dx_sum = 0
+                    dy_sum = 0
+                    for (bbox, text, prob) in valid_text:
+                        pt0, pt1, pt2, pt3 = bbox
+                        all_x.extend([pt0[0], pt1[0], pt2[0], pt3[0]])
+                        all_y.extend([pt0[1], pt1[1], pt2[1], pt3[1]])
+                        dx_sum += (pt1[0] - pt0[0])
+                        dy_sum += (pt1[1] - pt0[1])
+                    
+                    all_x.sort()
+                    all_y.sort()
+                    
+                    TX_min = all_x[int(len(all_x) * 0.20)]
+                    TX_max = all_x[int(len(all_x) * 0.80)]
+                    TY_min = all_y[int(len(all_y) * 0.10)]
+                    TY_max = all_y[int(len(all_y) * 0.90)]
+                    
+                    if abs(dx_sum) > abs(dy_sum):
+                        fh = TY_max - TY_min
+                        fw = fh * 0.75
+                        y_start = TY_min + fh * 0.05
+                        y_end = TY_max - fh * 0.05
+                        if dx_sum > 0:
+                            face_crop = img.crop((max(0, TX_min - fw), y_start, TX_min, y_end))
+                        else:
+                            face_crop = img.crop((TX_max, y_start, min(img.width, TX_max + fw), y_end))
+                    else:
+                        fw = TX_max - TX_min
+                        fh = fw * 0.75
+                        x_start = TX_min + fw * 0.05
+                        x_end = TX_max - fw * 0.05
+                        if dy_sum > 0:
+                            face_crop = img.crop((x_start, max(0, TY_min - fh), x_end, TY_min))
+                        else:
+                            face_crop = img.crop((x_start, TY_max, x_end, min(img.height, TY_max + fh)))
+
+            # === FINAL FALLBACK ===
+            if not face_crop:
+                w_img, h_img = img.size
+                face_crop = img.crop((int(w_img * 0.02), int(h_img * 0.15), int(w_img * 0.35), int(h_img * 0.85)))
+                
             avatar_filename = f"avatar_{uuid.uuid4().hex[:8]}.jpg"
             avatar_buf = io.BytesIO()
             face_crop.save(avatar_buf, "JPEG", quality=90)
-            avatar_bytes = avatar_buf.getvalue()
-            avatar_url = upload_file(avatar_bytes, f"avatars/{avatar_filename}", "image/jpeg")
+            avatar_url = upload_file(avatar_buf.getvalue(), f"avatars/{avatar_filename}", "image/jpeg")
             result["avatar_path"] = avatar_url
+            
         except Exception as e:
-            print(f"Avatar extraction failed: {e}")
-        
+            print(f"Extraction failed: {e}")
+            
     # ===== Try OCR if easyocr is available =====
         full_text = ''
         if raw_text:
@@ -871,3 +957,226 @@ async def upload_avatar(
     db.commit()
     
     return {"avatar_path": avatar_url}
+
+
+@router.get("/{user_id}/analytics")
+def get_user_analytics(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    from app.models import Timesheet, TimesheetSegment, TimesheetLine, Activity, EquipmentDailyLog, AccommodationAssignment, Accommodation, ConstructionSite, WarehouseTransaction, WarehouseItem
+    from sqlalchemy import func, desc
+    import datetime
+    from calendar import monthrange
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    today = datetime.date.today()
+    first_day_of_month = today.replace(day=1)
+    
+    # 1. ACCOMMODATION
+    accomm_assignment = db.query(AccommodationAssignment).filter(
+        AccommodationAssignment.user_id == user_id
+    ).order_by(desc(AccommodationAssignment.assigned_from)).first()
+    
+    accommodation = None
+    if accomm_assignment:
+        acc = db.query(Accommodation).filter(Accommodation.id == accomm_assignment.accommodation_id).first()
+        if acc:
+            accommodation = {
+                "name": acc.name,
+                "address": acc.address,
+                "city": acc.address
+            }
+
+    def calculate_segments_hours(segments_list):
+        total_seconds = 0
+        for seg in segments_list:
+            if seg.check_in_time and seg.check_out_time:
+                diff = (seg.check_out_time - seg.check_in_time).total_seconds()
+                break_diff = 0
+                if seg.break_start_time and seg.break_end_time:
+                    break_diff = (seg.break_end_time - seg.break_start_time).total_seconds()
+                total_seconds += max(0, diff - break_diff)
+        return total_seconds / 3600.0
+
+    # 2. SITE STATS (Average per worker)
+    site_id = user.site_id
+    site_avg_hours = 0
+    site_avg_fuel = 0
+    
+    if site_id:
+        # Get all users on this site
+        site_users = db.query(User).filter(User.site_id == site_id, User.is_active == True).all()
+        site_user_ids = [u.id for u in site_users]
+        num_users = len(site_user_ids)
+        
+        if num_users > 0:
+            # Avg hours this month
+            site_segments = db.query(TimesheetSegment).join(Timesheet).filter(
+                Timesheet.owner_user_id.in_(site_user_ids),
+                Timesheet.date >= first_day_of_month,
+                Timesheet.date <= today
+            ).all()
+            site_avg_hours = calculate_segments_hours(site_segments) / num_users
+            
+            # Avg fuel this month
+            site_equipment_fuel = db.query(func.sum(EquipmentDailyLog.refuel_liters)).filter(
+                EquipmentDailyLog.operator_id.in_(site_user_ids),
+                EquipmentDailyLog.date >= first_day_of_month,
+                EquipmentDailyLog.date <= today
+            ).scalar() or 0
+            
+            site_warehouse_fuel = db.query(func.sum(WarehouseTransaction.quantity)).join(WarehouseItem).filter(
+                WarehouseTransaction.assigned_to_user_id.in_(site_user_ids),
+                WarehouseTransaction.transaction_type == "CONSUME",
+                WarehouseItem.category == "COMBUSTIBIL",
+                WarehouseTransaction.date >= first_day_of_month,
+                WarehouseTransaction.date <= today
+            ).scalar() or 0
+            
+            site_avg_fuel = (float(site_equipment_fuel) + float(site_warehouse_fuel)) / num_users
+
+    # 3. USER STATS (This month)
+    user_segments = db.query(TimesheetSegment).join(Timesheet).filter(
+        Timesheet.owner_user_id == user_id,
+        Timesheet.date >= first_day_of_month,
+        Timesheet.date <= today
+    ).all()
+    user_hours = calculate_segments_hours(user_segments)
+
+    # Fuel this month (from equipment logs)
+    equipment_fuel = db.query(func.sum(EquipmentDailyLog.refuel_liters)).filter(
+        EquipmentDailyLog.operator_id == user_id,
+        EquipmentDailyLog.date >= first_day_of_month,
+        EquipmentDailyLog.date <= today
+    ).scalar() or 0
+    
+    # Fuel this month (from warehouse consumable transactions)
+    warehouse_fuel = db.query(func.sum(WarehouseTransaction.quantity)).join(WarehouseItem).filter(
+        WarehouseTransaction.assigned_to_user_id == user_id,
+        WarehouseTransaction.transaction_type == "CONSUME",
+        WarehouseItem.category == "COMBUSTIBIL",
+        WarehouseTransaction.date >= first_day_of_month,
+        WarehouseTransaction.date <= today
+    ).scalar() or 0
+    
+    user_fuel = float(equipment_fuel) + float(warehouse_fuel)
+
+    # Fuel received — OUT-urile din magazie pentru COMBUSTIBIL
+    # Sursa 1: direct pe numele angajatului
+    fuel_received_direct = db.query(func.sum(WarehouseTransaction.quantity)).join(WarehouseItem).filter(
+        WarehouseTransaction.assigned_to_user_id == user_id,
+        WarehouseTransaction.transaction_type == "OUT",
+        WarehouseItem.category == "COMBUSTIBIL",
+        WarehouseTransaction.date >= first_day_of_month,
+        WarehouseTransaction.date <= today
+    ).scalar() or 0
+
+    # Sursa 2: pe șantierele unde a consumat efectiv în luna asta
+    consume_site_ids = [
+        row[0] for row in db.query(WarehouseTransaction.site_id).join(WarehouseItem).filter(
+            WarehouseTransaction.assigned_to_user_id == user_id,
+            WarehouseTransaction.transaction_type == "CONSUME",
+            WarehouseItem.category == "COMBUSTIBIL",
+            WarehouseTransaction.date >= first_day_of_month,
+            WarehouseTransaction.date <= today,
+            WarehouseTransaction.site_id != None
+        ).distinct().all()
+    ]
+
+    fuel_received_at_sites = 0
+    if consume_site_ids:
+        fuel_received_at_sites = db.query(func.sum(WarehouseTransaction.quantity)).join(WarehouseItem).filter(
+            WarehouseTransaction.site_id.in_(consume_site_ids),
+            WarehouseTransaction.transaction_type == "OUT",
+            WarehouseItem.category == "COMBUSTIBIL",
+            WarehouseTransaction.date >= first_day_of_month,
+            WarehouseTransaction.date <= today
+        ).scalar() or 0
+
+    warehouse_fuel_received = max(float(fuel_received_direct), float(fuel_received_at_sites))
+    
+    # 4. ACTIVITIES BREAKDOWN & ANOMALIES
+    lines = db.query(TimesheetLine, Activity.name).join(Activity).join(TimesheetSegment).join(Timesheet).filter(
+        Timesheet.owner_user_id == user_id,
+        Timesheet.date >= first_day_of_month,
+        Timesheet.date <= today
+    ).all()
+    
+    activities_dict = {}
+    for line, act_name in lines:
+        if act_name not in activities_dict:
+            activities_dict[act_name] = {"count": 0, "quantity": 0, "unit": line.unit_type}
+        activities_dict[act_name]["count"] += 1
+        if line.quantity_numeric:
+            activities_dict[act_name]["quantity"] += float(line.quantity_numeric)
+            
+    activities_breakdown = []
+    for act_name, data in activities_dict.items():
+        activities_breakdown.append({
+            "name": act_name,
+            "count": data["count"],
+            "quantity": data["quantity"],
+            "unit": data["unit"]
+        })
+    activities_breakdown.sort(key=lambda x: x["count"], reverse=True)
+
+    # Calculate 6-month historical chart for this user vs site
+    historical_chart = []
+    for i in range(5, -1, -1):
+        # Calculate month range
+        m = today.month - i
+        y = today.year
+        if m <= 0:
+            m += 12
+            y -= 1
+        
+        start_dt = datetime.date(y, m, 1)
+        _, last_day = monthrange(y, m)
+        end_dt = datetime.date(y, m, last_day)
+        
+        # User hours in month
+        u_segs = db.query(TimesheetSegment).join(Timesheet).filter(
+            Timesheet.owner_user_id == user_id,
+            Timesheet.date >= start_dt,
+            Timesheet.date <= end_dt
+        ).all()
+        u_h = calculate_segments_hours(u_segs)
+        
+        # Site avg hours in month
+        s_avg = 0
+        if site_id:
+            s_segs = db.query(TimesheetSegment).join(Timesheet).join(User, Timesheet.owner_user_id == User.id).filter(
+                User.site_id == site_id,
+                Timesheet.date >= start_dt,
+                Timesheet.date <= end_dt
+            ).all()
+            s_h = calculate_segments_hours(s_segs)
+            
+            s_users_count = db.query(func.count(User.id)).filter(User.site_id == site_id).scalar() or 1
+            s_avg = float(s_h) / s_users_count if s_users_count > 0 else 0
+            
+        month_name = start_dt.strftime("%b %Y")
+        historical_chart.append({
+            "month": month_name,
+            "user_hours": round(float(u_h), 1),
+            "site_avg": round(float(s_avg), 1)
+        })
+
+    return {
+        "accommodation": accommodation,
+        "this_month": {
+            "user_hours": round(float(user_hours), 1),
+            "user_fuel": round(float(user_fuel), 1),
+            "user_fuel_received": round(float(warehouse_fuel_received), 1),
+            "site_avg_hours": round(float(site_avg_hours), 1),
+            "site_avg_fuel": round(float(site_avg_fuel), 1),
+        },
+        "activities_breakdown": activities_breakdown,
+        "historical_chart": historical_chart,
+        "anomalies": [] # For future AI logic
+    }

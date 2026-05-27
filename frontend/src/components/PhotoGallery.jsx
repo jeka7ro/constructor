@@ -79,7 +79,7 @@ export default function PhotoGallery({ timesheetId, canDelete = false }) {
                     {photos.map((photo) => (
                         <div
                             key={photo.id}
-                            className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-blue-400 transition-all cursor-pointer"
+                            className="group relative aspect-square rounded-full overflow-hidden border border-slate-200 hover:border-blue-400 transition-all cursor-pointer"
                             onClick={() => setSelectedPhoto(photo)}
                         >
                             <img
@@ -110,7 +110,7 @@ export default function PhotoGallery({ timesheetId, canDelete = false }) {
                             </h3>
                             <button
                                 onClick={() => setSelectedPhoto(null)}
-                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5 text-slate-600" />
                             </button>
@@ -121,7 +121,7 @@ export default function PhotoGallery({ timesheetId, canDelete = false }) {
                             <img
                                 src={`/${selectedPhoto.file_path}`}
                                 alt={selectedPhoto.filename}
-                                className="w-full h-auto rounded-lg shadow-lg"
+                                className="w-full h-auto rounded-full shadow-lg"
                             />
                         </div>
 
@@ -167,7 +167,7 @@ export default function PhotoGallery({ timesheetId, canDelete = false }) {
                             <a
                                 href={`/${selectedPhoto.file_path}`}
                                 download={selectedPhoto.filename}
-                                className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <Download className="w-4 h-4" />
                                 Descarcă
@@ -175,7 +175,7 @@ export default function PhotoGallery({ timesheetId, canDelete = false }) {
                             {canDelete && (
                                 <button
                                     onClick={() => handleDelete(selectedPhoto.id)}
-                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-colors flex items-center gap-2"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                     Șterge

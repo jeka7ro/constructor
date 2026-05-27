@@ -92,7 +92,7 @@ def can_approve_timesheet(approver: User, timesheet: Timesheet, db: Session):
 # ============================================================================
 
 @router.get("/timesheets/")
-async def list_my_timesheets(
+def list_my_timesheets(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -164,7 +164,7 @@ async def list_my_timesheets(
 
 
 @router.get("/timesheets/{timesheet_id}")
-async def get_timesheet_details(
+def get_timesheet_details(
     timesheet_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -228,7 +228,7 @@ async def get_timesheet_details(
 
 
 @router.post("/timesheets/")
-async def create_timesheet(
+def create_timesheet(
     data: TimesheetCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -308,7 +308,7 @@ async def create_timesheet(
 
 
 @router.put("/timesheets/{timesheet_id}")
-async def update_timesheet(
+def update_timesheet(
     timesheet_id: str,
     data: TimesheetUpdate,
     db: Session = Depends(get_db),
@@ -359,7 +359,7 @@ async def update_timesheet(
 
 
 @router.post("/timesheets/{timesheet_id}/submit")
-async def submit_timesheet(
+def submit_timesheet(
     timesheet_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -401,7 +401,7 @@ async def submit_timesheet(
 
 
 @router.delete("/timesheets/{timesheet_id}")
-async def delete_timesheet(
+def delete_timesheet(
     timesheet_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -429,7 +429,7 @@ async def delete_timesheet(
 # ============================================================================
 
 @router.get("/admin/timesheets/pending")
-async def list_pending_timesheets(
+def list_pending_timesheets(
     status: Optional[str] = Query("SUBMITTED"),
     site_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
@@ -499,7 +499,7 @@ async def list_pending_timesheets(
 
 
 @router.post("/admin/timesheets/{timesheet_id}/approve")
-async def approve_timesheet(
+def approve_timesheet(
     timesheet_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -530,7 +530,7 @@ async def approve_timesheet(
 
 
 @router.post("/admin/timesheets/{timesheet_id}/reject")
-async def reject_timesheet(
+def reject_timesheet(
     timesheet_id: str,
     action: ApprovalAction,
     db: Session = Depends(get_db),
@@ -562,7 +562,7 @@ async def reject_timesheet(
     }
 
 @router.get("/admin/timesheets/stats")
-async def get_timesheet_stats(
+def get_timesheet_stats(
     site_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -621,7 +621,7 @@ async def get_timesheet_stats(
 
 
 @router.get("/admin/dashboard-stats")
-async def get_dashboard_stats(
+def get_dashboard_stats(
     site_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -758,7 +758,7 @@ async def get_dashboard_stats(
 # ============================================================================
 
 @router.get("/admin/timesheets/active-workers")
-async def get_active_workers(
+def get_active_workers(
     site_id: Optional[str] = None,
     target_date: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -978,7 +978,7 @@ async def get_active_workers(
 
 
 @router.get("/admin/timesheets/worker/{worker_id}/history")
-async def get_worker_history(
+def get_worker_history(
     worker_id: str,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
@@ -1114,7 +1114,7 @@ async def get_worker_history(
 # ============================================================================
 
 @router.get("/activities/")
-async def list_activities(
+def list_activities(
     is_active: bool = Query(True),
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
@@ -1241,7 +1241,7 @@ async def list_activities(
 
 
 @router.post("/timesheets/{timesheet_id}/activities")
-async def add_activity_to_timesheet(
+def add_activity_to_timesheet(
     timesheet_id: str,
     activity: ActivityInput,
     db: Session = Depends(get_db),
@@ -1291,7 +1291,7 @@ async def add_activity_to_timesheet(
 
 
 @router.delete("/timesheets/activities/{activity_id}")
-async def delete_activity_from_timesheet(
+def delete_activity_from_timesheet(
     activity_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -1342,7 +1342,7 @@ class ActivityUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 @router.post("/admin/activities/")
-async def create_activity(
+def create_activity(
     data: ActivityCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -1368,7 +1368,7 @@ async def create_activity(
     }
 
 @router.put("/admin/activities/{activity_id}")
-async def update_activity(
+def update_activity(
     activity_id: str,
     data: ActivityUpdate,
     db: Session = Depends(get_db),
@@ -1403,7 +1403,7 @@ async def update_activity(
     return {"message": "Activity updated successfully"}
 
 @router.delete("/admin/activities/{activity_id}")
-async def delete_activity(
+def delete_activity(
     activity_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -1449,7 +1449,7 @@ class CategoryUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 @router.get("/admin/activity-categories/")
-async def list_activity_categories(
+def list_activity_categories(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -1482,7 +1482,7 @@ async def list_activity_categories(
     return {"categories": result}
 
 @router.post("/admin/activity-categories/")
-async def create_activity_category(
+def create_activity_category(
     data: CategoryCreate,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -1506,7 +1506,7 @@ async def create_activity_category(
     }
 
 @router.put("/admin/activity-categories/{category_id}")
-async def update_activity_category(
+def update_activity_category(
     category_id: str,
     data: CategoryUpdate,
     db: Session = Depends(get_db),
@@ -1537,7 +1537,7 @@ async def update_activity_category(
     return {"message": "Category updated successfully"}
 
 @router.delete("/admin/activity-categories/{category_id}")
-async def delete_activity_category(
+def delete_activity_category(
     category_id: str,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -1571,7 +1571,7 @@ async def delete_activity_category(
 # ============================================================================
 
 @router.put("/admin/timesheets/segments/{segment_id}/approve-overtime")
-async def approve_segment_overtime(
+def approve_segment_overtime(
     segment_id: str,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -1607,7 +1607,7 @@ async def approve_segment_overtime(
 
 
 @router.get("/admin/notifications/feed")
-async def get_notification_feed(
+def get_notification_feed(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -1723,7 +1723,7 @@ async def get_notification_feed(
 # ============================================================================
 
 @router.get("/admin/timesheets/export/excel")
-async def export_timesheets_excel(
+def export_timesheets_excel(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     site_id: Optional[str] = None,
@@ -1846,7 +1846,7 @@ async def export_timesheets_excel(
 # ============================================================================
 
 @router.get("/admin/activities/export/excel")
-async def export_activities_excel(
+def export_activities_excel(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):

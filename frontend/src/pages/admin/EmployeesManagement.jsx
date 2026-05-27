@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAdminStore } from '../../store/adminStore'
 import useViewPreferencesStore from '../../store/viewPreferencesStore'
@@ -7,6 +8,8 @@ import { Users, Plus, Search, Edit2, Trash2, Key, UserCheck, UserX, Loader2, Mai
 import ViewToggle from '../../components/ViewToggle'
 import Pagination from '../../components/Pagination'
 import AvatarCropModal from '../../components/AvatarCropModal'
+import EmployeeDetailView from '../../components/EmployeeDetailView'
+
 import { useUIStore } from '../../store/uiStore'
 
 const PAGE_ID = 'admin-employees'
@@ -30,6 +33,8 @@ const EMPTY_USER = {
 }
 
 export default function EmployeesManagement() {
+    const navigate = useNavigate()
+    const { id } = useParams()
     const { t } = useTranslation()
     const { showDialog, showToast, openDialog } = useUIStore()
     const [users, setUsers] = useState([])
@@ -41,6 +46,9 @@ export default function EmployeesManagement() {
     const [stats, setStats] = useState(null)
     const [roles, setRoles] = useState([])
     const token = useAdminStore((state) => state.token)
+    
+    // Detail view state
+    const [detailUser, setDetailUser] = useState(null)
     
     // Bulk Select states
     const [selectedUserIds, setSelectedUserIds] = useState([])
@@ -120,12 +128,29 @@ export default function EmployeesManagement() {
 
     const fetchStats = async () => {
         try {
-            const response = await api.get('/admin/users/stats/summary')
-            setStats(response.data)
+            const res = await api.get('/admin/users/stats/summary')
+            setStats(res.data)
         } catch (error) {
             console.error('Error fetching stats:', error)
         }
     }
+
+    // Sync detailUser with URL id
+    useEffect(() => {
+        if (id && users.length > 0) {
+            const user = users.find(u => u.id === id)
+            if (user) {
+                setDetailUser(user)
+            } else {
+                // If ID is in URL but user not in current page, maybe fetch specifically?
+                // For now, if we can't find it locally, we clear it or just let it be.
+                // Ideally, we'd fetch the specific user.
+                api.get(`/admin/users/${id}`).then(res => setDetailUser(res.data)).catch(console.error)
+            }
+        } else if (!id) {
+            setDetailUser(null)
+        }
+    }, [id, users])
 
     const fetchRoles = async () => {
         try {
@@ -370,8 +395,7 @@ export default function EmployeesManagement() {
     }
 
     const handleViewUser = (user) => {
-        setViewingUser(user)
-        setShowViewModal(true)
+        navigate(`/admin/employees/${user.id}`)
     }
 
     const handleIdCardSelect = (e) => {
@@ -490,61 +514,67 @@ export default function EmployeesManagement() {
             </div>
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+                {!detailUser && (
                 <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">
                     <div className="relative group flex items-center w-full sm:w-auto">
-                        <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                            <Search className="w-4 h-4" />
-                        </div>
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                            placeholder={t('users.search_placeholder')}
-                            className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                        />
-                        {search && (
-                            <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
-                                <span className="text-[10px] font-bold text-white">
-                                    {users.length}/{totalUsers || 0}
-                                </span>
-                                <button 
-                                    onClick={() => { setSearch(''); setCurrentPage(PAGE_ID, 1) }}
-                                    className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
-                                >
-                                    <X className="w-3 h-3 text-white/80 hover:text-white" />
-                                </button>
+                            <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                <Search className="w-4 h-4" />
                             </div>
-                        )}
-                    </div>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                                placeholder={t('users.search_placeholder')}
+                                className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            />
+                            {search && (
+                                <div className="absolute right-1.5 flex items-center gap-1 bg-blue-600 px-2 py-1 rounded-full shadow-sm">
+                                    <span className="text-[10px] font-bold text-white">
+                                        {users.length}/{totalUsers || 0}
+                                    </span>
+                                    <button 
+                                        onClick={() => { setSearch(''); setCurrentPage(PAGE_ID, 1) }}
+                                        className="p-0.5 hover:bg-blue-700 rounded-full transition-colors ml-0.5"
+                                    >
+                                        <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                            className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
-                        >
-                            <option value="true">{t('users.active_tab')}</option>
-                            <option value="false">{t('users.archive_tab')}</option>
-                            <option value="">{t('common.all') || 'Toate'}</option>
-                        </select>
+                        {!detailUser && (
+                            <>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                                    className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
+                                >
+                                    <option value="true">{t('users.active_tab')}</option>
+                                    <option value="false">{t('users.archive_tab')}</option>
+                                    <option value="">{t('common.all') || 'Toate'}</option>
+                                </select>
 
-                        <select
-                            value={roleFilter}
-                            onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                            className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
-                        >
-                            <option value="">Toate Rolurile</option>
-                            {roles.map(role => (
-                                <option key={role.id} value={role.id}>{role.name}</option>
-                            ))}
-                        </select>
+                                <select
+                                    value={roleFilter}
+                                    onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(PAGE_ID, 1) }}
+                                    className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
+                                >
+                                    <option value="">Toate Rolurile</option>
+                                    {roles.map(role => (
+                                        <option key={role.id} value={role.id}>{role.name}</option>
+                                    ))}
+                                </select>
 
-                        <ViewToggle
-                            viewMode={preferences.viewMode}
-                            onViewModeChange={(mode) => setViewMode(PAGE_ID, mode)}
-                        />
+                                <ViewToggle
+                                    viewMode={preferences.viewMode}
+                                    onViewModeChange={(mode) => setViewMode(PAGE_ID, mode)}
+                                />
+                            </>
+                        )}
 
                         {/* Actions */}
                         <input type="file" ref={importInputRef} accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
@@ -558,23 +588,28 @@ export default function EmployeesManagement() {
                             <span className="hidden sm:inline">Export Excel</span>
                         </button>
 
-                        {selectedUserIds.length > 0 && (
+                        {!detailUser && selectedUserIds.length > 0 && (
                             <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
                                 <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">{t('common.delete')} ({selectedUserIds.length})</span>
                             </button>
                         )}
 
-                        <button 
-                            onClick={handleAddUser} 
-                            className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
-                        >
-                            <Plus className="w-4 h-4" /> {t('common.add')}
-                        </button>
+                        {!detailUser && (
+                            <button 
+                                onClick={handleAddUser} 
+                                className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
+                            >
+                                <Plus className="w-4 h-4" /> {t('common.add')}
+                            </button>
+                        )}
                     </div>
                 </div>
+                )}
 
-                <div className="bg-slate-50/30 dark:bg-slate-900/50">
-                    {loading ? (
+                <div className="bg-slate-50/30 dark:bg-slate-900/50 flex-1 relative">
+                    {detailUser ? (
+                        <EmployeeDetailView user={detailUser} onBack={() => navigate('/admin/employees')} onExport={handleExportExcel} />
+                    ) : loading ? (
                         <div className="flex items-center justify-center py-12">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                         </div>
@@ -584,7 +619,7 @@ export default function EmployeesManagement() {
                         <UsersGrid users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
                     )}
 
-                    {!loading && users.length === 0 && (
+                    {!loading && !detailUser && users.length === 0 && (
                         <div className="text-center py-12">
                             <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                             <p className="text-slate-600 font-medium">{t('users.no_users')}</p>
@@ -594,7 +629,7 @@ export default function EmployeesManagement() {
                 </div>
 
                 {/* Pagination */}
-                {!loading && users.length > 0 && (
+                {!loading && !detailUser && users.length > 0 && (
                     <Pagination
                         currentPage={preferences.currentPage}
                         pageSize={preferences.pageSize}
@@ -619,7 +654,7 @@ export default function EmployeesManagement() {
                                             src={`${API_BASE}${editingUser.avatar_path}`}
                                             style={{ objectPosition: 'top' }}
                                             alt=""
-                                            className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200"
+                                            className="w-10 h-12 rounded-lg object-cover object-[center_20%] ring-2 ring-slate-200 shrink-0"
                                             onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
                                         />
                                     ) : null}
@@ -676,7 +711,7 @@ export default function EmployeesManagement() {
                                         />
                                         {idCardPreview ? (
                                             <div className="relative">
-                                                <img src={idCardPreview} alt="CI Preview" className="w-full h-40 object-contain rounded-lg border border-slate-200 bg-white" />
+                                                <img src={idCardPreview} alt="CI Preview" className="w-full h-40 object-contain rounded-full border border-slate-200 bg-white" />
                                                 <button
                                                     onClick={() => { setIdCardFile(null); setIdCardPreview(null) }}
                                                     className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
@@ -979,105 +1014,6 @@ export default function EmployeesManagement() {
                 </div>
             )}
 
-            {/* =================== VIEW USER MODAL =================== */}
-            {showViewModal && viewingUser && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowViewModal(false)}>
-                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                                <Eye className="w-6 h-6 text-blue-600" />
-                                Detalii Angajat
-                            </h2>
-                            <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                                <X className="w-6 h-6 text-slate-600" />
-                            </button>
-                        </div>
-
-                        <div className="p-6">
-                            {/* User Header */}
-                            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-200">
-                                {viewingUser.avatar_path ? (
-                                    <img
-                                        src={`${API_BASE}${viewingUser.avatar_path}`}
-                                        style={{ objectPosition: 'top' }}
-                                        alt="Avatar"
-                                        className="w-16 h-16 rounded-full object-cover shadow-lg border-2 border-blue-200"
-                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
-                                    />
-                                ) : null}
-                                <div className={`w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full items-center justify-center text-white font-bold text-2xl shadow-lg ${viewingUser.avatar_path ? 'hidden' : 'flex'}`}>
-                                    {viewingUser.full_name?.charAt(0) || '?'}
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-900">{viewingUser.full_name}</h3>
-                                    <p className="text-sm font-mono text-slate-500">{viewingUser.employee_code}</p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                                            {viewingUser.role_name}
-                                        </span>
-                                        {viewingUser.is_active ? (
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Activ
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                                                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div> Inactiv
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Info Grid */}
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                <InfoField label="Nume" value={viewingUser.last_name} />
-                                <InfoField label="Prenume" value={viewingUser.first_name} />
-                                <InfoField label="CNP" value={viewingUser.cnp} />
-                                <InfoField label="Serie Buletin" value={viewingUser.id_card_series} icon={<CreditCard className="w-4 h-4" />} />
-                                <InfoField label="Data Nașterii" value={viewingUser.birth_date ? new Date(viewingUser.birth_date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' }) : null} />
-                                <InfoField label="Loc Naștere" value={viewingUser.birth_place} icon={<MapPin className="w-4 h-4" />} />
-                                <InfoField label="Telefon" value={viewingUser.phone} icon={<Phone className="w-4 h-4" />} />
-                                <InfoField label="Email" value={viewingUser.email} icon={<Mail className="w-4 h-4" />} />
-                                <InfoField label="Domiciliu" value={viewingUser.address} fullWidth />
-                            </div>
-
-                            {/* ID Card Image */}
-                            {viewingUser.id_card_path && (
-                                <div className="mt-4">
-                                    <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                                        <CreditCard className="w-4 h-4" />
-                                        Carte de Identitate
-                                    </h4>
-                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                                        <img
-                                            src={`${API_BASE}${viewingUser.id_card_path}`}
-                                            alt="Carte de identitate"
-                                            className="max-w-full max-h-64 mx-auto rounded-lg shadow-md"
-                                            onError={(e) => { e.target.style.display = 'none' }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
-                            <button
-                                onClick={() => { setShowViewModal(false); handleEditUser(viewingUser) }}
-                                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg flex items-center gap-2"
-                            >
-                                <Edit2 className="w-4 h-4" />
-                                Editează
-                            </button>
-                            <button
-                                onClick={() => setShowViewModal(false)}
-                                className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
-                            >
-                                Închide
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* =================== RESET PIN MODAL =================== */}
             {showPinModal && (
@@ -1085,7 +1021,7 @@ export default function EmployeesManagement() {
                     <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900">Resetare PIN</h2>
-                            <button onClick={() => setShowPinModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <button onClick={() => setShowPinModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-slate-600" />
                             </button>
                         </div>
@@ -1145,7 +1081,7 @@ export default function EmployeesManagement() {
                                 <MapPin className="w-5 h-5 text-orange-500" />
                                 Atașează Șantier
                             </h2>
-                            <button onClick={() => setShowAssignSiteModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <button onClick={() => setShowAssignSiteModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-slate-600" />
                             </button>
                         </div>
@@ -1271,9 +1207,9 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                             <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
                                     {user.avatar_path ? (
-                                        <img src={`${apiBase}${user.avatar_path}`} alt="" className="w-8 h-8 rounded-full object-cover object-top ring-1 ring-slate-200 dark:ring-slate-700" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
+                                        <img src={`${apiBase}${user.avatar_path}`} alt="" className="w-9 h-11 rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
                                     ) : null}
-                                    <div className={`w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-xs ring-1 ring-blue-200 dark:ring-blue-800 ${user.avatar_path ? 'hidden' : 'flex'}`}>
+                                    <div className={`w-9 h-11 rounded-lg bg-blue-100 dark:bg-blue-900/30 items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-xs ring-1 ring-blue-200 dark:ring-blue-800 shrink-0 ${user.avatar_path ? 'hidden' : 'flex'}`}>
                                         {(user.last_name?.charAt(0) || '') + (user.first_name?.charAt(0) || '')}
                                     </div>
                                     <div>
@@ -1370,13 +1306,12 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                             {user.avatar_path ? (
                                 <img
                                     src={`${apiBase}${user.avatar_path}`}
-                                    style={{ objectPosition: 'top' }}
                                     alt=""
-                                    className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-lg"
+                                    className="w-12 h-16 rounded-lg object-cover object-[center_20%] ring-2 ring-white shadow-lg shrink-0"
                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
                                 />
                             ) : null}
-                            <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white ${user.avatar_path ? 'hidden' : 'flex'}`}>
+                            <div className={`w-12 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white shrink-0 ${user.avatar_path ? 'hidden' : 'flex'}`}>
                                 {(user.last_name?.charAt(0) || '') + (user.first_name?.charAt(0) || '')}
                             </div>
                             <div>
@@ -1385,12 +1320,12 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                             </div>
                         </div>
                         {user.is_active ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
                                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                                 {t('common.active')}
                             </span>
                         ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
                                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
                                 {t('common.inactive')}
                             </span>
@@ -1398,7 +1333,7 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                     </div>
 
                     <div className="space-y-2 mb-4" onClick={e => e.stopPropagation()}>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100">
                             {user.role_name}
                         </span>
                         {user.email && (
@@ -1416,19 +1351,19 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                     </div>
 
                     <div className="flex items-center gap-1 pt-4 border-t border-slate-100" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Vizualizează">
+                        <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title="Vizualizează">
                             <Eye className="w-4 h-4 text-blue-600" />
                         </button>
-                        <button onClick={() => onToggleActive(user.id, user.is_active)} className="flex-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors border border-slate-200">
+                        <button onClick={() => onToggleActive(user.id, user.is_active)} className="flex-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-full text-sm font-medium transition-colors border border-slate-200">
                             {user.is_active ? t('users.deactivate') : t('users.activate')}
                         </button>
-                        <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-lg transition-colors" title="Resetează PIN">
+                        <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-full transition-colors" title="Resetează PIN">
                             <Key className="w-4 h-4 text-violet-600" />
                         </button>
-                        <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Editează">
+                        <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title="Editează">
                             <Edit2 className="w-4 h-4 text-blue-600" />
                         </button>
-                        <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-lg transition-colors" title="Șterge">
+                        <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-full transition-colors" title="Șterge">
                             <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
                     </div>

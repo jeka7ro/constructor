@@ -250,12 +250,12 @@ export default function ReportsPage() {
                         </div>
                         <div className="flex items-center gap-2 w-full xl:w-auto">
                             <button onClick={handlePreview} disabled={loading}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50">
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50">
                                 {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
                                 {t('reports.generate')}
                             </button>
                             <button onClick={handleDownloadExcel} disabled={loading || !preview}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-8 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
                                 <FileSpreadsheet className="w-3.5 h-3.5" />
                                 <span>{t('reports.download_excel')}</span>
                             </button>
@@ -267,17 +267,17 @@ export default function ReportsPage() {
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap w-16">{t('reports.from_date')}:</label>
                             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer" />
+                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-full text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer" />
                         </div>
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap w-16">{t('reports.to_date')}:</label>
                             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer" />
+                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-full text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer" />
                         </div>
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap w-16">{t('users.employee_col')}:</label>
                             <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-full text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                                 <option value="">{t('reports.all_employees')}</option>
                                 {employees.map(emp => (
                                     <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>
@@ -287,7 +287,7 @@ export default function ReportsPage() {
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap w-16">{t('common.site')}:</label>
                             <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-full text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                                 <option value="">{t('reports.all_sites')}</option>
                                 {sites.map(site => (
                                     <option key={site.id} value={site.id}>{site.name}</option>
@@ -423,7 +423,7 @@ export default function ReportsPage() {
                                     const maxH = charts.byEmployee[0]?.hours || 1
                                     return (
                                         <div key={emp.name} className="flex items-center gap-3">
-                                            <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-amber-100 text-amber-700' :
+                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-amber-100 text-amber-700' :
                                                 i === 1 ? 'bg-slate-200 text-slate-600' :
                                                     i === 2 ? 'bg-orange-100 text-orange-700' :
                                                         'bg-slate-100 text-slate-500'

@@ -130,7 +130,12 @@ export default function EmployeeInventory() {
         if (!qty || qty <= 0 || qty > consumeItem.quantity) return
         setSubmitting(true)
         try {
-            await api.post('/user/warehouse/consume', { item_id: consumeItem.id, quantity: qty, notes: consumeNotes })
+            await api.post('/user/warehouse/consume', { 
+                item_id: consumeItem.id, 
+                quantity: qty, 
+                notes: consumeNotes,
+                request_id: consumeItem.request_id
+            })
             flash(`Ai raportat consumul pentru ${consumeItem.name}`)
             setShowConsumeForm(false)
             fetchData()
@@ -147,7 +152,7 @@ export default function EmployeeInventory() {
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 shadow-lg sticky top-0 z-10">
                 <div className="flex items-center gap-3 max-w-md mx-auto">
-                    <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                    <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <div className="flex items-center gap-2">
@@ -232,13 +237,13 @@ export default function EmployeeInventory() {
                                                     </p>
                                                 </div>
                                                 {item.pending_return ? (
-                                                    <span className="bg-amber-100 text-amber-700 text-[10px] font-black uppercase px-2 py-1 rounded-lg animate-pulse">
+                                                    <span className="bg-amber-100 text-amber-700 text-[10px] font-black uppercase px-2 py-1 rounded-full animate-pulse">
                                                         ⏳ Așteptare admin
                                                     </span>
                                                 ) : item.is_defective ? (
-                                                    <span className="bg-red-100 text-red-700 text-[10px] font-black uppercase px-2 py-1 rounded-lg">Defect</span>
+                                                    <span className="bg-red-100 text-red-700 text-[10px] font-black uppercase px-2 py-1 rounded-full">Defect</span>
                                                 ) : (
-                                                    <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-2 py-1 rounded-lg">La mine</span>
+                                                    <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-2 py-1 rounded-full">La mine</span>
                                                 )}
                                             </div>
                                             {item.pending_return ? (
@@ -273,22 +278,69 @@ export default function EmployeeInventory() {
                         )}
 
                         {/* Consumabile */}
-                        {consumables.length > 0 && (
+                        {consumables.filter(c => c.category !== 'COMBUSTIBIL').length > 0 && (
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
                                 <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
-                                    <Flame className="w-5 h-5 text-orange-500" />
+                                    <Package className="w-5 h-5 text-orange-500" />
                                     <h3 className="font-bold text-slate-800">Consumabile & Materiale</h3>
-                                    <span className="ml-auto bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">{consumables.length}</span>
+                                    <span className="ml-auto bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                        {consumables.filter(c => c.category !== 'COMBUSTIBIL').length}
+                                    </span>
                                 </div>
                                 <div className="divide-y divide-slate-100">
-                                    {consumables.map(item => (
+                                    {consumables.filter(c => c.category !== 'COMBUSTIBIL').map(item => (
                                         <div key={item.id} className="p-4">
                                             <div className="flex justify-between items-start mb-3">
                                                 <div>
                                                     <p className="font-bold text-slate-800">{item.name}</p>
                                                     <p className="text-xs text-slate-500">{item.category}</p>
                                                 </div>
-                                                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-lg text-sm font-bold border border-orange-200">
+                                                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-bold border border-orange-200">
+                                                    {item.quantity} {item.unit}
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => { setConsumeItem(item); setConsumeQty(''); setConsumeNotes(''); setShowConsumeForm(true) }}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors active:scale-[0.97]"
+                                                >
+                                                    <Minus className="w-3 h-3" />
+                                                    Consum
+                                                </button>
+                                                <button
+                                                    onClick={() => { setReturnQty(''); setReturnConsModal({ item }) }}
+                                                    disabled={actionLoading === item.id + '_return'}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors active:scale-[0.97]"
+                                                >
+                                                    {actionLoading === item.id + '_return' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                                                    Retur
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Combustibil */}
+                        {consumables.filter(c => c.category === 'COMBUSTIBIL').length > 0 && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+                                    <Flame className="w-5 h-5 text-red-500" />
+                                    <h3 className="font-bold text-slate-800">Combustibil</h3>
+                                    <span className="ml-auto bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                        {consumables.filter(c => c.category === 'COMBUSTIBIL').length}
+                                    </span>
+                                </div>
+                                <div className="divide-y divide-slate-100">
+                                    {consumables.filter(c => c.category === 'COMBUSTIBIL').map(item => (
+                                        <div key={item.id} className="p-4">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <p className="font-bold text-slate-800">{item.name}</p>
+                                                    <p className="text-xs text-slate-500">{item.category}</p>
+                                                </div>
+                                                <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold border border-red-200">
                                                     {item.quantity} {item.unit}
                                                 </div>
                                             </div>

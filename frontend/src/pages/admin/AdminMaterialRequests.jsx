@@ -144,8 +144,21 @@ export default function AdminMaterialRequests() {
                                 placeholder="Caută material, angajat, șantier..."
                                 value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
-                                className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+                                className="w-full sm:w-72 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                             />
+                            {searchQuery && (
+                                <div className="absolute right-1.5 flex items-center gap-1 bg-orange-600 px-2 py-1 rounded-full shadow-sm">
+                                    <span className="text-[10px] font-bold text-white">
+                                        {filtered.length}/{requests.length}
+                                    </span>
+                                    <button
+                                        onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
+                                        className="p-0.5 hover:bg-orange-700 rounded-full transition-colors ml-0.5 cursor-pointer"
+                                    >
+                                        <X className="w-3 h-3 text-white/80 hover:text-white" />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-full shadow-inner shrink-0 overflow-x-auto">
@@ -228,7 +241,7 @@ export default function AdminMaterialRequests() {
                             <select 
                                 value={itemsPerPage} 
                                 onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                                className="border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                                className="border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5 text-sm bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
                             >
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
@@ -246,14 +259,14 @@ export default function AdminMaterialRequests() {
                                     <button
                                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}
-                                        className="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                        className="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                                     >
                                         Anterior
                                     </button>
                                     <button
                                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                        className="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                                     >
                                         Următor
                                     </button>
@@ -359,7 +372,7 @@ export default function AdminMaterialRequests() {
                                         {linkedItems.length > 0 && (
                                             <div className="space-y-2 mb-2 mt-3">
                                                 {linkedItems.map((li, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
+                                                    <div key={idx} className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-full border border-indigo-100 dark:border-indigo-800/30">
                                                         <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">
                                                             {li.qty} {li.unit} x {li.name} {li.inventory_code ? `(${li.inventory_code})` : ''}
                                                         </span>

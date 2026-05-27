@@ -198,7 +198,7 @@ export default function AdminLogin() {
                         O soluție digitală de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
                     </p>
                     <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-70 hover:opacity-100 transition-all transform hover:scale-105">
-                        <img src="/getapp_smart_timesheet_white.png" alt="GetApp" className="h-16 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by GetApp.ro</span>' }} />
+                        <img src="/getapp_smart_timesheet_white.png" alt="GetApp" className="h-16 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-full">Powered by GetApp.ro</span>' }} />
                     </a>
                 </div>
             </div>
