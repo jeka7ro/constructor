@@ -6,7 +6,7 @@ import { ChevronLeft, Wrench, Package, Flame, CheckCircle, Loader2, Minus, Packa
 // ─── Generic Modal Shell ─────────────────────────────────────────────────────
 function Modal({ onClose, children }) {
     return (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
             <div
                 className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-4"
                 onClick={e => e.stopPropagation()}
@@ -311,8 +311,8 @@ export default function EmployeeInventory() {
             {returnModal && (
                 <Modal onClose={() => setReturnModal(null)}>
                     <div className="text-center">
-                        <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <RotateCcw className="w-7 h-7 text-slate-600" />
+                        <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <RotateCcw className="w-7 h-7 text-green-600" />
                         </div>
                         <h3 className="text-lg font-black text-slate-800 mb-1">Returnezi scula?</h3>
                         <p className="text-sm text-slate-500">„<strong>{returnModal.item.name}</strong>" va fi marcată ca returnată în magazie.</p>
@@ -321,7 +321,7 @@ export default function EmployeeInventory() {
                         <button onClick={() => setReturnModal(null)} className="flex-1 h-11 rounded-2xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
                             Anulează
                         </button>
-                        <button onClick={confirmReturn} className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-sm">
+                        <button onClick={confirmReturn} className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-green-500 hover:bg-green-600 active:bg-green-700 transition-colors shadow-sm">
                             Da, Returnez
                         </button>
                     </div>
@@ -359,7 +359,7 @@ export default function EmployeeInventory() {
                         <button
                             onClick={confirmReturnCons}
                             disabled={!returnQty || parseFloat(returnQty) <= 0 || parseFloat(returnQty) > returnConsModal.item.quantity}
-                            className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-sm disabled:opacity-40"
+                            className="flex-1 h-11 rounded-2xl text-sm font-bold text-white bg-green-500 hover:bg-green-600 active:bg-green-700 transition-colors shadow-sm disabled:opacity-40"
                         >
                             Confirmă Retur
                         </button>
