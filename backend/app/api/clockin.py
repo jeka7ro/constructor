@@ -559,15 +559,12 @@ def get_active_shift(
             GeofencePause.pause_end == None
         ).first()
         
-        # Detect GPS loss: no ping in last 2 minutes
+        # Detect GPS loss: no ping in last 5 minutes (daca a trimis ping vreodata)
         gps_lost = False
         if active_segment.last_ping_at:
             since_last_ping = (now - active_segment.last_ping_at).total_seconds()
-            gps_lost = since_last_ping > 120  # 2 minutes
-        else:
-            # No pings ever received — check if more than 2 min since check-in
-            since_checkin = (now - active_segment.check_in_time).total_seconds()
-            gps_lost = since_checkin > 120
+            gps_lost = since_last_ping > 300  # 5 minute fara ping = GPS pierdut
+        # Daca nu a trimis niciodata un ping, nu marcam GPS pierdut
         
         max_overtime = int(site.max_overtime_minutes) if site and site.max_overtime_minutes else 120
         

@@ -130,6 +130,15 @@ export default function ClockInPage() {
 
     const timerInterval = useRef(null)
     const lastGeocodedCoords = useRef(null)
+    const swRef = useRef(null) // Service Worker registration
+
+    // ─── Inregistrare Service Worker GPS ────────────────────────────────────
+    useEffect(() => {
+        if (!('serviceWorker' in navigator)) return
+        navigator.serviceWorker.register('/sw-gps.js')
+            .then(reg => { swRef.current = reg })
+            .catch(() => {})
+    }, [])
 
     // Auto-dismiss error message after 5 seconds
     useEffect(() => {
@@ -284,12 +293,21 @@ export default function ClockInPage() {
         if (!navigator.geolocation) return
         const watchId = navigator.geolocation.watchPosition(
             (position) => {
-                setLocation({
+                const coords = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     accuracy: position.coords.accuracy
-                })
+                }
+                setLocation(coords)
                 setLocationError(null)
+                // Trimite coordonatele actualizate catre Service Worker
+                if (swRef.current?.active) {
+                    swRef.current.active.postMessage({
+                        type: 'LOCATION_UPDATE',
+                        lat: coords.latitude,
+                        lon: coords.longitude
+                    })
+                }
             },
             () => { },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
@@ -382,6 +400,81 @@ export default function ClockInPage() {
         const interval = setInterval(sendPing, 30000)
         return () => clearInterval(interval)
     }, [activeShift?.segment_id, location?.latitude, location?.longitude])
+
+    // ─── Notifica Service Worker cand tura se schimba ────────────────────────
+    useEffect(() => {
+        const sw = swRef.current?.active
+        if (!sw) return
+        if (activeShift?.segment_id && location) {
+            // Tura activa — trimite date catre SW
+            const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.accessToken
+            sw.postMessage({
+                type: 'SHIFT_START',
+                segmentId: activeShift.segment_id,
+                lat: location.latitude,
+                lon: location.longitude,
+                token,
+                apiBase: window.location.origin
+            })
+        } else if (!activeShift) {
+            // Tura terminata — curata datele din SW
+            sw.postMessage({ type: 'SHIFT_END' })
+        }
+    }, [activeShift?.segment_id, location?.latitude])
+
+    // ─── Background Sync: ping cand telefonul e folosit pentru alte aplicatii ─
+    useEffect(() => {
+        const onVisibility = () => {
+            const sw = swRef.current
+            if (!sw || !activeShift?.segment_id) return
+            if (document.visibilityState === 'hidden') {
+                // Pagina intra in background — inregistreaza sync event
+                // Chrome il va declansa la urmatoarea activitate de retea (orice app)
+                if ('sync' in sw) {
+                    sw.sync.register('gps-ping').catch(() => {})
+                }
+            }
+        }
+        document.addEventListener('visibilitychange', onVisibility)
+        return () => document.removeEventListener('visibilitychange', onVisibility)
+    }, [activeShift?.segment_id])
+
+    // GPS keepalive — forteaza GPS proaspat din 10 in 10 min, chiar daca ecranul e stins
+    // Chrome pe Android throttleaza setInterval la ~1min in background — suficient pentru last_ping_at
+    useEffect(() => {
+        if (!activeShift?.segment_id) return
+
+        const keepalivePing = () => {
+            if (!navigator.geolocation) return
+            // Cere GPS proaspat de la sistem (trezeste GPS-ul daca era adormit)
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    api.post('/timesheets/location-ping', {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    }).catch(() => {})
+                },
+                () => {} // GPS indisponibil — ignoram
+                , { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+            )
+        }
+
+        // La fiecare 10 minute — GPS keepalive
+        const interval = setInterval(keepalivePing, 10 * 60 * 1000)
+
+        // Ping instant cand muncitorul redeschide app-ul (Page Visibility API)
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') {
+                keepalivePing()
+            }
+        }
+        document.addEventListener('visibilitychange', onVisible)
+
+        return () => {
+            clearInterval(interval)
+            document.removeEventListener('visibilitychange', onVisible)
+        }
+    }, [activeShift?.segment_id])
 
     const fetchActiveShift = async () => {
         try {
