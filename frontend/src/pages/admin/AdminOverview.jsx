@@ -127,13 +127,12 @@ export default function AdminOverview() {
 
     const fetchSesizariNecesar = async () => {
         try {
-            const res = await api.get('/admin/material-requests')
+            const res = await api.get('/admin/material-requests/')
             const all = res.data || []
             setSesizari(all.filter(r => r.status === 'pending' || r.status === 'submitted'))
             setNecesar(all.filter(r => r.status === 'approved' || r.status === 'in_progress'))
-            // Livrat = ultimele completed/delivered, indiferent de data
             setLivrat(all.filter(r => r.status === 'completed' || r.status === 'delivered').slice(0, 10))
-        } catch (e) { console.error(e) }
+        } catch (e) { console.error('[NECESAR]', e?.response?.status, e?.message) }
     }
 
     const fetchActiveWorkers = async () => {
