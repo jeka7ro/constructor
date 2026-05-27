@@ -7,6 +7,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
     const [activeTab, setActiveTab] = useState('analytics')
     const [analytics, setAnalytics] = useState(null)
     const [warehouseHistory, setWarehouseHistory] = useState([])
+    const [materialRequests, setMaterialRequests] = useState([])
     const [fuelLogs, setFuelLogs] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -18,14 +19,18 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [analyticsRes, warehouseRes, fuelRes] = await Promise.all([
+            const [analyticsRes, warehouseRes, fuelRes, mrRes] = await Promise.all([
                 api.get(`/admin/users/${user.id}/analytics`),
                 api.get(`/warehouse/transactions/user/${user.id}`),
-                api.get(`/admin/vehicles/equipment-logs/operator/${user.id}`).catch(() => ({ data: [] }))
+                api.get(`/admin/vehicles/equipment-logs/operator/${user.id}`).catch(() => ({ data: [] })),
+                api.get(`/admin/material-requests/`).catch(() => ({ data: [] }))
             ])
             setAnalytics(analyticsRes.data)
             setWarehouseHistory(warehouseRes.data)
             setFuelLogs(fuelRes.data)
+            // filtram doar cererile acestui angajat
+            const allMr = Array.isArray(mrRes.data) ? mrRes.data : []
+            setMaterialRequests(allMr.filter(mr => mr.user_id === user.id))
         } catch (error) {
             console.error('Failed to fetch user data', error)
         } finally {
@@ -261,48 +266,107 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
 
                 {/* ══ WAREHOUSE HISTORY TAB ══ */}
                 {activeTab === 'warehouse' && (
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
-                                <tr>
-                                    <th className="px-4 py-3">Dată</th>
-                                    <th className="px-4 py-3">Articol / Sculă</th>
-                                    <th className="px-4 py-3">Operațiune</th>
-                                    <th className="px-4 py-3">Cantitate</th>
-                                    <th className="px-4 py-3">Notițe / Condiție</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                                {realWarehouseHistory.length === 0 ? (
-                                    <tr><td colSpan={5} className="px-4 py-12 text-center text-slate-400 italic text-sm">Nicio tranzacție de magazie pentru acest angajat.</td></tr>
-                                ) : realWarehouseHistory.map(tx => (
-                                    <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(tx.created_at || tx.date).toLocaleString('ro-RO')}</td>
-                                        <td className="px-4 py-3">
-                                            <span className="font-bold text-slate-900 dark:text-white block">{tx.item_name}</span>
-                                            <span className="text-[10px] text-slate-400 font-mono">SKU: {tx.item_sku}</span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {tx.tx_type === 'out' ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-                                                    PRELUAT (Ieșire)
-                                                </span>
-                                            ) : tx.tx_type === 'consume' ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/50">
-                                                    CONSUMAT
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                                                    RETURNAT (Intrare)
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{tx.quantity}</td>
-                                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate" title={tx.notes}>{tx.notes || '—'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="space-y-6">
+
+                        {/* ── Cereri de Materiale ── */}
+                        <div>
+                            <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm mb-2">Cereri de Materiale</h3>
+                            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                                        <tr>
+                                            <th className="px-4 py-3">#</th>
+                                            <th className="px-4 py-3">Data Cererii</th>
+                                            <th className="px-4 py-3">Articole Cerute</th>
+                                            <th className="px-4 py-3">Status</th>
+                                            <th className="px-4 py-3">Rezolvat La</th>
+                                            <th className="px-4 py-3">Șantier</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                        {materialRequests.length === 0 ? (
+                                            <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic text-sm">Nicio cerere de materiale.</td></tr>
+                                        ) : materialRequests.map((mr, idx) => {
+                                            const statusColors = {
+                                                pending:   'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                                approved:  'bg-blue-100 text-blue-700 border-blue-200',
+                                                delivered: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                                completed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                                rejected:  'bg-red-100 text-red-700 border-red-200',
+                                                disputed:  'bg-orange-100 text-orange-700 border-orange-200',
+                                            }
+                                            const statusLabel = {
+                                                pending:   'În așteptare',
+                                                approved:  'Aprobat',
+                                                delivered: 'Livrat',
+                                                completed: 'Finalizat',
+                                                rejected:  'Respins',
+                                                disputed:  'Contestat',
+                                            }
+                                            return (
+                                                <tr key={mr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(mr.created_at).toLocaleString('ro-RO')}</td>
+                                                    <td className="px-4 py-3 text-slate-800 dark:text-white max-w-xs">{mr.items_text || '—'}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold border ${statusColors[mr.status] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                                            {statusLabel[mr.status] || mr.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">{mr.responded_at ? new Date(mr.responded_at).toLocaleString('ro-RO') : '—'}</td>
+                                                    <td className="px-4 py-3 text-xs text-slate-500">{mr.site_name || '—'}</td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* ── Tranzacții Magazie ── */}
+                        <div>
+                            <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm mb-2">Tranzacții Magazie (Preluat / Returnat / Consumat)</h3>
+                            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                                        <tr>
+                                            <th className="px-4 py-3">#</th>
+                                            <th className="px-4 py-3">Dată</th>
+                                            <th className="px-4 py-3">Articol / Sculă</th>
+                                            <th className="px-4 py-3">Operațiune</th>
+                                            <th className="px-4 py-3">Cantitate</th>
+                                            <th className="px-4 py-3">Notițe</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                                        {realWarehouseHistory.length === 0 ? (
+                                            <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic text-sm">Nicio tranzacție de magazie pentru acest angajat.</td></tr>
+                                        ) : realWarehouseHistory.map((tx, idx) => (
+                                            <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
+                                                <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{new Date(tx.created_at || tx.date).toLocaleString('ro-RO')}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="font-bold text-slate-900 dark:text-white block">{tx.item_name}</span>
+                                                    <span className="text-[10px] text-slate-400 font-mono">SKU: {tx.item_sku}</span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {tx.tx_type === 'out' ? (
+                                                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">PRELUAT</span>
+                                                    ) : tx.tx_type === 'consume' ? (
+                                                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">CONSUMAT</span>
+                                                    ) : (
+                                                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">RETURNAT</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{tx.quantity}</td>
+                                                <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate" title={tx.notes}>{tx.notes || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 )}
 

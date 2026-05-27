@@ -895,17 +895,15 @@ export default function ClockInPage() {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-lg">
                 <div className="flex items-center justify-between max-w-md mx-auto">
                     <div className="flex items-center gap-3">
-                        {user?.avatar_path ? (
-                            <div className="relative shrink-0">
-                                <img
-                                    src={user.avatar_path.startsWith('http') ? user.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
-                                    alt=""
-                                    className="w-12 h-12 rounded-lg object-cover object-[center_20%] shrink-0 ring-2 ring-white/50"
-                                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.nextElementSibling.style.display = 'flex' }}
-                                />
-                            </div>
-                        ) : null}
-                        <div className={`w-12 h-12 rounded-lg bg-white/20 items-center justify-center text-lg font-bold ${user?.avatar_path ? 'hidden' : 'flex'}`}>
+                        {user?.avatar_path && (
+                            <img
+                                src={user.avatar_path.startsWith('http') ? user.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
+                                alt=""
+                                className="w-12 h-12 rounded-lg object-cover object-[center_20%] shrink-0 ring-2 ring-white/50"
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
+                            />
+                        )}
+                        <div className={`w-12 h-12 rounded-lg bg-white/20 items-center justify-center text-lg font-bold shrink-0 ${user?.avatar_path ? 'hidden' : 'flex'}`}>
                             {user?.full_name?.charAt(0) || '?'}
                         </div>
                         <div>
