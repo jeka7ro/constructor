@@ -131,6 +131,7 @@ export default function ClockInPage() {
     const timerInterval = useRef(null)
     const lastGeocodedCoords = useRef(null)
     const swRef = useRef(null) // Service Worker registration
+    const locationRef = useRef(null) // Ref pentru coordonate curente (evita restart interval la fiecare update GPS)
 
     // ─── Inregistrare Service Worker GPS ────────────────────────────────────
     useEffect(() => {
@@ -299,6 +300,7 @@ export default function ClockInPage() {
                     accuracy: position.coords.accuracy
                 }
                 setLocation(coords)
+                locationRef.current = coords // Actualizeaza ref — fara re-render
                 setLocationError(null)
                 // Trimite coordonatele actualizate catre Service Worker
                 if (swRef.current?.active) {
@@ -367,8 +369,9 @@ export default function ClockInPage() {
     }, [activeShift?.is_on_break, activeShift?.break_start_time])
 
     // Geofence location ping — every 30s while shift is active
+    // Folosim locationRef (nu state location) pentru a evita restart la fiecare update GPS
     useEffect(() => {
-        if (!activeShift || !location) return
+        if (!activeShift?.segment_id) return
 
         // Initialize geofence pause time from server
         if (activeShift.geofence_pause_hours) {
@@ -376,10 +379,12 @@ export default function ClockInPage() {
         }
 
         const sendPing = async () => {
+            const coords = locationRef.current
+            if (!coords) return // Nu avem GPS inca
             try {
                 const res = await api.post('/timesheets/location-ping', {
-                    latitude: location.latitude,
-                    longitude: location.longitude
+                    latitude: coords.latitude,
+                    longitude: coords.longitude
                 })
                 const data = res.data
                 if (data.geofence_applicable) {
@@ -387,7 +392,6 @@ export default function ClockInPage() {
                     if (data.total_geofence_pause_seconds !== undefined) {
                         setGeofencePauseTime(data.total_geofence_pause_seconds)
                     }
-                    // Refresh shift data if status changed
                     if (data.status_changed) {
                         fetchActiveShift()
                     }
@@ -395,11 +399,11 @@ export default function ClockInPage() {
             } catch (e) { /* silently fail */ }
         }
 
-        // Send immediately, then every 30s
-        sendPing()
+        // Trimite primul ping dupa 5s (sa aiba timp GPS sa se fixeze), apoi din 30 in 30s
+        const firstPing = setTimeout(sendPing, 5000)
         const interval = setInterval(sendPing, 30000)
-        return () => clearInterval(interval)
-    }, [activeShift?.segment_id, location?.latitude, location?.longitude])
+        return () => { clearTimeout(firstPing); clearInterval(interval) }
+    }, [activeShift?.segment_id]) // ← doar segment_id, nu lat/lon — evita battery drain
 
     // ─── Notifica Service Worker cand tura se schimba ────────────────────────
     useEffect(() => {

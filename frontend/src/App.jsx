@@ -89,6 +89,31 @@ class GlobalErrorBoundary extends React.Component {
 function App() {
     const { user } = useAuthStore()
 
+    // ─── Auto-reload la deploy nou (fara refresh manual de la angajati) ───────
+    useEffect(() => {
+        let knownVersion = null
+
+        const checkVersion = async () => {
+            // Nu verifica daca ecranul e stins — economie baterie
+            if (document.visibilityState !== 'visible') return
+            try {
+                const res = await fetch('/api/version')
+                const data = await res.json()
+                if (!knownVersion) {
+                    knownVersion = data.version // Prima incarcare — stocheaza versiunea
+                } else if (data.version !== knownVersion) {
+                    // Versiune noua detectata — reload automat dupa 2s
+                    setTimeout(() => window.location.reload(), 2000)
+                }
+            } catch (e) { /* offline sau eroare — ignoram */ }
+        }
+
+        checkVersion()
+        // Verifica din 5 in 5 minute — 1 request mic, impact baterie: zero
+        const interval = setInterval(checkVersion, 5 * 60 * 1000)
+        return () => clearInterval(interval)
+    }, [])
+
     return (
         <GlobalErrorBoundary>
             <Router>

@@ -186,6 +186,14 @@ async def health():
         "supabase_key": bool(os.getenv("SUPABASE_SERVICE_KEY")),
     }
 
+# Versiunea aplicatiei — timestamp de startup (se schimba la fiecare deploy)
+_APP_START_TIME = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+@app.get("/api/version")
+async def get_version():
+    """Returneaza versiunea curenta (timestamp startup). Frontend polleaza si se reincarca automat la deploy."""
+    return {"version": _APP_START_TIME}
+
 # Reverse geocode proxy (avoids CORS issues with Nominatim from browser)
 import requests as _requests
 import time as _time
