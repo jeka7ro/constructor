@@ -119,6 +119,7 @@ def get_my_inventory(
             "inventory_code": t.inventory_code,
             "model": t.model,
             "is_defective": t.is_defective,
+            "pending_return": bool(t.pending_return),
             "quantity": 1,
             "source": "assigned"
         })
@@ -280,7 +281,8 @@ def return_tool(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Worker returns a tool or consumable back to warehouse."""
+    """Worker requests to return a tool — sets pending_return=True.
+    Admin must confirm via /admin/warehouse/confirm-return before item is actually returned."""
     db_item = db.query(WarehouseItem).filter(
         WarehouseItem.id == body.item_id,
         WarehouseItem.organization_id == current_user.organization_id
@@ -288,34 +290,31 @@ def return_tool(
     if not db_item:
         raise HTTPException(status_code=404, detail="Articol negasit")
 
-    returned_from_site = db_item.current_site_id
-
     if db_item.inventory_code:
-        # SCULĂ UNICĂ — returnare completă
-        db_item.current_holder_id = None
-        db_item.current_site_id = None
-        db_item.checked_out_at = None
-        db_item.total_quantity = 1.0
-        qty = 1.0
+        # SCULĂ UNICĂ — marcare ca predare în așteptare (admin trebuie să confirme)
+        db_item.pending_return = True
+        db_item.pending_return_at = datetime.utcnow()
+        db_item.pending_return_by_id = current_user.id
+        db.commit()
+        return {"success": True, "pending": True, "message": "Predare trimisă spre confirmare admin"}
     else:
-        # CONSUMABIL — returnare parțială sau totală
+        # CONSUMABIL — returnare directă (fără confirmare admin)
         qty = body.quantity or 1.0
-
-    tx = WarehouseTransaction(
-        item_id=body.item_id,
-        transaction_type="IN",
-        quantity=qty,
-        date=datetime.utcnow().date(),
-        operated_by_id=current_user.id,
-        assigned_to_user_id=current_user.id,
-        site_id=returned_from_site,
-        notes=body.notes or f"Returnat de muncitor: {current_user.full_name}"
-    )
-    db.add(tx)
-    if not db_item.inventory_code:
+        returned_from_site = db_item.current_site_id
+        tx = WarehouseTransaction(
+            item_id=body.item_id,
+            transaction_type="IN",
+            quantity=qty,
+            date=datetime.utcnow().date(),
+            operated_by_id=current_user.id,
+            assigned_to_user_id=current_user.id,
+            site_id=returned_from_site,
+            notes=body.notes or f"Returnat de muncitor: {current_user.full_name}"
+        )
+        db.add(tx)
         db_item.total_quantity = (db_item.total_quantity or 0) + qty
-    db.commit()
-    return {"success": True}
+        db.commit()
+        return {"success": True, "pending": False}
 
 @router.post("/report-defective")
 def report_defective(

@@ -112,7 +112,12 @@ def _run_migrations(engine):
             document_url VARCHAR(255),
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
-        );"""
+        );""",
+        # Two-step return workflow
+        "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS is_lost BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS pending_return BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS pending_return_at TIMESTAMP;",
+        "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS pending_return_by_id VARCHAR(36);",
     ]
     try:
         with engine.connect() as conn:

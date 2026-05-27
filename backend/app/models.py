@@ -491,6 +491,12 @@ class WarehouseItem(Base):
     current_site_id = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
     checked_out_at = Column(DateTime, nullable=True)
     is_defective = Column(Boolean, default=False, nullable=False)
+    is_lost = Column(Boolean, default=False, nullable=False)
+
+    # Two-step return: worker requests return, admin confirms
+    pending_return = Column(Boolean, default=False, nullable=False)
+    pending_return_at = Column(DateTime, nullable=True)  # when worker pressed "Returnez"
+    pending_return_by_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # which worker
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

@@ -559,3 +559,103 @@ def get_linked_request(item_id: str, db: Session = Depends(get_db), current_admi
         "items_text": matched.items_text,
     }
 
+
+# ─── Returnări în așteptare (two-step return flow) ────────────────────────────
+
+@router.get("/warehouse/pending-returns")
+def get_pending_returns(
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Lista sculelor cu predare în așteptare — muncitorul a predat, adminul trebuie să confirme starea."""
+    is_admin_or_logistic(current_admin)
+    items = db.query(WarehouseItem).filter(
+        WarehouseItem.organization_id == current_admin.organization_id,
+        WarehouseItem.pending_return == True
+    ).all()
+
+    result = []
+    for item in items:
+        worker = db.query(User).filter(User.id == item.pending_return_by_id).first() if item.pending_return_by_id else None
+        holder = db.query(User).filter(User.id == item.current_holder_id).first() if item.current_holder_id else None
+        result.append({
+            "id": item.id,
+            "name": item.name,
+            "model": item.model,
+            "inventory_code": item.inventory_code,
+            "category": item.category,
+            "pending_return_at": item.pending_return_at.isoformat() if item.pending_return_at else None,
+            "returned_by": worker.full_name if worker else (holder.full_name if holder else "Necunoscut"),
+            "returned_by_id": item.pending_return_by_id or item.current_holder_id,
+        })
+    return result
+
+
+class ConfirmReturnRequest(BaseModel):
+    item_id: str
+    condition: str  # "functional" | "defective" | "lost"
+    notes: Optional[str] = None
+
+
+@router.post("/warehouse/confirm-return")
+def confirm_return(
+    body: ConfirmReturnRequest,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Admin confirmă primirea sculei și starea ei: funcțională / defectă / pierdută."""
+    is_admin_or_logistic(current_admin)
+
+    if body.condition not in ("functional", "defective", "lost"):
+        raise HTTPException(status_code=400, detail="Condiție invalidă. Acceptat: functional, defective, lost")
+
+    item = db.query(WarehouseItem).filter(
+        WarehouseItem.id == body.item_id,
+        WarehouseItem.organization_id == current_admin.organization_id
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Articol negăsit")
+    if not item.pending_return:
+        raise HTTPException(status_code=400, detail="Acest articol nu are o predare în așteptare")
+
+    returned_from_site = item.current_site_id
+    worker_id = item.pending_return_by_id or item.current_holder_id
+
+    # Finalizare returnare
+    item.current_holder_id = None
+    item.current_site_id = None
+    item.checked_out_at = None
+    item.pending_return = False
+    item.pending_return_at = None
+    item.pending_return_by_id = None
+
+    if body.condition == "functional":
+        item.total_quantity = 1.0
+        item.is_defective = False
+        item.is_lost = False
+        condition_note = "Primit FUNCȚIONAL"
+    elif body.condition == "defective":
+        item.total_quantity = 1.0
+        item.is_defective = True
+        item.is_lost = False
+        condition_note = "Primit DEFECT"
+    else:  # lost
+        item.total_quantity = 0.0
+        item.is_defective = False
+        item.is_lost = True
+        condition_note = "Marcat ca PIERDUT"
+
+    tx = WarehouseTransaction(
+        item_id=body.item_id,
+        transaction_type="IN",
+        quantity=1.0 if body.condition != "lost" else 0.0,
+        date=datetime.utcnow().date(),
+        operated_by_id=str(current_admin.id),
+        assigned_to_user_id=worker_id,
+        site_id=returned_from_site,
+        notes=f"{condition_note} — confirmat de admin. {body.notes or ''}".strip()
+    )
+    db.add(tx)
+    db.commit()
+
+    return {"success": True, "condition": body.condition, "item_name": item.name}

@@ -182,6 +182,11 @@ export default function WarehouseManagement() {
     // Transactions History Modal
     const [showHistoryModal, setShowHistoryModal] = useState(false)
 
+    // Returnări în așteptare confirmare admin
+    const [pendingReturns, setPendingReturns] = useState([])
+    const [confirmReturnModal, setConfirmReturnModal] = useState(null) // { item }
+    const [confirmReturnLoading, setConfirmReturnLoading] = useState(false)
+
     // Tool Check-Out Modal
     const [toolModal, setToolModal] = useState({ isOpen: false, item: null, siteId: '', userId: '', date: new Date().toISOString().split('T')[0] })
     const [isSubmittingTool, setIsSubmittingTool] = useState(false)
@@ -195,7 +200,35 @@ export default function WarehouseManagement() {
         fetchItems()
         fetchSites()
         fetchDropdownData()
+        fetchPendingReturns()
     }, [activeTab, selectedSite])
+
+    const fetchPendingReturns = async () => {
+        try {
+            const res = await api.get('/warehouse/pending-returns')
+            setPendingReturns(res.data || [])
+        } catch (e) { /* silent */ }
+    }
+
+    const confirmPendingReturn = async (itemId, condition) => {
+        setConfirmReturnLoading(true)
+        try {
+            await api.post('/warehouse/confirm-return', { item_id: itemId, condition })
+            showToast(
+                condition === 'functional' ? 'Sculă primită — FUNCȚIONALĂ ✓' :
+                condition === 'defective' ? 'Sculă primită — DEFECTĂ ⚠️' :
+                'Sculă marcată ca PIERDUTĂ 🔴',
+                condition === 'functional' ? 'success' : 'warning'
+            )
+            setConfirmReturnModal(null)
+            fetchPendingReturns()
+            fetchItems()
+        } catch (e) {
+            showToast('Eroare la confirmare', 'error')
+        } finally {
+            setConfirmReturnLoading(false)
+        }
+    }
 
     const fetchItems = async () => {
         try {
@@ -877,6 +910,57 @@ export default function WarehouseManagement() {
             </div>
             ) : (
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            {/* ── Returnări în așteptare ─────────────────────────────────────── */}
+            {pendingReturns.length > 0 && (
+                <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-3 bg-amber-400">
+                        <span className="text-lg">⏳</span>
+                        <h3 className="font-black text-white text-sm uppercase tracking-wider">
+                            {pendingReturns.length} Sculă{pendingReturns.length > 1 ? ' în' : ''} așteptare confirmare
+                        </h3>
+                        <span className="ml-auto text-[11px] font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded-full">
+                            Muncitorii au predat — confirmați starea!
+                        </span>
+                    </div>
+                    <div className="divide-y divide-amber-200">
+                        {pendingReturns.map(pr => (
+                            <div key={pr.id} className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4">
+                                <div className="flex-1">
+                                    <p className="font-bold text-slate-800">{pr.name}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {pr.inventory_code && <span className="font-mono mr-2">{pr.inventory_code}</span>}
+                                        {pr.model && <span className="mr-2">· {pr.model}</span>}
+                                        · Predat de <strong>{pr.returned_by}</strong>
+                                        {pr.pending_return_at && (
+                                            <span className="ml-2 text-amber-600">
+                                                {new Date(pr.pending_return_at).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2 shrink-0">
+                                    <button
+                                        onClick={() => confirmPendingReturn(pr.id, 'functional')}
+                                        disabled={confirmReturnLoading}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-green-500 hover:bg-green-600 rounded-xl transition-colors disabled:opacity-50"
+                                    >✓ Funcțională</button>
+                                    <button
+                                        onClick={() => confirmPendingReturn(pr.id, 'defective')}
+                                        disabled={confirmReturnLoading}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors disabled:opacity-50"
+                                    >⚠ Defectă</button>
+                                    <button
+                                        onClick={() => confirmPendingReturn(pr.id, 'lost')}
+                                        disabled={confirmReturnLoading}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors disabled:opacity-50"
+                                    >✕ Pierdută</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
