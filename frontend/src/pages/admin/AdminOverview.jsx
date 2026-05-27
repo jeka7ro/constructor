@@ -608,7 +608,7 @@ export default function AdminOverview() {
                                 </span>
                             )}
                         </h3>
-                        <button onClick={() => navigate('/admin/warehouse/requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
+                        <button onClick={() => navigate('/admin/material-requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
                             <ChevronRight className="w-3 h-3" /> Toate
                         </button>
                     </div>
@@ -620,7 +620,7 @@ export default function AdminOverview() {
                     ) : (
                         <div className="divide-y divide-slate-50 dark:divide-slate-800">
                             {sesizari.slice(0, 5).map(req => (
-                                <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                <div key={req.id} onClick={() => navigate('/admin/material-requests')} className="px-5 py-3 hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
@@ -650,7 +650,7 @@ export default function AdminOverview() {
                                 </span>
                             )}
                         </h3>
-                        <button onClick={() => navigate('/admin/warehouse/requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
+                        <button onClick={() => navigate('/admin/material-requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
                             <ChevronRight className="w-3 h-3" /> Toate
                         </button>
                     </div>
@@ -662,7 +662,7 @@ export default function AdminOverview() {
                     ) : (
                         <div className="divide-y divide-slate-50 dark:divide-slate-800">
                             {necesar.slice(0, 4).map(req => (
-                                <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                <div key={req.id} onClick={() => navigate('/admin/material-requests')} className="px-5 py-3 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
@@ -696,7 +696,7 @@ export default function AdminOverview() {
                         ) : (
                             <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-52 overflow-y-auto">
                                 {livrat.map(req => (
-                                    <div key={req.id} onClick={() => navigate('/admin/warehouse/requests')} className="px-5 py-3 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                    <div key={req.id} onClick={() => navigate('/admin/material-requests')} className="px-5 py-3 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                         {/* Cui + data */}
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
