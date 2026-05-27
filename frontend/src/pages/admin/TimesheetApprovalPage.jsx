@@ -673,9 +673,14 @@ export default function TimesheetApprovalPage() {
 function AvatarImg({ path, name, size = 'w-10 h-12', textSize = 'text-sm', rounded = 'rounded-lg' }) {
     if (path) {
         return (
-            <div className="relative shrink-0 group">
-                <img src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${path}`} alt="" className={`${size} ${rounded} object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700`} onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
-                <div className={`absolute inset-0 ${size} ${rounded} bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold ${textSize} text-slate-500 hidden`}>
+            <div className={`shrink-0 group flex items-center justify-center`}>
+                <img 
+                    src={path.startsWith('http') ? path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${path}`} 
+                    alt="" 
+                    className={`${size} ${rounded} object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0`} 
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} 
+                />
+                <div className={`${size} ${rounded} bg-slate-100 dark:bg-slate-800 items-center justify-center font-bold ${textSize} text-slate-500 shrink-0 hidden`}>
                     {name?.substring(0, 2).toUpperCase() || 'W'}
                 </div>
             </div>
