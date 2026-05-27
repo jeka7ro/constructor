@@ -915,15 +915,14 @@ async def get_active_workers(
             total_break += max(0, seg_break)
             total_geofence_pause += max(0, seg_geofence)
         
-        # GPS loss detection
+        # GPS loss detection — doar daca a existat un ping anterior care s-a oprit
         gps_lost = False
         if not all_checked_out and last_segment and not last_segment.check_out_time:
             if last_segment.last_ping_at:
+                # A trimis ping inainte — verificam daca s-a oprit
                 since_last_ping = (now - last_segment.last_ping_at).total_seconds()
-                gps_lost = since_last_ping > 120
-            else:
-                since_checkin = (now - last_segment.check_in_time).total_seconds()
-                gps_lost = since_checkin > 120
+                gps_lost = since_last_ping > 300  # 5 minute fara ping = GPS pierdut
+            # Daca nu a trimis NICIODATA un ping, nu marcam GPS pierdut
         
         # Determine status
         if all_checked_out:
