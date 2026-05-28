@@ -130,6 +130,17 @@ const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, sear
     )
 }
 
+const unitOptions = [
+    { id: 'buc', name: 'buc (Bucăți)' },
+    { id: 'L', name: 'L (Litri)' },
+    { id: 'kg', name: 'kg (Kilograme)' },
+    { id: 'm', name: 'm (Metri)' },
+    { id: 'ml', name: 'ml (Metri liniari)' },
+    { id: 'mp', name: 'mp (Metri pătrați)' },
+    { id: 'rolă', name: 'rolă' },
+    { id: 'set', name: 'set' },
+    { id: 'cutie', name: 'cutie' },
+]
 const getCategories = (t) => [
     { id: 'TOATE', label: t('warehouse.all'), icon: Package },
     { id: 'SCULE', label: t('warehouse.tools'), icon: Package },
@@ -1398,24 +1409,16 @@ export default function WarehouseManagement() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.unit_of_measure')}</label>
-                                    <select required value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} disabled={activeTab === 'COMBUSTIBIL'} className={`w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm ${activeTab === 'COMBUSTIBIL' ? 'opacity-70 cursor-not-allowed' : ''}`}>
-                                        {activeTab === 'COMBUSTIBIL' ? (
-                                            <option value="L">L (Litri)</option>
-                                        ) : (
-                                            <>
-                                                <option value="">Alege unitatea...</option>
-                                                <option value="buc">buc (Bucăți)</option>
-                                                <option value="L">L (Litri)</option>
-                                                <option value="kg">kg (Kilograme)</option>
-                                                <option value="m">m (Metri)</option>
-                                                <option value="ml">ml (Metri liniari)</option>
-                                                <option value="mp">mp (Metri pătrați)</option>
-                                                <option value="rolă">rolă</option>
-                                                <option value="set">set</option>
-                                                <option value="cutie">cutie</option>
-                                            </>
-                                        )}
-                                    </select>
+                                    <div className={activeTab === 'COMBUSTIBIL' ? 'opacity-70 pointer-events-none' : ''}>
+                                        <SingleSelectDropdown
+                                            options={activeTab === 'COMBUSTIBIL' ? [{id: 'L', name: 'L (Litri)'}] : unitOptions}
+                                            selectedId={itemForm.unit}
+                                            onChange={val => setItemForm({ ...itemForm, unit: val })}
+                                            placeholder="Alege unitatea..."
+                                            searchPlaceholder="Caută..."
+                                            displayFn={o => o.name}
+                                        />
+                                    </div>
                                 </div>
                                 
                                 {activeTab === 'SCULE' && (
@@ -1434,10 +1437,14 @@ export default function WarehouseManagement() {
                                 {!selectedItem && (
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Alocă direct pe Șantier (Opțional)</label>
-                                        <select value={itemForm.site_id} onChange={e => setItemForm({ ...itemForm, site_id: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm">
-                                            <option value="">— Nu (Magazia Generală) —</option>
-                                            {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                        </select>
+                                        <SingleSelectDropdown
+                                            options={allSites}
+                                            selectedId={itemForm.site_id}
+                                            onChange={val => setItemForm({ ...itemForm, site_id: val })}
+                                            placeholder="— Nu (Magazia Generală) —"
+                                            searchPlaceholder="Caută șantier..."
+                                            displayFn={s => s.name}
+                                        />
                                     </div>
                                 )}
                                 
