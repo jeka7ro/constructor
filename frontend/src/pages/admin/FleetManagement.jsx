@@ -379,29 +379,46 @@ export default function FleetManagement() {
                     }
                 });
 
+                let displayDoc = closestDoc || v.documents[0];
+
                 return (
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                if (docsCount === 1) {
-                                    setPreviewDoc({url: v.documents[0].url, name: v.documents[0].name})
-                                } else {
-                                    openEdit(v, 'documents'); 
-                                }
-                            }} 
-                            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2.5 py-1.5 rounded-full"
-                            title={docsCount === 1 ? v.documents[0].name : "Vezi documentele"}
-                        >
-                            <Paperclip className="w-3.5 h-3.5" />
-                            <span className="text-xs font-bold">{docsCount}</span>
-                        </button>
-                        {daysLeft !== null && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${daysLeft < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : daysLeft <= 30 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`} title={closestDoc?.name}>
-                                {daysLeft < 0 ? 'Expirat' : `${daysLeft}z`}
+                    <button 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (docsCount === 1) {
+                                setPreviewDoc({url: v.documents[0].url, name: v.documents[0].name})
+                            } else {
+                                openEdit(v, 'documents'); 
+                            }
+                        }} 
+                        className="flex flex-col items-start gap-1 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors text-left w-full max-w-[180px] -ml-1.5"
+                        title={docsCount > 1 ? `Vezi toate cele ${docsCount} documente` : "Vezi documentul"}
+                    >
+                        <div className="flex items-center gap-1.5 w-full">
+                            <div className="p-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded shrink-0">
+                                <Paperclip className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                                {displayDoc.name || 'Document atașat'}
                             </span>
+                            {docsCount > 1 && (
+                                <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full ml-auto shrink-0">
+                                    +{docsCount - 1}
+                                </span>
+                            )}
+                        </div>
+                        
+                        {displayDoc.expiry_date && daysLeft !== null && (
+                            <div className="flex items-center gap-1.5 mt-0.5 pl-[26px]">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                                    {new Date(displayDoc.expiry_date).toLocaleDateString('ro-RO', {day: '2-digit', month: '2-digit', year: 'numeric'})}
+                                </span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${daysLeft < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : daysLeft <= 30 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                    {daysLeft < 0 ? 'Expirat' : `${daysLeft} zile`}
+                                </span>
+                            </div>
                         )}
-                    </div>
+                    </button>
                 )
             }
         },
