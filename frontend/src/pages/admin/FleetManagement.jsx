@@ -252,10 +252,10 @@ export default function FleetManagement() {
             render: (v) => {
                 const vehicleSites = (v.site_ids || []).map(id => sites.find(s => s.id === id)).filter(Boolean)
                 if (vehicleSites.length === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>
-                if (vehicleSites.length === 1) return <button onClick={() => navigate('/admin/sites')} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
+                if (vehicleSites.length === 1) return <button onClick={() => navigate('/admin/sites', { state: { openSiteId: vehicleSites[0].id } })} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
                 return (
                     <div className="flex flex-col gap-0.5">
-                        <button onClick={() => navigate('/admin/sites')} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
+                        <button onClick={() => navigate('/admin/sites', { state: { openSiteId: vehicleSites[0].id } })} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
                         <span className="text-xs text-slate-400">+{vehicleSites.length - 1} alte șantiere</span>
                     </div>
                 )
@@ -273,7 +273,10 @@ export default function FleetManagement() {
                 if (uList.length === 1) {
                     const u = uList[0]
                     return (
-                        <div className="flex items-center gap-2">
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 -ml-1 rounded transition-colors"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/employees/${u.id}`); }}
+                        >
                             {u.avatar_path ? (
                                 <img src={u.avatar_path.startsWith('http') ? u.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${u.avatar_path}`} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" onError={e => { e.target.style.display = 'none' }} />
                             ) : (
@@ -281,7 +284,7 @@ export default function FleetManagement() {
                                     {u.first_name?.charAt(0)}{u.last_name?.charAt(0)}
                                 </div>
                             )}
-                            <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{`${u.first_name} ${u.last_name}`}</span>
+                            <span className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">{`${u.first_name} ${u.last_name}`}</span>
                         </div>
                     )
                 }

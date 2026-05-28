@@ -22,6 +22,7 @@ import PhotoUpload from '../../components/PhotoUpload'
 import PhotoGallery from '../../components/PhotoGallery'
 import { useUIStore } from '../../store/uiStore'
 import SiteDetailView from '../../components/SiteDetailView'
+import { useLocation } from 'react-router-dom'
 
 const PAGE_ID = 'admin-sites'
 
@@ -140,12 +141,26 @@ export default function SitesManagement() {
     const setPageSize = useViewPreferencesStore((state) => state.setPageSize)
     const setCurrentPage = useViewPreferencesStore((state) => state.setCurrentPage)
 
+    const location = useLocation()
+    
     useEffect(() => {
         fetchSites()
         fetchStats()
         fetchTeams()
         fetchClients()
     }, [search, statusFilter, preferences.currentPage, preferences.pageSize])
+
+    // Auto-open site from location state (e.g., from Fleet Management)
+    useEffect(() => {
+        if (location.state?.openSiteId && sites.length > 0 && !detailSite) {
+            const siteToOpen = sites.find(s => s.id === location.state.openSiteId)
+            if (siteToOpen) {
+                setDetailSite(siteToOpen)
+                // Clear state so it doesn't reopen if they refresh
+                window.history.replaceState({}, document.title)
+            }
+        }
+    }, [location.state, sites, detailSite])
 
     const fetchClients = async () => {
         try {
