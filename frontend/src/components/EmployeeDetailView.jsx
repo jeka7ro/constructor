@@ -72,9 +72,9 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
 
                 {/* Avatar */}
                 {user.avatar_path ? (
-                    <img src={user.avatar_path} alt="Avatar" className="w-9 h-9 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-sm shrink-0" />
+                    <img src={user.avatar_path} alt="Avatar" className="w-11 h-14 rounded-lg object-cover object-[center_20%] border-2 border-white dark:border-slate-800 shadow-md shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[2.5] hover:shadow-2xl cursor-zoom-in" />
                 ) : (
-                    <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
+                    <div className="w-11 h-14 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm border-2 border-white dark:border-slate-800 shadow-md shrink-0">
                         {user.full_name?.charAt(0)}
                     </div>
                 )}
