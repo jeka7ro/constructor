@@ -230,6 +230,12 @@
     "search_vehicle": "Caută vehicul...",
     "add_vehicle": "Adaugă Vehicul",
     "license_plate": "Număr Înmatriculare",
+    "plate_number": "Număr Înmatriculare",
+    "placeholders": {
+      "name": "Ex: Dacia Duster",
+      "plate": "Ex: B 12 ABC",
+      "notes": "Detalii opționale..."
+    },
     "brand": "Marca",
     "model": "Model",
     "year": "An Fabricație",
@@ -268,7 +274,8 @@
     "statuses": {
       "active": "Activ",
       "inactive": "Inactiv",
-      "maintenance": "Mentenanță"
+      "maintenance": "Mentenanță",
+      "service": "În Service"
     }
   },
   "reports": {
