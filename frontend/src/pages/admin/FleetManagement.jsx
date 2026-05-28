@@ -252,10 +252,10 @@ export default function FleetManagement() {
             render: (v) => {
                 const vehicleSites = (v.site_ids || []).map(id => sites.find(s => s.id === id)).filter(Boolean)
                 if (vehicleSites.length === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>
-                if (vehicleSites.length === 1) return <button onClick={() => setFilterSiteId(vehicleSites[0].id)} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
+                if (vehicleSites.length === 1) return <button onClick={() => navigate('/admin/sites')} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
                 return (
                     <div className="flex flex-col gap-0.5">
-                        <button onClick={() => setFilterSiteId(vehicleSites[0].id)} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
+                        <button onClick={() => navigate('/admin/sites')} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
                         <span className="text-xs text-slate-400">+{vehicleSites.length - 1} alte șantiere</span>
                     </div>
                 )
@@ -266,11 +266,42 @@ export default function FleetManagement() {
             render: (v) => {
                 const count = v.user_ids?.length || 0
                 if (count === 0) return <span className="text-slate-500 dark:text-slate-400 text-sm">—</span>
-                if (count === 1) {
-                    const u = users.find(u => u.id === v.user_ids[0])
-                    return <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{u ? `${u.first_name} ${u.last_name}` : '—'}</span>
+                
+                const uList = v.user_ids.map(id => users.find(u => u.id === id)).filter(Boolean)
+                if (uList.length === 0) return <span className="text-slate-500 dark:text-slate-400 text-sm">—</span>
+                
+                if (uList.length === 1) {
+                    const u = uList[0]
+                    return (
+                        <div className="flex items-center gap-2">
+                            {u.avatar_path ? (
+                                <img src={u.avatar_path.startsWith('http') ? u.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${u.avatar_path}`} alt="" className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700" onError={e => { e.target.style.display = 'none' }} />
+                            ) : (
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 ring-1 ring-blue-200 dark:ring-blue-800">
+                                    {u.first_name?.charAt(0)}{u.last_name?.charAt(0)}
+                                </div>
+                            )}
+                            <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{`${u.first_name} ${u.last_name}`}</span>
+                        </div>
+                    )
                 }
-                return <span className="text-slate-500 dark:text-slate-400 text-sm">{count} {t('users.drivers')}</span>
+
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                            {uList.slice(0, 3).map((u, i) => (
+                                u.avatar_path ? (
+                                    <img key={i} src={u.avatar_path.startsWith('http') ? u.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${u.avatar_path}`} alt="" className="w-6 h-6 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 relative" style={{ zIndex: 3 - i }} onError={e => { e.target.style.display = 'none' }} />
+                                ) : (
+                                    <div key={i} className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 ring-2 ring-white dark:ring-slate-900 relative" style={{ zIndex: 3 - i }}>
+                                        {u.first_name?.charAt(0)}{u.last_name?.charAt(0)}
+                                    </div>
+                                )
+                            ))}
+                        </div>
+                        <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">({count})</span>
+                    </div>
+                )
             }
         },
         {
@@ -293,7 +324,7 @@ export default function FleetManagement() {
         {
             key: '_actions', label: t('common.actions'),
             render: (v) => (
-                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center justify-end gap-1">
                     {!CAR_TYPES.includes(v.type) && (
                         <button onClick={() => { setLogEquipment(v); setShowLogModal(true); setLogForm({ date: new Date().toISOString().split('T')[0], site_id: v.site_ids?.[0] || '', operator_id: v.user_ids?.[0] || '', is_used: true, refueled: false, refuel_liters: '', notes: '' }) }} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" title="Pontaj Zilnic">
                             <CalendarClock className="w-4 h-4" />
