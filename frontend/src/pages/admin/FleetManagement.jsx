@@ -46,6 +46,7 @@ export default function FleetManagement() {
     
     // Document upload modal
     const [showDocModal, setShowDocModal] = useState(false)
+    const [editingDocId, setEditingDocId] = useState(null)
     const [docFile, setDocFile] = useState(null)
     const [docForm, setDocForm] = useState({ name: '', expiry_date: '' })
     const [uploadingDoc, setUploadingDoc] = useState(false)
@@ -270,6 +271,45 @@ export default function FleetManagement() {
             setUploadingDoc(false)
         }
     }
+
+    const handleSaveDocEdit = async () => {
+        if (!editingVehicle || !editingDocId) return;
+        setUploadingDoc(true);
+        try {
+            const updatedDocs = editingVehicle.documents.map(d => {
+                if (d.id === editingDocId) {
+                    return { ...d, name: docForm.name, expiry_date: docForm.expiry_date || null };
+                }
+                return d;
+            });
+            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
+            setEditingVehicle(res.data);
+            fetchAll();
+            setShowDocModal(false);
+            setEditingDocId(null);
+            setDocForm({ name: '', expiry_date: '' });
+            setSuccess('Document actualizat cu succes!');
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (e) {
+            setError('Eroare actualizare document: ' + (e.response?.data?.detail || e.message));
+        } finally {
+            setUploadingDoc(false);
+        }
+    };
+
+    const handleDeleteDoc = async (docId) => {
+        if (!window.confirm('Sigur vrei să ștergi acest document? Această acțiune este ireversibilă.')) return;
+        try {
+            const updatedDocs = editingVehicle.documents.filter(d => d.id !== docId);
+            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
+            setEditingVehicle(res.data);
+            fetchAll();
+            setSuccess('Document șters cu succes!');
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (e) {
+            setError('Eroare ștergere document: ' + (e.response?.data?.detail || e.message));
+        }
+    };
 
     const columns = [
         {
@@ -982,9 +1022,14 @@ export default function FleetManagement() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div>
+                                                        <button type="button" onClick={() => { setEditingDocId(doc.id); setDocForm({ name: doc.name || '', expiry_date: doc.expiry_date || '' }); setShowDocModal(true); }} className="p-2 hover:bg-blue-100 rounded-full text-slate-400 hover:text-blue-600 transition-colors" title="Editează detalii">
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
                                                         <button type="button" onClick={() => window.open(doc.url, "_blank")} title="Deschide într-o filă nouă" className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 transition-colors">
                                                             <ExternalLink className="w-4 h-4" />
+                                                        </button>
+                                                        <button type="button" onClick={() => handleDeleteDoc(doc.id)} className="p-2 hover:bg-red-100 rounded-full text-slate-400 hover:text-red-600 transition-colors" title="Șterge document">
+                                                            <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1133,29 +1178,31 @@ export default function FleetManagement() {
                 <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Adaugă Document</h2>
-                            <button onClick={() => setShowDocModal(false)} className="p-1 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingDocId ? 'Editează Document' : 'Adaugă Document'}</h2>
+                            <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="p-1 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
                         
                         <div className="space-y-4 mb-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Alege Fișierul *</label>
-                                <div className="relative group cursor-pointer">
-                                    <input 
-                                        type="file" 
-                                        accept=".pdf,image/*" 
-                                        onChange={(e) => setDocFile(e.target.files[0])} 
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                                    />
-                                    <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl transition-colors ${docFile ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}`}>
-                                        <UploadCloud className={`w-8 h-8 mb-2 ${docFile ? 'text-blue-600' : 'text-slate-400'}`} />
-                                        <p className={`text-sm font-bold text-center ${docFile ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'}`}>
-                                            {docFile ? docFile.name : 'Apasă aici pentru a alege un document'}
-                                        </p>
-                                        {!docFile && <p className="text-xs text-slate-400 mt-1">PDF sau Imagine, maxim 10 MB</p>}
+                            {!editingDocId && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Alege Fișierul *</label>
+                                    <div className="relative group cursor-pointer">
+                                        <input 
+                                            type="file" 
+                                            accept=".pdf,image/*" 
+                                            onChange={(e) => setDocFile(e.target.files[0])} 
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                        />
+                                        <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl transition-colors ${docFile ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}`}>
+                                            <UploadCloud className={`w-8 h-8 mb-2 ${docFile ? 'text-blue-500' : 'text-slate-400'}`} />
+                                            <p className={`text-sm font-semibold text-center ${docFile ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                {docFile ? docFile.name : 'Apasă aici pentru a alege un document'}
+                                            </p>
+                                            {!docFile && <p className="text-xs text-slate-400 mt-1">PDF sau Imagine, maxim 10 MB</p>}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Denumire Document (Opțional)</label>
@@ -1171,12 +1218,12 @@ export default function FleetManagement() {
                         </div>
 
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setShowDocModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
+                            <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
                                 Anulează
                             </button>
-                            <button onClick={handleUploadDoc} disabled={uploadingDoc || !docFile} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
+                            <button onClick={editingDocId ? handleSaveDocEdit : handleUploadDoc} disabled={uploadingDoc || (!editingDocId && !docFile)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
                                 {uploadingDoc && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Salvează Document
+                                {editingDocId ? 'Salvează Modificări' : 'Salvează Document'}
                             </button>
                         </div>
                     </div>
