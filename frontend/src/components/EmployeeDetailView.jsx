@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, MapPin, Phone, Mail, Calendar, Clock, Package, Car, Loader2, Award, Home, Activity, ShieldAlert, Zap, Thermometer, Wrench, CheckCircle2, BarChart3, Flame, FileText, Trash2, Upload, File, Download, X } from 'lucide-react'
+import { ArrowLeft, MapPin, Phone, Mail, Calendar, Clock, Package, Car, Loader2, Award, Home, Activity, ShieldAlert, Zap, Thermometer, Wrench, CheckCircle2, BarChart3, Flame, FileText, Trash2, Upload, File, Download, X, Paperclip } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts'
 import api from '../lib/api'
 
@@ -107,38 +107,67 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* ─── Profile Header + Tabs combined ─── */}
-            <div className="px-4 py-3 flex flex-wrap items-center gap-3 border-b border-slate-100 dark:border-slate-800">
-                <button
-                    onClick={onBack}
-                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                </button>
+            <div className="border-b border-slate-100 dark:border-slate-800">
+                <div className="px-4 pt-4 pb-2 flex flex-wrap items-start gap-4">
+                    <button
+                        onClick={onBack}
+                        className="mt-1.5 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                    </button>
 
-                {/* Avatar */}
-                {user.avatar_path ? (
-                    <img src={user.avatar_path} alt="Avatar" className="w-16 h-20 rounded-lg object-cover object-[center_20%] border-2 border-white dark:border-slate-800 shadow-md shrink-0" />
-                ) : (
-                    <div className="w-16 h-20 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm border-2 border-white dark:border-slate-800 shadow-md shrink-0">
-                        {user.full_name?.charAt(0)}
+                    {/* Avatar */}
+                    <div className="relative shrink-0 -mt-1">
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 text-slate-400 -rotate-12 drop-shadow-md pointer-events-none">
+                            <Paperclip className="w-6 h-6" />
+                        </div>
+                        {user.avatar_path ? (
+                            <img src={user.avatar_path} alt="Avatar" className="w-16 h-20 rounded-lg object-cover object-[center_20%] border-2 border-white dark:border-slate-800 shadow-md relative z-0 bg-white" />
+                        ) : (
+                            <div className="w-16 h-20 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm border-2 border-white dark:border-slate-800 shadow-md relative z-0">
+                                {user.full_name?.charAt(0)}
+                            </div>
+                        )}
                     </div>
-                )}
 
-                {/* Name + badge */}
-                <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-bold text-slate-900 dark:text-white text-sm">{user.full_name}</span>
-                    <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500">{user.employee_code}</span>
-                    {user.is_active
-                        ? <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold">Activ</span>
-                        : <span className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-bold">Inactiv</span>
-                    }
+                    {/* Name + badge + info */}
+                    <div className="flex flex-col gap-1 mt-0.5 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white text-base">{user.full_name}</span>
+                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500">{user.employee_code}</span>
+                            {user.is_active
+                                ? <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold">Activ</span>
+                                : <span className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-bold">Inactiv</span>
+                            }
+                        </div>
+                        {user.birth_date && user.birth_date !== 'None' && (
+                            <div className="text-xs text-slate-500 font-medium">
+                                Născut: {new Date(user.birth_date).toLocaleDateString('ro-RO')} 
+                                <span className="mx-1.5 text-slate-300">•</span> 
+                                {Math.floor((new Date() - new Date(user.birth_date)) / 31557600000)} ani
+                            </div>
+                        )}
+                        {user.phone && (
+                            <a href={`tel:${user.phone}`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors shrink-0 mt-0.5 w-max">
+                                <Phone className="w-3.5 h-3.5" /> {user.phone}
+                            </a>
+                        )}
+                    </div>
+
+                    {onExport && (
+                        <div className="ml-auto mt-0.5 shrink-0">
+                            <button
+                                onClick={onExport}
+                                className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap"
+                            >
+                                <BarChart3 className="w-3.5 h-3.5" /> Export Excel
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                {/* Divider */}
-                <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
-
-                {/* Tabs inline */}
-                <div className="flex overflow-x-auto gap-1.5 hide-scrollbar flex-1">
+                {/* Tabs row below */}
+                <div className="px-4 pb-3 flex overflow-x-auto gap-1.5 hide-scrollbar w-full sm:pl-[4.5rem]">
                     {TABS.map(tab => {
                         const Icon = tab.icon
                         const isActive = activeTab === tab.id
@@ -158,22 +187,6 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                         )
                     })}
                 </div>
-
-                {/* Phone */}
-                {user.phone && (
-                    <a href={`tel:${user.phone}`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors shrink-0">
-                        <Phone className="w-3.5 h-3.5" /> {user.phone}
-                    </a>
-                )}
-
-                {onExport && (
-                    <button
-                        onClick={onExport}
-                        className="ml-auto flex items-center gap-1.5 px-4 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap shrink-0"
-                    >
-                        <BarChart3 className="w-3.5 h-3.5" /> Export Excel
-                    </button>
-                )}
             </div>
 
             {/* ─── Content ─── */}
