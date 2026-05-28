@@ -176,7 +176,7 @@ export default function WarehouseManagement() {
     const [txType, setTxType] = useState('IN') // 'IN' or 'OUT'
 
     // Form states
-    const [itemForm, setItemForm] = useState({ name: '', unit: '', model: '', inventory_code: '' })
+    const [itemForm, setItemForm] = useState({ name: '', unit: '', model: '', inventory_code: '', site_id: '' })
     const [txForm, setTxForm] = useState({ quantity: '', date: new Date().toISOString().split('T')[0], assigned_to_user_ids: [], assigned_to_vehicle_ids: [], site_id: '', notes: '', file: null })
 
     // Transactions History Modal
@@ -354,17 +354,17 @@ export default function WarehouseManagement() {
                 const res = await api.post('/warehouse/items', payload)
                 const newItemId = res.data?.id
                 
-                if (selectedSite && payload.inventory_code && newItemId) {
+                if (itemForm.site_id && payload.inventory_code && newItemId) {
                     // Dacă e Sculă (are inventory_code) și utilizatorul are un șantier selectat, o trimitem automat pe acel șantier
                     await api.post(`/warehouse/items/${newItemId}/force-assign`, {
-                        site_id: selectedSite,
+                        site_id: itemForm.site_id,
                         date: new Date().toISOString().split('T')[0]
                     })
                     showToast('Sculă creată și adăugată direct pe șantier', 'success')
-                } else if (selectedSite) {
+                } else if (itemForm.site_id) {
                     // Pentru materiale de volum, resetăm filtrul pentru a i se permite să adauge tranzacția de intrare
-                    setSelectedSite('')
-                    showToast('Articol creat! Filtrul de șantier a fost resetat pentru a putea adăuga stoc inițial.', 'success')
+                    if (selectedSite) setSelectedSite('')
+                    showToast('Articol creat! Adaugă acum o tranzacție de Intrare pentru a adăuga stoc.', 'success')
                 } else {
                     showToast('Articol creat', 'success')
                 }
@@ -1051,7 +1051,7 @@ export default function WarehouseManagement() {
                         </button>
 
                         <button
-                            onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : (activeTab === 'SCULE' ? 'buc' : ''), model: '', inventory_code: '' }); setSelectedItem(null); setShowItemModal(true); }}
+                            onClick={() => { setItemForm({ name: '', unit: activeTab === 'COMBUSTIBIL' ? 'L' : (activeTab === 'SCULE' ? 'buc' : ''), model: '', inventory_code: '', site_id: selectedSite || '' }); setSelectedItem(null); setShowItemModal(true); }}
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
@@ -1224,7 +1224,7 @@ export default function WarehouseManagement() {
                                                         </button>
                                                     </>
                                                 )}
-                                                <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit, model: item.model || '', inventory_code: item.inventory_code || '' }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică articol">
+                                                <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit, model: item.model || '', inventory_code: item.inventory_code || '', site_id: item.site_id || '' }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică articol">
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title="Șterge articol">
@@ -1429,6 +1429,16 @@ export default function WarehouseManagement() {
                                             <input type="text" value={itemForm.inventory_code} onChange={e => setItemForm({ ...itemForm, inventory_code: e.target.value })} placeholder="ex. INV-001" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                         </div>
                                     </>
+                                )}
+                                
+                                {!selectedItem && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Alocă direct pe Șantier (Opțional)</label>
+                                        <select value={itemForm.site_id} onChange={e => setItemForm({ ...itemForm, site_id: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm">
+                                            <option value="">— Nu (Magazia Generală) —</option>
+                                            {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
                                 )}
                                 
                                 <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
