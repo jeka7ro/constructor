@@ -220,9 +220,9 @@ export default function FleetManagement() {
             render: (v) => (
                 <div>
                     <p className="font-semibold text-slate-800 dark:text-slate-100">{v.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        {v.plate_number && <p className="text-xs text-slate-400 font-mono">{v.plate_number}</p>}
-                        {v.chassis_number && <p className="text-xs text-indigo-400 font-mono bg-indigo-50 dark:bg-indigo-900/10 px-1 rounded border border-indigo-100 dark:border-indigo-800/30">SN: {v.chassis_number}</p>}
+                    <div className="flex items-center gap-1.5 mt-0.5 w-full max-w-[220px]">
+                        {v.plate_number && <p className="text-[11px] font-semibold text-slate-500 shrink-0">{v.plate_number}</p>}
+                        {v.chassis_number && <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-800/30 truncate flex-1 min-w-0" title={v.chassis_number}>SN: {v.chassis_number}</p>}
                     </div>
                 </div>
             )
