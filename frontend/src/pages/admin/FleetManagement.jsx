@@ -502,7 +502,7 @@ export default function FleetManagement() {
                                 { key: 'info', label: 'Informații' },
                                 { key: 'sites', label: 'Alocări Șantiere' },
                                 { key: 'drivers', label: 'Șoferi / Operatori' },
-                                ...(editingVehicle && CAR_TYPES.includes(editingVehicle?.type) ? [{ key: 'documents', label: 'Documente' }] : [])
+                                ...(editingVehicle ? [{ key: 'documents', label: 'Documente' }] : [])
                             ].map(tab => (
                                 <button
                                     key={tab.key}
