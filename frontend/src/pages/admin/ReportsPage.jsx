@@ -14,6 +14,11 @@ import DataTable from '../../components/DataTable'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
+const toLocalISO = (d) => {
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
+}
+
 export default function ReportsPage() {
     const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
@@ -45,8 +50,8 @@ export default function ReportsPage() {
         const today = new Date()
         const lastWeek = new Date(today)
         lastWeek.setDate(today.getDate() - 7)
-        setDateFrom(lastWeek.toISOString().split('T')[0])
-        setDateTo(today.toISOString().split('T')[0])
+        setDateFrom(toLocalISO(lastWeek))
+        setDateTo(toLocalISO(today))
     }
 
     const fetchEmployees = async () => {
@@ -105,8 +110,8 @@ export default function ReportsPage() {
         const today = new Date()
         const past = new Date(today)
         past.setDate(today.getDate() - days)
-        setDateFrom(past.toISOString().split('T')[0])
-        setDateTo(today.toISOString().split('T')[0])
+        setDateFrom(toLocalISO(past))
+        setDateTo(toLocalISO(today))
     }
 
     // Compute chart data from preview
@@ -228,8 +233,8 @@ export default function ReportsPage() {
                                 {
                                     label: t('timesheets.period.month'), fn: () => {
                                         const t = new Date()
-                                        setDateFrom(new Date(t.getFullYear(), t.getMonth(), 1).toISOString().split('T')[0])
-                                        setDateTo(t.toISOString().split('T')[0])
+                                        setDateFrom(toLocalISO(new Date(t.getFullYear(), t.getMonth(), 1)))
+                                        setDateTo(toLocalISO(t))
                                     }
                                 },
                                 {
@@ -237,8 +242,8 @@ export default function ReportsPage() {
                                         const t = new Date()
                                         const first = new Date(t.getFullYear(), t.getMonth() - 1, 1)
                                         const last = new Date(t.getFullYear(), t.getMonth(), 0)
-                                        setDateFrom(first.toISOString().split('T')[0])
-                                        setDateTo(last.toISOString().split('T')[0])
+                                        setDateFrom(toLocalISO(first))
+                                        setDateTo(toLocalISO(last))
                                     }
                                 },
                             ].map(f => (
