@@ -9,6 +9,34 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
     const [warehouseHistory, setWarehouseHistory] = useState([])
     const [materialRequests, setMaterialRequests] = useState([])
     const [fuelLogs, setFuelLogs] = useState([])
+
+    // Extragere Dată Naștere din API sau CNP fallback
+    const getBirthDate = () => {
+        if (user?.birth_date && user.birth_date !== 'None') {
+            return new Date(user.birth_date);
+        }
+        if (user?.cnp && user.cnp.length === 13) {
+            const s = parseInt(user.cnp.charAt(0), 10);
+            const yy = parseInt(user.cnp.substring(1, 3), 10);
+            const mm = parseInt(user.cnp.substring(3, 5), 10);
+            const dd = parseInt(user.cnp.substring(5, 7), 10);
+            
+            let yearPrefix = 19;
+            if (s === 1 || s === 2) yearPrefix = 19;
+            else if (s === 3 || s === 4) yearPrefix = 18;
+            else if (s === 5 || s === 6) yearPrefix = 20;
+            else if (s >= 7 && s <= 9) yearPrefix = yy > new Date().getFullYear() % 100 ? 19 : 20;
+            else return null;
+            
+            const year = yearPrefix * 100 + yy;
+            if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+                return new Date(year, mm - 1, dd);
+            }
+        }
+        return null;
+    };
+    
+    const birthDateObj = getBirthDate();
     const [documents, setDocuments] = useState([])
         const [isUploadingDoc, setIsUploadingDoc] = useState(false)
     const [docName, setDocName] = useState('')
@@ -141,11 +169,11 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                             }
                         </div>
                         <div className="text-xs text-slate-500 font-medium">
-                            Data nașterii: {user.birth_date && user.birth_date !== 'None' ? new Date(user.birth_date).toLocaleDateString('ro-RO') : <span className="italic text-slate-400">Nespecificată</span>} 
-                            {user.birth_date && user.birth_date !== 'None' && (
+                            Data nașterii: {birthDateObj ? birthDateObj.toLocaleDateString('ro-RO') : <span className="italic text-slate-400">Nespecificată</span>} 
+                            {birthDateObj && (
                                 <>
                                     <span className="mx-1.5 text-slate-300">•</span> 
-                                    Vârsta: {Math.floor((new Date() - new Date(user.birth_date)) / 31557600000)} ani
+                                    Vârsta: {Math.floor((new Date() - birthDateObj) / 31557600000)} ani
                                 </>
                             )}
                         </div>
