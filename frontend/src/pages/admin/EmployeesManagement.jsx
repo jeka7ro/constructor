@@ -541,8 +541,6 @@ export default function EmployeesManagement() {
                                 </div>
                             )}
                         </div>
-                    )}
-
                     <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
                         {!detailUser && (
                             <>

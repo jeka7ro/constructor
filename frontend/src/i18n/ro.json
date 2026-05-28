@@ -242,7 +242,21 @@
     "delete_vehicle": "Șterge Vehicul",
     "no_vehicles": "Niciun vehicul găsit",
     "save_vehicle": "Salvează Vehicul",
-    "confirm_delete_vehicle": "Confirmi ștergerea acestui vehicul?"
+    "confirm_delete_vehicle": "Confirmi ștergerea acestui vehicul?",
+    "type": "Tip",
+    "drivers": "Șoferi",
+    "types": {
+      "van": "Dubă",
+      "truck": "Camion",
+      "excavator": "Excavator",
+      "crane": "Macara",
+      "other": "Altele"
+    },
+    "statuses": {
+      "active": "Activ",
+      "inactive": "Inactiv",
+      "maintenance": "Mentenanță"
+    }
   },
   "reports": {
     "title": "Rapoarte",
