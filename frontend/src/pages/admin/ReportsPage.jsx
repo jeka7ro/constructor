@@ -11,6 +11,7 @@ import {
     PieChart, Pie, Cell, Legend, LabelList
 } from 'recharts'
 import DataTable from '../../components/DataTable'
+import SearchableSelect from '../../components/SearchableSelect'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
@@ -281,23 +282,25 @@ export default function ReportsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap w-16">{t('users.employee_col')}:</label>
-                            <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-full text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                <option value="">{t('reports.all_employees')}</option>
-                                {employees.map(emp => (
-                                    <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_code})</option>
-                                ))}
-                            </select>
+                            <SearchableSelect
+                                value={selectedEmployee}
+                                onChange={setSelectedEmployee}
+                                placeholder={t('reports.all_employees')}
+                                searchPlaceholder="Caută angajat..."
+                                options={employees
+                                    .filter(emp => !['Administrator', 'Super Administrator'].includes(emp.role))
+                                    .map(emp => ({ value: emp.id, label: emp.full_name, subLabel: emp.employee_code }))}
+                            />
                         </div>
                         <div className="flex items-center gap-2">
                             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap w-16">{t('common.site')}:</label>
-                            <select value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-full text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                <option value="">{t('reports.all_sites')}</option>
-                                {sites.map(site => (
-                                    <option key={site.id} value={site.id}>{site.name}</option>
-                                ))}
-                            </select>
+                            <SearchableSelect
+                                value={selectedSite}
+                                onChange={setSelectedSite}
+                                placeholder={t('reports.all_sites')}
+                                searchPlaceholder="Caută șantier..."
+                                options={sites.map(site => ({ value: site.id, label: site.name }))}
+                            />
                         </div>
                     </div>
                 </div>
