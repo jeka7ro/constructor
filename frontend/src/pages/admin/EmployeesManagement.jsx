@@ -1205,7 +1205,7 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                             <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
                                     {user.avatar_path ? (
-                                        <img src={`${apiBase}${user.avatar_path}`} alt="" className="w-9 h-11 rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[1.8] hover:shadow-2xl cursor-zoom-in" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
+                                        <img src={`${apiBase}${user.avatar_path}`} alt="" className="w-9 h-11 rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[1.8] hover:shadow-2xl" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
                                     ) : null}
                                     <div className={`w-9 h-11 rounded-lg bg-blue-100 dark:bg-blue-900/30 items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-xs ring-1 ring-blue-200 dark:ring-blue-800 shrink-0 ${user.avatar_path ? 'hidden' : 'flex'}`}>
                                         {(user.last_name?.charAt(0) || '') + (user.first_name?.charAt(0) || '')}
@@ -1306,7 +1306,7 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                                     src={`${apiBase}${user.avatar_path}`}
                                     style={{ objectPosition: 'top' }}
                                     alt=""
-                                    className="w-12 h-16 rounded-lg object-cover object-[center_20%] ring-2 ring-white shadow-lg shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[1.8] hover:shadow-2xl cursor-zoom-in"
+                                    className="w-12 h-16 rounded-lg object-cover object-[center_20%] ring-2 ring-white shadow-lg shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[1.8] hover:shadow-2xl"
                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
                                 />
                             ) : null}
