@@ -311,9 +311,16 @@ export default function FleetManagement() {
                 if (docsCount === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>;
                 return (
                     <button 
-                        onClick={(e) => { e.stopPropagation(); openEdit(v, 'documents'); }} 
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (docsCount === 1) {
+                                setPreviewDoc({url: v.documents[0].url, name: v.documents[0].name})
+                            } else {
+                                openEdit(v, 'documents'); 
+                            }
+                        }} 
                         className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2.5 py-1.5 rounded-full"
-                        title="Vezi documente"
+                        title={docsCount === 1 ? v.documents[0].name : "Vezi documentele"}
                     >
                         <Paperclip className="w-3.5 h-3.5" />
                         <span className="text-xs font-bold">{docsCount}</span>
