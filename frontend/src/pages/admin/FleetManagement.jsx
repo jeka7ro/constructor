@@ -1022,6 +1022,7 @@ export default function FleetManagement() {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div>
                                                         <button type="button" onClick={() => { setEditingDocId(doc.id); setDocForm({ name: doc.name || '', expiry_date: doc.expiry_date || '' }); setShowDocModal(true); }} className="p-2 hover:bg-blue-100 rounded-full text-slate-400 hover:text-blue-600 transition-colors" title="Editează detalii">
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
