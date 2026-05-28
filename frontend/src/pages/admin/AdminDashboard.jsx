@@ -23,6 +23,10 @@ export default function AdminDashboard() {
     const [lastSeenCount, setLastSeenCount] = useState(0)
     const notifRef = useRef(null)
 
+    // Birthdays
+    const [birthdayUsers, setBirthdayUsers] = useState([])
+    const [showBirthdayPopup, setShowBirthdayPopup] = useState(false)
+
     const handleLogout = () => {
         logout()
         navigate('/admin/login')
@@ -42,6 +46,36 @@ export default function AdminDashboard() {
         fetchNotifications()
         const t = setInterval(fetchNotifications, 30000)
         return () => clearInterval(t)
+    }, [])
+
+    // Fetch Birthdays
+    useEffect(() => {
+        const checkBirthdays = async () => {
+            const todayStr = new Date().toISOString().split('T')[0]
+            const lastShown = localStorage.getItem('pontaj_birthday_shown_date')
+            if (lastShown === todayStr) return
+
+            try {
+                const res = await api.get('/admin/users/')
+                const users = res.data || []
+                const today = new Date()
+                const todayMonth = today.getMonth() + 1
+                const todayDay = today.getDate()
+
+                const bdays = users.filter(u => {
+                    if (!u.birth_date || u.birth_date === 'None') return false
+                    const b = new Date(u.birth_date)
+                    return b.getMonth() + 1 === todayMonth && b.getDate() === todayDay
+                })
+
+                if (bdays.length > 0) {
+                    setBirthdayUsers(bdays)
+                    setShowBirthdayPopup(true)
+                    localStorage.setItem('pontaj_birthday_shown_date', todayStr)
+                }
+            } catch(e) {}
+        }
+        checkBirthdays()
     }, [])
 
     // Fetch open complaints count for badge
@@ -354,6 +388,41 @@ export default function AdminDashboard() {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Birthday Popup */}
+            {showBirthdayPopup && birthdayUsers.length > 0 && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowBirthdayPopup(false)}></div>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="bg-gradient-to-r from-pink-500 to-rose-500 p-6 text-center">
+                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                                <span className="text-3xl">🎂</span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-1">La mulți ani!</h3>
+                            <p className="text-pink-100 text-sm">Astăzi își serbează ziua de naștere:</p>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            {birthdayUsers.map(u => (
+                                <div key={u.id} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                    <div className="w-12 h-12 rounded-full bg-pink-100 dark:bg-pink-900/40 flex items-center justify-center text-pink-600 dark:text-pink-400 font-bold text-lg overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
+                                        {u.avatar_path ? <img src={u.avatar_path.startsWith('http') ? u.avatar_path : `${API_BASE}${u.avatar_path}`} className="w-full h-full object-cover" alt="" /> : u.full_name?.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-white">{u.full_name}</p>
+                                        <p className="text-xs text-slate-500">{u.employee_code} • {Math.floor((new Date() - new Date(u.birth_date)) / 31557600000)} ani</p>
+                                    </div>
+                                </div>
+                            ))}
+                            <button 
+                                onClick={() => setShowBirthdayPopup(false)}
+                                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors mt-2"
+                            >
+                                Închide
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

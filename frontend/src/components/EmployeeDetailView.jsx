@@ -118,7 +118,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
 
                     {/* Avatar */}
                     <div className="relative shrink-0 -mt-1">
-                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 text-slate-400 -rotate-12 drop-shadow-md pointer-events-none">
+                        <div className="absolute -top-2 -right-3 z-10 text-slate-400 rotate-[60deg] drop-shadow-md pointer-events-none">
                             <Paperclip className="w-6 h-6" />
                         </div>
                         {user.avatar_path ? (
@@ -142,9 +142,9 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                         </div>
                         {user.birth_date && user.birth_date !== 'None' && (
                             <div className="text-xs text-slate-500 font-medium">
-                                Născut: {new Date(user.birth_date).toLocaleDateString('ro-RO')} 
+                                Data nașterii: {new Date(user.birth_date).toLocaleDateString('ro-RO')} 
                                 <span className="mx-1.5 text-slate-300">•</span> 
-                                {Math.floor((new Date() - new Date(user.birth_date)) / 31557600000)} ani
+                                Vârsta: {Math.floor((new Date() - new Date(user.birth_date)) / 31557600000)} ani
                             </div>
                         )}
                         {user.phone && (
@@ -167,7 +167,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                 </div>
 
                 {/* Tabs row below */}
-                <div className="px-4 pb-3 flex overflow-x-auto gap-1.5 hide-scrollbar w-full sm:pl-[4.5rem]">
+                <div className="px-4 pb-3 flex overflow-x-auto gap-1.5 hide-scrollbar w-full sm:justify-end">
                     {TABS.map(tab => {
                         const Icon = tab.icon
                         const isActive = activeTab === tab.id
