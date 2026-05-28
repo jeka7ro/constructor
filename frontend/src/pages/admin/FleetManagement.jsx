@@ -236,17 +236,16 @@ export default function FleetManagement() {
         },
         {
             key: 'type', label: t('fleet.type'), sortable: true,
-            render: (v) => <span className="text-slate-600 dark:text-slate-300">{t(`fleet.types.${v.type}`)}</span>
-        },
-        { key: 'year', label: t('fleet.year'), sortable: true },
-        {
-            key: 'status', label: t('fleet.status'), sortable: true,
             render: (v) => (
-                <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[v.status] || STATUS_COLORS.inactive}`}>
-                    {t(`fleet.statuses.${v.status}`)}
-                </span>
+                <div className="flex flex-col gap-1.5 items-start">
+                    <span className="text-slate-700 dark:text-slate-200 font-medium text-sm">{t(`fleet.types.${v.type}`)}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_COLORS[v.status] || STATUS_COLORS.inactive}`}>
+                        {t(`fleet.statuses.${v.status}`)}
+                    </span>
+                </div>
             )
         },
+        { key: 'year', label: t('fleet.year'), sortable: true },
         {
             key: 'site_ids', label: 'Șantiere Alocate',
             render: (v) => {
@@ -312,22 +311,47 @@ export default function FleetManagement() {
             render: (v) => {
                 const docsCount = v.documents?.length || 0;
                 if (docsCount === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>;
+                
+                let closestDoc = null;
+                let daysLeft = null;
+                const now = new Date();
+                
+                v.documents.forEach(doc => {
+                    if (doc.expiry_date) {
+                        const exp = new Date(doc.expiry_date);
+                        const diffTime = exp - now;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (closestDoc === null || diffDays < daysLeft) {
+                            closestDoc = doc;
+                            daysLeft = diffDays;
+                        }
+                    }
+                });
+
                 return (
-                    <button 
-                        onClick={(e) => { 
-                            e.stopPropagation(); 
-                            if (docsCount === 1) {
-                                setPreviewDoc({url: v.documents[0].url, name: v.documents[0].name})
-                            } else {
-                                openEdit(v, 'documents'); 
-                            }
-                        }} 
-                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2.5 py-1.5 rounded-full"
-                        title={docsCount === 1 ? v.documents[0].name : "Vezi documentele"}
-                    >
-                        <Paperclip className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold">{docsCount}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (docsCount === 1) {
+                                    setPreviewDoc({url: v.documents[0].url, name: v.documents[0].name})
+                                } else {
+                                    openEdit(v, 'documents'); 
+                                }
+                            }} 
+                            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2.5 py-1.5 rounded-full"
+                            title={docsCount === 1 ? v.documents[0].name : "Vezi documentele"}
+                        >
+                            <Paperclip className="w-3.5 h-3.5" />
+                            <span className="text-xs font-bold">{docsCount}</span>
+                        </button>
+                        {daysLeft !== null && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${daysLeft < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : daysLeft <= 30 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`} title={closestDoc?.name}>
+                                {daysLeft < 0 ? 'Expirat' : `${daysLeft}z`}
+                            </span>
+                        )}
+                    </div>
                 )
             }
         },
