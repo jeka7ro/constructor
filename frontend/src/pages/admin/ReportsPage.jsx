@@ -45,7 +45,7 @@ export default function ReportsPage() {
         if (dateFrom && dateTo) {
             handlePreview()
         }
-    }, [dateFrom, dateTo])
+    }, [dateFrom, dateTo, selectedEmployee, selectedSite])
 
     const setDefaultDates = () => {
         const today = new Date()
@@ -255,11 +255,6 @@ export default function ReportsPage() {
                             ))}
                         </div>
                         <div className="flex items-center gap-2 w-full xl:w-auto">
-                            <button onClick={handlePreview} disabled={loading}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50">
-                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-                                {t('reports.generate')}
-                            </button>
                             <button onClick={handleDownloadExcel} disabled={loading || !preview}
                                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
                                 <FileSpreadsheet className="w-3.5 h-3.5" />
