@@ -282,7 +282,7 @@ export default function FleetManagement() {
                 }
                 return d;
             });
-            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
+            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: JSON.stringify(updatedDocs) });
             setEditingVehicle(res.data);
             fetchAll();
             setShowDocModal(false);
@@ -291,7 +291,7 @@ export default function FleetManagement() {
             setSuccess('Document actualizat cu succes!');
             setTimeout(() => setSuccess(null), 3000);
         } catch (e) {
-            setError('Eroare actualizare document: ' + (e.response?.data?.detail || e.message));
+            setError('Eroare actualizare document: ' + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : 'Date invalide'));
         } finally {
             setUploadingDoc(false);
         }
@@ -301,13 +301,13 @@ export default function FleetManagement() {
         if (!window.confirm('Sigur vrei să ștergi acest document? Această acțiune este ireversibilă.')) return;
         try {
             const updatedDocs = editingVehicle.documents.filter(d => d.id !== docId);
-            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
+            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: JSON.stringify(updatedDocs) });
             setEditingVehicle(res.data);
             fetchAll();
             setSuccess('Document șters cu succes!');
             setTimeout(() => setSuccess(null), 3000);
         } catch (e) {
-            setError('Eroare ștergere document: ' + (e.response?.data?.detail || e.message));
+            setError('Eroare ștergere document: ' + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : 'Date invalide'));
         }
     };
 
