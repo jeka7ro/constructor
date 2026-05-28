@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import Admin, VehicleCategory, Vehicle
-from app.api.auth import get_current_admin
+from app.api.admin_auth import get_current_admin
 
 router = APIRouter()
 
