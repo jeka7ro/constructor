@@ -1323,7 +1323,7 @@ export default function WarehouseManagement() {
             {/* TOOL CHECK-OUT MODAL */}
             {toolModal.isOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-100 opacity-100 transition-all">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all flex flex-col">
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 Repartizare pe Șantier
@@ -1391,7 +1391,7 @@ export default function WarehouseManagement() {
             {/* ITEM MODAL */}
             {showItemModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden shadow-xl border border-slate-200 dark:border-slate-800">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col">
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Package className="w-5 h-5 text-slate-500" />
@@ -1401,7 +1401,7 @@ export default function WarehouseManagement() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-2xl">
                             <form onSubmit={handleSaveItem} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.item_name')}</label>
@@ -1463,8 +1463,8 @@ export default function WarehouseManagement() {
              {/* TRANSACTION MODAL */}
             {showTxModal && selectedItem && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-                        <div className={`px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between ${txType === 'IN' ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-orange-50/50 dark:bg-orange-900/10'}`}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+                        <div className={`px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between rounded-t-2xl shrink-0 ${txType === 'IN' ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-orange-50/50 dark:bg-orange-900/10'}`}>
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 {txType === 'IN' ? <ArrowDownRight className="w-5 h-5 text-blue-600" /> : <ArrowUpRight className="w-5 h-5 text-orange-600" />}
                                 {editingTx ? 'Modifică Tranzacție' : (txType === 'IN' ? 'Intrare Stoc' : 'Ieșire Stoc')}
@@ -1477,7 +1477,7 @@ export default function WarehouseManagement() {
                             </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="p-6 overflow-y-visible rounded-b-2xl custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
                             <form onSubmit={handleSaveTx} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
