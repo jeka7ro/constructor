@@ -432,6 +432,35 @@ export default function FleetManagement() {
                         {t('fleet.title')}
                     </h1>
                 </div>
+
+                {/* Main Tabs */}
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
+                    <button
+                        onClick={() => setMainTab('cars')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'cars' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                    >
+                        Parc Auto (Mașini)
+                    </button>
+                    <button
+                        onClick={() => setMainTab('equipment')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'equipment' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                    >
+                        Utilaje
+                    </button>
+                    <button
+                        onClick={() => { setMainTab('report'); fetchReport(); }}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'report' ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                    >
+                        <BarChart2 className="w-4 h-4" />
+                        Raport Consum
+                    </button>
+                    <button
+                        onClick={() => setMainTab('categories')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'categories' ? 'bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                    >
+                        Categorii / Tipuri
+                    </button>
+                </div>
             </div>
 
             {error && (
@@ -447,35 +476,6 @@ export default function FleetManagement() {
                     <button onClick={() => setSuccess(null)}><X className="w-4 h-4 opacity-70 hover:opacity-100" /></button>
                 </div>
             )}
-
-            {/* Main Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner mb-4 border border-slate-200 dark:border-slate-700">
-                <button
-                    onClick={() => setMainTab('cars')}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'cars' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
-                >
-                    Parc Auto (Mașini)
-                </button>
-                <button
-                    onClick={() => setMainTab('equipment')}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'equipment' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
-                >
-                    Utilaje
-                </button>
-                <button
-                    onClick={() => { setMainTab('report'); fetchReport(); }}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'report' ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
-                >
-                    <BarChart2 className="w-4 h-4" />
-                    Raport Consum
-                </button>
-                <button
-                    onClick={() => setMainTab('categories')}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'categories' ? 'bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
-                >
-                    Categorii / Tipuri
-                </button>
-            </div>
 
             {mainTab === 'categories' && (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-3xl p-6">
