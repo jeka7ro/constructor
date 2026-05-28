@@ -351,8 +351,23 @@ export default function WarehouseManagement() {
                 await api.put(`/warehouse/items/${selectedItem.id}`, { name: itemForm.name, unit: itemForm.unit, model: itemForm.model, inventory_code: itemForm.inventory_code })
                 showToast('Articol actualizat', 'success')
             } else {
-                await api.post('/warehouse/items', payload)
-                showToast('Articol creat', 'success')
+                const res = await api.post('/warehouse/items', payload)
+                const newItemId = res.data?.id
+                
+                if (selectedSite && payload.inventory_code && newItemId) {
+                    // Dacă e Sculă (are inventory_code) și utilizatorul are un șantier selectat, o trimitem automat pe acel șantier
+                    await api.post(`/warehouse/items/${newItemId}/force-assign`, {
+                        site_id: selectedSite,
+                        date: new Date().toISOString().split('T')[0]
+                    })
+                    showToast('Sculă creată și adăugată direct pe șantier', 'success')
+                } else if (selectedSite) {
+                    // Pentru materiale de volum, resetăm filtrul pentru a i se permite să adauge tranzacția de intrare
+                    setSelectedSite('')
+                    showToast('Articol creat! Filtrul de șantier a fost resetat pentru a putea adăuga stoc inițial.', 'success')
+                } else {
+                    showToast('Articol creat', 'success')
+                }
             }
             setShowItemModal(false)
             fetchItems()
