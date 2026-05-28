@@ -23,7 +23,7 @@ class VehicleCategoryResponse(BaseModel):
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[VehicleCategoryResponse])
+@router.get("", response_model=List[VehicleCategoryResponse])
 def get_categories(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -33,7 +33,7 @@ def get_categories(
     ).all()
     return categories
 
-@router.post("/", response_model=VehicleCategoryResponse)
+@router.post("", response_model=VehicleCategoryResponse)
 def create_category(
     data: VehicleCategoryCreate,
     db: Session = Depends(get_db),
