@@ -8,7 +8,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
+    PieChart, Pie, Cell, Legend, LabelList
 } from 'recharts'
 import DataTable from '../../components/DataTable'
 
@@ -134,7 +134,7 @@ export default function ReportsPage() {
         ts.forEach(tNode => {
             const name = tNode.site_name || t('reports.unknown')
             if (!siteMap[name]) siteMap[name] = { name, hours: 0, count: 0 }
-            siteMap[name].hours += t.hours_worked || 0
+            siteMap[name].hours += tNode.hours_worked || 0
             siteMap[name].count++
         })
         const bySite = Object.values(siteMap).sort((a, b) => b.hours - a.hours)
@@ -353,7 +353,9 @@ export default function ReportsPage() {
                                                 <stop offset="100%" stopColor="#6366f1" />
                                             </linearGradient>
                                         </defs>
-                                        <Bar dataKey="hours" fill="url(#empGrad)" radius={[6, 6, 0, 0]} />
+                                        <Bar dataKey="hours" fill="url(#empGrad)" radius={[6, 6, 0, 0]}>
+                                            <LabelList dataKey="hours" position="top" formatter={(val) => `${Math.round(val * 10) / 10}h`} fill="#64748b" fontSize={11} fontWeight="bold" />
+                                        </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -381,7 +383,9 @@ export default function ReportsPage() {
                                                 <stop offset="100%" stopColor="#34d399" />
                                             </linearGradient>
                                         </defs>
-                                        <Bar dataKey="hours" fill="url(#dayGrad)" radius={[6, 6, 0, 0]} />
+                                        <Bar dataKey="hours" fill="url(#dayGrad)" radius={[6, 6, 0, 0]}>
+                                            <LabelList dataKey="hours" position="top" formatter={(val) => `${Math.round(val * 10) / 10}h`} fill="#64748b" fontSize={11} fontWeight="bold" />
+                                        </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
