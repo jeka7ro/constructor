@@ -13,7 +13,7 @@ from datetime import datetime, date, timedelta
 import json
 
 from app.database import get_db
-from app.models import Vehicle, VehicleSiteAssignment, VehicleUserAssignment, ConstructionSite, User, Admin, EquipmentDailyLog
+from app.models import Vehicle, VehicleSiteAssignment, VehicleUserAssignment, ConstructionSite, User, Admin, EquipmentDailyLog, WarehouseTransaction, WarehouseItem
 from app.api.admin_auth import get_current_admin
 
 router = APIRouter(prefix="/admin/vehicles", tags=["admin-fleet"])
@@ -231,6 +231,17 @@ def fleet_report(
         days_used = sum(1 for l in logs if l.is_used)
         total_fuel = sum((l.refuel_liters or 0) for l in logs if l.refueled)
         refuel_events = sum(1 for l in logs if l.refueled)
+
+        warehouse_txs = db.query(WarehouseTransaction).join(WarehouseItem).filter(
+            WarehouseTransaction.assigned_to_vehicle_id == v.id,
+            WarehouseTransaction.transaction_type == "OUT",
+            WarehouseItem.category == "COMBUSTIBIL",
+            WarehouseTransaction.date >= d_from,
+            WarehouseTransaction.date <= d_to,
+        ).all()
+
+        total_fuel += sum((tx.quantity or 0) for tx in warehouse_txs)
+        refuel_events += len(warehouse_txs)
 
         last_op_name = None
         last_logs = sorted(logs, key=lambda l: l.date, reverse=True)
