@@ -18,6 +18,7 @@ export default function FleetManagement() {
     const [vehicles, setVehicles] = useState([])
     const [sites, setSites] = useState([])
     const [users, setUsers] = useState([])
+    const [categories, setCategories] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
@@ -37,8 +38,8 @@ export default function FleetManagement() {
     const [selectedUserIds, setSelectedUserIds] = useState([])
     const [siteSearch, setSiteSearch] = useState('')
     const [userSearch, setUserSearch] = useState('')
-    const [mainTab, setMainTab] = useState('cars') // 'cars' | 'equipment'
-    const CAR_TYPES = ['car', 'van', 'pickup_4x4', 'truck']
+    const [mainTab, setMainTab] = useState('cars') // 'cars' | 'equipment' | 'report' | 'categories'
+    const CAR_TYPES = ['car', 'van', 'pickup_4x4', 'truck'] // Fallback legacy types
     const [showLogModal, setShowLogModal] = useState(false)
     const [logEquipment, setLogEquipment] = useState(null)
     const [logForm, setLogForm] = useState({ date: new Date().toISOString().split('T')[0], site_id: '', operator_id: '', is_used: true, refueled: false, refuel_liters: '', notes: '' })
@@ -59,6 +60,12 @@ export default function FleetManagement() {
     })
     const [reportDateTo, setReportDateTo] = useState(() => new Date().toISOString().split('T')[0])
 
+    // Categories
+    const [showCatModal, setShowCatModal] = useState(false)
+    const [editingCat, setEditingCat] = useState(null)
+    const [catForm, setCatForm] = useState({ name: '', group: 'equipment', icon: 'tractor' })
+    const [savingCat, setSavingCat] = useState(false)
+
     const fetchReport = useCallback(async () => {
         setReportLoading(true)
         try {
@@ -71,7 +78,11 @@ export default function FleetManagement() {
         }
     }, [reportDateFrom, reportDateTo])
 
-    const filteredVehicles = vehicles.filter(v => mainTab === 'cars' ? CAR_TYPES.includes(v.type) : !CAR_TYPES.includes(v.type)).filter(v => 
+    const filteredVehicles = vehicles.filter(v => {
+        const cat = categories.find(c => c.name === v.type);
+        const group = cat ? cat.group : (CAR_TYPES.includes(v.type) ? 'car' : 'equipment');
+        return mainTab === 'cars' ? group === 'car' : group === 'equipment';
+    }).filter(v => 
         !searchQuery || 
         v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         (v.plate_number && v.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -103,14 +114,16 @@ export default function FleetManagement() {
     const fetchAll = useCallback(async () => {
         setLoading(true)
         try {
-            const [vRes, sRes, uRes] = await Promise.all([
+            const [vRes, sRes, uRes, cRes] = await Promise.all([
                 api.get('/admin/vehicles', { params: { page_size: 1000 } }),
                 api.get('/admin/sites/', { params: { page_size: 1000 } }),
                 api.get('/admin/users/', { params: { is_active: true, page_size: 1000 } }),
+                api.get('/admin/fleet-categories')
             ])
             setVehicles(Array.isArray(vRes.data?.vehicles) ? vRes.data.vehicles : (Array.isArray(vRes.data) ? vRes.data : []))
             setSites(Array.isArray(sRes.data?.sites) ? sRes.data.sites : (Array.isArray(sRes.data) ? sRes.data : []))
             setUsers(Array.isArray(uRes.data?.users) ? uRes.data.users : (Array.isArray(uRes.data) ? uRes.data : []))
+            setCategories(cRes.data || [])
             setError(null)
         } catch (e) {
             setError(t('fleet.errors.load'))
@@ -171,6 +184,38 @@ export default function FleetManagement() {
             setDeleteTarget(null)
             fetchAll()
         } catch { alert(t('fleet.errors.delete')) }
+    }
+
+    const handleSaveCat = async () => {
+        if (!catForm.name.trim()) return
+        setSavingCat(true)
+        try {
+            if (editingCat) {
+                await api.put(`/admin/fleet-categories/${editingCat.id}`, catForm)
+            } else {
+                await api.post('/admin/fleet-categories', catForm)
+            }
+            setShowCatModal(false)
+            setSuccess('Categorie salvată cu succes!')
+            setTimeout(() => setSuccess(null), 3000)
+            fetchAll()
+        } catch (e) {
+            setError(e.response?.data?.detail || 'Eroare salvare categorie')
+        } finally {
+            setSavingCat(false)
+        }
+    }
+
+    const handleDeleteCat = async (id) => {
+        if (!window.confirm('Sigur vrei să ștergi această categorie? Utilajele existente își vor păstra numele categoriei.')) return;
+        try {
+            await api.delete(`/admin/fleet-categories/${id}`)
+            setSuccess('Categorie ștearsă cu succes!')
+            setTimeout(() => setSuccess(null), 3000)
+            fetchAll()
+        } catch (e) {
+            setError(e.response?.data?.detail || 'Eroare ștergere categorie')
+        }
     }
 
     const toggleId = (id, list, setList) => {
@@ -424,9 +469,53 @@ export default function FleetManagement() {
                     <BarChart2 className="w-4 h-4" />
                     Raport Consum
                 </button>
+                <button
+                    onClick={() => setMainTab('categories')}
+                    className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${mainTab === 'categories' ? 'bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
+                >
+                    Categorii / Tipuri
+                </button>
             </div>
 
-            {mainTab !== 'report' && (
+            {mainTab === 'categories' && (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-3xl p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Categorii și Tipuri</h2>
+                        <button
+                            onClick={() => { setEditingCat(null); setCatForm({ name: '', group: 'equipment', icon: 'tractor' }); setShowCatModal(true); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-semibold shadow-sm transition-colors text-sm"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Adaugă Categorie
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {categories.map(cat => (
+                            <div key={cat.id} className="border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-shadow bg-slate-50 dark:bg-slate-800/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                                        <Car className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-slate-800 dark:text-slate-200">{cat.name}</p>
+                                        <p className="text-xs text-slate-500">{cat.group === 'car' ? 'Mașină (Flotă)' : 'Utilaj / Echipament'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1">
+                                    <button onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, group: cat.group, icon: cat.icon || 'tractor' }); setShowCatModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleDeleteCat(cat.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {mainTab !== 'report' && mainTab !== 'categories' && (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
                     <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -665,8 +754,11 @@ export default function FleetManagement() {
                                                 onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                                                 className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                             >
-                                                {VEHICLE_TYPES.filter(vt => mainTab === 'cars' ? CAR_TYPES.includes(vt) : !CAR_TYPES.includes(vt)).map(vt => (
-                                                    <option key={vt} value={vt}>{t(`fleet.types.${vt}`)}</option>
+                                                {(categories.length > 0 
+                                                    ? categories.filter(cat => cat.group === (mainTab === 'cars' ? 'car' : 'equipment')).map(cat => ({ name: cat.name, label: cat.name }))
+                                                    : VEHICLE_TYPES.filter(vt => mainTab === 'cars' ? CAR_TYPES.includes(vt) : !CAR_TYPES.includes(vt)).map(vt => ({ name: vt, label: t(`fleet.types.${vt}`) }))
+                                                ).map(cat => (
+                                                    <option key={cat.name} value={cat.name}>{cat.label}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -1033,6 +1125,37 @@ export default function FleetManagement() {
                                 {uploadingDoc && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Salvează Document
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Category Add / Edit Modal */}
+            {showCatModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingCat ? 'Editează Categoria' : 'Adaugă Categorie'}</h2>
+                            <button onClick={() => setShowCatModal(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nume Categorie <span className="text-red-500">*</span></label>
+                                <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))} placeholder="Ex: Macara Turn" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Grup</label>
+                                <select value={catForm.group} onChange={e => setCatForm(f => ({...f, group: e.target.value}))} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400">
+                                    <option value="equipment">Utilaj / Echipament</option>
+                                    <option value="car">Mașină (Flotă Auto)</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button onClick={() => setShowCatModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Anulează</button>
+                                <button onClick={handleSaveCat} disabled={savingCat} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
+                                    {savingCat && <Loader2 className="w-4 h-4 animate-spin" />} Salvează
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

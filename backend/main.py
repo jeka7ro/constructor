@@ -15,7 +15,7 @@ load_dotenv()
 from app.api import (
     auth, admin_auth, admin_users, admin_sites, admin_roles, photo_upload,
     admin_reports, clockin, timesheets, teams, sites, site_photos,
-    admin_teams, admin_vehicles, warehouse, admin_clients,
+    admin_teams, admin_vehicles, warehouse, admin_clients, admin_vehicle_categories,
     admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
     admin_material_requests, user_material_requests, user_warehouse, user_notifications
 )
@@ -257,6 +257,7 @@ app.include_router(sites.router, prefix="/api", tags=["sites"])
 app.include_router(site_photos.router, prefix="/api", tags=["site-photos"])
 app.include_router(admin_teams.router, prefix="/api", tags=["admin-teams"])
 app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
+app.include_router(admin_vehicle_categories.router, prefix="/api/admin/fleet-categories", tags=["admin-fleet-categories"])
 app.include_router(warehouse.router, prefix="/api", tags=["warehouse"])
 app.include_router(admin_clients.router, prefix="/api/admin/clients", tags=["admin-clients"])
 app.include_router(admin_complaints.router, prefix="/api", tags=["admin-complaints"])

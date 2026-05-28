@@ -430,6 +430,20 @@ class Vehicle(Base):
     organization = relationship("Organization")
 
 
+class VehicleCategory(Base):
+    """Dynamic categories for vehicles and equipment"""
+    __tablename__ = "vehicle_categories"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    group = Column(String(50), nullable=False, default="equipment")  # 'car' or 'equipment'
+    icon = Column(String(50), nullable=True)  # lucide react icon name (e.g. "Truck", "Tractor")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization")
+
 class EquipmentDailyLog(Base):
     """Daily tracking for equipment (utilaje) use and refueling"""
     __tablename__ = "equipment_daily_logs"
