@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import api from '../../lib/api'
 import {
@@ -22,6 +23,7 @@ const toLocalISO = (d) => {
 
 export default function ReportsPage() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
     const [preview, setPreview] = useState(null)
     const [employees, setEmployees] = useState([])
@@ -169,7 +171,14 @@ export default function ReportsPage() {
 
     const timesheetColumns = [
         { key: 'date', label: t('users.date'), sortable: true, render: (r) => new Date(r.date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' }) },
-        { key: 'employee_name', label: t('users.employee_col'), sortable: true, render: (r) => <span className="font-medium text-slate-900 dark:text-slate-100">{r.employee_name}</span> },
+        { key: 'employee_name', label: t('users.employee_col'), sortable: true, render: (r) => (
+            <span 
+                onClick={() => r.employee_id && navigate(`/admin/employees/${r.employee_id}`)}
+                className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer hover:underline transition-colors"
+            >
+                {r.employee_name}
+            </span> 
+        ) },
         { key: 'employee_code', label: t('users.code'), sortable: true, render: (r) => <span className="text-slate-500">{r.employee_code}</span> },
         { key: 'role', label: t('users.role'), sortable: true, render: (r) => <span className="text-slate-500">{r.role}</span> },
         { key: 'site_name', label: t('common.site'), sortable: true, render: (r) => <span className="text-slate-600 dark:text-slate-400">{r.site_name}</span> },

@@ -126,8 +126,9 @@ def _build_report_data(db: Session, date_from=None, date_to=None, employee_id=No
                 activities.append(f"{act.name}: {tl.quantity_numeric or 0} {tl.unit_type or ''}")
 
         results.append({
-            "id": ts.id,
+            "id": str(ts.id),
             "date": ts.date.isoformat() if ts.date else None,
+            "employee_id": str(user.id),
             "employee_name": user.full_name,
             "employee_code": user.employee_code,
             "role": role.name if role else "—",
