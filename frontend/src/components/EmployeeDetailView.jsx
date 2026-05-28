@@ -138,7 +138,7 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                 <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
 
                 {/* Tabs inline */}
-                <div className="flex overflow-x-auto gap-1.5 custom-scrollbar flex-1">
+                <div className="flex overflow-x-auto gap-1.5 hide-scrollbar flex-1">
                     {TABS.map(tab => {
                         const Icon = tab.icon
                         const isActive = activeTab === tab.id
