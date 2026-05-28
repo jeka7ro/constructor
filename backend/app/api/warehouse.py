@@ -49,87 +49,6 @@ class WarehouseTransactionCreate(BaseModel):
 def get_items(category: Optional[str] = None, site_id: Optional[str] = None, assigned_to_user_id: Optional[str] = None, db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
     from app.api.warehouse_get_items import get_items_logic
     return get_items_logic(category, site_id, assigned_to_user_id, db, current_admin)
-    query = db.query(WarehouseItem, Site.name.label("site_name"), User.full_name.label("holder_name"))\
-              .outerjoin(Site, WarehouseItem.current_site_id == Site.id)\
-              .outerjoin(User, WarehouseItem.current_holder_id == User.id)\
-              .filter(WarehouseItem.organization_id == current_admin.organization_id)
-              
-    if category:
-        query = query.filter(WarehouseItem.category == category)
-        
-    items_with_relations = query.order_by(WarehouseItem.name).all()
-    item_ids = [i[0].id for i in items_with_relations]
-    
-    in_map = {}
-    out_map = {}
-    site_stock_map = {}
-    
-    if item_ids:
-        stats = db.query(
-            WarehouseTransaction.item_id,
-            WarehouseTransaction.transaction_type,
-            func.sum(WarehouseTransaction.quantity).label('total'),
-            WarehouseTransaction.site_id
-        ).filter(WarehouseTransaction.item_id.in_(item_ids)).group_by(WarehouseTransaction.item_id, WarehouseTransaction.transaction_type, WarehouseTransaction.site_id).all()
-        
-        for i_id, tx_type, total, tx_site_id in stats:
-            if tx_type == "IN":
-                in_map[i_id] = in_map.get(i_id, 0) + total
-            elif tx_type == "OUT":
-                out_map[i_id] = out_map.get(i_id, 0) + total
-                
-            if tx_site_id:
-                if i_id not in site_stock_map:
-                    site_stock_map[i_id] = {}
-                if tx_site_id not in site_stock_map[i_id]:
-                    site_stock_map[i_id][tx_site_id] = 0
-                
-                if tx_type == "OUT": 
-                    site_stock_map[i_id][tx_site_id] += total
-                elif tx_type == "IN" or tx_type == "CONSUME":
-                    site_stock_map[i_id][tx_site_id] -= total
-
-    results = []
-    for i, site_name, holder_name in items_with_relations:
-        if site_id:
-            if i.inventory_code: 
-                if i.current_site_id != site_id:
-                    continue 
-                effective_qty = 1
-            else: 
-                stock_at_site = site_stock_map.get(i.id, {}).get(site_id, 0)
-                if stock_at_site <= 0:
-                    continue 
-                effective_qty = stock_at_site
-        else:
-            effective_qty = i.total_quantity
-
-        # Calculate total site stock for consumables
-        site_total = 0
-        if not i.inventory_code:
-            item_sites = site_stock_map.get(i.id, {})
-            site_total = sum(v for v in item_sites.values() if v > 0)
-
-        results.append({
-            "id": i.id,
-            "name": i.name,
-            "category": i.category,
-            "unit": i.unit,
-            "total_quantity": effective_qty,
-            "model": i.model,
-            "inventory_code": i.inventory_code,
-            "current_site_id": i.current_site_id,
-            "current_site_name": site_name,
-            "current_holder_id": i.current_holder_id,
-            "current_holder_name": holder_name,
-            "checked_out_at": i.checked_out_at,
-            "is_defective": i.is_defective,
-            "total_in": in_map.get(i.id, 0),
-            "total_out": out_map.get(i.id, 0),
-            "site_total": site_total
-        })
-        
-    return results
 
 
 # CREATE item
@@ -281,7 +200,11 @@ async def add_transaction(
     db.add(db_tx)
     
     if transaction_type == "IN":
-        db_item.total_quantity += quantity
+        if site_id and not db_item.inventory_code:
+            # Intrare directă pe șantier pentru consumabile -> nu afectează stocul central
+            pass
+        else:
+            db_item.total_quantity += quantity
     else:
         db_item.total_quantity -= quantity
         
@@ -300,7 +223,8 @@ def delete_transaction(tx_id: str, db: Session = Depends(get_db), current_admin:
     db_item = db.query(WarehouseItem).filter(WarehouseItem.id == tx.item_id).first()
     if db_item:
         if tx.transaction_type == "IN":
-            db_item.total_quantity -= tx.quantity
+            if not (tx.site_id and not db_item.inventory_code):
+                db_item.total_quantity -= tx.quantity
         else:
             db_item.total_quantity += tx.quantity
             
@@ -347,11 +271,21 @@ async def edit_transaction(
     from datetime import date as dt_date
     date_obj = dt_date.fromisoformat(date)
     
-    # Adjust item stock
+    site_id_val = site_id if site_id != "null" and site_id != "" else None
+
+    # Revert old tx effect on main stock
     if tx.transaction_type == "IN":
-        db_item.total_quantity += qty_diff
+        if not (tx.site_id and not db_item.inventory_code):
+            db_item.total_quantity -= tx.quantity
     else:
-        db_item.total_quantity -= qty_diff
+        db_item.total_quantity += tx.quantity
+
+    # Apply new tx effect on main stock
+    if tx.transaction_type == "IN":
+        if not (site_id_val and not db_item.inventory_code):
+            db_item.total_quantity += quantity
+    else:
+        db_item.total_quantity -= quantity
 
     tx.quantity = quantity
     tx.date = date_obj

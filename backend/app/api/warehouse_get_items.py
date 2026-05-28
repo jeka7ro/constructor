@@ -49,7 +49,7 @@ def get_items_logic(category: Optional[str] = None, site_id: Optional[str] = Non
                 if tx_type == "OUT": 
                     site_stock_map[i_id][tx_site_id] += total
                 elif tx_type == "IN":
-                    site_stock_map[i_id][tx_site_id] -= total
+                    site_stock_map[i_id][tx_site_id] += total
 
     results = []
     for i, site_name, holder_name in items_with_relations:
