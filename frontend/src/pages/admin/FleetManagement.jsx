@@ -49,6 +49,7 @@ export default function FleetManagement() {
     const [docForm, setDocForm] = useState({ name: '', expiry_date: '' })
     const [uploadingDoc, setUploadingDoc] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [filterSiteId, setFilterSiteId] = useState('')
 
     // Fleet report
     const [reportData, setReportData] = useState([])
@@ -75,7 +76,7 @@ export default function FleetManagement() {
         v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         (v.plate_number && v.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (v.chassis_number && v.chassis_number.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
+    ).filter(v => !filterSiteId || (v.site_ids && v.site_ids.includes(filterSiteId)))
 
     const filteredSites = sites.filter(s => (s.name || '').toLowerCase().includes(siteSearch.toLowerCase()) || (s.county || '').toLowerCase().includes(siteSearch.toLowerCase()))
     
@@ -119,6 +120,12 @@ export default function FleetManagement() {
     }, [])
 
     useEffect(() => { fetchAll() }, [fetchAll])
+
+    useEffect(() => {
+        if (mainTab === 'report') {
+            fetchReport()
+        }
+    }, [mainTab, reportDateFrom, reportDateTo, fetchReport])
 
     const openAdd = () => {
         setEditingVehicle(null)
@@ -222,7 +229,7 @@ export default function FleetManagement() {
                     <p className="font-semibold text-slate-800 dark:text-slate-100">{v.name}</p>
                     <div className="flex items-center gap-1.5 mt-0.5 w-full max-w-[220px]">
                         {v.plate_number && <p className="text-[11px] font-semibold text-slate-500 shrink-0">{v.plate_number}</p>}
-                        {v.chassis_number && <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-800/30 truncate flex-1 min-w-0" title={v.chassis_number}>SN: {v.chassis_number}</p>}
+                        {v.chassis_number && <p className="text-[11px] font-semibold text-slate-400 truncate flex-1 min-w-0" title={v.chassis_number}>SN: {v.chassis_number}</p>}
                     </div>
                 </div>
             )
@@ -243,13 +250,13 @@ export default function FleetManagement() {
         {
             key: 'site_ids', label: 'Șantiere Alocate',
             render: (v) => {
-                const siteList = (v.site_ids || []).map(id => sites.find(s => s.id === id)?.name).filter(Boolean)
-                if (siteList.length === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>
-                if (siteList.length === 1) return <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{siteList[0]}</span>
+                const vehicleSites = (v.site_ids || []).map(id => sites.find(s => s.id === id)).filter(Boolean)
+                if (vehicleSites.length === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>
+                if (vehicleSites.length === 1) return <button onClick={() => setFilterSiteId(vehicleSites[0].id)} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
                 return (
                     <div className="flex flex-col gap-0.5">
-                        <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{siteList[0]}</span>
-                        <span className="text-xs text-slate-400">+{siteList.length - 1} alte șantiere</span>
+                        <button onClick={() => setFilterSiteId(vehicleSites[0].id)} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
+                        <span className="text-xs text-slate-400">+{vehicleSites.length - 1} alte șantiere</span>
                     </div>
                 )
             }
@@ -357,17 +364,26 @@ export default function FleetManagement() {
             {mainTab !== 'report' && (
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
                     <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
-                        <div className="relative group flex items-center w-full sm:w-auto">
-                            <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                <Search className="w-4 h-4" />
-                            </div>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder={t('fleet.search_vehicle')}
-                                className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                            />
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <select
+                                value={filterSiteId}
+                                onChange={e => setFilterSiteId(e.target.value)}
+                                className="h-10 px-3 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            >
+                                <option value="">Toate Șantierele</option>
+                                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                            <div className="relative group flex items-center w-full sm:w-auto">
+                                <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                    <Search className="w-4 h-4" />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder={t('fleet.search_vehicle')}
+                                    className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                />
                             {searchQuery && (
                                 <div className="absolute right-1.5 flex items-center gap-1 bg-indigo-600 px-2 py-1 rounded-full shadow-sm">
                                     <span className="text-[10px] font-bold text-white">
@@ -381,6 +397,7 @@ export default function FleetManagement() {
                                     </button>
                                 </div>
                             )}
+                            </div>
                         </div>
 
                         <button
@@ -408,16 +425,18 @@ export default function FleetManagement() {
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-wrap items-end gap-4">
                         <div>
                             <label className="block text-xs font-semibold text-slate-500 mb-1">De la</label>
-                            <input type="date" value={reportDateFrom} onChange={e => setReportDateFrom(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-full text-sm outline-none focus:border-blue-400" />
+                            <input type="date" value={reportDateFrom} onChange={e => setReportDateFrom(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-slate-500 mb-1">Până la</label>
-                            <input type="date" value={reportDateTo} onChange={e => setReportDateTo(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-full text-sm outline-none focus:border-blue-400" />
+                            <input type="date" value={reportDateTo} onChange={e => setReportDateTo(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
                         </div>
-                        <button onClick={fetchReport} disabled={reportLoading} className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-semibold rounded-full transition-colors">
-                            {reportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart2 className="w-4 h-4" />}
-                            Generează Raport
-                        </button>
+                        {reportLoading && (
+                            <div className="flex items-center gap-2 mb-2 ml-2 text-slate-500">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span className="text-sm">Se actualizează...</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Report Table */}
