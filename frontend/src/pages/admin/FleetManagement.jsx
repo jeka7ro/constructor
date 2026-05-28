@@ -50,6 +50,7 @@ export default function FleetManagement() {
     const [docForm, setDocForm] = useState({ name: '', expiry_date: '' })
     const [uploadingDoc, setUploadingDoc] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [catSearchQuery, setCatSearchQuery] = useState('')
     const [filterSiteId, setFilterSiteId] = useState('')
 
     // Fleet report
@@ -108,6 +109,10 @@ export default function FleetManagement() {
         
         return `${u.first_name} ${u.last_name} ${u.employee_code}`.toLowerCase().includes(userSearch.toLowerCase());
     })
+
+    const filteredCategories = categories.filter(c =>
+        c.name.toLowerCase().includes(catSearchQuery.toLowerCase())
+    )
     const [deleteTarget, setDeleteTarget] = useState(null)
     const [previewDoc, setPreviewDoc] = useState(null)
 
@@ -420,6 +425,41 @@ export default function FleetManagement() {
         },
     ]
 
+    const categoryColumns = [
+        {
+            key: 'name', label: 'NUME',
+            render: (c) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <Car className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white">{c.name}</span>
+                </div>
+            )
+        },
+        {
+            key: 'group', label: 'GRUP',
+            render: (c) => (
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {c.group === 'car' ? 'Mașină (Flotă)' : 'Utilaj / Echipament'}
+                </span>
+            )
+        },
+        {
+            key: '_actions', label: t('common.actions'),
+            render: (c) => (
+                <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => { setEditingCat(c); setCatForm({ name: c.name, group: c.group, icon: c.icon || 'tractor' }); setShowCatModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteCat(c.id)} className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )
+        }
+    ]
+
     return (
         <div className="p-6 max-w-7xl mx-auto">
             {/* Page Header */}
@@ -478,40 +518,36 @@ export default function FleetManagement() {
             )}
 
             {mainTab === 'categories' && (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-3xl p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Categorii și Tipuri</h2>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
+                    <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Caută categorie..."
+                                    value={catSearchQuery}
+                                    onChange={(e) => setCatSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-4 h-10 border border-slate-200 dark:border-slate-700 rounded-full text-sm outline-none focus:border-blue-400 dark:focus:border-blue-500 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white shadow-inner"
+                                />
+                            </div>
+                        </div>
+
                         <button
                             onClick={() => { setEditingCat(null); setCatForm({ name: '', group: 'equipment', icon: 'tractor' }); setShowCatModal(true); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-semibold shadow-sm transition-colors text-sm"
+                            className="px-5 h-10 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
                             Adaugă Categorie
                         </button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {categories.map(cat => (
-                            <div key={cat.id} className="border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-shadow bg-slate-50 dark:bg-slate-800/50">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400">
-                                        <Car className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-slate-800 dark:text-slate-200">{cat.name}</p>
-                                        <p className="text-xs text-slate-500">{cat.group === 'car' ? 'Mașină (Flotă)' : 'Utilaj / Echipament'}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-1">
-                                    <button onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, group: cat.group, icon: cat.icon || 'tractor' }); setShowCatModal(true); }} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => handleDeleteCat(cat.id)} className="p-1.5 text-slate-400 hover:text-red-600 transition-colors">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+
+                    <DataTable
+                        columns={categoryColumns}
+                        data={filteredCategories}
+                        loading={loading}
+                        defaultPageSize={25}
+                    />
                 </div>
             )}
 
