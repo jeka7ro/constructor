@@ -999,7 +999,7 @@ export default function FleetManagement() {
                                     </div>
                                     {editingVehicle.documents && editingVehicle.documents.length > 0 ? (
                                         <div className="space-y-2">
-                                            {editingVehicle.documents.map(doc => {
+                                            {(typeof editingVehicle.documents === 'string' ? JSON.parse(editingVehicle.documents) : editingVehicle.documents).map(doc => {
                                                 const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
                                                 const isExpiringSoon = !isExpired && doc.expiry_date && (new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
                                                 return (
