@@ -412,12 +412,12 @@ export default function ReportsPage() {
                                             outerRadius={90}
                                             innerRadius={55}
                                             paddingAngle={3}
-                                            label={({ name, hours }) => `${name}: ${Math.round(hours)}h`}
                                         >
                                             {charts.bySite.map((_, i) => (
                                                 <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
                                             ))}
                                         </Pie>
+                                        <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                                         <Tooltip formatter={(value) => [`${Math.round(value * 10) / 10}h`, 'Ore']} />
                                     </PieChart>
                                 </ResponsiveContainer>
