@@ -229,6 +229,8 @@
     "title": "Parc Auto",
     "search_vehicle": "Caută vehicul...",
     "add_vehicle": "Adaugă Vehicul",
+    "sites_desc": "Bifează șantierele unde acest vehicul sau utilaj este alocat.",
+    "drivers_desc": "Bifează angajații (șoferi/operatori) care au dreptul să îl utilizeze.",
     "license_plate": "Număr Înmatriculare",
     "plate_number": "Număr Înmatriculare",
     "placeholders": {
