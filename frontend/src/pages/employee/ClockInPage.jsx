@@ -871,14 +871,14 @@ export default function ClockInPage() {
 
     if (loading && !activeShift) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+            <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-50">
             {/* Error Message Banner */}
             {errorMessage && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-sm w-[90%] animate-[slideDown_0.3s_ease-out]">

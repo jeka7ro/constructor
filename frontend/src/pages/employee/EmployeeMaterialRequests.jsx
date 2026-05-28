@@ -188,7 +188,7 @@ export default function EmployeeMaterialRequests() {
     }, {})
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-orange-50/30 pb-20">
+        <div className="h-full bg-gradient-to-br from-slate-50 to-orange-50/30">
             {/* Header */}
             <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg sticky top-0 z-10">
                 <div className="flex items-center justify-between max-w-md mx-auto">
