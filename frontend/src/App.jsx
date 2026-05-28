@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react'
 
 // Eager load core admin pages for INSTANT navigation and 0 delays
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AlertsManagement from './pages/admin/AlertsManagement'
 import AdminOverview from './pages/admin/AdminOverview'
 import TimesheetApprovalPage from './pages/admin/TimesheetApprovalPage'
 import ReportsPage from './pages/admin/ReportsPage'
@@ -41,6 +42,7 @@ const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaint
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
 const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
 const EmployeeInventory = lazy(() => import('./pages/employee/EmployeeInventory'))
+import EmployeeLayout from './components/layout/EmployeeLayout'
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
 
@@ -147,6 +149,7 @@ function App() {
                                 <Route path="expenses" element={<ExpensesManagement />} />
                                 <Route path="material-requests" element={<AdminMaterialRequests />} />
                                 <Route path="emergencies" element={<AdminEmergencies />} />
+                                <Route path="alerts" element={<AlertsManagement />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                     </Route>
 
@@ -154,7 +157,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
 
                     {user ? (
-                        <>
+                        <Route element={<EmployeeLayout />}>
                             <Route path="/" element={<ClockInPage />} />
                             <Route path="/today" element={<TodayTimesheet />} />
                             <Route path="/history" element={<History />} />
@@ -166,7 +169,7 @@ function App() {
                             <Route path="/material-requests" element={<EmployeeMaterialRequests />} />
                             <Route path="/my-inventory" element={<EmployeeInventory />} />
                             <Route path="/emergencies" element={<EmployeeEmergencies />} />
-                        </>
+                        </Route>
                     ) : null}
 
                     {/* Fallback - redirect based on path */}

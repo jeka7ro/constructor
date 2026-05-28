@@ -328,21 +328,21 @@ def clock_out(
         break_duration = active_segment.break_end_time - active_segment.break_start_time
         break_hours = break_duration.total_seconds() / 3600
     
-    # Auto lunch break calculation
-    lunch_break_start = ensure_time(site.lunch_break_start) if site else None
-    lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+    # Auto lunch break calculation (Temporarily disabled to avoid user confusion)
+    # lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+    # lunch_break_end = ensure_time(site.lunch_break_end) if site else None
     
-    if site and lunch_break_start and lunch_break_end:
-        lunch_start_dt = datetime.combine(get_local_today(), lunch_break_start)
-        lunch_end_dt = datetime.combine(get_local_today(), lunch_break_end)
-        
-        overlap_start = max(active_segment.check_in_time, lunch_start_dt)
-        overlap_end = min(active_segment.check_out_time, lunch_end_dt)
-        
-        if overlap_start < overlap_end:
-            auto_break_hours = (overlap_end - overlap_start).total_seconds() / 3600
-            if auto_break_hours > break_hours:
-                break_hours = auto_break_hours
+    # if site and lunch_break_start and lunch_break_end:
+    #     lunch_start_dt = datetime.combine(get_local_today(), lunch_break_start)
+    #     lunch_end_dt = datetime.combine(get_local_today(), lunch_break_end)
+    #     
+    #     overlap_start = max(active_segment.check_in_time, lunch_start_dt)
+    #     overlap_end = min(active_segment.check_out_time, lunch_end_dt)
+    #     
+    #     if overlap_start < overlap_end:
+    #         auto_break_hours = (overlap_end - overlap_start).total_seconds() / 3600
+    #         if auto_break_hours > break_hours:
+    #             break_hours = auto_break_hours
     
     # Calculate geofence pause hours
     geofence_pause_secs = get_geofence_pause_seconds(db, active_segment.id)
@@ -371,7 +371,7 @@ def clock_out(
         "total_hours": round(total_hours, 2),
         "break_hours": round(break_hours, 2),
         "geofence_pause_hours": round(geofence_pause_hours, 2),
-        "worked_hours": round(total_hours - break_hours - geofence_pause_hours, 2),
+        "worked_hours": max(0, round(total_hours - break_hours - geofence_pause_hours, 2)),
         "overtime_minutes": overtime_minutes,
         "overtime_warning": overtime_warning
     }
@@ -533,21 +533,21 @@ def get_active_shift(
                 break_duration = now - active_segment.break_start_time
                 break_hours = break_duration.total_seconds() / 3600
                 
-        lunch_break_start = ensure_time(site.lunch_break_start) if site else None
-        lunch_break_end = ensure_time(site.lunch_break_end) if site else None
-        
-        # Auto lunch break implementation
-        if site and lunch_break_start and lunch_break_end:
-            lunch_start_dt = datetime.combine(today, lunch_break_start)
-            lunch_end_dt = datetime.combine(today, lunch_break_end)
-            
-            overlap_start = max(active_segment.check_in_time, lunch_start_dt)
-            overlap_end = min(now, lunch_end_dt)
-            
-            if overlap_start < overlap_end:
-                auto_break_hours = (overlap_end - overlap_start).total_seconds() / 3600
-                if auto_break_hours > break_hours:
-                    break_hours = auto_break_hours
+        # Auto lunch break implementation (Temporarily disabled)
+        # lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+        # lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+        # 
+        # if site and lunch_break_start and lunch_break_end:
+        #     lunch_start_dt = datetime.combine(today, lunch_break_start)
+        #     lunch_end_dt = datetime.combine(today, lunch_break_end)
+        #     
+        #     overlap_start = max(active_segment.check_in_time, lunch_start_dt)
+        #     overlap_end = min(now, lunch_end_dt)
+        #     
+        #     if overlap_start < overlap_end:
+        #         auto_break_hours = (overlap_end - overlap_start).total_seconds() / 3600
+        #         if auto_break_hours > break_hours:
+        #             break_hours = auto_break_hours
         
         # Calculate geofence pause time
         geofence_pause_secs = get_geofence_pause_seconds(db, active_segment.id)
@@ -784,21 +784,22 @@ def my_history(
             
         site = db.query(ConstructionSite).filter(ConstructionSite.id == seg.site_id).first()
         
-        lunch_break_start = ensure_time(site.lunch_break_start) if site else None
-        lunch_break_end = ensure_time(site.lunch_break_end) if site else None
-        
-        if site and lunch_break_start and lunch_break_end:
-            lunch_start_dt = datetime.combine(d, lunch_break_start)
-            lunch_end_dt = datetime.combine(d, lunch_break_end)
-            
-            check_out = seg.check_out_time or get_local_now()
-            overlap_start = max(seg.check_in_time, lunch_start_dt)
-            overlap_end = min(check_out, lunch_end_dt)
-            
-            if overlap_start < overlap_end:
-                auto_brk = (overlap_end - overlap_start).total_seconds() / 3600
-                if auto_brk > brk:
-                    brk = auto_brk
+        # Auto lunch break logic (Temporarily disabled)
+        # lunch_break_start = ensure_time(site.lunch_break_start) if site else None
+        # lunch_break_end = ensure_time(site.lunch_break_end) if site else None
+        # 
+        # if site and lunch_break_start and lunch_break_end:
+        #     lunch_start_dt = datetime.combine(d, lunch_break_start)
+        #     lunch_end_dt = datetime.combine(d, lunch_break_end)
+        #     
+        #     check_out = seg.check_out_time or get_local_now()
+        #     overlap_start = max(seg.check_in_time, lunch_start_dt)
+        #     overlap_end = min(check_out, lunch_end_dt)
+        #     
+        #     if overlap_start < overlap_end:
+        #         auto_brk = (overlap_end - overlap_start).total_seconds() / 3600
+        #         if auto_brk > brk:
+        #             brk = auto_brk
         
         geo_pause = get_geofence_pause_seconds(db, seg.id) / 3600
         worked = max(0, seg_hours - brk - geo_pause)

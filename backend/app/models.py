@@ -696,3 +696,40 @@ class Expense(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ALERTS / AVIZIER DIGITAL
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Alert(Base):
+    """Admin alerts broadcasted to employees"""
+    __tablename__ = "alerts"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    
+    message = Column(Text, nullable=False)
+    target_type = Column(String(20), nullable=False) # 'ALL', 'SITE', 'TEAM', 'USER'
+    target_id = Column(String(36), nullable=True) # ID of site, team, or user. Null if ALL.
+    
+    author_id = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    
+    is_active = Column(Boolean, default=True, nullable=False)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    organization = relationship("Organization")
+    author = relationship("Admin", foreign_keys=[author_id])
+
+class AlertAcknowledgement(Base):
+    """Tracks which user has seen/acknowledged which alert"""
+    __tablename__ = "alert_acknowledgements"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    alert_id = Column(String(36), ForeignKey("alerts.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    acknowledged_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    alert = relationship("Alert")
+    user = relationship("User", foreign_keys=[user_id])

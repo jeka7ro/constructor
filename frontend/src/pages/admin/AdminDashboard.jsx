@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -149,6 +149,7 @@ export default function AdminDashboard() {
             id: 'support',
             label: 'Suport & Alerte',
             items: [
+                { path: '/admin/alerts', icon: Megaphone, label: 'Avizier (Alerte)' },
                 { path: '/admin/emergencies', icon: AlertTriangle, label: 'Urgențe' },
                 { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
             ]

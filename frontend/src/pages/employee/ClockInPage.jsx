@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
+import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
 import {
     Clock, Play, Square, Coffee, MapPin, Loader2, Timer, Calendar,
     ClipboardList, Plus, Trash2, CheckCircle, CheckCircle2, AlertCircle, ShieldAlert,
     Navigation, ChevronDown, ChevronRight, LogOut, Users, Settings, XCircle,
-    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch, Wrench
+    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch, Wrench, CloudRain
 } from 'lucide-react'
 import TeamLeaderPanel from './TeamLeaderPanel'
 import SiteManagerPanel from './SiteManagerPanel'
@@ -114,6 +115,34 @@ export default function ClockInPage() {
     const [historyData, setHistoryData] = useState(null)
     const [historyLoading, setHistoryLoading] = useState(false)
     const [historyDates, setHistoryDates] = useState([])
+
+    // Alerts
+    const [activeAlerts, setActiveAlerts] = useState([])
+
+    const fetchAlerts = async () => {
+        try {
+            const res = await api.get('/alerts/active')
+            setActiveAlerts(res.data || [])
+        } catch (error) {
+            // silent fail
+        }
+    }
+
+    useEffect(() => {
+        fetchAlerts()
+        const interval = setInterval(fetchAlerts, 15000)
+        return () => clearInterval(interval)
+    }, [])
+
+    const handleAcknowledgeAlert = async (alertId) => {
+        try {
+            await api.post(`/alerts/${alertId}/acknowledge`)
+            setActiveAlerts(prev => prev.filter(a => a.id !== alertId))
+            useUIStore.getState().showToast('success', 'Am confirmat citirea.')
+        } catch (error) {
+            useUIStore.getState().showToast('error', 'Eroare la confirmare.')
+        }
+    }
 
     const isTeamLead = user?.role?.code === 'TEAM_LEAD'
     const isSiteManager = user?.role?.code === 'SITE_MANAGER'
@@ -913,14 +942,6 @@ export default function ClockInPage() {
                     </div>
                     <div className="flex items-center gap-1">
                         <button
-                            onClick={() => navigate('/history')}
-                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                            title={t('common.my_history')}
-                        >
-                            <Calendar className="w-5 h-5" />
-                        </button>
-
-                        <button
                             onClick={() => { logout(); navigate('/login'); }}
                             className="p-2 hover:bg-red-500/30 rounded-full transition-colors"
                             title={t('common.logout')}
@@ -1028,54 +1049,6 @@ export default function ClockInPage() {
                                 }
                             />
                         </MapContainer>
-                    </div>
-
-                    {/* Module Magazie & Action Buttons */}
-                    <div className="mt-2 mb-2 grid grid-cols-3 gap-2">
-                        <button
-                            onClick={() => navigate('/material-requests')}
-                            className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
-                        >
-                            <div className="p-2 bg-white/20 rounded-xl mb-1.5 relative">
-                                <PackageSearch className="w-7 h-7" />
-                                {pendingSignatures > 0 && (
-                                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full shadow-md animate-pulse">
-                                        {pendingSignatures > 9 ? '9+' : pendingSignatures}
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Necesar<br/>Materiale</h3>
-                        </button>
-                        
-                        <button
-                            onClick={() => navigate('/sesizari')}
-                            className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-rose-500 to-red-600 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
-                        >
-                            <div className="p-2 bg-white/20 rounded-xl mb-1.5 relative">
-                                <MessageSquareWarning className="w-7 h-7" />
-                                {unreadComplaints > 0 && (
-                                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-white text-rose-600 text-[10px] font-black rounded-full shadow-sm">
-                                        {unreadComplaints > 9 ? '9+' : unreadComplaints}
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Sesizări<br/>Incidente</h3>
-                        </button>
-
-                        <button
-                            onClick={() => navigate('/my-inventory')}
-                            className="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all text-center h-[100px]"
-                        >
-                            <div className="p-2 bg-white/20 rounded-xl mb-1.5 relative">
-                                <Wrench className="w-7 h-7" />
-                                {pendingSignatures > 0 && (
-                                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full shadow-md animate-pulse">
-                                        {pendingSignatures > 9 ? '9+' : pendingSignatures}
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className="font-bold text-[10px] leading-tight uppercase tracking-wider">Inventarul<br/>Meu</h3>
-                        </button>
                     </div>
 
                     {/* Current Address */}
@@ -1511,12 +1484,12 @@ export default function ClockInPage() {
                                 )}
                             </div>
 
-                            {/* Start Shift Button — full width rounded rectangle */}
+                            {/* Start Shift Button — moved up immediately after site selector */}
                             <div className="py-4">
                                 <button
                                     onClick={handleClockIn}
                                     disabled={loading || !selectedSite || !location}
-                                    className="w-full py-5 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-green-500/40 transition-all disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.98]"
+                                    className="w-full py-5 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-green-500/40 transition-all disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.98]"
                                 >
                                     {loading ? (
                                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -1528,6 +1501,32 @@ export default function ClockInPage() {
                                     )}
                                 </button>
                             </div>
+
+                            {/* ALERTS SECTION (Active messages from Admin) */}
+                            {Array.isArray(activeAlerts) && activeAlerts.length > 0 && (
+                                <div className="mt-4 space-y-3">
+                                    {activeAlerts.map(alert => (
+                                        <div key={alert.id} className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-4 text-white shadow-lg shadow-orange-500/20 animate-fade-in-up">
+                                            <div className="flex items-start gap-3">
+                                                <div className="bg-white/20 p-2 rounded-xl shrink-0 mt-1">
+                                                    <AlertCircle className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-lg leading-tight mb-1">Avizier Important</h4>
+                                                    <p className="text-white/90 text-sm font-medium mb-3">{alert.message}</p>
+                                                    <button 
+                                                        onClick={() => handleAcknowledgeAlert(alert.id)}
+                                                        className="bg-white text-orange-600 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-orange-50 transition-colors flex items-center gap-2"
+                                                    >
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        OK, Am înțeles
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                         </>
                     )}
