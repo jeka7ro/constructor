@@ -246,10 +246,23 @@
     "type": "Tip",
     "drivers": "Șoferi",
     "types": {
+      "car": "Autoturism",
       "van": "Dubă",
       "truck": "Camion",
       "excavator": "Excavator",
+      "grader": "Autogreder",
+      "compactor": "Compactor",
+      "pile_driver": "Utilaj foraj/Piloți",
+      "concrete_mixer": "Cifă / Betonieră",
+      "tractor_trailer": "Cap tractor + Semiremorcă",
+      "forklift": "Stivuitor",
+      "telehandler": "Încărcător telescopic",
+      "cherry_picker": "Nacelă (PRB)",
+      "crane_truck": "Camion cu macara",
       "crane": "Macara",
+      "pickup_4x4": "Pick-up / 4x4",
+      "mobile_workshop": "Atelier mobil",
+      "generator": "Generator",
       "other": "Altele"
     },
     "statuses": {
