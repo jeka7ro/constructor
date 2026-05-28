@@ -399,14 +399,18 @@ export default function FleetManagement() {
         {
             key: 'docs', label: 'Documente',
             render: (v) => {
-                const docsCount = v.documents?.length || 0;
+                let docs = v.documents;
+                if (typeof docs === 'string') {
+                    try { docs = JSON.parse(docs); } catch (e) { docs = []; }
+                }
+                const docsCount = docs?.length || 0;
                 if (docsCount === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>;
                 
                 let closestDoc = null;
                 let daysLeft = null;
                 const now = new Date();
                 
-                v.documents.forEach(doc => {
+                docs.forEach(doc => {
                     if (doc.expiry_date) {
                         const exp = new Date(doc.expiry_date);
                         const diffTime = exp - now;
@@ -419,14 +423,14 @@ export default function FleetManagement() {
                     }
                 });
 
-                let displayDoc = closestDoc || v.documents[0];
+                let displayDoc = closestDoc || docs[0];
 
                 return (
                     <button 
                         onClick={(e) => { 
                             e.stopPropagation(); 
                             if (docsCount === 1) {
-                                setPreviewDoc({url: v.documents[0].url, name: v.documents[0].name})
+                                setPreviewDoc({url: docs[0].url, name: docs[0].name})
                             } else {
                                 openEdit(v, 'documents'); 
                             }
