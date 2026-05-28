@@ -78,6 +78,19 @@ class User(Base):
     # Relationships
     role = relationship("Role")
     site = relationship("ConstructionSite")
+    documents = relationship("EmployeeDocument", back_populates="user", cascade="all, delete-orphan")
+
+class EmployeeDocument(Base):
+    """Additional documents for an employee (medical certs, safety training, etc)"""
+    __tablename__ = "employee_documents"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    user = relationship("User", back_populates="documents")
 
 class Site(Base):
     __tablename__ = "sites"

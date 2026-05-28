@@ -17,7 +17,7 @@ import re
 import io
 
 from app.database import get_db
-from app.models import User, Role, Admin
+from app.models import User, Role, Admin, EmployeeDocument
 from app.api.admin_auth import get_current_admin
 from app.storage import upload_file, delete_file, get_content_type
 
@@ -1180,3 +1180,57 @@ def get_user_analytics(
         "historical_chart": historical_chart,
         "anomalies": [] # For future AI logic
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EMPLOYEE DOCUMENTS (ACTE ADITIONALE)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/{user_id}/documents")
+def get_employee_documents(user_id: str, db: Session = Depends(get_db)):
+    docs = db.query(EmployeeDocument).filter(EmployeeDocument.user_id == user_id).order_by(EmployeeDocument.uploaded_at.desc()).all()
+    return [{"id": d.id, "name": d.name, "file_path": f"/api{d.file_path}", "uploaded_at": d.uploaded_at} for d in docs]
+
+@router.post("/{user_id}/documents")
+async def upload_employee_document(user_id: str, name: str = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"doc_{uuid.uuid4().hex[:8]}{ext}"
+    upload_dir = "uploads/documents"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, filename)
+    
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+        
+    new_doc = EmployeeDocument(
+        user_id=user_id,
+        name=name,
+        file_path=f"/uploads/documents/{filename}"
+    )
+    db.add(new_doc)
+    db.commit()
+    db.refresh(new_doc)
+    return {"id": new_doc.id, "name": new_doc.name, "file_path": f"/api{new_doc.file_path}", "uploaded_at": new_doc.uploaded_at}
+
+@router.delete("/{user_id}/documents/{doc_id}")
+def delete_employee_document(user_id: str, doc_id: str, db: Session = Depends(get_db)):
+    doc = db.query(EmployeeDocument).filter(EmployeeDocument.id == doc_id, EmployeeDocument.user_id == user_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    try:
+        if os.path.exists(doc.file_path.lstrip("/")):
+            os.remove(doc.file_path.lstrip("/"))
+        elif os.path.exists(doc.file_path.replace("/api/", "")):
+            os.remove(doc.file_path.replace("/api/", ""))
+    except:
+        pass
+        
+    db.delete(doc)
+    db.commit()
+    return {"status": "ok"}
