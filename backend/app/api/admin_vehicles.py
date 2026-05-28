@@ -29,7 +29,7 @@ class VehicleCreate(BaseModel):
     year: Optional[int] = None
     status: str = "active"
     notes: Optional[str] = None
-    documents: Optional[str] = None
+    documents: Optional[list] = None
     site_ids: List[str] = []
     user_ids: List[str] = []
 
@@ -42,7 +42,7 @@ class VehicleUpdate(BaseModel):
     year: Optional[int] = None
     status: Optional[str] = None
     notes: Optional[str] = None
-    documents: Optional[str] = None
+    documents: Optional[list] = None
     site_ids: Optional[List[str]] = None
     user_ids: Optional[List[str]] = None
 

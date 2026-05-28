@@ -282,7 +282,7 @@ export default function FleetManagement() {
                 }
                 return d;
             });
-            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: JSON.stringify(updatedDocs) });
+            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
             setEditingVehicle(res.data);
             fetchAll();
             setShowDocModal(false);
@@ -301,7 +301,7 @@ export default function FleetManagement() {
         if (!window.confirm('Sigur vrei să ștergi acest document? Această acțiune este ireversibilă.')) return;
         try {
             const updatedDocs = editingVehicle.documents.filter(d => d.id !== docId);
-            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: JSON.stringify(updatedDocs) });
+            const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
             setEditingVehicle(res.data);
             fetchAll();
             setSuccess('Document șters cu succes!');
