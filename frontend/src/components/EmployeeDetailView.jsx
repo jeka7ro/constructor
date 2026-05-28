@@ -108,16 +108,16 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* ─── Profile Header + Tabs combined ─── */}
             <div className="border-b border-slate-100 dark:border-slate-800">
-                <div className="px-4 pt-4 pb-2 flex flex-wrap items-start gap-4">
+                <div className="px-4 pt-4 pb-3 flex items-start gap-4">
                     <button
                         onClick={onBack}
-                        className="mt-1.5 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
+                        className="mt-1 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </button>
 
                     {/* Avatar */}
-                    <div className="relative shrink-0 -mt-1">
+                    <div className="relative shrink-0">
                         <div className="absolute -top-2 -right-3 z-10 text-slate-400 rotate-[60deg] drop-shadow-md pointer-events-none">
                             <Paperclip className="w-6 h-6" />
                         </div>
@@ -131,22 +131,24 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                     </div>
 
                     {/* Name + badge + info */}
-                    <div className="flex flex-col gap-1 mt-0.5 shrink-0">
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 dark:text-white text-base">{user.full_name}</span>
-                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500">{user.employee_code}</span>
+                    <div className="flex flex-col gap-1 mt-0.5 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white text-base truncate">{user.full_name}</span>
+                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500 shrink-0">{user.employee_code}</span>
                             {user.is_active
-                                ? <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold">Activ</span>
-                                : <span className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-bold">Inactiv</span>
+                                ? <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold shrink-0">Activ</span>
+                                : <span className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-bold shrink-0">Inactiv</span>
                             }
                         </div>
-                        {user.birth_date && user.birth_date !== 'None' && (
-                            <div className="text-xs text-slate-500 font-medium">
-                                Data nașterii: {new Date(user.birth_date).toLocaleDateString('ro-RO')} 
-                                <span className="mx-1.5 text-slate-300">•</span> 
-                                Vârsta: {Math.floor((new Date() - new Date(user.birth_date)) / 31557600000)} ani
-                            </div>
-                        )}
+                        <div className="text-xs text-slate-500 font-medium">
+                            Data nașterii: {user.birth_date && user.birth_date !== 'None' ? new Date(user.birth_date).toLocaleDateString('ro-RO') : <span className="italic text-slate-400">Nespecificată</span>} 
+                            {user.birth_date && user.birth_date !== 'None' && (
+                                <>
+                                    <span className="mx-1.5 text-slate-300">•</span> 
+                                    Vârsta: {Math.floor((new Date() - new Date(user.birth_date)) / 31557600000)} ani
+                                </>
+                            )}
+                        </div>
                         {user.phone && (
                             <a href={`tel:${user.phone}`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors shrink-0 mt-0.5 w-max">
                                 <Phone className="w-3.5 h-3.5" /> {user.phone}
@@ -154,38 +156,39 @@ export default function EmployeeDetailView({ user, onBack, onExport }) {
                         )}
                     </div>
 
-                    {onExport && (
-                        <div className="ml-auto mt-0.5 shrink-0">
+                    {/* Right side: Export & Tabs */}
+                    <div className="ml-auto flex flex-col items-end justify-between self-stretch shrink-0">
+                        {onExport && (
                             <button
                                 onClick={onExport}
-                                className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap"
+                                className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap mb-2"
                             >
                                 <BarChart3 className="w-3.5 h-3.5" /> Export Excel
                             </button>
+                        )}
+                        
+                        {/* Tabs inline aligned right */}
+                        <div className="flex items-center overflow-x-auto gap-1.5 hide-scrollbar max-w-full">
+                            {TABS.map(tab => {
+                                const Icon = tab.icon
+                                const isActive = activeTab === tab.id
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                                            isActive
+                                                ? 'bg-blue-600 text-white shadow-sm'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        <Icon className="w-3.5 h-3.5" />
+                                        {tab.label}
+                                    </button>
+                                )
+                            })}
                         </div>
-                    )}
-                </div>
-
-                {/* Tabs row below */}
-                <div className="px-4 pb-3 flex overflow-x-auto gap-1.5 hide-scrollbar w-full sm:justify-end">
-                    {TABS.map(tab => {
-                        const Icon = tab.icon
-                        const isActive = activeTab === tab.id
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                                    isActive
-                                        ? 'bg-blue-600 text-white shadow-sm'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
-                            >
-                                <Icon className="w-3.5 h-3.5" />
-                                {tab.label}
-                            </button>
-                        )
-                    })}
+                    </div>
                 </div>
             </div>
 
