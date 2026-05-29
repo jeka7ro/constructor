@@ -1,10 +1,30 @@
 import React from 'react'
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Home, PackageOpen, Wrench, AlertTriangle, Calendar } from 'lucide-react'
 
 export default function EmployeeLayout() {
     const location = useLocation()
+    const navigate = useNavigate()
     const isHome = location.pathname === '/'
+
+    const handleHomePress = async () => {
+        if (isHome) {
+            // Deja pe home — face refresh complet (curata cache GPS/locatie)
+            try {
+                if ('caches' in window) {
+                    const keys = await caches.keys()
+                    await Promise.all(keys.map(k => caches.delete(k)))
+                }
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations()
+                    await Promise.all(regs.map(r => r.unregister()))
+                }
+            } catch (e) { /* ignore */ }
+            window.location.reload(true)
+        } else {
+            navigate('/')
+        }
+    }
 
     return (
         <div className="flex flex-col min-h-[100dvh] bg-slate-50">
@@ -36,15 +56,15 @@ export default function EmployeeLayout() {
 
                 {/* 3. Acasă (Home) - Glossy Glass 3D Button */}
                 <div className="relative flex justify-center w-[96px]">
-                    <NavLink 
-                        to="/" 
-                        className={({isActive}) => `absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isActive || location.pathname === '/' ? 'ring-4 ring-blue-400/30 scale-105' : 'ring-2 ring-blue-300/20'}`}
+                    <button
+                        onClick={handleHomePress}
+                        className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isHome ? 'ring-4 ring-blue-400/30 scale-105' : 'ring-2 ring-blue-300/20'}`}
                     >
                         <Home className="w-10 h-10 drop-shadow-md" />
-                    </NavLink>
+                    </button>
                 </div>
 
-                {/* 4. Scule (Green/Teal) */}
+                {/* 4. Inventar (Green/Teal) */}
                 <NavLink 
                     to="/my-inventory" 
                     className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 scale-110 drop-shadow-md' : (isHome ? 'text-emerald-600/90' : 'text-slate-400')}`}
