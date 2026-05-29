@@ -21,8 +21,24 @@ from app.api import (
 )
 
 import threading
+import time as _keepalive_time
+import requests as _keepalive_requests
 
 _scheduler_stop = threading.Event()
+
+def _keepalive_loop():
+    """Ping self every 14 minutes to prevent Render free tier from sleeping."""
+    _keepalive_time.sleep(30)  # wait for server to fully start
+    while not _scheduler_stop.is_set():
+        try:
+            _keepalive_requests.get(
+                "https://pontaj-digital.onrender.com/api/health",
+                timeout=10
+            )
+            print("💓 Keep-alive ping sent")
+        except Exception:
+            pass
+        _scheduler_stop.wait(14 * 60)  # ping every 14 minutes
 
 def _daily_clockin_loop():
     """Background thread: auto-clock-in test workers at ~08:05 Romanian time."""
@@ -48,6 +64,7 @@ def _daily_clockin_loop():
                 print(f"⚠️  Auto clock-in error: {e}")
             last_run_date = today
         _scheduler_stop.wait(60)  # check every 60s
+
 
 
 def _run_migrations(engine):
@@ -146,6 +163,11 @@ async def lifespan(app: FastAPI):
     # t = threading.Thread(target=_daily_clockin_loop, daemon=True)
     # t.start()
     print("📅 Daily auto-clock-in scheduler DISABLED explicitly by user")
+
+    # Start keep-alive thread (prevents Render free tier from sleeping)
+    ka = threading.Thread(target=_keepalive_loop, daemon=True)
+    ka.start()
+    print("💓 Keep-alive thread started (pings every 14 min)")
 
     yield
     # Shutdown
