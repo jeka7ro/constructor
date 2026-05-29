@@ -9,7 +9,7 @@ export default function EmployeeLayout() {
     return (
         <div className="flex flex-col min-h-[100dvh] bg-slate-50 pb-20">
             {/* Main Content Area */}
-            <main className="flex-grow flex flex-col relative">
+            <main className="flex-grow">
                 <Outlet />
             </main>
 

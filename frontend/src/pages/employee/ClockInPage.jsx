@@ -871,14 +871,14 @@ export default function ClockInPage() {
 
     if (loading && !activeShift) {
         return (
-            <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
         )
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50 overflow-y-auto">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 pb-4">
             {/* Error Message Banner */}
             {errorMessage && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-sm w-[90%] animate-[slideDown_0.3s_ease-out]">
@@ -988,7 +988,7 @@ export default function ClockInPage() {
             ) : (
                 <div className="max-w-md mx-auto p-4 space-y-4">
                     {/* === MAP SECTION === */}
-                    <div className="rounded-2xl overflow-hidden shadow-lg border-2 border-white" style={{ height: '200px' }}>
+                    <div className="rounded-2xl overflow-hidden shadow-lg border-2 border-white" style={{ height: '240px' }}>
                         <MapContainer
                             center={mapCenter}
                             zoom={16}
