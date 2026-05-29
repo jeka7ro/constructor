@@ -1051,20 +1051,18 @@ export default function ClockInPage() {
                         </MapContainer>
                     </div>
 
-                    {/* Address + GPS — combined single row */}
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${
-                        location
-                            ? 'bg-green-50 border-green-200 text-green-700'
-                            : 'bg-white/80 border-gray-200 text-gray-500'
-                    }`}>
-                        <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${location ? 'text-green-600' : 'text-gray-400'}`} />
-                        {currentAddress ? (
-                            <span className="truncate flex-1">{currentAddress}</span>
-                        ) : (
-                            <span className="flex-1 text-amber-600">Se caută locația GPS...</span>
-                        )}
-                        {location && <span className="flex-shrink-0">✓</span>}
-                    </div>
+                    {/* Address + GPS — single row */}
+                    {location && currentAddress ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                            <span className="truncate">{currentAddress}</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-600">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>GPS indisponibil — activați locația</span>
+                        </div>
+                    )}
 
                     {/* Geofence Status */}
                     {geofenceStatus && (
@@ -1120,12 +1118,7 @@ export default function ClockInPage() {
                         </div>
                     )}
 
-                    {location && !activeShift && !geofenceStatus && (
-                        <div className="bg-green-50 border border-green-200 rounded-xl p-2 flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-green-600" />
-                            <p className="text-xs text-green-800">{t('timesheets.gps_active')}</p>
-                        </div>
-                    )}
+
 
                     {/* No GPS Warning */}
                     {!location && !activeShift && !locationError && (
@@ -1488,8 +1481,8 @@ export default function ClockInPage() {
                                 )}
                             </div>
 
-                            {/* Start Shift Button — pushed down */}
-                            <div className="mt-auto pt-3 pb-2">
+                            {/* Start Shift Button */}
+                            <div className="mt-4 pb-2">
                                 <button
                                     onClick={handleClockIn}
                                     disabled={loading || !selectedSite || !location}
