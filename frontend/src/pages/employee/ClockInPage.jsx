@@ -8,7 +8,7 @@ import {
     Clock, Play, Square, Coffee, MapPin, Loader2, Timer, Calendar,
     ClipboardList, Plus, Trash2, CheckCircle, CheckCircle2, AlertCircle, ShieldAlert,
     Navigation, ChevronDown, ChevronRight, LogOut, Users, Settings, XCircle,
-    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch, Wrench, CloudRain
+    Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch, Wrench, CloudRain, RefreshCw
 } from 'lucide-react'
 import TeamLeaderPanel from './TeamLeaderPanel'
 import SiteManagerPanel from './SiteManagerPanel'
@@ -155,6 +155,26 @@ export default function ClockInPage() {
         if (h === 0) return `${m}min`
         if (m === 0) return `${h}h`
         return `${h}h ${m}min`
+    }
+
+    const [refreshing, setRefreshing] = useState(false)
+
+    const handleRefreshApp = async () => {
+        setRefreshing(true)
+        try {
+            // Sterge toate cache-urile service worker
+            if ('caches' in window) {
+                const keys = await caches.keys()
+                await Promise.all(keys.map(k => caches.delete(k)))
+            }
+            // Dezregistreaza service worker-ele
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations()
+                await Promise.all(regs.map(r => r.unregister()))
+            }
+        } catch (e) { /* ignore */ }
+        // Hard reload — pagina se va re-descarca complet
+        window.location.reload(true)
     }
 
     const timerInterval = useRef(null)
@@ -941,6 +961,14 @@ export default function ClockInPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-1">
+                        <button
+                            onClick={handleRefreshApp}
+                            disabled={refreshing}
+                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                            title="Actualizare aplicație"
+                        >
+                            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+                        </button>
                         <button
                             onClick={() => { logout(); navigate('/login'); }}
                             className="p-2 hover:bg-red-500/30 rounded-full transition-colors"
