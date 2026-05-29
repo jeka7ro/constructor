@@ -7,9 +7,9 @@ export default function EmployeeLayout() {
     const isHome = location.pathname === '/'
 
     return (
-        <div className="flex flex-col min-h-[100dvh] bg-slate-50 pb-20">
+        <div className="flex flex-col min-h-[100dvh] bg-slate-50">
             {/* Main Content Area */}
-            <main className="flex-grow">
+            <main className="flex-grow flex flex-col pb-24">
                 <Outlet />
             </main>
 
