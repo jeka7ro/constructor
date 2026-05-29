@@ -38,11 +38,7 @@ export default function EmployeeLayout() {
                 <div className="relative flex justify-center w-[96px]">
                     <NavLink 
                         to="/" 
-                        className={({isActive}) => `absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl ${
-                            isActive || location.pathname === '/' 
-                                ? 'bg-gradient-to-b from-blue-400 via-blue-500 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] ring-4 ring-blue-400/30' 
-                                : 'bg-gradient-to-b from-blue-300/80 via-blue-500/80 to-blue-600/80 shadow-[0_8px_20px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.8)] ring-transparent hover:ring-blue-400/20'
-                        }`}
+                        className={({isActive}) => `absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isActive || location.pathname === '/' ? 'ring-4 ring-blue-400/30 scale-105' : 'ring-2 ring-blue-300/20'}`}
                     >
                         <Home className="w-10 h-10 drop-shadow-md" />
                     </NavLink>

@@ -921,7 +921,7 @@ export default function ClockInPage() {
             )}
 
             {/* Header with Profile */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-lg">
+            <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white p-4 shadow-lg">
                 <div className="flex items-center justify-between max-w-md mx-auto">
                     <div className="flex items-center gap-3">
                         {user?.avatar_path && (
@@ -986,7 +986,7 @@ export default function ClockInPage() {
                     {isSiteManager ? <SiteManagerPanel /> : <TeamLeaderPanel />}
                 </div>
             ) : (
-                <div className="max-w-md mx-auto px-3 pt-3 pb-2 space-y-2">
+                <div className="max-w-md mx-auto px-3 pt-3 pb-2 flex flex-col gap-2" style={{ minHeight: 'calc(100dvh - 160px)' }}>
                     {/* === MAP SECTION === */}
                     <div className="rounded-2xl overflow-hidden shadow-lg border-2 border-white" style={{ height: '200px' }}>
                         <MapContainer
@@ -1481,8 +1481,8 @@ export default function ClockInPage() {
                                 )}
                             </div>
 
-                            {/* Start Shift Button */}
-                            <div className="mt-4 pb-2">
+                            {/* Start Shift Button — above home button */}
+                            <div className="mt-auto pt-4 mb-14">
                                 <button
                                     onClick={handleClockIn}
                                     disabled={loading || !selectedSite || !location}
