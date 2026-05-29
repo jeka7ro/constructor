@@ -652,23 +652,13 @@ export default function WarehouseManagement() {
                             
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => {
-                                        setSelectedItem(historyItem);
-                                        setTxType('IN');
-                                        setTxForm(prev => ({ ...prev, quantity: '', notes: '', file: null }));
-                                        setShowTxModal(true);
-                                    }}
+                                    onClick={() => openTxModal(historyItem, 'IN')}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                                 >
                                     <ArrowDownRight className="w-4 h-4" /> Intrare
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        setSelectedItem(historyItem);
-                                        setTxType('OUT');
-                                        setTxForm(prev => ({ ...prev, quantity: '', notes: '', file: null }));
-                                        setShowTxModal(true);
-                                    }}
+                                    onClick={() => openTxModal(historyItem, 'OUT')}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                                 >
                                     <ArrowUpRight className="w-4 h-4" /> Ieșire
