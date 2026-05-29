@@ -1051,13 +1051,20 @@ export default function ClockInPage() {
                         </MapContainer>
                     </div>
 
-                    {/* Current Address */}
-                    {currentAddress && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur rounded-full border border-gray-200 text-xs text-gray-600">
-                            <Navigation className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                            <span className="truncate">{currentAddress}</span>
-                        </div>
-                    )}
+                    {/* Address + GPS — combined single row */}
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${
+                        location
+                            ? 'bg-green-50 border-green-200 text-green-700'
+                            : 'bg-white/80 border-gray-200 text-gray-500'
+                    }`}>
+                        <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${location ? 'text-green-600' : 'text-gray-400'}`} />
+                        {currentAddress ? (
+                            <span className="truncate flex-1">{currentAddress}</span>
+                        ) : (
+                            <span className="flex-1 text-amber-600">Se caută locația GPS...</span>
+                        )}
+                        {location && <span className="flex-shrink-0">✓</span>}
+                    </div>
 
                     {/* Geofence Status */}
                     {geofenceStatus && (
@@ -1120,14 +1127,11 @@ export default function ClockInPage() {
                         </div>
                     )}
 
-                    {/* No GPS Warning — strictly required now */}
+                    {/* No GPS Warning */}
                     {!location && !activeShift && !locationError && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-                            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <p className="text-sm font-medium text-amber-800">Se caută locația GPS...</p>
-                                <p className="text-xs text-amber-600 mt-0.5">Locația este obligatorie pentru a putea începe tura.</p>
-                            </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-2 flex items-center gap-2">
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                            <p className="text-xs text-amber-700">Locație obligatorie pentru a începe tura.</p>
                         </div>
                     )}
 
@@ -1484,8 +1488,8 @@ export default function ClockInPage() {
                                 )}
                             </div>
 
-                            {/* Start Shift Button */}
-                            <div className="pb-2">
+                            {/* Start Shift Button — pushed down */}
+                            <div className="mt-auto pt-3 pb-2">
                                 <button
                                     onClick={handleClockIn}
                                     disabled={loading || !selectedSite || !location}

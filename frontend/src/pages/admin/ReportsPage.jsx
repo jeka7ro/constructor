@@ -180,7 +180,7 @@ export default function ReportsPage() {
             </span> 
         ) },
         { key: 'employee_code', label: t('users.code'), sortable: true, render: (r) => <span className="text-slate-500">{r.employee_code}</span> },
-        { key: 'role', label: t('users.role'), sortable: true, render: (r) => <span className="text-slate-500">{r.role}</span> },
+        { key: 'role', label: t('users.role'), sortable: true, render: (r) => <span className="text-slate-500">{typeof r.role === 'object' ? (r.role?.name || r.role?.code || '') : (r.role || '')}</span> },
         { key: 'site_name', label: t('common.site'), sortable: true, render: (r) => <span className="text-slate-600 dark:text-slate-400">{r.site_name}</span> },
         { key: 'check_in', label: t('reports.table.check_in'), sortable: true, render: (r) => <span className="text-slate-600 dark:text-slate-400">{r.check_in}</span> },
         { key: 'check_out', label: t('reports.table.check_out'), sortable: true, render: (r) => <span className="text-slate-600 dark:text-slate-400">{r.check_out}</span> },

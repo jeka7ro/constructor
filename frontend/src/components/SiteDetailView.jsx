@@ -216,7 +216,7 @@ export default function SiteDetailView({ site, onBack }) {
                                                     {team.members?.map(m => (
                                                         <li key={m.id} className="text-sm text-slate-600 dark:text-slate-300 flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-700">
                                                             <span>{m.name}</span>
-                                                            <span className="text-[10px] uppercase bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">{m.role}</span>
+                                                            <span className="text-[10px] uppercase bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">{typeof m.role === 'object' ? (m.role?.name || m.role?.code || '') : (m.role || '')}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -232,7 +232,7 @@ export default function SiteDetailView({ site, onBack }) {
                                         {data.direct_users.map(u => (
                                             <div key={u.id} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center">
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{u.name}</span>
-                                                <span className="text-[10px] uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold">{u.role}</span>
+                                                <span className="text-[10px] uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold">{typeof u.role === 'object' ? (u.role?.name || u.role?.code || '') : (u.role || '')}</span>
                                             </div>
                                         ))}
                                     </div>
