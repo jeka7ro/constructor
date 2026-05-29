@@ -148,7 +148,7 @@ export default function EmployeeInventory() {
     const consumables = inventory.filter(i => !i.inventory_code)
 
     return (
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 to-emerald-50/30">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 to-emerald-50/30 overflow-y-auto">
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 shadow-lg sticky top-0 z-10">
                 <div className="flex items-center gap-3 max-w-md mx-auto">

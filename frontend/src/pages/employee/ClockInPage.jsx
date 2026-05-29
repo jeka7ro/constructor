@@ -878,7 +878,7 @@ export default function ClockInPage() {
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50 overflow-y-auto">
             {/* Error Message Banner */}
             {errorMessage && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-sm w-[90%] animate-[slideDown_0.3s_ease-out]">

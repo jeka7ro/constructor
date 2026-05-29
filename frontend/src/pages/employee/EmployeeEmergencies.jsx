@@ -46,7 +46,7 @@ export default function EmployeeEmergencies() {
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 to-rose-50/30">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 to-rose-50/30 overflow-y-auto">
             {/* Header */}
             <div className="bg-gradient-to-r from-rose-600 to-red-700 text-white p-4 shadow-lg">
                 <div className="flex items-center justify-between max-w-md mx-auto">

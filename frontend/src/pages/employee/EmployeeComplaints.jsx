@@ -48,7 +48,7 @@ export default function EmployeeComplaints() {
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50 overflow-y-auto">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-lg">
                 <div className="flex items-center justify-between max-w-md mx-auto">
