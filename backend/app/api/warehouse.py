@@ -442,6 +442,8 @@ def get_linked_request(item_id: str, db: Session = Depends(get_db), current_admi
         if req.items_json:
             try:
                 items = json.loads(req.items_json)
+                if not isinstance(items, list):
+                    items = []
                 for it in items:
                     if (db_item.inventory_code and str(it.get("id", "")) == db_item.id) or \
                        (db_item.inventory_code and db_item.inventory_code in str(it.get("name", ""))) or \
