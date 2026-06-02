@@ -129,7 +129,7 @@ export default function UsersManagement() {
 
     const handleScanIdCard = async () => {
         if (!idCardFile) {
-            showToast({ type: 'error', message: 'Selectează o imagine cu buletinul mai întâi.' })
+            showToast('Selectează o imagine cu buletinul mai întâi.', 'error')
             return
         }
         try {
@@ -147,18 +147,21 @@ export default function UsersManagement() {
             const resp = await api.post('/admin/users/ocr/extract', fd, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
+            const ocr = resp.data
             
-            if (resp.data) {
+            if (ocr.success) {
                 setFormData(prev => ({
                     ...prev,
-                    last_name: resp.data.last_name || prev.last_name,
-                    first_name: resp.data.first_name || prev.first_name,
-                    cnp: resp.data.cnp || prev.cnp,
-                    birth_place: resp.data.birth_place || prev.birth_place,
-                    id_card_series: resp.data.id_card_series || prev.id_card_series,
-                    birth_date: resp.data.birth_date || prev.birth_date
+                    last_name: ocr.last_name || prev.last_name,
+                    first_name: ocr.first_name || prev.first_name,
+                    cnp: ocr.cnp || prev.cnp,
+                    birth_place: ocr.birth_place || prev.birth_place,
+                    id_card_series: ocr.id_card_series || prev.id_card_series,
+                    birth_date: ocr.birth_date || prev.birth_date
                 }))
-                showToast({ type: 'success', message: 'Datele au fost extrase cu succes din buletin!' })
+                showToast('Datele au fost extrase cu succes din buletin!', 'success')
+            } else {
+                showToast(ocr.message || 'Nu am putut extrage datele.', 'error')
             }
         } catch (err) {
             console.error('OCR Error:', err)
@@ -170,23 +173,23 @@ export default function UsersManagement() {
 
     const handleSave = async () => {
         if (!formData.last_name.trim() || !formData.first_name.trim()) {
-            showToast({ type: 'error', message: 'Numele și prenumele sunt obligatorii.' })
+            showToast('Numele și prenumele sunt obligatorii.', 'error')
             return
         }
         if (!formData.email.trim()) {
-            showToast({ type: 'error', message: 'Email-ul este obligatoriu.' })
+            showToast('Email-ul este obligatoriu.', 'error')
             return
         }
         if (!editingUser && !formData.password.trim()) {
-            showToast({ type: 'error', message: 'Parola este obligatorie pentru utilizator nou.' })
+            showToast('Parola este obligatorie pentru utilizator nou.', 'error')
             return
         }
         if (formData.password.trim() && formData.password !== formData.confirm_password) {
-            showToast({ type: 'error', message: 'Parolele nu coincid.' })
+            showToast('Parolele nu coincid.', 'error')
             return
         }
         if (!formData.role_id) {
-            showToast({ type: 'error', message: 'Selectează un rol.' })
+            showToast('Selectează un rol.', 'error')
             return
         }
         try {
@@ -207,10 +210,10 @@ export default function UsersManagement() {
 
             if (editingUser) {
                 await api.put(`/admin/users/${editingUser.id}`, payload)
-                showToast({ type: 'success', message: 'Utilizator actualizat.' })
+                showToast('Utilizator actualizat.', 'success')
             } else {
                 await api.post('/admin/users/', payload)
-                showToast({ type: 'success', message: 'Utilizator creat.' })
+                showToast('Utilizator creat.', 'success')
             }
             setShowModal(false)
             fetchUsers()
@@ -231,7 +234,7 @@ export default function UsersManagement() {
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/users/${user.id}`)
-                    showToast({ type: 'success', message: 'Utilizator șters.' })
+                    showToast('Utilizator șters.', 'success')
                     fetchUsers()
                 } catch (err) {
                     openDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
@@ -458,10 +461,10 @@ export default function UsersManagement() {
                     try {
                         await api.post(`/admin/users/${avatarUploadUserId}/upload-avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                         fetchUsers()
-                        showToast({ type: 'success', message: 'Avatar actualizat' })
+                        showToast('Avatar actualizat', 'success')
                     } catch (err) {
                         console.error('Avatar upload error:', err);
-                        showToast({ type: 'error', message: 'Eroare la actualizare avatar' })
+                        showToast('Eroare la actualizare avatar', 'error')
                     }
                     setAvatarCropImage(null)
                     setAvatarUploadUserId(null)
