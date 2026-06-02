@@ -175,9 +175,18 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
 
     try:
         from PIL import Image
+        import os
         img = None
         try:
-            img = Image.open(image_path)
+            ext = os.path.splitext(image_path)[1].lower()
+            if ext == '.pdf':
+                import fitz  # PyMuPDF
+                doc = fitz.open(image_path)
+                page = doc.load_page(0)  # first page
+                pix = page.get_pixmap(dpi=300) # render at 300 dpi for good OCR/face extraction
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            else:
+                img = Image.open(image_path)
         except Exception as e:
             print(f"Skipping avatar extraction (not an image or unsupported format): {e}")
 
