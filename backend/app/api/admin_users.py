@@ -38,6 +38,7 @@ class UserCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     role_id: str
     pin: str = Field(..., min_length=4, max_length=6)
+    password: Optional[str] = None
     birth_date: Optional[str] = None
     cnp: Optional[str] = Field(None, min_length=13, max_length=13)
     birth_place: Optional[str] = None
@@ -55,6 +56,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=2, max_length=200)
     role_id: Optional[str] = None
     is_active: Optional[bool] = None
+    password: Optional[str] = None
     birth_date: Optional[str] = None
     cnp: Optional[str] = Field(None, min_length=13, max_length=13)
     birth_place: Optional[str] = None
@@ -712,6 +714,31 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
         phone=user_data.phone, email=user_data.email, address=user_data.address
     )
     db.add(new_user)
+    
+    # Also create Admin record if role is an admin role
+    if role.name in ADMIN_ROLE_NAMES:
+        if not user_data.email:
+            raise HTTPException(status_code=400, detail="Email is required for Administrator accounts")
+        if not user_data.password:
+            raise HTTPException(status_code=400, detail="Password is required for Administrator accounts")
+        
+        # Check if email is already used by an admin
+        existing_admin = db.query(Admin).filter(Admin.email == user_data.email).first()
+        if existing_admin:
+            raise HTTPException(status_code=400, detail="Adresa de email este deja folosită de alt administrator")
+            
+        new_admin = Admin(
+            id=str(uuid.uuid4()),
+            organization_id=role.organization_id,
+            email=user_data.email,
+            full_name=full_name,
+            password_hash=hashlib.sha256(user_data.password.encode()).hexdigest(),
+            role="SUPER_ADMIN" if role.name == "Super Administrator" else "ADMIN",
+            is_active=user_data.is_active,
+            is_super_admin=True if role.name == "Super Administrator" else False
+        )
+        db.add(new_admin)
+
     db.commit()
     db.refresh(new_user)
     return build_user_response(new_user, role.name)
@@ -769,6 +796,47 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
                 user.birth_date = None
         else:
             user.birth_date = None
+
+    # Handle Admin record update if user has an admin role
+    user_role = db.query(Role).filter(Role.id == user.role_id).first()
+    if user_role and user_role.name in {'Administrator', 'Super Administrator'}:
+        if user_data.email and user_data.email != user.email:
+            # Check if new email is taken
+            existing_admin = db.query(Admin).filter(Admin.email == user_data.email, Admin.email != user.email).first()
+            if existing_admin:
+                raise HTTPException(status_code=400, detail="Noua adresă de email este deja folosită de alt administrator")
+                
+        # Try to find the existing admin record using the old email or new email
+        email_to_search = user.email
+        admin_record = None
+        if email_to_search:
+            admin_record = db.query(Admin).filter(Admin.email == email_to_search).first()
+            
+        if admin_record:
+            admin_record.full_name = user.full_name
+            admin_record.is_active = user.is_active
+            admin_record.role = "SUPER_ADMIN" if user_role.name == "Super Administrator" else "ADMIN"
+            admin_record.is_super_admin = True if user_role.name == "Super Administrator" else False
+            if user_data.email:
+                admin_record.email = user_data.email
+            if user_data.password:
+                admin_record.password_hash = hashlib.sha256(user_data.password.encode()).hexdigest()
+        else:
+            # Create the missing admin record if they have an email
+            if user_data.email or user.email:
+                target_email = user_data.email or user.email
+                if user_data.password:
+                    new_admin = Admin(
+                        id=str(uuid.uuid4()),
+                        organization_id=user.organization_id,
+                        email=target_email,
+                        full_name=user.full_name,
+                        password_hash=hashlib.sha256(user_data.password.encode()).hexdigest(),
+                        role="SUPER_ADMIN" if user_role.name == "Super Administrator" else "ADMIN",
+                        is_active=user.is_active,
+                        is_super_admin=True if user_role.name == "Super Administrator" else False
+                    )
+                    db.add(new_admin)
 
     db.commit()
     db.refresh(user)
