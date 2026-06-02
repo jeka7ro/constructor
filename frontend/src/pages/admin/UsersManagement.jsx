@@ -554,10 +554,39 @@ export default function UsersManagement() {
                                             </button>
                                         )}
                                     </div>
-                                    {idCardFile && idCardFile.type === 'application/pdf' && (
-                                        <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200">
-                                            <p className="text-xs font-medium text-slate-600 truncate">PDF: {idCardFile.name}</p>
-                                            <button onClick={() => { setIdCardFile(null); setIdCardPreview(null) }} className="text-red-500 hover:bg-red-50 p-1 rounded"><X className="w-3 h-3" /></button>
+                                    <div className="flex gap-4">
+                                        {idCardPreview ? (
+                                            <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                                                {idCardFile?.type === 'application/pdf' ? (
+                                                    <iframe src={idCardPreview} className="w-full h-[300px] border-0" title="PDF Preview" />
+                                                ) : (
+                                                    <img src={idCardPreview} alt="Preview" className="w-full h-auto max-h-[300px] object-contain" />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIdCardFile(null)
+                                                        setIdCardPreview(null)
+                                                    }}
+                                                    className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                                                <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
+                                                <span className="text-sm text-slate-500">Încărcă Poză / PDF</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {editingUser?.id_card_path && !idCardFile && (
+                                        <div className="mt-2 text-xs text-slate-500 flex items-center gap-1.5">
+                                            <FileText className="w-4 h-4 text-slate-400" />
+                                            <a href={`${editingUser.id_card_path}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                                                Vezi documentul încărcat anterior
+                                            </a>
                                         </div>
                                     )}
                                 </div>

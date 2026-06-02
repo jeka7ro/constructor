@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, date
 from app.timezone import get_local_now, get_local_today
 import hashlib
@@ -38,27 +38,29 @@ class UserCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     role_id: str
     pin: str = Field(..., min_length=4, max_length=6)
+    is_active: bool = True
     password: Optional[str] = None
-    birth_date: Optional[str] = None
-    cnp: Optional[str] = Field(None, min_length=13, max_length=13)
+    cnp: Optional[str] = Field(None, max_length=13)
     birth_place: Optional[str] = None
     id_card_series: Optional[str] = None
     phone: Optional[str] = Field(None, max_length=20)
     email: Optional[str] = None
     address: Optional[str] = None
-    is_active: bool = True
+    site_id: Optional[str] = None
+    birth_date: Optional[str] = None
+    birth_date: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
-    employee_code: Optional[str] = Field(None, min_length=3, max_length=20)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    first_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    full_name: Optional[str] = Field(None, min_length=2, max_length=200)
+    employee_code: Optional[str] = Field(None, max_length=20)
+    last_name: Optional[str] = Field(None, max_length=100)
+    first_name: Optional[str] = Field(None, max_length=100)
+    full_name: Optional[str] = Field(None, max_length=200)
     role_id: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
     birth_date: Optional[str] = None
-    cnp: Optional[str] = Field(None, min_length=13, max_length=13)
+    cnp: Optional[str] = Field(None, max_length=13)
     birth_place: Optional[str] = None
     id_card_series: Optional[str] = None
     phone: Optional[str] = Field(None, max_length=20)
@@ -66,6 +68,13 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     site_id: Optional[str] = None
     hourly_rate: Optional[float] = None  # Tarif orar — confidential, admin-only
+
+    @field_validator('employee_code', 'last_name', 'first_name', 'full_name', 'cnp', 'phone', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 
 class UserPinReset(BaseModel):
@@ -290,19 +299,23 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                     except Exception as fallback_e:
                         print("EasyOCR fallback skipped:", fallback_e)
 
-                # === FINAL FALLBACK ===
-                if not face_crop:
+            except Exception as e:
+                print(f"Extraction failed: {e}")
+                
+            # === FINAL FALLBACK (Outside OpenCV try/except so it runs even if OpenCV crashes) ===
+            try:
+                if not face_crop and img:
                     w_img, h_img = img.size
                     face_crop = img.crop((int(w_img * 0.02), int(h_img * 0.15), int(w_img * 0.35), int(h_img * 0.85)))
                     
-                avatar_filename = f"avatar_{uuid.uuid4().hex[:8]}.jpg"
-                avatar_buf = io.BytesIO()
-                face_crop.save(avatar_buf, "JPEG", quality=90)
-                avatar_url = upload_file(avatar_buf.getvalue(), f"avatars/{avatar_filename}", "image/jpeg")
-                result["avatar_path"] = avatar_url
-                
-            except Exception as e:
-                print(f"Extraction failed: {e}")
+                if face_crop:
+                    avatar_filename = f"avatar_{uuid.uuid4().hex[:8]}.jpg"
+                    avatar_buf = io.BytesIO()
+                    face_crop.save(avatar_buf, "JPEG", quality=90)
+                    avatar_url = upload_file(avatar_buf.getvalue(), f"avatars/{avatar_filename}", "image/jpeg")
+                    result["avatar_path"] = avatar_url
+            except Exception as fallback_e:
+                print(f"Final fallback failed: {fallback_e}")
             
     # ===== Try OCR if easyocr is available =====
         full_text = ''
