@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
-import { Shield, Plus, Search, Edit2, Trash2, Loader2, Mail, Phone, X, Save, Eye, EyeOff, UserCog, Lock, ScanLine, Upload, UploadCloud } from 'lucide-react'
+import { Shield, Plus, Search, Edit2, Trash2, Loader2, Mail, Phone, X, Save, Eye, EyeOff, UserCog, Lock, ScanLine, Upload, UploadCloud, FileText } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import { useAdminStore } from '../../store/adminStore'
 import AvatarCropModal from '../../components/AvatarCropModal'
