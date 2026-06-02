@@ -208,13 +208,29 @@ export default function UsersManagement() {
             }
             if (formData.password.trim()) payload.password = formData.password.trim()
 
+            let savedUser;
             if (editingUser) {
-                await api.put(`/admin/users/${editingUser.id}`, payload)
+                const resp = await api.put(`/admin/users/${editingUser.id}`, payload)
+                savedUser = resp.data
                 showToast('Utilizator actualizat.', 'success')
             } else {
-                await api.post('/admin/users/', payload)
+                const resp = await api.post('/admin/users/', payload)
+                savedUser = resp.data
                 showToast('Utilizator creat.', 'success')
             }
+
+            if (idCardFile && savedUser?.id) {
+                try {
+                    const fd = new FormData()
+                    fd.append('file', idCardFile)
+                    await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    })
+                } catch (e) {
+                    console.error('Failed to upload ID card:', e)
+                }
+            }
+
             setShowModal(false)
             fetchUsers()
         } catch (err) {
