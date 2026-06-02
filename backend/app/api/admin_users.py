@@ -199,7 +199,6 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                 import cv2
                 import numpy as np
                 from PIL import ImageOps
-                import easyocr
                 
                 # Apply EXIF rotation to ensure correct pixel alignment
                 img = ImageOps.exif_transpose(img)
@@ -242,50 +241,54 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                 
                 # === FALLBACK: OCR Layout Analysis ===
                 if not face_crop:
-                    reader = easyocr.Reader(['ro', 'en'], gpu=False, verbose=False)
-                    ocr_results = reader.readtext(open_cv_image)
-                    
-                    # Filter out MRZ
-                    valid_text = [r for r in ocr_results if '<' not in r[1]]
-                    
-                    if len(valid_text) > 3:
-                        all_x = []
-                        all_y = []
-                        dx_sum = 0
-                        dy_sum = 0
-                        for (bbox, text, prob) in valid_text:
-                            pt0, pt1, pt2, pt3 = bbox
-                            all_x.extend([pt0[0], pt1[0], pt2[0], pt3[0]])
-                            all_y.extend([pt0[1], pt1[1], pt2[1], pt3[1]])
-                            dx_sum += (pt1[0] - pt0[0])
-                            dy_sum += (pt1[1] - pt0[1])
+                    try:
+                        import easyocr
+                        reader = easyocr.Reader(['ro', 'en'], gpu=False, verbose=False)
+                        ocr_results = reader.readtext(open_cv_image)
                         
-                        all_x.sort()
-                        all_y.sort()
+                        # Filter out MRZ
+                        valid_text = [r for r in ocr_results if '<' not in r[1]]
                         
-                        TX_min = all_x[int(len(all_x) * 0.20)]
-                        TX_max = all_x[int(len(all_x) * 0.80)]
-                        TY_min = all_y[int(len(all_y) * 0.10)]
-                        TY_max = all_y[int(len(all_y) * 0.90)]
-                        
-                        if abs(dx_sum) > abs(dy_sum):
-                            fh = TY_max - TY_min
-                            fw = fh * 0.75
-                            y_start = TY_min + fh * 0.05
-                            y_end = TY_max - fh * 0.05
-                            if dx_sum > 0:
-                                face_crop = img.crop((max(0, TX_min - fw), y_start, TX_min, y_end))
+                        if len(valid_text) > 3:
+                            all_x = []
+                            all_y = []
+                            dx_sum = 0
+                            dy_sum = 0
+                            for (bbox, text, prob) in valid_text:
+                                pt0, pt1, pt2, pt3 = bbox
+                                all_x.extend([pt0[0], pt1[0], pt2[0], pt3[0]])
+                                all_y.extend([pt0[1], pt1[1], pt2[1], pt3[1]])
+                                dx_sum += (pt1[0] - pt0[0])
+                                dy_sum += (pt1[1] - pt0[1])
+                            
+                            all_x.sort()
+                            all_y.sort()
+                            
+                            TX_min = all_x[int(len(all_x) * 0.20)]
+                            TX_max = all_x[int(len(all_x) * 0.80)]
+                            TY_min = all_y[int(len(all_y) * 0.10)]
+                            TY_max = all_y[int(len(all_y) * 0.90)]
+                            
+                            if abs(dx_sum) > abs(dy_sum):
+                                fh = TY_max - TY_min
+                                fw = fh * 0.75
+                                y_start = TY_min + fh * 0.05
+                                y_end = TY_max - fh * 0.05
+                                if dx_sum > 0:
+                                    face_crop = img.crop((max(0, TX_min - fw), y_start, TX_min, y_end))
+                                else:
+                                    face_crop = img.crop((TX_max, y_start, min(img.width, TX_max + fw), y_end))
                             else:
-                                face_crop = img.crop((TX_max, y_start, min(img.width, TX_max + fw), y_end))
-                        else:
-                            fw = TX_max - TX_min
-                            fh = fw * 0.75
-                            x_start = TX_min + fw * 0.05
-                            x_end = TX_max - fw * 0.05
-                            if dy_sum > 0:
-                                face_crop = img.crop((x_start, max(0, TY_min - fh), x_end, TY_min))
-                            else:
-                                face_crop = img.crop((x_start, TY_max, x_end, min(img.height, TY_max + fh)))
+                                fw = TX_max - TX_min
+                                fh = fw * 0.75
+                                x_start = TX_min + fw * 0.05
+                                x_end = TX_max - fw * 0.05
+                                if dy_sum > 0:
+                                    face_crop = img.crop((x_start, max(0, TY_min - fh), x_end, TY_min))
+                                else:
+                                    face_crop = img.crop((x_start, TY_max, x_end, min(img.height, TY_max + fh)))
+                    except Exception as fallback_e:
+                        print("EasyOCR fallback skipped:", fallback_e)
 
                 # === FINAL FALLBACK ===
                 if not face_crop:
