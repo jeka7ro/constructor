@@ -512,32 +512,55 @@ export default function UsersManagement() {
                             {/* SCANNER SECTION */}
                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                                 <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Extragere Automată Date (OCR)</h3>
-                                <div className="flex items-center gap-3">
-                                    <div className="relative">
-                                        <input
-                                            type="file"
-                                            accept="image/*,application/pdf"
-                                            onChange={handleFileChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        <button type="button" className="px-4 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full text-sm font-bold text-slate-600 dark:text-slate-300 transition-all flex items-center gap-2 shadow-sm">
-                                            <Upload className="w-4 h-4" />
-                                            {idCardFile ? 'Schimbă imaginea' : 'Încarcă Buletin'}
-                                        </button>
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex-1">
+                                            <input
+                                                type="file"
+                                                id="idCardInputUsers"
+                                                accept="image/*,application/pdf"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                            {idCardPreview && idCardFile?.type.startsWith('image/') ? (
+                                                <div className="relative">
+                                                    <img src={idCardPreview} alt="CI Preview" className="w-full h-40 object-contain rounded-xl border border-slate-200 bg-white" />
+                                                    <button
+                                                        onClick={() => { setIdCardFile(null); setIdCardPreview(null) }}
+                                                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => document.getElementById('idCardInputUsers').click()}
+                                                    className="w-full h-20 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all"
+                                                >
+                                                    <Upload className="w-6 h-6 mb-1" />
+                                                    <span className="text-sm font-medium">Încarcă Poză / PDF</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                        {idCardPreview && (
+                                            <button
+                                                type="button"
+                                                onClick={handleScanIdCard}
+                                                disabled={ocrLoading}
+                                                className="px-4 h-10 bg-violet-500 hover:bg-violet-600 text-white rounded-full text-sm font-bold shadow-sm transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
+                                            >
+                                                {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
+                                                Scanează CI
+                                            </button>
+                                        )}
                                     </div>
-                                    {idCardPreview && (
-                                        <button
-                                            type="button"
-                                            onClick={handleScanIdCard}
-                                            disabled={ocrLoading}
-                                            className="px-4 h-10 bg-violet-500 hover:bg-violet-600 text-white rounded-full text-sm font-bold shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-                                        >
-                                            {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
-                                            Scanează CI
-                                        </button>
+                                    {idCardFile && idCardFile.type === 'application/pdf' && (
+                                        <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200">
+                                            <p className="text-xs font-medium text-slate-600 truncate">PDF: {idCardFile.name}</p>
+                                            <button onClick={() => { setIdCardFile(null); setIdCardPreview(null) }} className="text-red-500 hover:bg-red-50 p-1 rounded"><X className="w-3 h-3" /></button>
+                                        </div>
                                     )}
                                 </div>
-                                {idCardFile && <p className="text-[11px] font-medium text-slate-500 mt-2 truncate max-w-full">Selectat: {idCardFile.name}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
