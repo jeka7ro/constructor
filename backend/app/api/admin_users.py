@@ -352,7 +352,8 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
         # 1. First try to extract CNP from the MRZ line (Most reliable for scanned Romanian IDs)
         # MRZ Line 2 format: ...ROU[YYMMDD(DOB)][Check][M/F][YYMMDD(Expiry)][Check][7 digits(S+NNNNN+C)][Check]
         mrz_text = full_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
-        mrz_pattern = re.search(r'ROU(\d{6})\d[MF<](\d{6})\d([12568]\d{6})', mrz_text, re.IGNORECASE)
+        # We look for R0U because 'O' was just replaced with '0'
+        mrz_pattern = re.search(r'R[0O]U(\d{6})\d[MF<](\d{6})\d([12568]\d{6})', mrz_text, re.IGNORECASE)
         if mrz_pattern:
             dob = mrz_pattern.group(1)
             opt_data = mrz_pattern.group(3)
