@@ -347,9 +347,13 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
         texts = full_text.split('\n')
         
         # ===== Extract CNP (13 digits starting with 1,2,5,6,8) =====
-        cnp_search_text = full_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+        # Remove MRZ lines first because they contain expiration dates + digits that can accidentally form a valid 13-digit CNP
+        non_mrz_text = '\n'.join([line for line in texts if '<' not in line])
+        cnp_search_text = non_mrz_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+        
         cnp_match = re.search(r'\b([12568]\d{12})\b', cnp_search_text)
         if not cnp_match:
+            # Fallback: look for 13 digits anywhere in the non-MRZ text
             m = re.search(r'([12568]\d{12})', cnp_search_text)
             if m:
                 cnp_match = m
