@@ -217,20 +217,13 @@ export default function UsersManagement() {
                         )}
                     </div>
                     <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
-                    {isSuperAdmin ? (
-                        <button
-                            onClick={openAdd}
-                            className="flex items-center gap-2 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Adaugă Utilizator
-                        </button>
-                    ) : (
-                        <div className="flex items-center gap-1.5 px-4 h-10 rounded-full bg-slate-100 text-slate-400 text-sm font-medium">
-                            <Lock className="w-3.5 h-3.5" />
-                            Doar Super Admin
-                        </div>
-                    )}
+                    <button
+                        onClick={openAdd}
+                        className="flex items-center gap-2 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Adaugă Utilizator
+                    </button>
                 </div>
             </div>
 
@@ -299,7 +292,7 @@ export default function UsersManagement() {
                                 </td>
                                 <td className="px-5 py-3">
                                     <div className="flex items-center justify-end gap-1">
-                                        {isSuperAdmin ? (
+                                        {isSuperAdmin || user.role_name !== 'Super Administrator' ? (
                                             <>
                                                 <button onClick={() => openEdit(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700" title="Editează">
                                                     <Edit2 className="w-4 h-4" />

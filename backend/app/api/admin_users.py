@@ -688,10 +688,9 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
     if not role:
         raise HTTPException(status_code=400, detail="Rol invalid")
 
-    # Only super admins can create users with admin roles
-    ADMIN_ROLE_NAMES = {'Administrator', 'Super Administrator'}
-    if role.name in ADMIN_ROLE_NAMES and not getattr(current_admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Doar Super Administratorul poate crea conturi de Administrator.")
+    # Only super admins can create users with Super Administrator role
+    if role.name == 'Super Administrator' and not getattr(current_admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Doar Super Administratorul poate crea conturi de Super Administrator.")
 
     full_name = f"{user_data.last_name} {user_data.first_name}".strip()
     
@@ -764,9 +763,14 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
         role = db.query(Role).filter(Role.id == user_data.role_id).first()
         if not role:
             raise HTTPException(status_code=400, detail="Invalid role ID")
-        ADMIN_ROLE_NAMES = {'Administrator', 'Super Administrator'}
-        if role.name in ADMIN_ROLE_NAMES and not getattr(current_admin, 'is_super_admin', False):
-            raise HTTPException(status_code=403, detail="Doar Super Administratorul poate atribui roluri de Administrator.")
+        if role.name == 'Super Administrator' and not getattr(current_admin, 'is_super_admin', False):
+            raise HTTPException(status_code=403, detail="Doar Super Administratorul poate atribui roluri de Super Administrator.")
+            
+        # Check if the user being edited is currently a Super Administrator
+        current_role = db.query(Role).filter(Role.id == user.role_id).first()
+        if current_role and current_role.name == 'Super Administrator' and not getattr(current_admin, 'is_super_admin', False):
+            raise HTTPException(status_code=403, detail="Nu ai permisiunea de a modifica un Super Administrator.")
+            
         user.role_id = user_data.role_id
 
     for field in ['employee_code', 'is_active', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address']:
@@ -988,10 +992,9 @@ def delete_user(user_id: str, hard_delete: bool = False, db: Session = Depends(g
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Only super admin can delete users with admin roles
-    ADMIN_ROLE_NAMES = {'Administrator', 'Super Administrator'}
-    if user.role and user.role.name in ADMIN_ROLE_NAMES and not getattr(current_admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Doar Super Administratorul poate șterge conturi de Administrator.")
+    # Only super admin can delete Super Administrators
+    if user.role and user.role.name == 'Super Administrator' and not getattr(current_admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Nu ai permisiunea de a șterge un Super Administrator.")
 
     if hard_delete:
         db.delete(user)
