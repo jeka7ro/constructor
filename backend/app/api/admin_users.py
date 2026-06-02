@@ -184,7 +184,10 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                 doc = fitz.open(image_path)
                 page = doc.load_page(0)  # first page
                 pix = page.get_pixmap(dpi=300) # render at 300 dpi for good OCR/face extraction
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                mode = "RGBA" if pix.alpha else "RGB"
+                img = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
             else:
                 img = Image.open(image_path)
         except Exception as e:
