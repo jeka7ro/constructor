@@ -14,6 +14,7 @@ const EMPTY_FORM = {
     email: '',
     phone: '',
     password: '',
+    confirm_password: '',
     role_id: '',
     is_active: true,
 }
@@ -81,6 +82,7 @@ export default function UsersManagement() {
             email: user.email || '',
             phone: user.phone || '',
             password: '',
+            confirm_password: '',
             role_id: user.role_id || '',
             is_active: user.is_active ?? true,
         })
@@ -99,6 +101,10 @@ export default function UsersManagement() {
         }
         if (!editingUser && !formData.password.trim()) {
             showToast?.({ type: 'error', message: 'Parola este obligatorie pentru utilizator nou.' })
+            return
+        }
+        if (formData.password.trim() && formData.password !== formData.confirm_password) {
+            showToast?.({ type: 'error', message: 'Parolele nu coincid.' })
             return
         }
         if (!formData.role_id) {
@@ -354,21 +360,37 @@ export default function UsersManagement() {
                                 <input type="tel" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className={inputCls} placeholder="07xx xxx xxx" />
                             </div>
 
-                            <div>
-                                <label className={labelCls}>
-                                    Parolă {editingUser ? <span className="normal-case font-normal">(lasă gol pentru a păstra)</span> : '*'}
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        className={inputCls + ' pr-10'}
-                                        placeholder={editingUser ? '••••••••' : 'Parolă nouă'}
-                                    />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                    </button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelCls}>
+                                        Parolă {editingUser ? <span className="normal-case font-normal">(lasă gol)</span> : '*'}
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={formData.password}
+                                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                            className={inputCls + ' pr-10'}
+                                            placeholder={editingUser ? '••••••••' : 'Parolă nouă'}
+                                        />
+                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={labelCls}>
+                                        Repetă Parola {editingUser ? <span className="normal-case font-normal">(lasă gol)</span> : '*'}
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={formData.confirm_password}
+                                            onChange={e => setFormData({ ...formData, confirm_password: e.target.value })}
+                                            className={inputCls + ' pr-10'}
+                                            placeholder="Confirmă parola"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
