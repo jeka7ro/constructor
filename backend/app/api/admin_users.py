@@ -346,20 +346,36 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
         # Recreate list of strings from full_text for local logic 
         texts = full_text.split('\n')
         
-        # ===== Extract CNP (13 digits starting with 1,2,5,6,8) =====
-        # Remove MRZ lines first because they contain expiration dates + digits that can accidentally form a valid 13-digit CNP
-        non_mrz_text = '\n'.join([line for line in texts if '<' not in line])
-        cnp_search_text = non_mrz_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+        # ===== Extract CNP =====
+        cnp_match_str = None
         
-        cnp_match = re.search(r'\b([12568]\d{12})\b', cnp_search_text)
-        if not cnp_match:
-            # Fallback: look for 13 digits anywhere in the non-MRZ text
-            m = re.search(r'([12568]\d{12})', cnp_search_text)
-            if m:
-                cnp_match = m
+        # 1. First try to extract CNP from the MRZ line (Most reliable for scanned Romanian IDs)
+        # MRZ Line 2 format: ...ROU[YYMMDD(DOB)][Check][M/F][YYMMDD(Expiry)][Check][7 digits(S+NNNNN+C)][Check]
+        mrz_text = full_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+        mrz_pattern = re.search(r'ROU(\d{6})\d[MF<](\d{6})\d([12568]\d{6})', mrz_text, re.IGNORECASE)
+        if mrz_pattern:
+            dob = mrz_pattern.group(1)
+            opt_data = mrz_pattern.group(3)
+            # CNP = OptionalData[0] + DOB(YYMMDD) + OptionalData[1:7]
+            cnp_match_str = opt_data[0] + dob + opt_data[1:]
         
-        if cnp_match:
-            result["cnp"] = cnp_match.group(1)
+        # 2. Fallback to standard regex on non-MRZ text
+        if not cnp_match_str:
+            non_mrz_text = '\n'.join([line for line in texts if '<' not in line])
+            cnp_search_text = non_mrz_text.replace(' ', '').replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+            
+            cnp_match = re.search(r'\b([12568]\d{12})\b', cnp_search_text)
+            if not cnp_match:
+                # Fallback: look for 13 digits anywhere in the non-MRZ text
+                m = re.search(r'([12568]\d{12})', cnp_search_text)
+                if m:
+                    cnp_match = m
+                    
+            if cnp_match:
+                cnp_match_str = cnp_match.group(1)
+        
+        if cnp_match_str:
+            result["cnp"] = cnp_match_str
             cnp = result["cnp"]
             century = '19' if cnp[0] in '12' else '20' if cnp[0] in '56' else '19'
             year = century + cnp[1:3]
