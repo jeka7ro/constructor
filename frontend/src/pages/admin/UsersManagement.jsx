@@ -48,7 +48,8 @@ export default function UsersManagement() {
             const response = await api.get('/admin/users/', { params })
             const all = response.data.users || []
             const adminUsers = all.filter(u =>
-                !(u.employee_code === 'ADMIN' || (u.last_name === 'Admin' && u.first_name === 'User'))
+                !(u.employee_code === 'ADMIN' || (u.last_name === 'Admin' && u.first_name === 'User')) &&
+                ADMIN_ROLE_NAMES.includes(u.role_name)
             )
             setUsers(adminUsers)
         } catch (err) {
