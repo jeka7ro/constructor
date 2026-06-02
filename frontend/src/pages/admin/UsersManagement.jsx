@@ -47,8 +47,7 @@ export default function UsersManagement() {
             const response = await api.get('/admin/users/', { params })
             const all = response.data.users || []
             const adminUsers = all.filter(u =>
-                !(u.employee_code === 'ADMIN' || (u.last_name === 'Admin' && u.first_name === 'User')) &&
-                ADMIN_ROLE_NAMES.includes(u.role_name)
+                !(u.employee_code === 'ADMIN' || (u.last_name === 'Admin' && u.first_name === 'User'))
             )
             setUsers(adminUsers)
         } catch (err) {
@@ -61,7 +60,7 @@ export default function UsersManagement() {
     const fetchRoles = async () => {
         try {
             const response = await api.get('/admin/roles/')
-            setRoles((response.data || []).filter(r => ADMIN_ROLE_NAMES.includes(r.name)))
+            setRoles(response.data || [])
         } catch (err) {
             console.error('Error fetching roles:', err)
         }
@@ -184,7 +183,7 @@ export default function UsersManagement() {
                         <Shield className="w-5 h-5 text-blue-600" />
                         Gestionare Utilizatori
                     </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Conturi cu acces la panoul de administrare</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Toate conturile de utilizatori</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative">
@@ -247,7 +246,7 @@ export default function UsersManagement() {
                             </td></tr>
                         ) : filtered.length === 0 ? (
                             <tr><td colSpan={5} className="py-16 text-center text-slate-400 text-sm">
-                                Niciun utilizator admin găsit
+                                Niciun utilizator găsit
                             </td></tr>
                         ) : filtered.map(user => (
                             <tr key={user.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
@@ -324,7 +323,7 @@ export default function UsersManagement() {
                                     <UserCog className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator Admin'}
+                                    {editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator'}
                                 </h2>
                             </div>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors">
