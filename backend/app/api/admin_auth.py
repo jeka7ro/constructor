@@ -27,6 +27,8 @@ class AdminLogin(BaseModel):
     password: str
 
 
+from typing import Optional
+
 class AdminResponse(BaseModel):
     id: str
     email: str
@@ -34,7 +36,7 @@ class AdminResponse(BaseModel):
     role: str
     is_active: bool
     is_super_admin: bool = False
-    avatar_path: str = None
+    avatar_path: Optional[str] = None
     created_at: datetime
 
     class Config:
