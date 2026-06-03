@@ -820,8 +820,19 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
         )
         db.add(new_admin)
 
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.commit()
+        db.refresh(new_user)
+    except Exception as e:
+        db.rollback()
+        error_msg = str(e).lower()
+        if 'users_cnp_key' in error_msg or 'cnp' in error_msg:
+            raise HTTPException(status_code=400, detail="Există deja un angajat cu acest CNP în sistem.")
+        elif 'users_employee_code_key' in error_msg or 'employee_code' in error_msg:
+            raise HTTPException(status_code=400, detail="Codul de angajat introdus există deja.")
+        else:
+            raise HTTPException(status_code=400, detail="Eroare la salvarea datelor în baza de date.")
+
     return build_user_response(new_user, role.name)
 
 
