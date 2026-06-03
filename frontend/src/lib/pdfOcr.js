@@ -23,7 +23,7 @@ export async function extractTextFromImageOrPdf(file, onProgress) {
             const result = await worker.recognize(file)
             await worker.terminate()
             notify('Scanare finalizată!', 100)
-            return result.data.text
+            return { text: result.data.text, imageBlob: file }
         }
 
         // If it's a PDF
@@ -52,6 +52,7 @@ export async function extractTextFromImageOrPdf(file, onProgress) {
             let ocrText = ''
             const canvas = document.createElement('canvas')
             const ctx = canvas.getContext('2d')
+            let firstPageBlob = null;
 
             for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
                 notify(`Scanare pagină ${pageNum}/${totalPages}...`, 15 + ((pageNum - 1) / totalPages) * 75)
@@ -65,13 +66,17 @@ export async function extractTextFromImageOrPdf(file, onProgress) {
                 await page.render({ canvasContext: ctx, viewport }).promise
                 const imageData = canvas.toDataURL('image/png')
                 
+                if (pageNum === 1) {
+                    firstPageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+                }
+                
                 const result = await worker.recognize(imageData)
                 ocrText += result.data.text + '\n'
             }
 
             await worker.terminate()
             notify('Scanare finalizată!', 100)
-            return ocrText
+            return { text: ocrText, imageBlob: firstPageBlob }
         }
 
         throw new Error('Format fișier nesuportat. Trebuie să fie Imagine sau PDF.')

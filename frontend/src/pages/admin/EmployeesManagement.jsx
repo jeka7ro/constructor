@@ -284,7 +284,14 @@ export default function EmployeesManagement() {
             // Upload ID card if selected
             if (idCardFile && savedUser?.id) {
                 const fd = new FormData()
-                fd.append('file', idCardFile)
+                if (idCardFile.type === 'application/pdf') {
+                    const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
+                    const { imageBlob } = await extractTextFromImageOrPdf(idCardFile)
+                    fd.append('file', imageBlob, 'id_card_rendered.jpg')
+                } else {
+                    fd.append('file', idCardFile)
+                }
+                
                 await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 })
@@ -415,16 +422,16 @@ export default function EmployeesManagement() {
         try {
             setOcrLoading(true)
             
-            // Dynamic import to prevent Vite/Webpack from bundling massive libraries on initial load
+            // Dynamic import
             const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
             
             // Client-side text extraction (handles images and PDF)
-            const extractedText = await extractTextFromImageOrPdf(idCardFile, (stage) => {
+            const { text: extractedText, imageBlob } = await extractTextFromImageOrPdf(idCardFile, (stage) => {
                 // optional: use progress in UI, e.g., showToast(`OCR: ${stage}`, 'info')
             })
 
             const fd = new FormData()
-            fd.append('file', idCardFile)
+            fd.append('file', imageBlob, 'id_card_rendered.jpg')
             fd.append('raw_text', extractedText) // send the extracted text
 
             const resp = await api.post('/admin/users/ocr/extract', fd, {

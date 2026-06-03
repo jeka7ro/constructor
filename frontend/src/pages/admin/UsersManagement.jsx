@@ -138,10 +138,10 @@ export default function UsersManagement() {
             // Dynamic import to prevent Vite/Webpack from bundling massive libraries on initial load
             const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
             
-            const extractedText = await extractTextFromImageOrPdf(idCardFile)
+            const { text: extractedText, imageBlob } = await extractTextFromImageOrPdf(idCardFile)
 
             const fd = new FormData()
-            fd.append('file', idCardFile)
+            fd.append('file', imageBlob, 'id_card_rendered.jpg')
             fd.append('raw_text', extractedText)
 
             const resp = await api.post('/admin/users/ocr/extract', fd, {
@@ -223,8 +223,21 @@ export default function UsersManagement() {
 
             if (idCardFile && savedUser?.id) {
                 try {
+                    // Send the original file OR the rendered image blob
+                    // For best avatar extraction, we should send the rendered image
                     const fd = new FormData()
-                    fd.append('file', idCardFile)
+                    
+                    if (idCardFile.type === 'application/pdf') {
+                        // Re-render quickly or use original if we want, but since we already scanned, we could have saved the blob in state.
+                        // However, to keep it simple, we just send the original file to `upload-id-card`. Wait, the bug was that PyMuPDF fails on Render!
+                        // We must re-extract the blob here if it's a PDF, or save it to state during scan.
+                        const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
+                        const { imageBlob } = await extractTextFromImageOrPdf(idCardFile)
+                        fd.append('file', imageBlob, 'id_card_rendered.jpg')
+                    } else {
+                        fd.append('file', idCardFile)
+                    }
+                    
                     await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     })
