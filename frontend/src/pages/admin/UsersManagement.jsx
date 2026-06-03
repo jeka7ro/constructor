@@ -150,6 +150,7 @@ export default function UsersManagement() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
             const ocr = resp.data
+            console.log('[AVATAR_DEBUG] OCR response:', JSON.stringify({ avatar_path: ocr.avatar_path, success: ocr.success, cnp: ocr.cnp }))
             
             if (ocr.success) {
                 setFormData(prev => ({
@@ -211,11 +212,13 @@ export default function UsersManagement() {
             }
             if (formData.avatar_path) payload.avatar_path = formData.avatar_path;
             if (formData.password.trim()) payload.password = formData.password.trim()
+            console.log('[AVATAR_DEBUG] Save payload avatar_path:', payload.avatar_path)
 
             let savedUser;
             if (editingUser) {
                 const resp = await api.put(`/admin/users/${editingUser.id}`, payload)
                 savedUser = resp.data
+                console.log('[AVATAR_DEBUG] PUT response avatar_path:', savedUser.avatar_path)
                 showToast('Utilizator actualizat.', 'success')
             } else {
                 const resp = await api.post('/admin/users/', payload)
@@ -240,9 +243,10 @@ export default function UsersManagement() {
                         fd.append('file', idCardFile)
                     }
                     
-                    await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
+                    const uploadResp = await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     })
+                    console.log('[AVATAR_DEBUG] upload-id-card response:', JSON.stringify(uploadResp.data))
                 } catch (e) {
                     console.error('Failed to upload ID card:', e)
                 }
