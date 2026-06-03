@@ -518,7 +518,9 @@ def get_users(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Get paginated list of users with optional filters"""
-    query = db.query(User).join(Role)
+    # Only show employees (not admins)
+    query = db.query(User).join(Role).filter(Role.is_employee == True)
+    
     if search:
         query = query.filter(or_(
             User.employee_code.ilike(f"%{search}%"),
@@ -541,10 +543,14 @@ def get_users_stats(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Get user statistics"""
-    total_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
-    active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
-    inactive_users = db.query(func.count(User.id)).filter(User.is_active == False).scalar()
-    users_by_role = db.query(Role.name, func.count(User.id).label('count')).join(User).group_by(Role.name).all()
+    # Only count employees (not admins)
+    base_query = db.query(User).join(Role).filter(Role.is_employee == True)
+    
+    total_users = base_query.filter(User.is_active == True).count()
+    active_users = base_query.filter(User.is_active == True).count()
+    inactive_users = base_query.filter(User.is_active == False).count()
+    users_by_role = db.query(Role.name, func.count(User.id).label('count')).join(User).filter(Role.is_employee == True).group_by(Role.name).all()
+    
     return {
         "total_users": total_users,
         "active_users": active_users,
