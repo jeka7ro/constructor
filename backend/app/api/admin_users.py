@@ -836,6 +836,10 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
                 existing = db.query(User).filter(User.employee_code == val, User.id != user_id).first()
                 if existing:
                     raise HTTPException(status_code=400, detail="Codul de angajat este deja utilizat de altcineva.")
+            elif field == 'cnp':
+                existing_cnp = db.query(User).filter(User.cnp == val, User.id != user_id).first()
+                if existing_cnp:
+                    raise HTTPException(status_code=400, detail="Acest CNP este deja înregistrat pentru alt utilizator.")
             setattr(user, field, val)
 
     # hourly_rate — handle separately (0.0 is a valid value)

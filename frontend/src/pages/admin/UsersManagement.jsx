@@ -29,7 +29,7 @@ const EMPTY_FORM = {
 
 export default function UsersManagement() {
     const { t } = useTranslation()
-    const { openDialog, showToast } = useUIStore()
+    const { showDialog, showToast } = useUIStore()
     const admin = useAdminStore(state => state.admin)
     const isSuperAdmin = admin?.is_super_admin === true
     const [users, setUsers] = useState([])
@@ -165,7 +165,7 @@ export default function UsersManagement() {
             }
         } catch (err) {
             console.error('OCR Error:', err)
-            openDialog({ type: 'danger', title: 'Eroare Scanare', message: 'Nu am putut citi buletinul automat. Te rugăm să introduci datele manual.', confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: 'Eroare Scanare', message: 'Nu am putut citi buletinul automat. Te rugăm să introduci datele manual.', confirmText: 'OK', cancelText: null })
         } finally {
             setOcrLoading(false)
         }
@@ -234,14 +234,14 @@ export default function UsersManagement() {
             setShowModal(false)
             fetchUsers()
         } catch (err) {
-            openDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
         } finally {
             setSaving(false)
         }
     }
 
     const handleDelete = (user) => {
-        openDialog({
+        showDialog({
             type: 'danger',
             title: 'Șterge Utilizator',
             message: `Sigur vrei să ștergi utilizatorul "${user.first_name} ${user.last_name}"?`,
@@ -253,7 +253,7 @@ export default function UsersManagement() {
                     showToast('Utilizator șters.', 'success')
                     fetchUsers()
                 } catch (err) {
-                    openDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
+                    showDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
                 }
             }
         })
