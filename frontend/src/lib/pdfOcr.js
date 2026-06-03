@@ -102,9 +102,10 @@ export async function cropFaceFromIdCard(imageBlob) {
 
                 // Romanian ID card face region
                 // Start higher (11%) to not cut the head, stop higher (68%) to avoid the bottom stamp
-                const x1 = Math.round(w * 0.02)
+                // Shift horizontal right slightly to center the face properly (4% to 32%)
+                const x1 = Math.round(w * 0.04)
                 const y1 = Math.round(h * 0.11)
-                const x2 = Math.round(w * 0.28)
+                const x2 = Math.round(w * 0.32)
                 const y2 = Math.round(h * 0.68)
 
                 const cropW = x2 - x1
