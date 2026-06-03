@@ -85,3 +85,49 @@ export async function extractTextFromImageOrPdf(file, onProgress) {
         throw err
     }
 }
+
+/**
+ * Crop the face/photo area from a Romanian ID card image (client-side).
+ * Romanian ID cards have the photo on the left side (~2% to ~35% width, ~15% to ~85% height).
+ * @param {Blob|File} imageBlob - The ID card image
+ * @returns {Promise<Blob>} - Cropped face image as JPEG blob
+ */
+export async function cropFaceFromIdCard(imageBlob) {
+    return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => {
+            try {
+                const w = img.naturalWidth
+                const h = img.naturalHeight
+
+                // Romanian ID card face region (left side)
+                const x1 = Math.round(w * 0.02)
+                const y1 = Math.round(h * 0.15)
+                const x2 = Math.round(w * 0.35)
+                const y2 = Math.round(h * 0.85)
+
+                const cropW = x2 - x1
+                const cropH = y2 - y1
+
+                const canvas = document.createElement('canvas')
+                canvas.width = cropW
+                canvas.height = cropH
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(img, x1, y1, cropW, cropH, 0, 0, cropW, cropH)
+
+                canvas.toBlob(blob => {
+                    if (blob) {
+                        console.log('[cropFace] Cropped face:', cropW, 'x', cropH)
+                        resolve(blob)
+                    } else {
+                        reject(new Error('Canvas toBlob failed'))
+                    }
+                }, 'image/jpeg', 0.92)
+            } catch (e) {
+                reject(e)
+            }
+        }
+        img.onerror = () => reject(new Error('Failed to load image for face crop'))
+        img.src = URL.createObjectURL(imageBlob)
+    })
+}

@@ -228,25 +228,35 @@ export default function UsersManagement() {
 
             if (idCardFile && savedUser?.id) {
                 try {
-                    // Send the original file OR the rendered image blob
-                    // For best avatar extraction, we should send the rendered image
-                    const fd = new FormData()
-                    
-                    if (scannedImageBlob) {
-                        fd.append('file', scannedImageBlob, 'id_card_rendered.jpg')
-                    } else if (idCardFile.type === 'application/pdf') {
-                        // Fallback if they didn't scan but just hit save
+                    // Determine the image blob to use for upload
+                    let imgBlob = scannedImageBlob
+                    if (!imgBlob && idCardFile.type === 'application/pdf') {
                         const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
-                        const { imageBlob } = await extractTextFromImageOrPdf(idCardFile)
-                        fd.append('file', imageBlob, 'id_card_rendered.jpg')
-                    } else {
-                        fd.append('file', idCardFile)
+                        const result = await extractTextFromImageOrPdf(idCardFile)
+                        imgBlob = result.imageBlob
                     }
-                    
-                    const uploadResp = await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
+                    const fileToUpload = imgBlob || idCardFile
+
+                    // Upload ID card
+                    const fd = new FormData()
+                    fd.append('file', fileToUpload, imgBlob ? 'id_card_rendered.jpg' : idCardFile.name)
+                    await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     })
-                    console.log('[AVATAR_DEBUG] upload-id-card response:', JSON.stringify(uploadResp.data))
+
+                    // CLIENT-SIDE face crop & upload as avatar
+                    try {
+                        const { cropFaceFromIdCard } = await import('../../lib/pdfOcr')
+                        const faceBlob = await cropFaceFromIdCard(fileToUpload)
+                        const avatarFd = new FormData()
+                        avatarFd.append('file', faceBlob, 'avatar_face.jpg')
+                        await api.post(`/admin/users/${savedUser.id}/upload-avatar`, avatarFd, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        })
+                        console.log('[AVATAR_DEBUG] Face cropped & uploaded client-side!')
+                    } catch (faceErr) {
+                        console.error('[AVATAR_DEBUG] Client face crop failed:', faceErr)
+                    }
                 } catch (e) {
                     console.error('Failed to upload ID card:', e)
                 }

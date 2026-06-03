@@ -284,20 +284,39 @@ export default function EmployeesManagement() {
 
             // Upload ID card if selected
             if (idCardFile && savedUser?.id) {
-                const fd = new FormData()
-                if (scannedImageBlob) {
-                    fd.append('file', scannedImageBlob, 'id_card_rendered.jpg')
-                } else if (idCardFile.type === 'application/pdf') {
-                    const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
-                    const { imageBlob } = await extractTextFromImageOrPdf(idCardFile)
-                    fd.append('file', imageBlob, 'id_card_rendered.jpg')
-                } else {
-                    fd.append('file', idCardFile)
+                try {
+                    // Determine the image blob to use
+                    let imgBlob = scannedImageBlob
+                    if (!imgBlob && idCardFile.type === 'application/pdf') {
+                        const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
+                        const result = await extractTextFromImageOrPdf(idCardFile)
+                        imgBlob = result.imageBlob
+                    }
+                    const fileToUpload = imgBlob || idCardFile
+
+                    // Upload ID card
+                    const fd = new FormData()
+                    fd.append('file', fileToUpload, imgBlob ? 'id_card_rendered.jpg' : idCardFile.name)
+                    await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    })
+
+                    // CLIENT-SIDE face crop & upload as avatar
+                    try {
+                        const { cropFaceFromIdCard } = await import('../../lib/pdfOcr')
+                        const faceBlob = await cropFaceFromIdCard(fileToUpload)
+                        const avatarFd = new FormData()
+                        avatarFd.append('file', faceBlob, 'avatar_face.jpg')
+                        await api.post(`/admin/users/${savedUser.id}/upload-avatar`, avatarFd, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        })
+                        console.log('[AVATAR] Face cropped & uploaded client-side!')
+                    } catch (faceErr) {
+                        console.error('[AVATAR] Client face crop failed:', faceErr)
+                    }
+                } catch (e) {
+                    console.error('Failed to upload ID card:', e)
                 }
-                
-                await api.post(`/admin/users/${savedUser.id}/upload-id-card`, fd, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                })
             }
 
             setShowEditModal(false)

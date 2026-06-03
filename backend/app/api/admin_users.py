@@ -1089,7 +1089,7 @@ def delete_user(user_id: str, hard_delete: bool = False, db: Session = Depends(g
 
 @router.post("/{user_id}/upload-avatar")
 async def upload_avatar(
-    user_id: int,
+    user_id: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
