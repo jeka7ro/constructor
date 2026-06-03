@@ -100,11 +100,11 @@ export async function cropFaceFromIdCard(imageBlob) {
                 const w = img.naturalWidth
                 const h = img.naturalHeight
 
-                // Romanian ID card face region (tighter crop, face only)
-                const x1 = Math.round(w * 0.05)
-                const y1 = Math.round(h * 0.22)
-                const x2 = Math.round(w * 0.28)
-                const y2 = Math.round(h * 0.78)
+                // Romanian ID card face region
+                const x1 = Math.round(w * 0.03)
+                const y1 = Math.round(h * 0.18)
+                const x2 = Math.round(w * 0.30)
+                const y2 = Math.round(h * 0.82)
 
                 const cropW = x2 - x1
                 const cropH = y2 - y1

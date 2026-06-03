@@ -9,6 +9,8 @@ const useAdminStore = create(
 
             setAuth: (admin, token) => set({ admin, token }),
 
+            updateAdmin: (data) => set((state) => ({ admin: { ...state.admin, ...data } })),
+
             logout: () => set({ admin: null, token: null }),
 
             isAuthenticated: () => {

@@ -141,9 +141,20 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=AdminResponse)
-def get_admin_profile(current_admin: Admin = Depends(get_current_admin)):
+def get_admin_profile(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Get current admin profile"""
-    return current_admin
+    user_record = db.query(User).filter(User.email == current_admin.email).first()
+    avatar_path = getattr(user_record, 'avatar_path', None) if user_record else None
+    return {
+        "id": current_admin.id,
+        "email": current_admin.email,
+        "full_name": current_admin.full_name,
+        "role": current_admin.role,
+        "is_active": current_admin.is_active,
+        "is_super_admin": bool(current_admin.is_super_admin),
+        "avatar_path": avatar_path,
+        "created_at": current_admin.created_at,
+    }
 
 
 @router.post("/refresh", response_model=Token)

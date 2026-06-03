@@ -12,7 +12,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function AdminDashboard() {
-    const { admin, logout } = useAdminStore()
+    const { admin, logout, updateAdmin } = useAdminStore()
     const navigate = useNavigate()
     const location = useLocation()
     const { t } = useTranslation()
@@ -31,6 +31,17 @@ export default function AdminDashboard() {
         logout()
         navigate('/admin/login')
     }
+
+    // Auto-refresh admin profile (name, avatar) without re-login
+    useEffect(() => {
+        const refreshProfile = async () => {
+            try {
+                const res = await api.get('/admin/me')
+                if (res.data) updateAdmin(res.data)
+            } catch { /* silently fail */ }
+        }
+        refreshProfile()
+    }, [])
 
     // Fetch notifications
     const fetchNotifications = async () => {
