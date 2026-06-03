@@ -48,6 +48,7 @@ export default function UsersManagement() {
     const [idCardFile, setIdCardFile] = useState(null)
     const [idCardPreview, setIdCardPreview] = useState(null)
     const [ocrLoading, setOcrLoading] = useState(false)
+    const [scannedImageBlob, setScannedImageBlob] = useState(null)
     const [avatarCropImage, setAvatarCropImage] = useState(null)
     const [avatarUploadUserId, setAvatarUploadUserId] = useState(null)
 
@@ -139,6 +140,7 @@ export default function UsersManagement() {
             const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
             
             const { text: extractedText, imageBlob } = await extractTextFromImageOrPdf(idCardFile)
+            setScannedImageBlob(imageBlob)
 
             const fd = new FormData()
             fd.append('file', imageBlob, 'id_card_rendered.jpg')
@@ -227,10 +229,10 @@ export default function UsersManagement() {
                     // For best avatar extraction, we should send the rendered image
                     const fd = new FormData()
                     
-                    if (idCardFile.type === 'application/pdf') {
-                        // Re-render quickly or use original if we want, but since we already scanned, we could have saved the blob in state.
-                        // However, to keep it simple, we just send the original file to `upload-id-card`. Wait, the bug was that PyMuPDF fails on Render!
-                        // We must re-extract the blob here if it's a PDF, or save it to state during scan.
+                    if (scannedImageBlob) {
+                        fd.append('file', scannedImageBlob, 'id_card_rendered.jpg')
+                    } else if (idCardFile.type === 'application/pdf') {
+                        // Fallback if they didn't scan but just hit save
                         const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
                         const { imageBlob } = await extractTextFromImageOrPdf(idCardFile)
                         fd.append('file', imageBlob, 'id_card_rendered.jpg')

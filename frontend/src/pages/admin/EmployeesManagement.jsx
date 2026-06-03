@@ -67,6 +67,7 @@ export default function EmployeesManagement() {
     const [idCardPreview, setIdCardPreview] = useState(null)
     const [uploadingIdCard, setUploadingIdCard] = useState(false)
     const [ocrLoading, setOcrLoading] = useState(false)
+    const [scannedImageBlob, setScannedImageBlob] = useState(null)
     const [avatarCropImage, setAvatarCropImage] = useState(null)
     const [importing, setImporting] = useState(false)
     const [deleteModalData, setDeleteModalData] = useState(null)
@@ -284,7 +285,9 @@ export default function EmployeesManagement() {
             // Upload ID card if selected
             if (idCardFile && savedUser?.id) {
                 const fd = new FormData()
-                if (idCardFile.type === 'application/pdf') {
+                if (scannedImageBlob) {
+                    fd.append('file', scannedImageBlob, 'id_card_rendered.jpg')
+                } else if (idCardFile.type === 'application/pdf') {
                     const { extractTextFromImageOrPdf } = await import('../../lib/pdfOcr')
                     const { imageBlob } = await extractTextFromImageOrPdf(idCardFile)
                     fd.append('file', imageBlob, 'id_card_rendered.jpg')
@@ -429,6 +432,7 @@ export default function EmployeesManagement() {
             const { text: extractedText, imageBlob } = await extractTextFromImageOrPdf(idCardFile, (stage) => {
                 // optional: use progress in UI, e.g., showToast(`OCR: ${stage}`, 'info')
             })
+            setScannedImageBlob(imageBlob)
 
             const fd = new FormData()
             fd.append('file', imageBlob, 'id_card_rendered.jpg')
