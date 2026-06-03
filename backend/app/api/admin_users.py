@@ -189,6 +189,7 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
         img = None
         try:
             ext = os.path.splitext(image_path)[1].lower()
+            print(f"[AVATAR_DEBUG] File ext: {ext}, path: {image_path}")
             if ext == '.pdf':
                 import fitz  # PyMuPDF
                 doc = fitz.open(image_path)
@@ -198,13 +199,18 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                 img = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
+                print(f"[AVATAR_DEBUG] PDF opened successfully, img size: {img.size}")
             else:
                 img = Image.open(image_path)
+                print(f"[AVATAR_DEBUG] Image opened successfully, size: {img.size}, mode: {img.mode}")
         except Exception as e:
-            print(f"Skipping avatar extraction (not an image or unsupported format): {e}")
+            print(f"[AVATAR_DEBUG] FAILED to open image: {e}")
+            import traceback
+            traceback.print_exc()
 
         # ===== Extract avatar using OpenCV Face Detection and OCR Layout =====
         if img:
+            print(f"[AVATAR_DEBUG] img is valid, proceeding to face detection")
             try:
                 import cv2
                 import numpy as np
@@ -215,6 +221,7 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                 
                 open_cv_image = np.array(img.convert('RGB'))
                 open_cv_image = open_cv_image[:, :, ::-1].copy() 
+                print(f"[AVATAR_DEBUG] OpenCV image shape: {open_cv_image.shape}")
                 
                 cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
                 face_cascade = cv2.CascadeClassifier(cascade_path)
@@ -233,6 +240,7 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                     gray = cv2.cvtColor(rotated_cv, cv2.COLOR_BGR2GRAY)
                     
                     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+                    print(f"[AVATAR_DEBUG] Rotation {angle}°: found {len(faces)} faces")
                     
                     if len(faces) > 0:
                         largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
@@ -247,10 +255,12 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                         y2 = min(img_h, y + h + int(margin_y * 1.5))
                         
                         face_crop = pil_rot.crop((x1, y1, x2, y2))
+                        print(f"[AVATAR_DEBUG] Face detected at {angle}°, crop size: {face_crop.size}")
                         break
                 
                 # === FALLBACK: OCR Layout Analysis ===
                 if not face_crop:
+                    print(f"[AVATAR_DEBUG] No face detected by OpenCV, trying EasyOCR fallback...")
                     try:
                         import easyocr
                         reader = easyocr.Reader(['ro', 'en'], gpu=False, verbose=False)
@@ -301,22 +311,31 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
                         print("EasyOCR fallback skipped:", fallback_e)
 
             except Exception as e:
-                print(f"Extraction failed: {e}")
+                print(f"[AVATAR_DEBUG] Extraction failed: {e}")
+                import traceback
+                traceback.print_exc()
                 
             # === FINAL FALLBACK (Outside OpenCV try/except so it runs even if OpenCV crashes) ===
             try:
                 if not face_crop and img:
+                    print(f"[AVATAR_DEBUG] Using FINAL FALLBACK crop (no face detected)")
                     w_img, h_img = img.size
                     face_crop = img.crop((int(w_img * 0.02), int(h_img * 0.15), int(w_img * 0.35), int(h_img * 0.85)))
                     
                 if face_crop:
+                    print(f"[AVATAR_DEBUG] face_crop exists, size: {face_crop.size}, saving to storage...")
                     avatar_filename = f"avatar_{uuid.uuid4().hex[:8]}.jpg"
                     avatar_buf = io.BytesIO()
                     face_crop.save(avatar_buf, "JPEG", quality=90)
                     avatar_url = upload_file(avatar_buf.getvalue(), f"avatars/{avatar_filename}", "image/jpeg")
                     result["avatar_path"] = avatar_url
+                    print(f"[AVATAR_DEBUG] Avatar saved! URL: {avatar_url}")
+                else:
+                    print(f"[AVATAR_DEBUG] NO face_crop at all, avatar_path will be None")
             except Exception as fallback_e:
-                print(f"Final fallback failed: {fallback_e}")
+                print(f"[AVATAR_DEBUG] Final fallback FAILED: {fallback_e}")
+                import traceback
+                traceback.print_exc()
             
     # ===== Try OCR if easyocr is available =====
         full_text = ''
@@ -1044,6 +1063,7 @@ async def ocr_extract_only(file: UploadFile = File(...), raw_text: Optional[str]
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+    print(f"[AVATAR_DEBUG] /ocr/extract result: avatar_path={ocr_result.get('avatar_path')}, success={ocr_result.get('success')}, cnp={ocr_result.get('cnp')}")
     return ocr_result
 
 
