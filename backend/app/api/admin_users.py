@@ -48,7 +48,7 @@ class UserCreate(BaseModel):
     address: Optional[str] = None
     site_id: Optional[str] = None
     birth_date: Optional[str] = None
-    birth_date: Optional[str] = None
+    avatar_path: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -68,6 +68,7 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     site_id: Optional[str] = None
     hourly_rate: Optional[float] = None  # Tarif orar — confidential, admin-only
+    avatar_path: Optional[str] = None
 
     @field_validator('employee_code', 'last_name', 'first_name', 'full_name', 'cnp', 'phone', mode='before')
     @classmethod
@@ -765,7 +766,8 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
         pin_hash=hash_pin(user_data.pin), is_active=user_data.is_active,
         birth_date=birth_date_val, cnp=user_data.cnp,
         birth_place=user_data.birth_place, id_card_series=user_data.id_card_series,
-        phone=user_data.phone, email=user_data.email, address=user_data.address
+        phone=user_data.phone, email=user_data.email, address=user_data.address,
+        avatar_path=user_data.avatar_path
     )
     db.add(new_user)
     
@@ -828,7 +830,7 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
             
         user.role_id = user_data.role_id
 
-    for field in ['employee_code', 'is_active', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address']:
+    for field in ['employee_code', 'is_active', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address', 'avatar_path']:
         val = getattr(user_data, field, None)
         if val is not None:
             if field == 'employee_code':

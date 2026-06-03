@@ -268,13 +268,14 @@ export default function EmployeesManagement() {
                 // hourly_rate: always send if present (0 is valid)
                 const hrVal = formData.hourly_rate !== '' ? parseFloat(formData.hourly_rate) : null
                 if (hrVal !== (editingUser.hourly_rate ?? null)) updatePayload.hourly_rate = hrVal
+                if (formData.avatar_path !== (editingUser.avatar_path || '')) updatePayload.avatar_path = formData.avatar_path || null
 
                 const resp = await api.put(`/admin/users/${editingUser.id}`, updatePayload)
                 savedUser = resp.data
             } else {
                 // Clean empty strings to null for optional fields
                 const cleanData = { ...formData }
-                const optionalFields = ['birth_date', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address']
+                const optionalFields = ['birth_date', 'cnp', 'birth_place', 'id_card_series', 'phone', 'email', 'address', 'avatar_path']
                 optionalFields.forEach(f => { if (cleanData[f] === '') cleanData[f] = null })
                 const resp = await api.post('/admin/users/', cleanData)
                 savedUser = resp.data
@@ -444,6 +445,7 @@ export default function EmployeesManagement() {
                     birth_place: ocr.birth_place || prev.birth_place,
                     id_card_series: ocr.id_card_series || prev.id_card_series,
                     address: ocr.address || prev.address,
+                    avatar_path: ocr.avatar_path || prev.avatar_path
                 }))
                 showToast(t('users.success.ocr_extracted'), 'success')
             } else {

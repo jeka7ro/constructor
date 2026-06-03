@@ -157,7 +157,8 @@ export default function UsersManagement() {
                     cnp: ocr.cnp || prev.cnp,
                     birth_place: ocr.birth_place || prev.birth_place,
                     id_card_series: ocr.id_card_series || prev.id_card_series,
-                    birth_date: ocr.birth_date || prev.birth_date
+                    birth_date: ocr.birth_date || prev.birth_date,
+                    avatar_path: ocr.avatar_path || prev.avatar_path
                 }))
                 showToast('Datele au fost extrase cu succes din buletin!', 'success')
             } else {
@@ -206,6 +207,7 @@ export default function UsersManagement() {
                 id_card_series: formData.id_card_series,
                 birth_date: formData.birth_date
             }
+            if (formData.avatar_path) payload.avatar_path = formData.avatar_path;
             if (formData.password.trim()) payload.password = formData.password.trim()
 
             let savedUser;
