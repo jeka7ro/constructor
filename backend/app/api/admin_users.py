@@ -504,13 +504,12 @@ def extract_id_card_data(image_path: str, raw_text: str = None) -> dict:
 
     return result
 
-
 # =================== API ENDPOINTS ===================
 
 @router.get("/", response_model=UsersListResponse)
 def get_users(
     page: int = 1,
-    page_size: int = 20,
+    page_size: int = 10,
     search: Optional[str] = None,
     role_id: Optional[str] = None,
     is_active: Optional[bool] = None,
@@ -518,8 +517,7 @@ def get_users(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Get paginated list of users with optional filters"""
-    # Only show employees (not admins)
-    query = db.query(User).join(Role).filter(Role.is_employee == True)
+    query = db.query(User).join(Role)
     
     if search:
         query = query.filter(or_(
@@ -543,13 +541,10 @@ def get_users_stats(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Get user statistics"""
-    # Only count employees (not admins)
-    base_query = db.query(User).join(Role).filter(Role.is_employee == True)
-    
-    total_users = base_query.filter(User.is_active == True).count()
-    active_users = base_query.filter(User.is_active == True).count()
-    inactive_users = base_query.filter(User.is_active == False).count()
-    users_by_role = db.query(Role.name, func.count(User.id).label('count')).join(User).filter(Role.is_employee == True).group_by(Role.name).all()
+    total_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
+    active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
+    inactive_users = db.query(func.count(User.id)).filter(User.is_active == False).scalar()
+    users_by_role = db.query(Role.name, func.count(User.id).label('count')).join(User).group_by(Role.name).all()
     
     return {
         "total_users": total_users,
@@ -557,7 +552,6 @@ def get_users_stats(
         "inactive_users": inactive_users,
         "users_by_role": [{"role": role, "count": count} for role, count in users_by_role]
     }
-
 
 @router.get("/next-code")
 def get_next_employee_code(
