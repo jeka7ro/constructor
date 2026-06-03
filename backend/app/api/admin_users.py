@@ -791,7 +791,7 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
     db.add(new_user)
     
     # Also create Admin record if role is an admin role
-    if role.name in ADMIN_ROLE_NAMES:
+    if role.name in ['Administrator', 'Super Administrator']:
         if not user_data.email:
             raise HTTPException(status_code=400, detail="Email is required for Administrator accounts")
         if not user_data.password:
