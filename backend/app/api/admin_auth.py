@@ -8,7 +8,7 @@ import hashlib
 import os
 
 from app.database import get_db
-from app.models import Admin
+from app.models import Admin, User
 from app.config import settings
 
 router = APIRouter()
@@ -34,6 +34,7 @@ class AdminResponse(BaseModel):
     role: str
     is_active: bool
     is_super_admin: bool = False
+    avatar_path: str = None
     created_at: datetime
 
     class Config:
@@ -119,10 +120,23 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
         expires_delta=access_token_expires
     )
     
+    # Look up matching User record to get avatar_path
+    user_record = db.query(User).filter(User.email == admin.email).first()
+    avatar_path = getattr(user_record, 'avatar_path', None) if user_record else None
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "admin": admin
+        "admin": {
+            "id": admin.id,
+            "email": admin.email,
+            "full_name": admin.full_name,
+            "role": admin.role,
+            "is_active": admin.is_active,
+            "is_super_admin": bool(admin.is_super_admin),
+            "avatar_path": avatar_path,
+            "created_at": admin.created_at,
+        }
     }
 
 
