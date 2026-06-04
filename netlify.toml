@@ -1,18 +1,19 @@
 [build]
+  base = "frontend"
   command = "npm run build"
   publish = "dist"
 
-# Proxy API calls to Render backend
+# Proxy API calls to Railway backend
 [[redirects]]
   from = "/api/*"
-  to = "https://pontaj-digital.onrender.com/api/:splat"
+  to = "https://cmr.up.railway.app/api/:splat"
   status = 200
   force = true
 
-# Proxy uploads to Render backend
+# Proxy uploads to Railway backend
 [[redirects]]
   from = "/uploads/*"
-  to = "https://pontaj-digital.onrender.com/uploads/:splat"
+  to = "https://cmr.up.railway.app/uploads/:splat"
   status = 200
   force = true
 
