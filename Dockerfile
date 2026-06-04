@@ -30,6 +30,6 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Copy backend code
 COPY backend/ ./backend/
 
-# Start the application
+# Start the application using Railway's dynamic PORT
 WORKDIR /app/backend
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
