@@ -195,9 +195,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def index():
-    return {"message": "API is running", "docs": "/docs", "health": "/api/health"}
+
 
 @app.get("/api")
 async def root():
