@@ -30,6 +30,9 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Copy backend code
 COPY backend/ ./backend/
 
+# Ensure uploads directory exists for StaticFiles mount
+RUN mkdir -p ./backend/uploads
+
 # Start the application using Railway's dynamic PORT
 WORKDIR /app/backend
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
