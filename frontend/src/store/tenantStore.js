@@ -19,8 +19,8 @@ const useTenantStore = create(
                 }
                 
                 // Allow *.localhost for testing locally
-                if (hostname.endsWith('.localhost') || hostname.endsWith('.railway.app')) {
-                    if (hostname.endsWith('.railway.app')) return null;
+                if (hostname.endsWith('.localhost') || hostname.endsWith('.railway.app') || hostname.endsWith('.netlify.app')) {
+                    if (hostname.endsWith('.railway.app') || hostname.endsWith('.netlify.app')) return null;
                     return hostname.split('.')[0]
                 }
                 
