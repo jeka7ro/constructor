@@ -33,8 +33,9 @@ def _keepalive_loop():
     _keepalive_time.sleep(30)  # wait for server to fully start
     while not _scheduler_stop.is_set():
         try:
+            app_url = os.getenv("APP_URL", "http://localhost:8000")
             _keepalive_requests.get(
-                "https://pontaj-digital.onrender.com/api/health",
+                f"{app_url}/api/health",
                 timeout=10
             )
             print("💓 Keep-alive ping sent")
