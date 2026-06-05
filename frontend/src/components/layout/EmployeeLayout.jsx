@@ -73,7 +73,7 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] bg-[color:var(--mobile-bg)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-[color:var(--mobile-bg)] shadow-[0_10px_25px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
                             style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                         >
                             {tenant?.favicon_url ? (
@@ -92,7 +92,7 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] bg-[color:var(--mobile-bg)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-[color:var(--mobile-bg)] shadow-[0_10px_25px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
                             style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                         >
                             {tenant?.favicon_url ? (
