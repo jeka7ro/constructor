@@ -151,10 +151,16 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
 
                         {/* Events overlay */}
                         {(() => {
-                            const layoutGroups = {};
                             const renderableOrders = [];
+                            const dayOccupancy = {};
                             
-                            weeklyOrders.forEach(wo => {
+                            const sortedOrders = [...weeklyOrders].sort((a, b) => {
+                                const tA = a.start_time || '07:00';
+                                const tB = b.start_time || '07:00';
+                                return tA.localeCompare(tB);
+                            });
+                            
+                            sortedOrders.forEach(wo => {
                                 const dateStr = wo.start_date || wo.deadline_date;
                                 if (!dateStr) return;
                                 try {
@@ -165,21 +171,17 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                     const dayIndex = weekDays.findIndex(d => isSameDay(d, woDate));
                                     if (dayIndex === -1) return;
                                     
-                                    const rowStart = getGridRowFromTime(wo.start_time);
-                                    const key = `${dayIndex}-${rowStart}`;
+                                    let rowStart = getGridRowFromTime(wo.start_time);
                                     
-                                    const renderItem = { ...wo, dayIndex, rowStart, key };
-                                    if (!layoutGroups[key]) layoutGroups[key] = [];
-                                    layoutGroups[key].push(renderItem);
-                                    renderableOrders.push(renderItem);
+                                    if (!dayOccupancy[dayIndex]) dayOccupancy[dayIndex] = new Set();
+                                    
+                                    while (dayOccupancy[dayIndex].has(rowStart)) {
+                                        rowStart++;
+                                    }
+                                    dayOccupancy[dayIndex].add(rowStart);
+                                    
+                                    renderableOrders.push({ ...wo, dayIndex, rowStart });
                                 } catch (e) {}
-                            });
-                            
-                            // Assign counts and index
-                            renderableOrders.forEach(item => {
-                                const group = layoutGroups[item.key];
-                                item._layoutCount = group.length;
-                                item._layoutIndex = group.findIndex(g => g.id === item.id);
                             });
                             
                             return renderableOrders.map(wo => {
@@ -187,9 +189,8 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                 
                                 // Calculate offset to avoid overlap
                                 const baseWidthPercent = 100 / 7;
-                                const widthOffset = baseWidthPercent / wo._layoutCount;
-                                const leftPercent = (wo.dayIndex * baseWidthPercent) + (widthOffset * wo._layoutIndex);
-                                const widthValue = `calc(${widthOffset}% - 8px)`;
+                                const leftPercent = wo.dayIndex * baseWidthPercent;
+                                const widthValue = `calc(${baseWidthPercent}% - 8px)`;
 
                                 return (
                                     <div 
@@ -210,7 +211,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                     >
                                         <div className="text-[10px] text-slate-500 font-semibold mb-0.5 flex items-center gap-1">
                                             <Clock className="w-2.5 h-2.5" />
-                                            {wo.start_time || '00:00'}
+                                            {wo.start_time || '07:00'}
                                         </div>
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate" title={wo.title}>
                                             {wo.title}
