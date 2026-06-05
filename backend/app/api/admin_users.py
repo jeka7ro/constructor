@@ -519,6 +519,10 @@ def get_users(
     """Get paginated list of users with optional filters"""
     query = db.query(User).join(Role)
     
+    if not getattr(current_admin, 'is_super_admin', False) and current_admin.organization_id:
+        query = query.filter(User.organization_id == current_admin.organization_id)
+        
+
     if search:
         query = query.filter(or_(
             User.employee_code.ilike(f"%{search}%"),
@@ -541,10 +545,17 @@ def get_users_stats(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Get user statistics"""
-    total_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
-    active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
-    inactive_users = db.query(func.count(User.id)).filter(User.is_active == False).scalar()
-    users_by_role = db.query(Role.name, func.count(User.id).label('count')).join(User).group_by(Role.name).all()
+    base_query = db.query(User)
+    role_query = db.query(Role.name, func.count(User.id).label('count')).join(User)
+    
+    if not getattr(current_admin, 'is_super_admin', False) and current_admin.organization_id:
+        base_query = base_query.filter(User.organization_id == current_admin.organization_id)
+        role_query = role_query.filter(User.organization_id == current_admin.organization_id)
+
+    total_users = base_query.filter(User.is_active == True).count()
+    active_users = base_query.filter(User.is_active == True).count()
+    inactive_users = base_query.filter(User.is_active == False).count()
+    users_by_role = role_query.group_by(Role.name).all()
     
     return {
         "total_users": total_users,
@@ -560,9 +571,12 @@ def get_next_employee_code(
 ):
     """Get next available employee code (EMP001, EMP002, etc.)"""
     # Find all existing EMP codes and get the highest number
-    existing_codes = db.query(User.employee_code).filter(
-        User.employee_code.ilike("EMP%")
-    ).all()
+    query = db.query(User.employee_code).filter(User.employee_code.ilike("EMP%"))
+    
+    if not getattr(current_admin, 'is_super_admin', False) and current_admin.organization_id:
+        query = query.filter(User.organization_id == current_admin.organization_id)
+        
+    existing_codes = query.all()
     
     max_num = 0
     for (code,) in existing_codes:
@@ -588,7 +602,11 @@ def export_users_excel(
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
-    users = db.query(User).join(Role).all()
+    query = db.query(User).join(Role)
+    if not getattr(current_admin, 'is_super_admin', False) and current_admin.organization_id:
+        query = query.filter(User.organization_id == current_admin.organization_id)
+        
+    users = query.all()
     wb = Workbook()
     ws = wb.active
     ws.title = "Angajați"

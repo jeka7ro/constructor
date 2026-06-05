@@ -273,6 +273,55 @@ def create_org_admin(
         is_super_admin=False,
     )
     db.add(new_admin)
+    
+    # Check if user already exists
+    from app.models import User, Role
+    import uuid
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        # Get or create Administrator role
+        role = db.query(Role).filter(
+            Role.organization_id == org_id,
+            Role.name == "Administrator"
+        ).first()
+        
+        if not role:
+            role = Role(
+                id=str(uuid.uuid4()),
+                organization_id=org_id,
+                code="admin",
+                name="Administrator",
+                is_employee=False,
+                is_active=True
+            )
+            db.add(role)
+            db.commit()
+            db.refresh(role)
+            
+        # Get next global employee code
+        existing_codes = db.query(User.employee_code).filter(User.employee_code.ilike("EMP%")).all()
+        import re
+        max_num = 0
+        for (code,) in existing_codes:
+            match = re.search(r'EMP(\d+)', code, re.IGNORECASE)
+            if match:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+        next_code = f"EMP{max_num + 1:03d}"
+        
+        new_user = User(
+            id=str(uuid.uuid4()),
+            organization_id=org_id,
+            employee_code=next_code,
+            full_name=data.full_name,
+            email=data.email,
+            role_id=role.id,
+            pin_hash=hashlib.sha256("1234".encode()).hexdigest(),
+            is_active=True
+        )
+        db.add(new_user)
+        
     db.commit()
     db.refresh(new_admin)
     return new_admin
