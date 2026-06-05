@@ -27,6 +27,8 @@ import {
 import { useUIStore } from '../../store/uiStore'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
 import MiniMapSelector from '../../components/MiniMapSelector'
+import { isToday, isFuture, format, startOfDay } from 'date-fns'
+import { ro } from 'date-fns/locale'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -780,8 +782,22 @@ function Row({ label, value }) {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function WorkerOrdersPage() {
-    const { user } = useAuthStore()
+    const { user, logout } = useAuthStore()
     const showToast = useUIStore(s => s.showToast)
+
+    const handleLogout = async () => {
+        try {
+            if ('caches' in window) {
+                const keys = await caches.keys()
+                await Promise.all(keys.map(k => caches.delete(k)))
+            }
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations()
+                await Promise.all(regs.map(r => r.unregister()))
+            }
+        } catch (e) { /* ignore */ }
+        logout()
+    }
 
     const [orders, setOrders]         = useState([])
     const [loading, setLoading]       = useState(true)
@@ -970,36 +986,101 @@ export default function WorkerOrdersPage() {
     if (!selected) {
         return (
             <div className="min-h-screen bg-slate-50">
-                {/* Header */}
-                <div className="bg-white border-b border-slate-200 px-4 py-4 sticky top-0 z-20">
-                    <h1 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <ClipboardList className="w-5 h-5 text-green-600" />
-                        Comenzi de Lucru
-                    </h1>
-                    {isLeader && (
-                        <p className="text-xs text-green-600 font-semibold mt-0.5">Planning complet — Sef Echipa</p>
-                    )}
+                {/* Header cu Profil si Logout */}
+                <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white p-4 shadow-lg sticky top-0 z-20">
+                    <div className="flex items-center justify-between max-w-md mx-auto">
+                        <div className="flex items-center gap-3">
+                            {user?.avatar_path && (
+                                <img
+                                    src={user.avatar_path.startsWith('http') ? user.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
+                                    alt=""
+                                    className="w-12 h-12 rounded-lg object-cover object-[center_20%] shrink-0 ring-2 ring-white/50"
+                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
+                                />
+                            )}
+                            <div className={`w-12 h-12 rounded-lg bg-white/20 items-center justify-center text-lg font-bold shrink-0 ${user?.avatar_path ? 'hidden' : 'flex'}`}>
+                                {user?.full_name?.charAt(0) || '?'}
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-lg leading-tight">{user?.full_name}</h2>
+                                <p className="text-blue-200 text-sm">{isLeader ? 'Șef Echipă' : 'Muncitor'}</p>
+                            </div>
+                        </div>
+                        <button onClick={handleLogout} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
+                            <LogOut className="w-5 h-5 text-white" />
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="w-8 h-8 border-3 border-green-200 border-t-green-600 rounded-full animate-spin" />
                     </div>
-                ) : orders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center text-slate-400">
-                        <ClipboardList className="w-14 h-14 mb-3 opacity-20" />
-                        <p className="text-sm font-semibold">Nu exista comenzi active.</p>
-                        <p className="text-xs mt-1">Comenzile alocate echipei tale vor aparea aici.</p>
-                    </div>
                 ) : (
                     <div className="p-4 space-y-4">
                         <ShortWorksCalendar workOrders={orders} />
                         
-                        <div className="space-y-3">
-                            <h2 className="text-sm font-bold text-slate-800 ml-1">Comenzi de Lucru</h2>
-                            {orders.map(o => (
-                                <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
-                            ))}
+                        <div className="space-y-4">
+                            {(() => {
+                                const activeOrders = []
+                                const futureOrders = []
+
+                                orders.forEach(o => {
+                                    const d = o.start_date || o.deadline_date
+                                    if (!d) return
+                                    const dateObj = new Date(d.split('T')[0] + 'T00:00:00')
+                                    
+                                    if (o.status === 'in_progress' || isToday(dateObj)) {
+                                        activeOrders.push(o)
+                                    } else if (dateObj > startOfDay(new Date())) {
+                                        futureOrders.push(o)
+                                    }
+                                })
+                                
+                                futureOrders.sort((a,b) => new Date(a.start_date || a.deadline_date) - new Date(b.start_date || b.deadline_date))
+                                const nextOrder = futureOrders[0]
+
+                                return (
+                                    <>
+                                        <div>
+                                            <h2 className="text-sm font-bold text-slate-800 ml-1 mb-3">Comenzi Astăzi</h2>
+                                            {activeOrders.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {activeOrders.map(o => (
+                                                        <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center shadow-sm">
+                                                    <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                                                    <p className="text-sm font-bold text-slate-700 mb-1">Nu ai comenzi alocate pentru astăzi.</p>
+                                                    {nextOrder ? (
+                                                        <p className="text-xs text-slate-500 font-medium">
+                                                            Următoarea comandă este în data de:{' '}
+                                                            <span className="font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded ml-1">
+                                                                {format(new Date((nextOrder.start_date || nextOrder.deadline_date).split('T')[0]), 'dd.MM.yyyy', { locale: ro })}
+                                                            </span>
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-xs text-slate-400">Momentan nu ai nicio comandă viitoare alocată.</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {futureOrders.length > 0 && (
+                                            <div className="pt-2">
+                                                <h2 className="text-sm font-bold text-slate-800 ml-1 mb-3">Comenzi Viitoare</h2>
+                                                <div className="space-y-3">
+                                                    {futureOrders.map(o => (
+                                                        <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )
+                            })()}
                         </div>
                     </div>
                 )}
