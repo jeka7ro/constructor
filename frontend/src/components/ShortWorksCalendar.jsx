@@ -150,56 +150,78 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                         ))}
 
                         {/* Events overlay */}
-                        {weeklyOrders.map(wo => {
-                            const dateStr = wo.start_date || wo.deadline_date;
-                            let woDate;
-                            try {
-                                const datePart = dateStr.split('T')[0];
-                                const [year, month, day] = datePart.split('-').map(Number);
-                                woDate = new Date(year, month - 1, day, 12, 0, 0);
-                            } catch (e) {
-                                return null;
-                            }
+                        {(() => {
+                            const layoutGroups = {};
+                            const renderableOrders = [];
                             
-                            const dayIndex = weekDays.findIndex(d => isSameDay(d, woDate));
-                            if (dayIndex === -1) return null;
+                            weeklyOrders.forEach(wo => {
+                                const dateStr = wo.start_date || wo.deadline_date;
+                                if (!dateStr) return;
+                                try {
+                                    const datePart = dateStr.split('T')[0];
+                                    const [year, month, day] = datePart.split('-').map(Number);
+                                    const woDate = new Date(year, month - 1, day, 12, 0, 0);
+                                    
+                                    const dayIndex = weekDays.findIndex(d => isSameDay(d, woDate));
+                                    if (dayIndex === -1) return;
+                                    
+                                    const rowStart = getGridRowFromTime(wo.start_time);
+                                    const key = `${dayIndex}-${rowStart}`;
+                                    
+                                    const renderItem = { ...wo, dayIndex, rowStart, key };
+                                    if (!layoutGroups[key]) layoutGroups[key] = [];
+                                    layoutGroups[key].push(renderItem);
+                                    renderableOrders.push(renderItem);
+                                } catch (e) {}
+                            });
+                            
+                            // Assign counts and index
+                            renderableOrders.forEach(item => {
+                                const group = layoutGroups[item.key];
+                                item._layoutCount = group.length;
+                                item._layoutIndex = group.findIndex(g => g.id === item.id);
+                            });
+                            
+                            return renderableOrders.map(wo => {
+                                const colorHex = wo.assigned_team_color || '#93c5fd';
+                                
+                                // Calculate offset to avoid overlap
+                                const baseWidthPercent = 100 / 7;
+                                const widthOffset = baseWidthPercent / wo._layoutCount;
+                                const leftPercent = (wo.dayIndex * baseWidthPercent) + (widthOffset * wo._layoutIndex);
+                                const widthValue = `calc(${widthOffset}% - 8px)`;
 
-                            const rowStart = getGridRowFromTime(wo.start_time);
-                            // Ensure team_color is valid hex or fallback to standard palette
-                            const colorHex = wo.assigned_team_color || '#93c5fd'; // blue-300 fallback
-                            
-                            // To support dynamic colors, we use inline styles for background.
-                            // We mix the hex with opacity for the background and use full hex for border/left-border
-                            
-                            return (
-                                <div 
-                                    key={wo.id}
-                                    className="absolute p-1.5 overflow-hidden rounded-md border-l-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer mx-1"
-                                    style={{
-                                        top: `${(rowStart - 1) * 80 + 4}px`,
-                                        height: '72px',
-                                        left: `${dayIndex * (100 / 7)}%`,
-                                        width: `calc(${100 / 7}% - 8px)`,
-                                        backgroundColor: `${colorHex}30`,
-                                        borderLeftColor: colorHex,
-                                        borderColor: `${colorHex}50`
-                                    }}
-                                    onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
-                                    title={`${wo.title} — click pentru detalii`}
-                                >
-                                    <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate" title={wo.title}>
-                                        {wo.title}
+                                return (
+                                    <div 
+                                        key={wo.id}
+                                        className="absolute p-1.5 overflow-hidden rounded-md border-l-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer mx-1"
+                                        style={{
+                                            top: `${(wo.rowStart - 1) * 80 + 4}px`,
+                                            height: '72px',
+                                            left: `${leftPercent}%`,
+                                            width: widthValue,
+                                            backgroundColor: `${colorHex}30`,
+                                            borderLeftColor: colorHex,
+                                            borderColor: `${colorHex}50`,
+                                            zIndex: 10 + wo._layoutIndex
+                                        }}
+                                        onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
+                                        title={`${wo.title} — click pentru detalii`}
+                                    >
+                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate" title={wo.title}>
+                                            {wo.title}
+                                        </div>
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1">
+                                            <MapPin className="w-2.5 h-2.5" />
+                                            {wo.client_name || wo.site_name || 'Fără locație'}
+                                        </div>
+                                        <div className="text-[10px] font-semibold mt-1 truncate" style={{ color: colorHex }}>
+                                            {wo.assigned_team_name || 'Neasignat'}
+                                        </div>
                                     </div>
-                                    <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1">
-                                        <MapPin className="w-2.5 h-2.5" />
-                                        {wo.client_name || wo.site_name || 'Fără locație'}
-                                    </div>
-                                    <div className="text-[10px] font-semibold mt-1 truncate" style={{ color: colorHex }}>
-                                        {wo.assigned_team_name || 'Neasignat'}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
             </div>
