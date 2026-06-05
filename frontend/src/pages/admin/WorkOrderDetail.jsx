@@ -297,20 +297,20 @@ export default function WorkOrderDetail() {
             </div>
 
             {/* ── Stepper ─────────────────────────────────────────────────────── */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-5 overflow-x-auto">
-                <div className="flex items-center justify-between min-w-[400px] relative">
-                    <div className="absolute top-4 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-700 mx-8" />
-                    <div className="absolute top-4 left-8 h-0.5 bg-blue-500 transition-all duration-700"
-                        style={{ width: `calc(${(currentStep / (STEP_LABELS.length - 1)) * 100}% - 64px)` }} />
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-3 sm:p-5">
+                <div className="flex items-center justify-between relative">
+                    <div className="absolute top-3 sm:top-4 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-700 mx-4 sm:mx-8" />
+                    <div className="absolute top-3 sm:top-4 left-4 sm:left-8 h-0.5 bg-blue-500 transition-all duration-700"
+                        style={{ width: `calc(${(currentStep / (STEP_LABELS.length - 1)) * 100}% - 32px)` }} />
                     {STEP_LABELS.map((step, i) => {
                         const done = i <= currentStep
                         const Icon = step.icon
                         return (
-                            <div key={step.key} className="flex flex-col items-center gap-1.5 relative z-10">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${done ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600'}`}>
-                                    <Icon className={`w-3.5 h-3.5 ${done ? 'text-white' : 'text-slate-400'}`} />
+                            <div key={step.key} className="flex flex-col items-center gap-1 sm:gap-1.5 relative z-10 w-12 sm:w-auto">
+                                <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 transition-all ${done ? 'bg-blue-600 border-blue-600 shadow-md shadow-blue-500/30' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600'}`}>
+                                    <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${done ? 'text-white' : 'text-slate-400'}`} />
                                 </div>
-                                <span className={`text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${done ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{step.label}</span>
+                                <span className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide text-center leading-none ${done ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{step.label}</span>
                             </div>
                         )
                     })}
@@ -318,13 +318,43 @@ export default function WorkOrderDetail() {
             </div>
 
             {/* ── KPIs ────────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <KPI icon={Timer}    label="Ore Lucrate"    value={`${totalHours}h`} sub={`${sessCount} sesiuni`}   color="blue" />
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                <KPI icon={Timer}    label="Ore"            value={`${totalHours}h`} sub={`${sessCount} sesiuni`}   color="blue" />
                 <KPI icon={Users}    label="Angajați"       value={workersValue}     sub={workersSub}       color="purple" />
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
-                <KPI icon={BarChart2} label="Volum Estimat" value={volumeTotal > 0 ? volumeTotal : '—'} sub={(wo.volumes || [])[0]?.unit || 'unități'} color="green" />
-                <KPI icon={Camera}   label="Fotografii"     value={photos.length}     sub="înregistrate"     color="slate" />
+                <KPI icon={BarChart2} label="Volum"         value={volumeTotal > 0 ? volumeTotal : '—'} sub={(wo.volumes || [])[0]?.unit || 'unități'} color="green" />
+                <KPI icon={Camera}   label="Poze"           value={photos.length}     sub="înregistrate"     color="slate" />
             </div>
+
+            {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
+            {(lat || lon || address) && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || 'Fără adresă specificată'}</div>
+                        </div>
+                        <NavButtons lat={lat} lon={lon} address={address} />
+                    </div>
+                    <div className="p-0">
+                        <MapView
+                            latitude={lat}
+                            longitude={lon}
+                            address={address}
+                            height={220}
+                            zoom={15}
+                            geofenceRadius={geoR}
+                            label={wo.site_name || wo.title}
+                        />
+                        {wo.access_notes && (
+                            <div className="m-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 Note Acces</p>
+                                <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* ── Main Grid ───────────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -350,35 +380,6 @@ export default function WorkOrderDetail() {
                         <Row label="Termen Limită"   value={fmt(wo.deadline_date)} />
                         <Row label="Check-in Echipă" value={fmtFull(wo.checkin_at)} />
                         <Row label="Check-out Echipă" value={fmtFull(wo.checkout_at)} />
-                    </Section>
-
-                    {/* Locație + Hartă Leaflet */}
-                    <Section icon={MapPin} title="Locație Lucrare">
-                        <Row label="Adresă" value={wo.site_address || wo.site_name} />
-                        {lat && lon && <Row label="GPS" value={`${parseFloat(lat).toFixed(5)}, ${parseFloat(lon).toFixed(5)}`} mono />}
-
-                        {/* Butoane navigatie - functioneaza si fara GPS, pe baza adresei */}
-                        <NavButtons lat={lat} lon={lon} address={address} />
-
-                        {/* Harta Leaflet cu geocodare automata dupa adresa */}
-                        <div className="mt-4">
-                            <MapView
-                                latitude={lat}
-                                longitude={lon}
-                                address={address}
-                                height={280}
-                                zoom={15}
-                                geofenceRadius={geoR}
-                                label={wo.site_name || wo.title}
-                            />
-                        </div>
-
-                        {wo.access_notes && (
-                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                                <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 Note Acces</p>
-                                <p className="text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
-                            </div>
-                        )}
                     </Section>
 
                     {/* Echipă & Vehicul */}
