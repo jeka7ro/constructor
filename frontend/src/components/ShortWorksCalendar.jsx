@@ -71,7 +71,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
     }, [weeklyOrders, currentDate]);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px]">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px] relative">
             {/* Header */}
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-2">
@@ -131,6 +131,16 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                 </div>
             </div>
 
+            {/* Overlay Badge */}
+            {!isScrollable && (
+                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden md:block">
+                    <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
+                        <Hand className="w-3.5 h-3.5" />
+                        Click pentru a derula
+                    </div>
+                </div>
+            )}
+
             {/* Calendar Grid Container (Desktop) */}
             <div 
                 ref={containerRef}
@@ -138,14 +148,6 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                 onClick={() => !isScrollable && setIsScrollable(true)}
                 onMouseLeave={() => setIsScrollable(false)}
             >
-                {!isScrollable && (
-                    <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-                        <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
-                            <Hand className="w-3.5 h-3.5" />
-                            Click pentru a derula
-                        </div>
-                    </div>
-                )}
                 {/* Time Gutter */}
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-12 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
