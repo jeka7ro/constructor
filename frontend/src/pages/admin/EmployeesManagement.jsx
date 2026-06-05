@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAdminStore } from '../../store/adminStore'
@@ -157,7 +158,10 @@ export default function EmployeesManagement() {
         try {
             const response = await api.get('/admin/roles/')
             const fetchedRoles = response.data || []
-            setRoles(fetchedRoles)
+            // Filter out admin roles from the employee roles dropdown
+            const ADMIN_ROLE_NAMES = ['Administrator', 'Super Administrator', 'ADMIN', 'SUPER_ADMIN']
+            const employeeRoles = fetchedRoles.filter(r => !ADMIN_ROLE_NAMES.includes(r.name) && !ADMIN_ROLE_NAMES.includes(r.code))
+            setRoles(employeeRoles)
         } catch (error) {
             console.error('Error fetching roles:', error)
         }
@@ -671,8 +675,8 @@ export default function EmployeesManagement() {
             </div>
 
             {/* =================== ADD/EDIT USER MODAL =================== */}
-            {showEditModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            {showEditModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-700">
@@ -1042,11 +1046,11 @@ export default function EmployeesManagement() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
 
             {/* =================== RESET PIN MODAL =================== */}
-            {showPinModal && (
+            {showPinModal && createPortal(
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
@@ -1082,7 +1086,7 @@ export default function EmployeesManagement() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             {/* =================== AVATAR CROP MODAL =================== */}
             <AvatarCropModal
@@ -1103,7 +1107,7 @@ export default function EmployeesManagement() {
             />
 
             {/* =================== ASSIGN SITE MODAL =================== */}
-            {showAssignSiteModal && (
+            {showAssignSiteModal && createPortal(
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
@@ -1146,10 +1150,10 @@ export default function EmployeesManagement() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             {/* =================== DELETE / ARCHIVE MODAL =================== */}
-            {deleteModalData && (
+            {deleteModalData && createPortal(
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDeleteModalData(null)}>
                     <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2 } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import api from '../../lib/api'
 
@@ -302,8 +303,8 @@ export default function ClientsManagement() {
             </div>
 
             {/* Modal Add/Edit */}
-            {showModal && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            {showModal && createPortal(
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg overflow-hidden shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -422,11 +423,11 @@ export default function ClientsManagement() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             {/* Modal Delete */}
-            {deleteModal.show && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            {deleteModal.show && createPortal(
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100000] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-100 opacity-100 transition-all">
                         <div className="p-6 text-center">
                             <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
@@ -453,7 +454,7 @@ export default function ClientsManagement() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
         </div>
     )
 }
