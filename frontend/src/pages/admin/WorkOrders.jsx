@@ -313,7 +313,7 @@ export default function WorkOrders() {
             </div>
 
             {/* Stats */}
-            <div className="flex overflow-x-auto lg:grid lg:grid-cols-6 gap-2 sm:gap-3 pb-2 hide-scrollbar snap-x">
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
                     const count = workOrders.filter(w => w.status === key).length
                     const kpiThemes = {
@@ -325,16 +325,15 @@ export default function WorkOrders() {
                         in_progress: Play, completed: CheckCircle, cancelled: Ban
                     }
                     return (
-                        <div key={key} className="min-w-[140px] sm:min-w-[160px] lg:min-w-0 snap-start shrink-0 lg:shrink">
-                            <KPICard
-                                label={cfg.label}
-                                value={count}
-                                icon={kpiIcons[key] || CircleDot}
-                                colorTheme={kpiThemes[key] || 'blue'}
-                                onClick={() => setFilterStatus(filterStatus === key ? '' : key)}
-                                active={filterStatus === key}
-                            />
-                        </div>
+                        <KPICard
+                            key={key}
+                            label={cfg.label}
+                            value={count}
+                            icon={kpiIcons[key] || CircleDot}
+                            colorTheme={kpiThemes[key] || 'blue'}
+                            onClick={() => setFilterStatus(filterStatus === key ? '' : key)}
+                            active={filterStatus === key}
+                        />
                     )
                 })}
             </div>
