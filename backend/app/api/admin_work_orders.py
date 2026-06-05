@@ -133,6 +133,8 @@ def _serialize(wo: WorkOrder) -> dict:
         "materials": wo.materials or [],
         "materials_consumed": wo.materials_consumed or [],
         "volumes": wo.volumes or [],
+        "actual_surface_m2": wo.actual_surface_m2,
+        "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,

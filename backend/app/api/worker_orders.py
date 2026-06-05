@@ -84,14 +84,16 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "start_date": str(wo.start_date) if wo.start_date else None,
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
-        "site_lat": wo.site.latitude if wo.site else None,
-        "site_lng": wo.site.longitude if wo.site else None,
+        "site_lat": (wo.site.latitude if wo.site else None) or wo.site_latitude,
+        "site_lng": (wo.site.longitude if wo.site else None) or wo.site_longitude,
         "client_name": wo.client_name,
         "client_phone": wo.client_phone,
         "requirements": wo.requirements or [],
         "materials": wo.materials or [],
         "materials_consumed": wo.materials_consumed or [],
         "volumes": wo.volumes or [],
+        "actual_surface_m2": wo.actual_surface_m2,
+        "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
         "assigned_team_id": wo.assigned_team_id,
         "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
@@ -240,8 +242,8 @@ def checkin_order(
 
     # Verifica GPS match daca comanda are coordonate
     gps_match = None
-    site_lat = wo.site.latitude if wo.site else None
-    site_lng = wo.site.longitude if wo.site else None
+    site_lat = (wo.site.latitude if wo.site else None) or wo.site_latitude
+    site_lng = (wo.site.longitude if wo.site else None) or wo.site_longitude
     if site_lat and site_lng:
         distance = _haversine_distance(payload.latitude, payload.longitude, site_lat, site_lng)
         gps_match = distance <= 500  # 500m tolerance
