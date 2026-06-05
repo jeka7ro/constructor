@@ -10,7 +10,6 @@ import {
 import api from '../../lib/api'
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
-import WorkOrderCalculations from './WorkOrderCalculations'
 
 const STATUS_CONFIG = {
     draft:       { label: 'Nouă',       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
@@ -609,9 +608,6 @@ export default function WorkOrders() {
                     </div>
                 </div>
             )}
-
-            {/* Calculations Table (Appended Below) */}
-            <WorkOrderCalculations />
         </div>
     )
 }

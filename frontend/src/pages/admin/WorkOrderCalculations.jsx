@@ -93,7 +93,7 @@ export default function WorkOrderCalculations() {
     ]
 
     return (
-        <div className="mt-12 border-t border-slate-200 dark:border-slate-700 pt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">

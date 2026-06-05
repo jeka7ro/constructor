@@ -199,6 +199,7 @@ export default function AdminDashboard() {
                 { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
                 { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: 'Comenzi de Lucru' },
+                { path: '/admin/screed-analytics', icon: Activity, label: 'Tabel Calcul (Sape)' },
                 { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
                 { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
             ]

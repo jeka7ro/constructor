@@ -263,6 +263,7 @@ function App() {
                         <Route path="photos-test" element={<PhotoTestPage />} />
                         <Route path="reports" element={<ReportsPage />} />
                         <Route path="timesheets" element={<TimesheetApprovalPage />} />
+                        <Route path="screed-analytics" element={<WorkOrderCalculations />} />
                         <Route path="activities" element={<ActivitiesManagement />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="site-photos" element={<SitePhotosPage />} />
