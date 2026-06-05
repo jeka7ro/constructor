@@ -122,6 +122,8 @@ export default function WorkOrderForm() {
                         ...prev,
                         start_date: prev.start_date || getStr(today),
                         deadline_date: prev.deadline_date || getStr(tomorrow),
+                        site_latitude: prev.site_latitude || '44.4268',
+                        site_longitude: prev.site_longitude || '26.1025',
                         volumes: acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes
                     }))
                 }
