@@ -1030,9 +1030,10 @@ export default function WorkerOrdersPage() {
                                     if (!d) return
                                     const dateObj = new Date(d.split('T')[0] + 'T00:00:00')
                                     
-                                    if (o.status === 'in_progress' || isToday(dateObj)) {
+                                    // if it's in progress, today, OR in the past and not finished => active
+                                    if (o.status === 'in_progress' || dateObj <= startOfDay(new Date())) {
                                         activeOrders.push(o)
-                                    } else if (dateObj > startOfDay(new Date())) {
+                                    } else {
                                         futureOrders.push(o)
                                     }
                                 })
