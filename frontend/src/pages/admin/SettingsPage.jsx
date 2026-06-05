@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SettingsPage() {
     const { t } = useTranslation()
-    const { showDialog } = useUIStore()
+    const { showDialog, showToast } = useUIStore()
     const { tenant } = useTenantStore()
     const tenantFeatures = tenant?.features || []
     const hasTimesheets = !tenantFeatures.includes('disable_timesheets')
@@ -95,7 +95,7 @@ export default function SettingsPage() {
     const handleSave = () => {
         // TODO: Save to backend
         localStorage.setItem('pontaj_dashboard_layout', JSON.stringify(dashboardLayout))
-        showDialog({ type: 'info', title: 'Salvat', message: 'Setările au fost salvate cu succes!', confirmText: 'OK', cancelText: null })
+        showToast('Setările au fost salvate cu succes!', 'success')
     }
 
     return (
