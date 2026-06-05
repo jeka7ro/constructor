@@ -193,7 +193,14 @@ export default function WorkOrderDetail() {
     // KPIs
     const totalHours = sessions?.total_hours || 0
     const sessCount  = sessions?.sessions_count || 0
-    const matCount   = (wo.materials_consumed || []).filter(m => m.name).length
+    
+    // Dynamic Materials KPI
+    const hasStarted = wo.status === 'in_progress' || wo.status === 'completed';
+    const consumedCount = (wo.materials_consumed || []).filter(m => m.name).length;
+    const estimatedCount = (wo.materials || []).length;
+    const matValue = hasStarted ? consumedCount : estimatedCount;
+    const matLabel = hasStarted ? "Mat. Consumate" : "Mat. Necesare";
+
     const volumeTotal = (wo.volumes || []).reduce((a, v) => a + (parseFloat(v.quantity) || 0), 0)
 
     // Charts
@@ -202,6 +209,10 @@ export default function WorkOrderDetail() {
         if (!hoursPerUser[s.user_name]) hoursPerUser[s.user_name] = 0
         hoursPerUser[s.user_name] += s.hours || 0
     })
+    
+    const activeWorkersCount = Object.keys(hoursPerUser).length;
+    const workersValue = activeWorkersCount > 0 ? activeWorkersCount : (wo.assigned_team_name ? 'Echipă' : '—');
+    const workersSub = activeWorkersCount > 0 ? "au pontat" : (wo.assigned_team_name ? "alocată" : "nealocat");
     const hoursChartData = Object.entries(hoursPerUser).map(([name, hours]) => ({
         name: name.split(' ')[0],
         ore: parseFloat(hours.toFixed(2))
@@ -273,8 +284,8 @@ export default function WorkOrderDetail() {
             {/* ── KPIs ────────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <KPI icon={Timer}    label="Ore Lucrate"    value={`${totalHours}h`} sub={`${sessCount} sesiuni`}   color="blue" />
-                <KPI icon={Users}    label="Angajați"       value={Object.keys(hoursPerUser).length || '—'} sub="pe comandă" color="purple" />
-                <KPI icon={Package}  label="Mat. Consumate" value={matCount}          sub="tipuri"           color="amber" />
+                <KPI icon={Users}    label="Angajați"       value={workersValue}     sub={workersSub}       color="purple" />
+                <KPI icon={Package}  label={matLabel}       value={matValue}         sub="tipuri"           color="amber" />
                 <KPI icon={BarChart2} label="Volum Estimat" value={volumeTotal > 0 ? volumeTotal : '—'} sub={(wo.volumes || [])[0]?.unit || 'unități'} color="green" />
                 <KPI icon={Camera}   label="Fotografii"     value={photos.length}     sub="înregistrate"     color="slate" />
             </div>
@@ -483,7 +494,7 @@ export default function WorkOrderDetail() {
                                 {[
                                     { v: `${totalHours}h`, l: 'Total Ore', c: 'blue' },
                                     { v: sessCount,        l: 'Sesiuni',   c: 'violet' },
-                                    { v: Object.keys(hoursPerUser).length, l: 'Angajați', c: 'emerald' }
+                                    { v: activeWorkersCount, l: 'Angajați', c: 'emerald' }
                                 ].map(({ v, l, c }) => (
                                     <div key={l} className={`bg-${c}-50 dark:bg-${c}-900/20 rounded-xl p-3 text-center`}>
                                         <div className={`text-2xl font-black text-${c}-700 dark:text-${c}-400`}>{v}</div>
