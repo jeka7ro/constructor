@@ -112,10 +112,17 @@ export default function WorkOrderForm() {
                 
                 setWarehouseItems(Array.isArray(wRes.data) ? wRes.data : (wRes.data?.items || []))
 
-                if (!isEdit && acts.length === 1) {
+                if (!isEdit) {
+                    const today = new Date();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const getStr = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    
                     setForm(prev => ({
                         ...prev,
-                        volumes: [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }]
+                        start_date: prev.start_date || getStr(today),
+                        deadline_date: prev.deadline_date || getStr(tomorrow),
+                        volumes: acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes
                     }))
                 }
             } catch {}
