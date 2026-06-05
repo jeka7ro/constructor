@@ -105,16 +105,16 @@ async def upload_logo(
 
     ext = Path(file.filename).suffix.lower()
     filename = f"{uuid.uuid4()}{ext}"
-    file_path = LOGO_UPLOAD_DIR / filename
-
+    
     content = await file.read()
     if len(content) > 5 * 1024 * 1024:  # 5MB limit
         raise HTTPException(status_code=400, detail="Fișierul este prea mare. Maxim 5MB.")
 
-    with open(file_path, "wb") as f:
-        f.write(content)
+    from app.storage import upload_file, get_content_type
+    content_type = get_content_type(file.filename)
+    logo_url = upload_file(content, f"logos/{filename}", content_type)
 
-    return {"logo_url": f"/api/uploads/logos/{filename}"}
+    return {"logo_url": logo_url}
 
 # =================== API ENDPOINTS ===================
 
