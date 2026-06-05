@@ -919,7 +919,7 @@ export default function WorkerOrdersPage() {
             const res = await api.get('/worker/orders')
             setOrders(res.data || [])
         } catch {
-            if (!silent) showToast('error', 'Eroare la incarcarea comenzilor.')
+            if (!silent) showToast('Eroare la incarcarea comenzilor.', 'error')
         } finally {
             if (!silent) setLoading(false)
         }
@@ -964,10 +964,10 @@ export default function WorkerOrdersPage() {
         setAcknowledging(true)
         try {
             await api.post(`/worker/orders/${selected.id}/acknowledge`)
-            showToast('success', 'Confirmat cu succes.')
+            showToast('Confirmat cu succes.', 'success')
             await refreshSelected()
         } catch (e) {
-            showToast('error', e.response?.data?.detail || 'Eroare la confirmare.')
+            showToast(e.response?.data?.detail || 'Eroare la confirmare.', 'error')
         } finally {
             setAcknowledging(false)
         }
@@ -975,17 +975,17 @@ export default function WorkerOrdersPage() {
 
     // CHECK-IN
     const handleCheckin = async () => {
-        if (!location) { showToast('error', 'GPS indisponibil. Permite accesul la locatie.'); return }
+        if (!location) { showToast('GPS indisponibil. Permite accesul la locatie.', 'error'); return }
         setLoadingAction(true)
         try {
             await api.post(`/worker/orders/${selected.id}/checkin`, {
                 latitude: location.latitude,
                 longitude: location.longitude,
             })
-            showToast('success', 'Check-in inregistrat.')
+            showToast('Check-in inregistrat.', 'success')
             await refreshSelected()
         } catch (e) {
-            showToast('error', e.response?.data?.detail || 'Eroare la check-in.')
+            showToast(e.response?.data?.detail || 'Eroare la check-in.', 'error')
         } finally {
             setLoadingAction(false)
         }
@@ -993,17 +993,17 @@ export default function WorkerOrdersPage() {
 
     // CHECK-OUT
     const handleCheckout = async () => {
-        if (!location) { showToast('error', 'GPS indisponibil.'); return }
+        if (!location) { showToast('GPS indisponibil.', 'error'); return }
         setLoadingAction(true)
         try {
             const res = await api.post(`/worker/orders/${selected.id}/checkout`, {
                 latitude: location.latitude,
                 longitude: location.longitude,
             })
-            showToast('success', res.data?.message || 'Check-out inregistrat.')
+            showToast(res.data?.message || 'Check-out inregistrat.', 'success')
             await refreshSelected()
         } catch (e) {
-            showToast('error', e.response?.data?.detail || 'Eroare la check-out.')
+            showToast(e.response?.data?.detail || 'Eroare la check-out.', 'error')
         } finally {
             setLoadingAction(false)
         }
@@ -1023,7 +1023,7 @@ export default function WorkerOrdersPage() {
             const res = await api.post(`/worker/orders/${selected.id}/photos`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
-            showToast('success', 'Poza adaugata.')
+            showToast('Poza adaugata.', 'success')
             
             if (photoType === 'machine_computer' && res.data?.ocr_data) {
                 setOcrData(res.data.ocr_data)
@@ -1035,7 +1035,7 @@ export default function WorkerOrdersPage() {
             await fetchOrderPhotos(selected.id)
             await refreshSelected()
         } catch (e) {
-            showToast('error', e.response?.data?.detail || 'Eroare la upload.')
+            showToast(e.response?.data?.detail || 'Eroare la upload.', 'error')
         } finally {
             setter(false)
         }
@@ -1072,10 +1072,11 @@ export default function WorkerOrdersPage() {
                 actual_surface_m2: parseFloat(actualSurface) || null,
                 actual_sand_quantity: parseFloat(actualSand) || null,
             })
-            showToast('success', res.data?.message || 'Comanda finalizata.')
-            await refreshSelected()
+            showToast(res.data?.message || 'Comanda finalizata.', 'success')
+            setSelected(null) // inchide modalul
+            await fetchOrders() // reincarca lista
         } catch (e) {
-            showToast('error', e.response?.data?.detail || 'Eroare la finalizare.')
+            showToast(e.response?.data?.detail || 'Eroare la finalizare.', 'error')
         } finally {
             setClosing(false)
         }
