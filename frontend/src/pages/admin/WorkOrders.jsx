@@ -182,21 +182,6 @@ export default function WorkOrders() {
             key: 'title', label: 'Titlu', sortable: true,
             render: (wo) => (
                 <div>
-                    {wo.assigned_team_name && (
-                        <div className="mb-1">
-                            <span 
-                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" 
-                                style={{ 
-                                    backgroundColor: `${wo.assigned_team_color}15`, 
-                                    color: wo.assigned_team_color, 
-                                    border: `1px solid ${wo.assigned_team_color}30` 
-                                }}
-                            >
-                                <User className="w-3 h-3" />
-                                {wo.assigned_team_name}
-                            </span>
-                        </div>
-                    )}
                     <div className="font-bold text-slate-900 dark:text-white text-sm">
                         {wo.title}
                     </div>
@@ -277,10 +262,25 @@ export default function WorkOrders() {
             render: (wo) => {
                 const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
                 return (
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${cfg.color}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                        {cfg.label}
-                    </span>
+                    <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${cfg.color}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                            {cfg.label}
+                        </span>
+                        {wo.assigned_team_name && (
+                            <span 
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mt-1" 
+                                style={{ 
+                                    backgroundColor: `${wo.assigned_team_color}15`, 
+                                    color: wo.assigned_team_color, 
+                                    border: `1px solid ${wo.assigned_team_color}30` 
+                                }}
+                            >
+                                <User className="w-2.5 h-2.5" />
+                                {wo.assigned_team_name}
+                            </span>
+                        )}
+                    </div>
                 )
             }
         },

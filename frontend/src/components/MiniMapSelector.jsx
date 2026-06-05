@@ -41,10 +41,22 @@ const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
                 const { lat, lng } = e.latlng
                 onLocationChange(lat, lng)
             })
+
+            // Robust fix for map rendering bugs (gray tiles / wrong centering) when container resizes
+            const ro = new ResizeObserver(() => {
+                if (mapInstance.current) {
+                    mapInstance.current.invalidateSize()
+                }
+            })
+            ro.observe(mapRef.current)
+            mapInstance.current._resizeObserver = ro
         }
         
         return () => {
             if (mapInstance.current) {
+                if (mapInstance.current._resizeObserver && mapRef.current) {
+                    mapInstance.current._resizeObserver.disconnect()
+                }
                 mapInstance.current.remove()
                 mapInstance.current = null
             }
@@ -69,6 +81,13 @@ const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
                 markerInstance.current = null
             }
         }
+
+        // Fix for rendering bugs when map container size changes (e.g. tabs or modals)
+        setTimeout(() => {
+            if (mapInstance.current) {
+                mapInstance.current.invalidateSize()
+            }
+        }, 250)
     }, [latitude, longitude])
 
     return (
