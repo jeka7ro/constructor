@@ -277,12 +277,12 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
                             {order.site_address}
                         </p>
                     </div>
-                    {order.site_lat && order.site_lon && (
+                    {(order.site_lat && (order.site_lon || order.site_lng)) && (
                         <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative">
-                            <MiniMapSelector latitude={order.site_lat} longitude={order.site_lon} />
+                            <MiniMapSelector latitude={order.site_lat} longitude={order.site_lon || order.site_lng} />
                         </div>
                     )}
-                    <NavButtons lat={order.site_lat} lon={order.site_lon} address={order.site_address} />
+                    <NavButtons lat={order.site_lat} lon={order.site_lon || order.site_lng} address={order.site_address} />
                 </Section>
             )}
 
