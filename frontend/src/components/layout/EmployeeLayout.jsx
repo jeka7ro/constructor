@@ -28,6 +28,15 @@ export default function EmployeeLayout() {
         }
     }
 
+    const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+    const getImageUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http') || url.startsWith('data:')) return url;
+        const base = API_BASE.replace(/\/$/, '');
+        const path = url.startsWith('/') ? url : `/${url}`;
+        return `${base}${path}`;
+    };
+
     return (
         <div className="flex flex-col min-h-[100dvh] bg-slate-50">
             {/* Main Content Area */}
@@ -60,9 +69,16 @@ export default function EmployeeLayout() {
                 <div className="relative flex justify-center w-[96px]">
                     <button
                         onClick={handleHomePress}
-                        className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isHome ? 'ring-4 ring-blue-400/30 scale-105' : 'ring-2 ring-blue-300/20'}`}
+                        className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 shadow-[0_10px_25px_rgba(59,130,246,0.6),inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-2px_6px_rgba(0,0,0,0.2)] bg-[color:var(--mobile-bg)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
+                        style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                     >
-                        <Home className="w-10 h-10 drop-shadow-md" />
+                        {tenant?.favicon_url ? (
+                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
+                        ) : tenant?.logo_url ? (
+                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-12 h-12 object-contain drop-shadow-md rounded-xl" />
+                        ) : (
+                            <Home className="w-10 h-10 drop-shadow-md" />
+                        )}
                     </button>
                 </div>
 

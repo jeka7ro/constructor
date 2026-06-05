@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
+import MiniMapSelector from '../../components/MiniMapSelector'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -86,6 +87,55 @@ function fmtDuration(minutes) {
     if (h === 0) return `${m} min`
     if (m === 0) return `${h}h`
     return `${h}h ${m}min`
+}
+
+function NavButtons({ lat, lon, address }) {
+    const dest     = lat && lon ? `${lat},${lon}` : null
+    const destEnc  = address ? encodeURIComponent(address) : null
+
+    const googleUrl = dest
+        ? `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`
+        : destEnc ? `https://www.google.com/maps/dir/?api=1&destination=${destEnc}&travelmode=driving` : null
+
+    const wazeUrl = dest
+        ? `https://waze.com/ul?ll=${dest}&navigate=yes`
+        : destEnc ? `https://waze.com/ul?q=${destEnc}&navigate=yes` : null
+
+    const appleUrl = dest
+        ? `https://maps.apple.com/?daddr=${dest}&dirflg=d`
+        : destEnc ? `https://maps.apple.com/?daddr=${destEnc}&dirflg=d` : null
+
+    if (!googleUrl) return null
+
+    return (
+        <div className="grid grid-cols-3 gap-2 mt-3">
+            {googleUrl && (
+                <a href={googleUrl} target="_blank" rel="noreferrer"
+                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-blue-600 text-white text-[11px] sm:text-xs font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    Google
+                </a>
+            )}
+            {wazeUrl && (
+                <a href={wazeUrl} target="_blank" rel="noreferrer"
+                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-[#05C8F7] text-white text-[11px] sm:text-xs font-bold hover:bg-[#04b0d8] active:scale-95 transition-all shadow-sm shadow-cyan-400/20 whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.54 6.63C19.08 4.05 16.73 2.19 14 1.54V1.5c0-.83-.67-1.5-1.5-1.5S11 .67 11 1.5v.04C8.27 2.19 5.92 4.05 4.46 6.63A8.959 8.959 0 003 11c0 4.97 4.03 9 9 9s9-4.03 9-9c0-1.62-.43-3.14-1.46-4.37zM8.5 13c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5S14.67 10 15.5 10s1.5.67 1.5 1.5S16.33 13 15.5 13zm-3.5 4c-1.66 0-3-1.34-3-3h6c0 1.66-1.34 3-3 3z"/>
+                    </svg>
+                    Waze
+                </a>
+            )}
+            {appleUrl && (
+                <a href={appleUrl} target="_blank" rel="noreferrer"
+                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-slate-800 text-white text-[11px] sm:text-xs font-bold hover:bg-slate-700 active:scale-95 transition-all shadow-sm whitespace-nowrap">
+                    <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    Apple
+                </a>
+            )}
+        </div>
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -189,12 +239,6 @@ function TabBar({ active, onChange }) {
 function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
 
-    const openMaps = () => {
-        if (!order.site_address) return
-        const q = encodeURIComponent(order.site_address)
-        window.open(`https://maps.google.com/?q=${q}`, '_blank')
-    }
-
     // Parse access_notes in bullet lines
     const accessLines = (order.access_notes || '')
         .split('\n')
@@ -224,17 +268,18 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
             {/* Adresa */}
             {order.site_address && (
                 <Section label="Adresa">
-                    <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-3 py-3">
-                        <div>
-                            <p className="text-sm font-bold text-slate-900">{order.site_address}</p>
-                        </div>
-                        <button
-                            onClick={openMaps}
-                            className="w-10 h-10 flex items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors shrink-0 ml-3"
-                        >
-                            <Navigation className="w-5 h-5" />
-                        </button>
+                    <div className="bg-white rounded-xl border border-slate-200 px-3 py-3 mb-2">
+                        <p className="text-sm font-bold text-slate-900 flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                            {order.site_address}
+                        </p>
                     </div>
+                    {order.site_lat && order.site_lon && (
+                        <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative">
+                            <MiniMapSelector latitude={order.site_lat} longitude={order.site_lon} />
+                        </div>
+                    )}
+                    <NavButtons lat={order.site_lat} lon={order.site_lon} address={order.site_address} />
                 </Section>
             )}
 
@@ -278,7 +323,7 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
             )}
 
             {/* Contact client */}
-            {(order.client_name || order.client_phone || order.client_email) && (
+            {(order.client_name || order.client_phone) && (
                 <Section label="Contact">
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3">
                         {order.client_name && (
@@ -292,14 +337,6 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
                                 >
                                     <Phone className="w-4 h-4" />
                                     {order.client_phone}
-                                </a>
-                            )}
-                            {order.client_email && (
-                                <a
-                                    href={`mailto:${order.client_email}`}
-                                    className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200"
-                                >
-                                    <Mail className="w-4 h-4" />
                                 </a>
                             )}
                         </div>
