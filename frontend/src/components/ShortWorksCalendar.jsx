@@ -104,44 +104,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                     </h2>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={async () => {
-                            try {
-                                setSyncing(true);
-                                const res = await api.get('/admin/me/calendar-token');
-                                const token = res.data.calendar_token;
-                                const orgId = res.data.organization_id;
-                                const protocol = window.location.protocol === 'https:' ? 'webcal:' : 'http:';
-                                const host = window.location.host;
-                                const feedUrl = `${protocol}//${host}/api/public/calendar/${orgId}/${token}/feed.ics`;
-                                
-                                openDialog({
-                                    type: 'info',
-                                    title: 'Sincronizare Apple Calendar',
-                                    message: `Pentru a sincroniza comenzile de lucru cu Apple/Google Calendar pe telefon sau tabletă, copiază link-ul de mai jos și adaugă-l ca "Subscribed Calendar":\n\n${feedUrl.replace('webcal://', 'https://')}`,
-                                    confirmText: 'Copiază Link',
-                                    cancelText: 'Închide',
-                                    onConfirm: async () => {
-                                        try {
-                                            await navigator.clipboard.writeText(feedUrl.replace('webcal://', 'https://'));
-                                            alert('Link copiat! Acum poți să îl adaugi în calendarul tău.');
-                                        } catch (e) {
-                                            console.error(e);
-                                        }
-                                    }
-                                });
-                            } catch (e) {
-                                alert('Eroare la generarea link-ului de calendar.');
-                            } finally {
-                                setSyncing(false);
-                            }
-                        }}
-                        disabled={syncing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors shadow-sm"
-                    >
-                        <CalendarIcon className="w-4 h-4" />
-                        Sync Apple
-                    </button>
+
                     <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 shadow-sm">
                     <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
                         <ChevronLeft className="w-4 h-4" />
