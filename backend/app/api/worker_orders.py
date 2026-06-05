@@ -46,7 +46,7 @@ def _get_user_team_ids(db: Session, user_id: str, org_id: str) -> List[str]:
     team_ids = [m.team_id for m in memberships]
 
     led_teams = db.query(Team).filter(
-        Team.leader_id == user_id,
+        Team.team_leader_id == user_id,
         Team.organization_id == org_id
     ).all()
     led_team_ids = [t.id for t in led_teams]
