@@ -47,13 +47,13 @@ function KPI({ icon: Icon, label, value, sub, color = 'blue' }) {
         slate:  'from-slate-500 to-slate-600 shadow-slate-500/20',
     }
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad[color]} flex items-center justify-center shadow-md mb-3`}>
-                <Icon className="w-5 h-5 text-white" />
+        <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${grad[color]} flex items-center justify-center shadow-md mb-2 sm:mb-3`}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white">{value}</div>
-            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">{label}</div>
-            {sub && <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</div>}
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">{value}</div>
+            <div className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5 sm:mt-1">{label}</div>
+            {sub && <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{sub}</div>}
         </div>
     )
 }
@@ -72,9 +72,9 @@ function Section({ icon: Icon, title, children }) {
 
 function Row({ label, value, mono }) {
     return (
-        <div className="flex items-start justify-between py-2.5 border-b border-slate-50 dark:border-slate-700/50 last:border-0 gap-3">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider w-44 shrink-0">{label}</span>
-            <span className={`text-sm font-semibold text-slate-800 dark:text-slate-200 text-right ${mono ? 'font-mono' : ''}`}>{value || '—'}</span>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between py-2.5 sm:py-3 border-b border-slate-50 dark:border-slate-700/50 last:border-0 gap-0.5 sm:gap-3">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider sm:w-44 shrink-0">{label}</span>
+            <span className={`text-sm font-semibold text-slate-800 dark:text-slate-200 sm:text-right ${mono ? 'font-mono' : ''} break-words whitespace-pre-line`}>{value || '—'}</span>
         </div>
     )
 }
@@ -526,15 +526,15 @@ export default function WorkOrderDetail() {
                 {sessions ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div>
-                            <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                                 {[
                                     { v: `${totalHours}h`, l: 'Total Ore', c: 'blue' },
                                     { v: sessCount,        l: 'Sesiuni',   c: 'violet' },
                                     { v: activeWorkersCount, l: 'Angajați', c: 'emerald' }
                                 ].map(({ v, l, c }) => (
-                                    <div key={l} className={`bg-${c}-50 dark:bg-${c}-900/20 rounded-xl p-3 text-center`}>
-                                        <div className={`text-2xl font-black text-${c}-700 dark:text-${c}-400`}>{v}</div>
-                                        <div className={`text-xs font-bold text-${c}-500 uppercase tracking-wider`}>{l}</div>
+                                    <div key={l} className={`bg-${c}-50 dark:bg-${c}-900/20 rounded-xl p-2 sm:p-3 text-center`}>
+                                        <div className={`text-lg sm:text-2xl font-black text-${c}-700 dark:text-${c}-400`}>{v}</div>
+                                        <div className={`text-[9px] sm:text-xs font-bold text-${c}-500 uppercase tracking-wider`}>{l}</div>
                                     </div>
                                 ))}
                             </div>

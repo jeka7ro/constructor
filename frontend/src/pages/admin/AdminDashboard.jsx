@@ -506,40 +506,53 @@ export default function AdminDashboard() {
 
             {/* Bottom Navigation Bar (Admin Mobile) */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_25px_rgba(0,0,0,0.5)] z-[70]">
-                {/* 1. Angajati */}
-                <NavLink to="/admin/employees" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-600 dark:text-blue-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                    <HardHat className="w-6 h-6 mb-1.5" />
-                    <span className="text-[10px] font-bold">Angajați</span>
-                </NavLink>
-
-                {/* 2. Șantiere */}
-                {hasLongTerm && (
-                    <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                        <Building2 className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">Șantiere</span>
+                
+                {/* Left Side Group */}
+                <div className="flex flex-1 justify-around">
+                    {/* 1. Angajati */}
+                    <NavLink to="/admin/employees" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-600 dark:text-blue-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <HardHat className="w-6 h-6 mb-1.5" />
+                        <span className="text-[10px] font-bold">Angajați</span>
                     </NavLink>
-                )}
 
-                {/* 3. Dashboard (Home) */}
-                <div className="relative flex justify-center w-[96px]">
-                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-gradient-to-b from-blue-500 to-blue-600 shadow-[0_5px_15px_rgba(59,130,246,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-blue-400/50 scale-105' : ''}`}>
-                        <LayoutDashboard className="w-8 h-8" />
+                    {/* 2. Șantiere (sau spacer) */}
+                    {hasLongTerm ? (
+                        <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
+                            <Building2 className="w-6 h-6 mb-1.5" />
+                            <span className="text-[10px] font-bold">Șantiere</span>
+                        </NavLink>
+                    ) : (
+                        <div className="w-[72px]" />
+                    )}
+                </div>
+
+                {/* 3. Dashboard (Home) - Centered Shrink-0 */}
+                <div className="relative flex justify-center w-[96px] shrink-0">
+                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-lime-600 shadow-[0_5px_15px_rgba(101,163,13,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-lime-400/50 scale-105' : ''}`}>
+                        {tenant?.logo_url ? (
+                            <img src={tenant.logo_url} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md brightness-0 invert" />
+                        ) : (
+                            <LayoutDashboard className="w-8 h-8" />
+                        )}
                     </button>
                 </div>
 
-                {/* 4. Comenzi */}
-                <NavLink to="/admin/work-orders" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                    <ClipboardList className="w-6 h-6 mb-1.5" />
-                    <span className="text-[10px] font-bold">Comenzi</span>
-                </NavLink>
+                {/* Right Side Group */}
+                <div className="flex flex-1 justify-around">
+                    {/* 4. Comenzi */}
+                    <NavLink to="/admin/work-orders" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <ClipboardList className="w-6 h-6 mb-1.5" />
+                        <span className="text-[10px] font-bold">Comenzi</span>
+                    </NavLink>
 
-                {/* 5. Menu */}
-                <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center p-2 w-[72px] transition-all text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-                    <svg className="w-6 h-6 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    <span className="text-[10px] font-bold">Meniu</span>
-                </button>
+                    {/* 5. Menu */}
+                    <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center p-2 w-[72px] transition-all text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                        <svg className="w-6 h-6 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Meniu</span>
+                    </button>
+                </div>
             </nav>
 
             {/* Birthday Popup */}
