@@ -165,6 +165,25 @@ def create_organization(
     db.add(new_org)
     db.commit()
     db.refresh(new_org)
+    
+    # Automatically create default roles for the new organization
+    from app.models import Role
+    default_roles = [
+        {"code": "ADMIN", "name": "Administrator", "is_employee": False},
+        {"code": "WORKER", "name": "Muncitor", "is_employee": True},
+        {"code": "TEAM_LEAD", "name": "Sef Echipa", "is_employee": True},
+        {"code": "DRIVER", "name": "Sofer", "is_employee": True}
+    ]
+    for r_data in default_roles:
+        new_role = Role(
+            organization_id=new_org.id,
+            code=r_data["code"],
+            name=r_data["name"],
+            is_employee=r_data["is_employee"]
+        )
+        db.add(new_role)
+    db.commit()
+    
     return new_org
 
 @router.put("/{org_id}", response_model=OrganizationResponse)
