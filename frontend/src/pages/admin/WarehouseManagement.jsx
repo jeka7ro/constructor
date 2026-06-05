@@ -1069,21 +1069,23 @@ export default function WarehouseManagement() {
                                 <th className="px-3 py-3 text-center">UM</th>
                                 <th className="px-3 py-3 text-center">Intr.</th>
                                 <th className="px-3 py-3 text-center">Ieș.</th>
-                                <th className="px-3 py-3 text-center">Mag.</th>
-                                <th className="px-3 py-3 text-center">Santier</th>
+                                <th className="px-3 py-3 text-center">Total</th>
+                                <th className="px-3 py-3 text-center text-amber-600 dark:text-amber-500">Rezervat</th>
+                                <th className="px-3 py-3 text-center text-emerald-600 dark:text-emerald-500">Disponibil</th>
+                                <th className="px-3 py-3 text-center">Șantier</th>
                                 <th className="px-3 py-3 text-right">Acțiuni</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
+                                    <td colSpan="10" className="px-4 py-8 text-center text-slate-500">
                                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                                     </td>
                                 </tr>
                             ) : paginatedItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
+                                    <td colSpan="10" className="px-4 py-8 text-center text-slate-500">
                                         Nu s-au găsit articole.
                                     </td>
                                 </tr>
@@ -1152,7 +1154,7 @@ export default function WarehouseManagement() {
                                                 </td>
                                             </>
                                         )}
-                                        {/* Stoc Magazie */}
+                                        {/* Stoc Total */}
                                         <td className="px-3 py-2 text-center">
                                             <div className={`inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold ${
                                                 (item.inventory_code ? (item.current_site_id || item.current_holder_id) : (item.total_quantity === 0))
@@ -1160,6 +1162,26 @@ export default function WarehouseManagement() {
                                                     : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
                                             }`}>
                                                 {item.inventory_code ? ((item.current_site_id || item.current_holder_id) ? '0' : '1') : item.total_quantity}
+                                            </div>
+                                        </td>
+                                        {/* Rezervat */}
+                                        <td className="px-3 py-2 text-center">
+                                            {item.reserved_quantity > 0 ? (
+                                                <div className="inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 shadow-sm">
+                                                    {item.reserved_quantity}
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                            )}
+                                        </td>
+                                        {/* Disponibil */}
+                                        <td className="px-3 py-2 text-center">
+                                            <div className={`inline-flex items-center justify-center min-w-[3rem] px-2 h-6 rounded-full border text-xs font-bold ${
+                                                item.available_quantity > 0
+                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
+                                                    : 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500'
+                                            }`}>
+                                                {item.inventory_code ? ((item.current_site_id || item.current_holder_id) ? '0' : '1') : item.available_quantity}
                                             </div>
                                         </td>
                                         {/* Stoc Santier */}

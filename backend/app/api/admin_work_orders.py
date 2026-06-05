@@ -17,6 +17,53 @@ from app.database import get_db
 from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction
 from app.api.admin_auth import get_current_admin
 from datetime import date as date_today_import
+from sqlalchemy import func
+
+def sync_work_order_reservations(db: Session, org_id: str, old_materials: list, new_materials: list):
+    """Calculeaza diferenta de materiale si ajusteaza reserved_quantity in Magazie."""
+    from collections import defaultdict
+    deltas = defaultdict(float)
+    
+    for m in old_materials:
+        name = (m.get("name") or "").strip().lower()
+        if name:
+            try: deltas[name] -= float(m.get("quantity") or 0)
+            except: pass
+            
+    for m in new_materials:
+        name = (m.get("name") or "").strip().lower()
+        if name:
+            try: deltas[name] += float(m.get("quantity") or 0)
+            except: pass
+            
+    for name, delta in deltas.items():
+        if delta == 0: continue
+        item = db.query(WarehouseItem).filter(WarehouseItem.organization_id == org_id, func.lower(WarehouseItem.name) == name).first()
+        if item:
+            item.reserved_quantity += delta
+            if item.reserved_quantity < 0: item.reserved_quantity = 0.0
+
+def consume_work_order_materials(db: Session, org_id: str, materials: list, wo_title: str, admin_id: str):
+    """Scade definitiv materialele din stocul total, elibereaza rezervarea si creeaza tranzactie OUT."""
+    for m in materials:
+        name = (m.get("name") or "").strip().lower()
+        try: qty = float(m.get("quantity") or 0)
+        except: qty = 0
+        if not name or qty <= 0: continue
+            
+        item = db.query(WarehouseItem).filter(WarehouseItem.organization_id == org_id, func.lower(WarehouseItem.name) == name).first()
+        if item:
+            item.total_quantity -= qty
+            if item.total_quantity < 0: item.total_quantity = 0.0
+            item.reserved_quantity -= qty
+            if item.reserved_quantity < 0: item.reserved_quantity = 0.0
+                
+            tx = WarehouseTransaction(
+                item_id=item.id, transaction_type="OUT", quantity=qty,
+                date=datetime.utcnow().date(), operated_by_id=str(admin_id),
+                notes=f"Consum lucrare finalizată: {wo_title}"
+            )
+            db.add(tx)
 
 router = APIRouter()
 
@@ -197,6 +244,10 @@ def create_work_order(
         created_by=current_admin.id,
     )
     db.add(wo)
+    
+    if payload.materials:
+        sync_work_order_reservations(db, current_admin.organization_id, [], payload.materials)
+        
     db.commit()
     db.refresh(wo)
     return _serialize(wo)
@@ -237,6 +288,7 @@ def update_work_order(
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
     # Admins can edit orders regardless of status
+    old_materials = list(wo.materials) if wo.materials else []
 
     fields = [
         "title", "notes", "start_date", "deadline_date",
@@ -248,6 +300,10 @@ def update_work_order(
         v = getattr(payload, f, None)
         if v is not None:
             setattr(wo, f, v)
+
+    new_materials = wo.materials or []
+    if wo.status not in ("completed", "cancelled") and old_materials != new_materials:
+        sync_work_order_reservations(db, current_admin.organization_id, old_materials, new_materials)
 
     # Dacă s-a schimbat client_id, actualizează datele
     if wo.client_id:
@@ -299,6 +355,10 @@ def delete_work_order(
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
     if wo.status not in ("draft", "cancelled"):
         raise HTTPException(status_code=400, detail="Pot fi șterse doar comenzile în draft sau anulate.")
+        
+    if wo.status == "draft":
+        sync_work_order_reservations(db, current_admin.organization_id, wo.materials or [], [])
+        
     db.delete(wo)
     db.commit()
     return {"ok": True}
@@ -478,7 +538,16 @@ def change_status(
     if new_status not in allowed:
         raise HTTPException(status_code=400, detail=f"Status invalid. Permise: {allowed}")
     
+    old_status = wo.status
     wo.status = new_status
+    
+    if old_status not in ("completed", "cancelled") and new_status == "completed":
+        consume_work_order_materials(db, current_admin.organization_id, wo.materials or [], wo.title, current_admin.id)
+    elif old_status not in ("completed", "cancelled") and new_status == "cancelled":
+        sync_work_order_reservations(db, current_admin.organization_id, wo.materials or [], [])
+    elif old_status == "cancelled" and new_status not in ("completed", "cancelled"):
+        sync_work_order_reservations(db, current_admin.organization_id, [], wo.materials or [])
+        
     db.commit()
     db.refresh(wo)
     return _serialize(wo)

@@ -72,6 +72,8 @@ def get_items_logic(category: Optional[str] = None, site_id: Optional[str] = Non
             "category": i.category,
             "unit": i.unit,
             "total_quantity": effective_qty,
+            "reserved_quantity": getattr(i, 'reserved_quantity', 0.0),
+            "available_quantity": max(0, effective_qty - getattr(i, 'reserved_quantity', 0.0)),
             "model": i.model,
             "inventory_code": i.inventory_code,
             "current_site_id": i.current_site_id,

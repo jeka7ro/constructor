@@ -554,6 +554,7 @@ class WarehouseItem(Base):
     category = Column(String(50), nullable=False)  # SCULE, CONSUMABILE, STRUCTURA, COMBUSTIBIL
     unit = Column(String(20), nullable=False)      # e.g., buc, L, kg, m, rola
     total_quantity = Column(Float, default=0.0, nullable=False)
+    reserved_quantity = Column(Float, default=0.0, nullable=False)
     
     # Tool specific tracking fields
     model = Column(String(255), nullable=True)
