@@ -18,13 +18,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/api'
 import {
-    MapPin, Calendar, Clock, Users, Truck, Phone, Mail,
+    MapPin, Calendar as CalendarIcon, Clock, Users, Truck, Phone, Mail,
     FileImage, Download, ChevronRight, CheckCircle2,
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
     Timer, Layers, Send, LogIn, LogOut, Lock, Eye
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
+import ShortWorksCalendar from '../../components/ShortWorksCalendar'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -113,7 +114,7 @@ function OrderCard({ order, onClick }) {
 
                 {order.start_date && (
                     <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <CalendarIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="capitalize">{fmtDate(order.start_date)}</span>
                     </div>
                 )}
@@ -954,10 +955,15 @@ export default function WorkerOrdersPage() {
                         <p className="text-xs mt-1">Comenzile alocate echipei tale vor aparea aici.</p>
                     </div>
                 ) : (
-                    <div className="p-4 space-y-3">
-                        {orders.map(o => (
-                            <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
-                        ))}
+                    <div className="p-4 space-y-4">
+                        <ShortWorksCalendar workOrders={orders} />
+                        
+                        <div className="space-y-3">
+                            <h2 className="text-sm font-bold text-slate-800 ml-1">Toate Comenzile</h2>
+                            {orders.map(o => (
+                                <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

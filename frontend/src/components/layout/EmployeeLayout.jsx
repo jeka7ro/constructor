@@ -1,11 +1,14 @@
 import React from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Wrench, AlertTriangle, Calendar, ClipboardList } from 'lucide-react'
+import { useTenantStore } from '../../store/tenantStore'
 
 export default function EmployeeLayout() {
     const location = useLocation()
     const navigate = useNavigate()
     const isHome = location.pathname === '/'
+    const tenant = useTenantStore((state) => state.tenant)
+    const hasLongTerm = tenant?.has_long_term_sites !== false
 
     const handleHomePress = async () => {
         if (isHome) {
@@ -64,22 +67,26 @@ export default function EmployeeLayout() {
                 </div>
 
                 {/* 4. Inventar */}
-                <NavLink
-                    to="/my-inventory"
-                    className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 scale-110 drop-shadow-md' : (isHome ? 'text-emerald-600/90' : 'text-slate-400')}`}
-                >
-                    <Wrench className="w-7 h-7 mb-1.5" />
-                    <span className="text-xs font-bold">Inventar</span>
-                </NavLink>
+                {hasLongTerm && (
+                    <NavLink
+                        to="/my-inventory"
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 scale-110 drop-shadow-md' : (isHome ? 'text-emerald-600/90' : 'text-slate-400')}`}
+                    >
+                        <Wrench className="w-7 h-7 mb-1.5" />
+                        <span className="text-xs font-bold">Inventar</span>
+                    </NavLink>
+                )}
 
                 {/* 5. Sesizari */}
-                <NavLink
-                    to="/sesizari"
-                    className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-red-600 scale-110 drop-shadow-md' : (isHome ? 'text-red-500/90' : 'text-slate-400')}`}
-                >
-                    <AlertTriangle className="w-7 h-7 mb-1.5" />
-                    <span className="text-xs font-bold">Sesizari</span>
-                </NavLink>
+                {hasLongTerm && (
+                    <NavLink
+                        to="/sesizari"
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-red-600 scale-110 drop-shadow-md' : (isHome ? 'text-red-500/90' : 'text-slate-400')}`}
+                    >
+                        <AlertTriangle className="w-7 h-7 mb-1.5" />
+                        <span className="text-xs font-bold">Sesizari</span>
+                    </NavLink>
+                )}
             </nav>
         </div>
     )

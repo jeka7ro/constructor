@@ -267,7 +267,7 @@ function App() {
 
                     {user ? (
                         <Route element={<EmployeeLayout />}>
-                            <Route path="/" element={<ClockInPage />} />
+                            <Route path="/" element={<HomeRouter />} />
                             <Route path="/today" element={<TodayTimesheet />} />
                             <Route path="/history" element={<History />} />
                             <Route path="/clock-in" element={<ClockInPage />} />
@@ -303,6 +303,19 @@ function SmartRedirect() {
         }
         return <WorkspaceRouter isAdmin={location.startsWith('/admin')} />
     }
+
+    return <Navigate to="/" replace />
+}
+
+function HomeRouter() {
+    const tenant = useTenantStore((state) => state.tenant)
+    const hasLongTerm = tenant?.has_long_term_sites !== false
+    
+    if (!hasLongTerm) {
+        return <WorkerOrdersPage />
+    }
+    return <ClockInPage />
+}
 
     // If trying to access admin routes, redirect to admin login
     if (location.startsWith('/admin')) {
