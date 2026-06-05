@@ -1129,7 +1129,7 @@ export default function WorkerOrdersPage() {
                         <ShortWorksCalendar 
                             workOrders={orders} 
                             onOrderRescheduled={fetchOrders} 
-                            onOrderClick={(wo) => setSelectedOrder(wo)} 
+                            onOrderClick={(wo) => setSelected(wo)} 
                         />
                         
                         <div className="space-y-4">

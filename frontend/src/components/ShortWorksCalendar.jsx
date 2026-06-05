@@ -263,7 +263,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                             });
                             
                             return renderableOrders.map(wo => {
-                                const colorHex = wo.assigned_team_color || '#93c5fd';
+                                const colorHex = wo.team?.color || wo.assigned_team_color || '#93c5fd';
                                 
                                 // Calculate offset to avoid overlap
                                 const baseWidthPercent = 100 / 7;
@@ -354,7 +354,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                             const isNewDay = dateStr !== lastDate;
                             lastDate = dateStr;
                             
-                            const colorHex = wo.assigned_team_color || '#3b82f6';
+                            const colorHex = wo.team?.color || '#3b82f6';
                             const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
                             
                             return (
