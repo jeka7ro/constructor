@@ -1137,69 +1137,7 @@ export default function WorkerOrdersPage() {
                             onOrderClick={(wo) => setSelected(wo)} 
                         />
                         
-                        <div className="space-y-4">
-                            {(() => {
-                                const activeOrders = []
-                                const futureOrders = []
-
-                                orders.forEach(o => {
-                                    const d = o.start_date || o.deadline_date
-                                    if (!d) return
-                                    const dateObj = new Date(d.split('T')[0] + 'T00:00:00')
-                                    
-                                    // if it's in progress, today, OR in the past and not finished => active
-                                    if (o.status === 'in_progress' || dateObj <= startOfDay(new Date())) {
-                                        activeOrders.push(o)
-                                    } else {
-                                        futureOrders.push(o)
-                                    }
-                                })
-                                
-                                futureOrders.sort((a,b) => new Date(a.start_date || a.deadline_date) - new Date(b.start_date || b.deadline_date))
-                                const nextOrder = futureOrders[0]
-
-                                return (
-                                    <>
-                                        <div>
-                                            <h2 className="text-sm font-bold text-slate-800 ml-1 mb-3">Comenzi Astăzi</h2>
-                                            {activeOrders.length > 0 ? (
-                                                <div className="space-y-3">
-                                                    {activeOrders.map(o => (
-                                                        <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center shadow-sm">
-                                                    <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                                                    <p className="text-sm font-bold text-slate-700 mb-1">Nu ai comenzi alocate pentru astăzi.</p>
-                                                    {nextOrder ? (
-                                                        <p className="text-xs text-slate-500 font-medium">
-                                                            Următoarea comandă este în data de:{' '}
-                                                            <span className="font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded ml-1">
-                                                                {format(new Date((nextOrder.start_date || nextOrder.deadline_date).split('T')[0]), 'dd.MM.yyyy', { locale: ro })}
-                                                            </span>
-                                                        </p>
-                                                    ) : (
-                                                        <p className="text-xs text-slate-400">Momentan nu ai nicio comandă viitoare alocată.</p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {futureOrders.length > 0 && (
-                                            <div className="pt-2">
-                                                <h2 className="text-sm font-bold text-slate-800 ml-1 mb-3">Comenzi Viitoare</h2>
-                                                <div className="space-y-3">
-                                                    {futureOrders.map(o => (
-                                                        <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
-                                )
-                            })()}
-                        </div>
+                        {/* Eliminat lista duplicată de comenzi, deoarece ShortWorksCalendar afiseaza deja comenzile */}
                     </div>
                 )}
             </div>
