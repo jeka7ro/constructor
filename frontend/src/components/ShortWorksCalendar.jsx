@@ -104,8 +104,8 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                 </div>
             </div>
 
-            {/* Calendar Grid Container */}
-            <div className="flex-1 overflow-auto flex">
+            {/* Calendar Grid Container (Desktop) */}
+            <div className="flex-1 overflow-auto hidden md:flex">
                 {/* Time Gutter */}
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-12 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
@@ -229,6 +229,71 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                         })()}
                     </div>
                 </div>
+            </div>
+
+            {/* Calendar List View (Mobile) */}
+            <div className="flex-1 overflow-y-auto md:hidden p-4 flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+                {weeklyOrders.length === 0 ? (
+                    <div className="flex items-center justify-center py-10">
+                        <span className="text-slate-400 text-sm font-semibold">Nicio comandă în această săptămână</span>
+                    </div>
+                ) : (
+                    (() => {
+                        const sorted = [...weeklyOrders].sort((a, b) => {
+                            const dateA = a.start_date || a.deadline_date || '';
+                            const dateB = b.start_date || b.deadline_date || '';
+                            if (dateA !== dateB) return dateA.localeCompare(dateB);
+                            const tA = a.start_time || '07:00';
+                            const tB = b.start_time || '07:00';
+                            return tA.localeCompare(tB);
+                        });
+                        
+                        let lastDate = null;
+                        
+                        return sorted.map(wo => {
+                            const dateStr = wo.start_date || wo.deadline_date;
+                            const isNewDay = dateStr !== lastDate;
+                            lastDate = dateStr;
+                            
+                            const colorHex = wo.assigned_team_color || '#3b82f6';
+                            const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
+                            
+                            return (
+                                <React.Fragment key={wo.id}>
+                                    {isNewDay && parsedDate && (
+                                        <div className="mt-2 mb-1">
+                                            <span className="text-xs font-black uppercase text-slate-500 tracking-wider">
+                                                {format(parsedDate, 'EEEE, d MMM', { locale: ro })}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div 
+                                        className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform"
+                                        style={{ borderLeft: `4px solid ${colorHex}` }}
+                                        onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight">
+                                                {wo.title}
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md shrink-0">
+                                                <Clock className="w-3 h-3" />
+                                                {wo.start_time || '07:00'}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="truncate">{wo.client_name || wo.site_name || 'Fără locație'}</span>
+                                        </div>
+                                        <div className="text-xs font-bold mt-1" style={{ color: colorHex }}>
+                                            {wo.assigned_team_name || 'Neasignat'}
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            );
+                        });
+                    })()
+                )}
             </div>
         </div>
     );

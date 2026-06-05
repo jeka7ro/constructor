@@ -513,10 +513,12 @@ export default function AdminDashboard() {
                 </NavLink>
 
                 {/* 2. Șantiere */}
-                <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                    <Building2 className="w-6 h-6 mb-1.5" />
-                    <span className="text-[10px] font-bold">Șantiere</span>
-                </NavLink>
+                {hasLongTerm && (
+                    <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <Building2 className="w-6 h-6 mb-1.5" />
+                        <span className="text-[10px] font-bold">Șantiere</span>
+                    </NavLink>
+                )}
 
                 {/* 3. Dashboard (Home) */}
                 <div className="relative flex justify-center w-[96px]">

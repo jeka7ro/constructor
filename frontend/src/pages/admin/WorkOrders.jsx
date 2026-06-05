@@ -90,6 +90,93 @@ export default function WorkOrders() {
 
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
+    const renderActions = (wo) => {
+        const link = getLink(wo)
+        return (
+            <div className="flex items-center gap-1">
+                {wo.status !== 'draft' && (
+                    <button
+                        onClick={() => copyLink(link, wo.id)}
+                        title="Copiază link confirmare"
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                    >
+                        {copiedId === wo.id ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                )}
+                {wo.status !== 'draft' && (
+                    <a
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Deschide pagina client"
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                    </a>
+                )}
+                {wo.status === 'draft' && (
+                    <button
+                        onClick={() => handleSend(wo)}
+                        disabled={sendingId === wo.id}
+                        title="Marchează ca trimisă"
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-slate-500 hover:text-amber-600"
+                    >
+                        <Send className="w-4 h-4" />
+                    </button>
+                )}
+                {['confirmed', 'in_progress', 'completed'].includes(wo.status) && (
+                    <button
+                        onClick={async () => {
+                            setSessionsLoading(true)
+                            setSessionsModal({ woId: wo.id, title: wo.title, data: null })
+                            try {
+                                const res = await api.get(`/admin/work-orders/${wo.id}/sessions`)
+                                setSessionsModal({ woId: wo.id, title: wo.title, data: res.data })
+                            } catch { setSessionsModal({ woId: wo.id, title: wo.title, data: { error: true } }) }
+                            finally { setSessionsLoading(false) }
+                        }}
+                        title="Ore lucrate pe comandă"
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
+                    >
+                        <Timer className="w-4 h-4" />
+                    </button>
+                )}
+                {['confirmed', 'in_progress', 'completed'].includes(wo.status) && (
+                    <button
+                        onClick={() => setMatModal({
+                            woId: wo.id,
+                            title: wo.title,
+                            rows: wo.materials_consumed?.length
+                                ? wo.materials_consumed.map(m => ({ ...m }))
+                                : [{ name: '', quantity: '', unit: '', note: '' }]
+                        })}
+                        title="Materiale consumate"
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
+                    >
+                        <Package className="w-4 h-4" />
+                    </button>
+                )}
+                <button
+                    onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)}
+                    title="Editează"
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                >
+                    <Pencil className="w-4 h-4" />
+                </button>
+                {['draft', 'cancelled'].includes(wo.status) && (
+                    <button
+                        onClick={() => handleDelete(wo)}
+                        disabled={deletingId === wo.id}
+                        title="Șterge"
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-slate-500 hover:text-red-500"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+        )
+    }
+
     const columns = [
         {
             key: 'title', label: 'Titlu', sortable: true,
@@ -199,92 +286,7 @@ export default function WorkOrders() {
         },
         {
             key: 'actions', label: 'Acțiuni', sortable: false,
-            render: (wo) => {
-                const link = getLink(wo)
-                return (
-                    <div className="flex items-center gap-1">
-                        {wo.status !== 'draft' && (
-                            <button
-                                onClick={() => copyLink(link, wo.id)}
-                                title="Copiază link confirmare"
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
-                            >
-                                {copiedId === wo.id ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                            </button>
-                        )}
-                        {wo.status !== 'draft' && (
-                            <a
-                                href={link}
-                                target="_blank"
-                                rel="noreferrer"
-                                title="Deschide pagina client"
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
-                            >
-                                <ExternalLink className="w-4 h-4" />
-                            </a>
-                        )}
-                        {wo.status === 'draft' && (
-                            <button
-                                onClick={() => handleSend(wo)}
-                                disabled={sendingId === wo.id}
-                                title="Marchează ca trimisă"
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-slate-500 hover:text-amber-600"
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
-                        )}
-                        {['confirmed', 'in_progress', 'completed'].includes(wo.status) && (
-                            <button
-                                onClick={async () => {
-                                    setSessionsLoading(true)
-                                    setSessionsModal({ woId: wo.id, title: wo.title, data: null })
-                                    try {
-                                        const res = await api.get(`/admin/work-orders/${wo.id}/sessions`)
-                                        setSessionsModal({ woId: wo.id, title: wo.title, data: res.data })
-                                    } catch { setSessionsModal({ woId: wo.id, title: wo.title, data: { error: true } }) }
-                                    finally { setSessionsLoading(false) }
-                                }}
-                                title="Ore lucrate pe comandă"
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
-                            >
-                                <Timer className="w-4 h-4" />
-                            </button>
-                        )}
-                        {['confirmed', 'in_progress', 'completed'].includes(wo.status) && (
-                            <button
-                                onClick={() => setMatModal({
-                                    woId: wo.id,
-                                    title: wo.title,
-                                    rows: wo.materials_consumed?.length
-                                        ? wo.materials_consumed.map(m => ({ ...m }))
-                                        : [{ name: '', quantity: '', unit: '', note: '' }]
-                                })}
-                                title="Materiale consumate"
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
-                            >
-                                <Package className="w-4 h-4" />
-                            </button>
-                        )}
-                        <button
-                            onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)}
-                            title="Editează"
-                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
-                        >
-                            <Pencil className="w-4 h-4" />
-                        </button>
-                        {['draft', 'cancelled'].includes(wo.status) && (
-                            <button
-                                onClick={() => handleDelete(wo)}
-                                disabled={deletingId === wo.id}
-                                title="Șterge"
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-slate-500 hover:text-red-500"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-                )
-            }
+            render: renderActions
         }
     ]
 
@@ -370,6 +372,43 @@ export default function WorkOrders() {
                         boxShadow: `inset 4px 0 0 ${wo.assigned_team_color}`
                     } : undefined}
                     onRowClick={(wo) => navigate(`/admin/work-orders/${wo.id}`)}
+                    mobileCard={(wo) => {
+                        const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
+                        return (
+                            <div className="p-4 flex flex-col gap-2.5">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex flex-col min-w-0">
+                                        <div className="font-bold text-slate-900 dark:text-white text-sm">
+                                            {wo.title}
+                                        </div>
+                                        <div className="text-xs text-slate-500 truncate mt-0.5 flex items-center gap-1">
+                                            {wo.site_name ? <MapPin className="w-3 h-3" /> : null}
+                                            {wo.client_name || wo.site_name || 'Fără locație / client'}
+                                        </div>
+                                    </div>
+                                    <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                        {cfg.label}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                    <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-medium">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {formatDate(wo.deadline_date)}
+                                    </div>
+                                    {wo.assigned_team_name && (
+                                        <div className="flex items-center gap-1 font-bold" style={{ color: wo.assigned_team_color }}>
+                                            <User className="w-3.5 h-3.5" />
+                                            {wo.assigned_team_name}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end" onClick={e => e.stopPropagation()}>
+                                    {renderActions(wo)}
+                                </div>
+                            </div>
+                        )
+                    }}
                 />
             </div>
 

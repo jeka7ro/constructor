@@ -24,7 +24,8 @@ export default function DataTable({
     searchPlaceholder = 'Caută...',
     rowStyle,
     rowClassName,
-    onRowClick
+    onRowClick,
+    mobileCard
 }) {
     const { t } = useTranslation()
     const [page, setPage] = useState(1)
@@ -116,8 +117,28 @@ export default function DataTable({
                 </div>
             )}
 
+            {/* Mobile Card View */}
+            {mobileCard && (
+                <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+                    {loading ? (
+                        <div className="py-10 text-center text-sm text-slate-400">{t('common.loading')}</div>
+                    ) : slice.length === 0 ? (
+                        <div className="py-10 text-center text-sm text-slate-400">{emptyText || t('common.no_data')}</div>
+                    ) : (
+                        slice.map((row, idx) => (
+                            <div key={row.id ?? idx} className={onRowClick ? 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-800' : ''} onClick={onRowClick ? (e) => {
+                                if (e.target.closest('button,a,input,select,textarea')) return;
+                                onRowClick(row);
+                            } : undefined}>
+                                {mobileCard(row, from + idx)}
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div className={`overflow-x-auto ${mobileCard ? 'hidden md:block' : ''}`}>
                 <table className="w-full text-sm text-left">
                     <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-y border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>
