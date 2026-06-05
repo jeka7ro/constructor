@@ -543,6 +543,15 @@ export default function AdminDashboard() {
                             <div className={`w-9 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg items-center justify-center font-bold text-white shadow-md cursor-pointer hover:shadow-lg transition-all border-2 border-white/20 ${admin?.avatar_path ? 'hidden' : 'flex'}`}>
                                 {admin?.full_name?.charAt(0)}
                             </div>
+                            
+                            {/* Mobile Logout Button */}
+                            <button 
+                                onClick={handleLogout} 
+                                className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 max-md:border-white/30 max-md:bg-white/10 text-red-500 max-md:text-white hover:bg-red-50 dark:hover:bg-slate-800 transition-colors shadow-sm ml-0.5" 
+                                title={t('admin.logout')}
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
                 </header>

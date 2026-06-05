@@ -10,6 +10,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
+    const [showScrollHint, setShowScrollHint] = useState(false);
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
     useEffect(() => {
         if (containerRef.current) {
             let earliestRow = 13;
+            let latestRow = 1;
             let hasEvents = false;
             
             weeklyOrders.forEach(wo => {
@@ -60,13 +62,34 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                     const woDate = new Date(year, month - 1, day, 12, 0, 0);
                     if (weekDays.some(d => isSameDay(d, woDate))) {
                         hasEvents = true;
-                        earliestRow = Math.min(earliestRow, getGridRowFromTime(wo.start_time));
+                        const row = getGridRowFromTime(wo.start_time);
+                        earliestRow = Math.min(earliestRow, row);
+                        latestRow = Math.max(latestRow, row);
                     }
                 } catch (e) {}
             });
             
             const targetRow = hasEvents ? Math.max(1, earliestRow - 1) : 2; // scroll a bit above the earliest event, or default 07:00
-            containerRef.current.scrollTop = (targetRow - 1) * 80;
+            const newScrollTop = (targetRow - 1) * 80;
+            containerRef.current.scrollTop = newScrollTop;
+
+            if (!hasEvents) {
+                setShowScrollHint(false);
+            } else {
+                // Determine if any events are out of view.
+                // clientHeight is usually ~480px, but we check real value with fallback.
+                const clientH = containerRef.current.clientHeight || 480;
+                const visibleBottom = newScrollTop + clientH;
+                
+                // Assuming an event takes at least 1 hour (80px)
+                const eventsBottom = latestRow * 80;
+                
+                if (eventsBottom > visibleBottom) {
+                    setShowScrollHint(true);
+                } else {
+                    setShowScrollHint(false);
+                }
+            }
         }
     }, [weeklyOrders, currentDate]);
 
@@ -132,7 +155,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
             </div>
 
             {/* Overlay Badge */}
-            {!isScrollable && (
+            {!isScrollable && showScrollHint && (
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden md:block">
                     <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
                         <Hand className="w-3.5 h-3.5" />
