@@ -47,14 +47,18 @@ export default function EmployeeLayout() {
             {/* Bottom Navigation Bar (Glossy Glass Theme) */}
             <nav className="fixed bottom-0 left-0 right-0 bg-blue-100/40 backdrop-blur-xl border-4 border-b-0 border-white/80 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(59,130,246,0.5)] z-50 rounded-t-3xl">
 
-                {/* 1. Istoric */}
-                <NavLink
-                    to="/history"
-                    className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-700 scale-110 drop-shadow-md' : (isHome ? 'text-blue-600/90' : 'text-slate-400')}`}
-                >
-                    <Calendar className="w-7 h-7 mb-1.5" />
-                    <span className="text-xs font-bold">Istoric</span>
-                </NavLink>
+                {/* 1. Istoric sau Spacer */}
+                {hasLongTerm ? (
+                    <NavLink
+                        to="/history"
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-700 scale-110 drop-shadow-md' : (isHome ? 'text-blue-600/90' : 'text-slate-400')}`}
+                    >
+                        <Calendar className="w-7 h-7 mb-1.5" />
+                        <span className="text-xs font-bold">Istoric</span>
+                    </NavLink>
+                ) : (
+                    <div className="w-[80px]" />
+                )}
 
                 {/* Slot 2: For LongTerm it's Comenzi, for ShortWorks it's Acasa (Middle) */}
                 {hasLongTerm ? (
