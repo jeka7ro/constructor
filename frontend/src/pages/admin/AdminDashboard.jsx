@@ -14,8 +14,10 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 const getImageUrl = (url) => {
     if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${API_BASE}${url}`;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const base = API_BASE.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    return `${base}${path}`;
 }
 
 export default function AdminDashboard() {
@@ -132,6 +134,29 @@ export default function AdminDashboard() {
         const t = setInterval(fetchLeavesCount, 60000)
         return () => clearInterval(t)
     }, [])
+
+    // Dynamic Favicon based on Tenant Logo
+    useEffect(() => {
+        if (tenant?.logo_url) {
+            const url = getImageUrl(tenant.logo_url)
+            
+            let iconLink = document.querySelector("link[rel~='icon']")
+            if (!iconLink) {
+                iconLink = document.createElement('link')
+                iconLink.rel = 'icon'
+                document.head.appendChild(iconLink)
+            }
+            iconLink.href = url
+
+            let appleLink = document.querySelector("link[rel='apple-touch-icon']")
+            if (!appleLink) {
+                appleLink = document.createElement('link')
+                appleLink.rel = 'apple-touch-icon'
+                document.head.appendChild(appleLink)
+            }
+            appleLink.href = url
+        }
+    }, [tenant?.logo_url])
 
     // Close panel on outside click
     useEffect(() => {
@@ -316,11 +341,11 @@ export default function AdminDashboard() {
             <aside className={`
                 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 text-slate-800 dark:text-white transition-all duration-300 flex flex-col relative
+                bg-blue-600 border-r border-blue-700 text-white transition-all duration-300 flex flex-col relative shadow-xl
             `}>
                 
                 {/* Logo Area matches Header height */}
-                <div className={`h-20 flex items-center border-b border-slate-200 dark:border-white/10 shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative`}>
+                <div className={`h-20 flex items-center border-b border-blue-500/50 shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-2 w-full pr-8' : 'justify-center'}`}>
                         {tenant ? (
                             <>
@@ -335,7 +360,7 @@ export default function AdminDashboard() {
                                 </div>
                                 {sidebarOpen && (
                                     <div className="flex-1 min-w-0 pl-3 pr-2">
-                                        <h2 className="font-extrabold text-[14px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 truncate">{tenant.name}</h2>
+                                        <h2 className="font-extrabold text-[14px] leading-tight tracking-tighter text-white truncate">{tenant.name}</h2>
                                     </div>
                                 )}
                             </>
@@ -344,13 +369,13 @@ export default function AdminDashboard() {
                                 <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-full px-2' : 'w-10 h-10'}`}>
                                     {sidebarOpen ? (
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                                                 <span className="text-white font-bold text-xs">ST</span>
                                             </div>
-                                            <span className="font-extrabold text-[14px] leading-tight tracking-tighter text-slate-900 dark:text-white/95">Smart Timesheet</span>
+                                            <span className="font-extrabold text-[14px] leading-tight tracking-tighter text-white">Smart Timesheet</span>
                                         </div>
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                                             <span className="text-white font-bold text-xs">ST</span>
                                         </div>
                                     )}
@@ -370,10 +395,10 @@ export default function AdminDashboard() {
                                     onClick={() => toggleCategory(cat.id)}
                                     className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
                                 >
-                                    <span className="text-[11px] font-bold text-slate-900 font-black dark:font-bold dark:text-slate-400 uppercase tracking-widest tracking-wider group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">
+                                    <span className="text-[11px] font-bold text-blue-100 uppercase tracking-widest tracking-wider group-hover:text-white transition-colors">
                                         {cat.label}
                                     </span>
-                                    <ChevronRight className={`w-3.5 h-3.5 text-slate-600 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''}`} />
+                                    <ChevronRight className={`w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''}`} />
                                 </div>
                             )}
 
@@ -385,8 +410,8 @@ export default function AdminDashboard() {
                                         to={item.path}
                                         className={({ isActive }) =>
                                             `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
-                                                ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
-                                                : 'text-slate-900 font-bold dark:font-normal dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-100 dark:hover:bg-white/10 hover:text-blue-600 dark:hover:text-white'
+                                                ? 'bg-white text-blue-600 font-semibold shadow-md'
+                                                : 'text-blue-50 font-bold hover:bg-white/10 hover:text-white'
                                             }`
                                         }
                                         title={!sidebarOpen ? item.label : undefined}
@@ -409,14 +434,14 @@ export default function AdminDashboard() {
 
                             {/* Separator when collapsed */}
                             {!sidebarOpen && index < filteredCategories.length - 1 && (
-                                <div className="h-px bg-slate-200 dark:bg-white/5 my-3 mx-2" />
+                                <div className="h-px bg-blue-500/50 my-3 mx-2" />
                             )}
                         </div>
                     ))}
                 </nav>
 
                 {/* Footer Brand */}
-                <div className="py-5 px-4 border-t border-slate-200 dark:border-white/10 shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden">
+                <div className="py-5 px-4 border-t border-blue-500/50 shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden">
                     <div 
                         className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
                         title="Smart Timesheet"
@@ -442,7 +467,17 @@ export default function AdminDashboard() {
                          >
                              <Menu className="w-5 h-5" />
                          </button>
-                         <span className={`font-bold text-lg hidden sm:block tracking-tight text-slate-900 font-extrabold dark:text-white/90`}>{t('admin.admin_system')}</span>
+                         {/* Mobile Logo & Tenant Name */}
+                         <div className="md:hidden flex items-center gap-2">
+                              {tenant?.logo_url && (
+                                  <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-slate-50 drop-shadow-sm p-0.5" />
+                              )}
+                              <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 truncate max-w-[200px]">
+                                  {tenant?.name || 'Smart Timesheet'}
+                              </span>
+                         </div>
+                         {/* Desktop Title */}
+                         <span className={`font-bold text-lg hidden md:block tracking-tight text-slate-900 font-extrabold dark:text-white/90`}>{t('admin.admin_system')}</span>
                     </div>
 
                     <div className="flex items-center gap-5">
@@ -538,8 +573,10 @@ export default function AdminDashboard() {
                 {/* 3. Dashboard (Home) - Centered Shrink-0 */}
                 <div className="relative flex justify-center w-[96px] shrink-0">
                     <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-blue-600 shadow-[0_5px_15px_rgba(37,99,235,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-blue-400/50 scale-105' : ''}`}>
-                        {tenant?.logo_url ? (
-                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-12 h-12 object-contain drop-shadow-sm rounded-full bg-white/10" />
+                        {tenant?.favicon_url ? (
+                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-sm rounded-lg" />
+                        ) : tenant?.logo_url ? (
+                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-sm rounded-lg" />
                         ) : (
                             <LayoutDashboard className="w-8 h-8" />
                         )}
