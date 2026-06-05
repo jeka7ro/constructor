@@ -38,12 +38,20 @@ def _haversine_distance(lat1, lon1, lat2, lon2) -> float:
 
 
 def _get_user_team_ids(db: Session, user_id: str, org_id: str) -> List[str]:
-    """Return list of team IDs the user belongs to (active memberships)."""
+    """Return list of team IDs the user belongs to (active memberships) or leads."""
     memberships = db.query(TeamMember).filter(
         TeamMember.user_id == user_id,
         TeamMember.is_active == True
     ).all()
-    return [m.team_id for m in memberships]
+    team_ids = [m.team_id for m in memberships]
+
+    led_teams = db.query(Team).filter(
+        Team.leader_id == user_id,
+        Team.organization_id == org_id
+    ).all()
+    led_team_ids = [t.id for t in led_teams]
+
+    return list(set(team_ids + led_team_ids))
 
 
 def _is_team_leader(user: User, db: Session) -> bool:
@@ -113,27 +121,17 @@ def get_my_orders(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Returneaza comenzile alocate echipei mele.
-    Seful de echipa vede toate comenzile organizatiei (planning complet).
+    Returneaza comenzile alocate echipei mele (ca membru sau lider de echipa).
     """
-    is_leader = _is_team_leader(current_user, db)
+    team_ids = _get_user_team_ids(db, current_user.id, current_user.organization_id)
+    if not team_ids:
+        return []
 
-    if is_leader:
-        # Seful de echipa vede tot planning-ul organizatiei
-        orders = db.query(WorkOrder).filter(
-            WorkOrder.organization_id == current_user.organization_id,
-            WorkOrder.status.notin_(["cancelled"])
-        ).order_by(WorkOrder.start_date.asc()).all()
-    else:
-        # Muncitorul vede doar comenzile echipei lui
-        team_ids = _get_user_team_ids(db, current_user.id, current_user.organization_id)
-        if not team_ids:
-            return []
-        orders = db.query(WorkOrder).filter(
-            WorkOrder.organization_id == current_user.organization_id,
-            WorkOrder.assigned_team_id.in_(team_ids),
-            WorkOrder.status.notin_(["cancelled"])
-        ).order_by(WorkOrder.start_date.asc()).all()
+    orders = db.query(WorkOrder).filter(
+        WorkOrder.organization_id == current_user.organization_id,
+        WorkOrder.assigned_team_id.in_(team_ids),
+        WorkOrder.status.notin_(["cancelled"])
+    ).order_by(WorkOrder.start_date.asc()).all()
 
     return [_serialize_order(wo, current_user.id, db) for wo in orders]
 
