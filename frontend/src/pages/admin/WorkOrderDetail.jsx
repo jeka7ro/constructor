@@ -196,9 +196,45 @@ export default function WorkOrderDetail() {
     
     // Dynamic Materials KPI
     const hasStarted = wo.status === 'in_progress' || wo.status === 'completed';
-    const consumedCount = (wo.materials_consumed || []).filter(m => m.name).length;
-    const estimatedCount = (wo.materials || []).length;
-    const matValue = hasStarted ? consumedCount : estimatedCount;
+    const materialsArray = (hasStarted ? wo.materials_consumed : wo.materials) || [];
+    const activeMats = materialsArray.filter(m => m.name);
+
+    let matValue = '—';
+    let matSub = 'niciun material';
+
+    if (activeMats.length === 1) {
+        const m = activeMats[0];
+        let q = parseFloat(m.quantity) || 0;
+        let u = (m.unit || '').toLowerCase();
+        if (u === 'kg') {
+            q = q / 1000;
+            u = 'tone';
+        }
+        matValue = q;
+        matSub = `${u} ${m.name}`;
+    } else if (activeMats.length > 1) {
+        let totalT = 0;
+        let names = [];
+        activeMats.forEach(m => {
+            let q = parseFloat(m.quantity) || 0;
+            let u = (m.unit || '').toLowerCase();
+            names.push(m.name);
+            if (u === 'kg') totalT += q / 1000;
+            else if (u === 't' || u === 'tone' || u === 'tonă') totalT += q;
+        });
+        
+        if (totalT > 0) {
+            matValue = totalT;
+            // Limit names to avoid overflow
+            let namesStr = names.join(', ');
+            if (namesStr.length > 20) namesStr = namesStr.substring(0, 17) + '...';
+            matSub = `tone (${namesStr})`;
+        } else {
+            matValue = activeMats.length;
+            matSub = 'tipuri materiale';
+        }
+    }
+
     const matLabel = hasStarted ? "Mat. Consumate" : "Mat. Necesare";
 
     const volumeTotal = (wo.volumes || []).reduce((a, v) => a + (parseFloat(v.quantity) || 0), 0)
@@ -285,7 +321,7 @@ export default function WorkOrderDetail() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <KPI icon={Timer}    label="Ore Lucrate"    value={`${totalHours}h`} sub={`${sessCount} sesiuni`}   color="blue" />
                 <KPI icon={Users}    label="Angajați"       value={workersValue}     sub={workersSub}       color="purple" />
-                <KPI icon={Package}  label={matLabel}       value={matValue}         sub="tipuri"           color="amber" />
+                <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label="Volum Estimat" value={volumeTotal > 0 ? volumeTotal : '—'} sub={(wo.volumes || [])[0]?.unit || 'unități'} color="green" />
                 <KPI icon={Camera}   label="Fotografii"     value={photos.length}     sub="înregistrate"     color="slate" />
             </div>
