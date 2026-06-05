@@ -235,7 +235,8 @@ export default function OrganizationsManagement() {
 
     const moduleOptions = [
         { id: 'timesheets', label: 'Pontaje' },
-        { id: 'sites', label: 'Șantiere' },
+        { id: 'screeds', label: 'Șape (Comenzi Montaj)' },
+        { id: 'sites', label: 'Șantiere (Termen Lung)' },
         { id: 'fleet', label: 'Parc Auto' },
         { id: 'warehouse', label: 'Magazie & Inventar' },
         { id: 'accommodations', label: 'Cazări' },
@@ -518,30 +519,7 @@ export default function OrganizationsManagement() {
                                     </select>
                                 </div>
 
-                                {/* ROW 4: Tipuri de Lucrari */}
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipuri de Lucrari</label>
-                                    <div className="space-y-2">
-                                        <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                            <input type="checkbox" checked={formData.has_long_term_sites}
-                                                onChange={e => setFormData({...formData, has_long_term_sites: e.target.checked})}
-                                                className="w-5 h-5 rounded accent-blue-600 cursor-pointer" />
-                                            <div>
-                                                <div className="text-sm font-bold text-slate-800 dark:text-white">Santiere Clasice (Termen Lung)</div>
-                                                <div className="text-xs text-slate-400">Locatii fixe pe harta, durata lunga.</div>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                            <input type="checkbox" checked={formData.has_short_term_interventions}
-                                                onChange={e => setFormData({...formData, has_short_term_interventions: e.target.checked})}
-                                                className="w-5 h-5 rounded accent-amber-500 cursor-pointer" />
-                                            <div>
-                                                <div className="text-sm font-bold text-slate-800 dark:text-white">Lucrari Scurte (Interventii)</div>
-                                                <div className="text-xs text-slate-400">Comenzi de lucru cu GPS si check-in dinamic.</div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
+
 
                                 {/* ROW 5: Culoare + Status */}
                                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
@@ -572,23 +550,45 @@ export default function OrganizationsManagement() {
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Module Functionale</label>
                                         <button type="button" onClick={() => {
-                                            const regularMods = moduleOptions.filter(m => m.id !== 'timesheets').map(m => m.id)
-                                            const isAllSelected = moduleOptions.every(m => m.id === 'timesheets' ? !formData.features.includes('disable_timesheets') : formData.features.includes(m.id))
+                                            const regularMods = moduleOptions.filter(m => !['timesheets', 'sites', 'screeds'].includes(m.id)).map(m => m.id)
+                                            const isAllSelected = moduleOptions.every(m => {
+                                                if (m.id === 'timesheets') return !formData.features.includes('disable_timesheets')
+                                                if (m.id === 'sites') return formData.has_long_term_sites
+                                                if (m.id === 'screeds') return formData.has_short_term_interventions
+                                                return formData.features.includes(m.id)
+                                            })
                                             
                                             if (isAllSelected) {
-                                                setFormData({...formData, features: ['disable_timesheets']})
+                                                setFormData({
+                                                    ...formData, 
+                                                    features: ['disable_timesheets'],
+                                                    has_long_term_sites: false,
+                                                    has_short_term_interventions: false
+                                                })
                                             } else {
-                                                setFormData({...formData, features: regularMods})
+                                                setFormData({
+                                                    ...formData, 
+                                                    features: regularMods,
+                                                    has_long_term_sites: true,
+                                                    has_short_term_interventions: true
+                                                })
                                             }
                                         }} className="text-[11px] font-extrabold text-blue-600 hover:text-blue-700 uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded-full">
-                                            {moduleOptions.every(m => m.id === 'timesheets' ? !formData.features.includes('disable_timesheets') : formData.features.includes(m.id)) ? 'Deselecteaza Tot' : 'Selecteaza Tot'}
+                                            {moduleOptions.every(m => {
+                                                if (m.id === 'timesheets') return !formData.features.includes('disable_timesheets')
+                                                if (m.id === 'sites') return formData.has_long_term_sites
+                                                if (m.id === 'screeds') return formData.has_short_term_interventions
+                                                return formData.features.includes(m.id)
+                                            }) ? 'Deselecteaza Tot' : 'Selecteaza Tot'}
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         {moduleOptions.map(mod => {
-                                            const isChecked = mod.id === 'timesheets' 
-                                                ? !formData.features.includes('disable_timesheets') 
-                                                : formData.features.includes(mod.id)
+                                            let isChecked = false;
+                                            if (mod.id === 'timesheets') isChecked = !formData.features.includes('disable_timesheets');
+                                            else if (mod.id === 'sites') isChecked = formData.has_long_term_sites;
+                                            else if (mod.id === 'screeds') isChecked = formData.has_short_term_interventions;
+                                            else isChecked = formData.features.includes(mod.id);
                                                 
                                             return (
                                                 <label key={mod.id} className={`flex items-center justify-between px-4 py-2.5 rounded-full border cursor-pointer transition-all ${isChecked ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50'}`}>
@@ -597,12 +597,16 @@ export default function OrganizationsManagement() {
                                                         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${isChecked ? 'left-[22px]' : 'left-0.5'}`} />
                                                         <input type="checkbox" className="sr-only" checked={isChecked}
                                                             onChange={e => {
-                                                                const f = formData.features
+                                                                const f = formData.features || []
                                                                 if(e.target.checked) {
                                                                     if (mod.id === 'timesheets') setFormData({...formData, features: f.filter(x => x !== 'disable_timesheets')})
+                                                                    else if (mod.id === 'sites') setFormData({...formData, has_long_term_sites: true})
+                                                                    else if (mod.id === 'screeds') setFormData({...formData, has_short_term_interventions: true})
                                                                     else setFormData({...formData, features: [...f, mod.id]})
                                                                 } else {
                                                                     if (mod.id === 'timesheets') setFormData({...formData, features: [...f, 'disable_timesheets']})
+                                                                    else if (mod.id === 'sites') setFormData({...formData, has_long_term_sites: false})
+                                                                    else if (mod.id === 'screeds') setFormData({...formData, has_short_term_interventions: false})
                                                                     else setFormData({...formData, features: f.filter(x => x !== mod.id)})
                                                                 }
                                                             }} />

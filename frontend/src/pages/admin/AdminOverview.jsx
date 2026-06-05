@@ -364,7 +364,7 @@ export default function AdminOverview() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
 {/* Recent Work Orders */}
-            {dashboardLayout.recent_work_orders?.visible && (
+            {isShortTerm && dashboardLayout.recent_work_orders?.visible && (
                 <div className={getLayoutClass("recent_work_orders", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5")}>
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
