@@ -217,15 +217,15 @@ function OrderCard({ order, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function TabBar({ active, onChange }) {
     return (
-        <div className="flex border-b border-slate-200 bg-white sticky top-0 z-10">
+        <div className="flex bg-white z-10 pb-[env(safe-area-inset-bottom)]">
             {TABS.map(({ id, label, icon: Icon }) => (
                 <button
                     key={id}
                     onClick={() => onChange(id)}
-                    className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors ${
+                    className={`flex-1 flex flex-col items-center gap-1 pt-3 pb-2 text-[10px] font-semibold transition-colors ${
                         active === id
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-slate-400 border-b-2 border-transparent'
+                            ? 'text-blue-600'
+                            : 'text-slate-400'
                     }`}
                 >
                     <Icon className="w-4 h-4" />
@@ -890,7 +890,7 @@ export default function WorkerOrdersPage() {
     const [uploadingMachine, setUploadingMachine]     = useState(false)
     const [closing, setClosing]                       = useState(false)
 
-    const isLeader = user?.role?.code === 'TEAM_LEADER' || user?.role?.code === 'SEF_ECHIPA'
+    const isLeader = ['TEAM_LEADER', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN'].includes(user?.role?.code)
 
     // GPS watch
     useEffect(() => {
@@ -1217,7 +1217,6 @@ export default function WorkerOrdersPage() {
                         {STATUS_LABEL[selected.status] || selected.status}
                     </span>
                 </div>
-                <TabBar active={activeTab} onChange={setActiveTab} />
             </div>
 
             {/* Continut tab */}
@@ -1318,6 +1317,11 @@ export default function WorkerOrdersPage() {
                     )}
                 </div>
             )}
+
+            {/* TabBar mutat in panoul de jos */}
+            <div className="bg-white border-t border-slate-200 shrink-0 z-20">
+                <TabBar active={activeTab} onChange={setActiveTab} />
+            </div>
         </div>
     )
 }

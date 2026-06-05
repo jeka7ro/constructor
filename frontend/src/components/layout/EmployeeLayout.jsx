@@ -105,13 +105,7 @@ export default function EmployeeLayout() {
                         </button>
                     </div>
                 ) : (
-                    <NavLink
-                        to="/comenzi"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-green-700 scale-110 drop-shadow-md' : (isHome ? 'text-green-600/90' : 'text-slate-400')}`}
-                    >
-                        <ClipboardList className="w-7 h-7 mb-1.5" />
-                        <span className="text-[10px] font-bold text-center leading-tight">Comenzi<br/>de lucru</span>
-                    </NavLink>
+                    <div className="w-[80px]" />
                 )}
 
                 {/* 4. Inventar */}
