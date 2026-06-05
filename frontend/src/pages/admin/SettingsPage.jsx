@@ -3,12 +3,16 @@ import { Save, Building2, Clock, Bell, Globe, Upload, Image, X, LayoutDashboard 
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
+import { useTenantStore } from '../../store/tenantStore'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SettingsPage() {
     const { t } = useTranslation()
     const { openDialog } = useUIStore()
+    const { tenant } = useTenantStore()
+    const tenantFeatures = tenant?.features || []
+    const hasTimesheets = !tenantFeatures.includes('disable_timesheets')
     const [settings, setSettings] = useState({
         // Organization
         org_name: '',
@@ -111,12 +115,14 @@ export default function SettingsPage() {
                         icon={Building2}
                         label="Organizație"
                     />
-                    <TabButton
-                        active={activeTab === 'timesheet'}
-                        onClick={() => setActiveTab('timesheet')}
-                        icon={Clock}
-                        label="Pontaje"
-                    />
+                    {hasTimesheets && (
+                        <TabButton
+                            active={activeTab === 'timesheet'}
+                            onClick={() => setActiveTab('timesheet')}
+                            icon={Clock}
+                            label="Pontaje"
+                        />
+                    )}
                     <TabButton
                         active={activeTab === 'notifications'}
                         onClick={() => setActiveTab('notifications')}
