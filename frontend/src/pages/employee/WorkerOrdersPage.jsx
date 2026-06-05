@@ -1205,9 +1205,9 @@ export default function WorkerOrdersPage() {
     // RENDER: DETALIU comanda
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
             {/* Header comanda */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+            <div className="bg-white border-b border-slate-200 shrink-0 z-20">
                 <div className="flex items-center gap-3 px-4 py-3">
                     <button
                         onClick={() => setSelected(null)}
@@ -1224,7 +1224,7 @@ export default function WorkerOrdersPage() {
             </div>
 
             {/* Continut tab */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-6">
                 {activeTab === 'info' && (
                     <TabInfo
                         order={selected}
@@ -1280,7 +1280,7 @@ export default function WorkerOrdersPage() {
 
             {/* Buton principal fix jos — START/STOP WORK */}
             {!isCompleted && (
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-30">
+                <div className="bg-white border-t border-slate-200 px-4 py-3 shrink-0">
                     {!hasOpenCheckin ? (
                         <button
                             disabled={loadingAction || !selected.my_acknowledged}
