@@ -8,6 +8,7 @@ import {
 import api from '../../lib/api'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import SearchableSelect from '../../components/SearchableSelect'
+import AddressAutocomplete from '../../components/AddressAutocomplete'
 
 const VOLUME_UNITS = ['m²', 'm³', 'm liniar', 'buc', 'ore', 'kg', 'tone', 'saci', 'pal', 'set']
 
@@ -405,10 +406,18 @@ export default function WorkOrderForm() {
                 ) : (
                     <div className="space-y-4">
                         <Field label="Adresa Lucrarii" required>
-                            <input type="text" value={form.site_address}
-                                onChange={e => set('site_address', e.target.value)}
+                            <AddressAutocomplete 
+                                value={form.site_address}
+                                onChange={(addr, lat, lon) => {
+                                    setForm(p => ({
+                                        ...p,
+                                        site_address: addr,
+                                        ...(lat && lon ? { site_latitude: lat, site_longitude: lon } : {})
+                                    }))
+                                }}
                                 placeholder="Str. ..., Nr. ..., Oras, Judet"
-                                className={INPUT} />
+                                className={INPUT} 
+                            />
                         </Field>
 
                         {/* GPS */}
