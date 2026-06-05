@@ -49,7 +49,7 @@ const LANGUAGES = [
     { code: 'hu', label: 'HU', Flag: FlagHU },
 ]
 
-export default function LanguageSelector({ variant = 'dark' }) {
+export default function LanguageSelector({ variant = 'dark', className = '' }) {
     const { i18n } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef(null)
@@ -83,7 +83,7 @@ export default function LanguageSelector({ variant = 'dark' }) {
                     isDark 
                         ? 'border-slate-700/50 hover:bg-slate-800 text-slate-300' 
                         : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                }`}
+                } ${className}`}
                 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}
             >
                 <activeLang.Flag />

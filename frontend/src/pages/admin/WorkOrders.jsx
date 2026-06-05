@@ -374,8 +374,9 @@ export default function WorkOrders() {
                     onRowClick={(wo) => navigate(`/admin/work-orders/${wo.id}`)}
                     mobileCard={(wo) => {
                         const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
+                        const teamColor = wo.assigned_team_color
                         return (
-                            <div className="p-4 flex flex-col gap-2.5">
+                            <div className="p-4 flex flex-col gap-2.5" style={teamColor ? { backgroundColor: `${teamColor}15`, borderLeft: `4px solid ${teamColor}` } : undefined}>
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex flex-col min-w-0">
                                         <div className="font-bold text-slate-900 dark:text-white text-sm">

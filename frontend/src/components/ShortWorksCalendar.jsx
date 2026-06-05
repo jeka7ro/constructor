@@ -269,7 +269,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                     )}
                                     <div 
                                         className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform"
-                                        style={{ borderLeft: `4px solid ${colorHex}` }}
+                                        style={{ borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` }}
                                         onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
                                     >
                                         <div className="flex items-start justify-between gap-2">

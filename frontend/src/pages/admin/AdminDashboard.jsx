@@ -488,9 +488,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3 sm:gap-5">
                         {/* Right side items: Language, Theme, Notifications */}
                         <div className="flex items-center gap-2">
-                            <div className="max-md:opacity-90 max-md:invert max-md:brightness-200 dark:max-md:invert-0 dark:max-md:brightness-100">
-                               <LanguageSelector variant={darkMode ? 'dark' : 'light'} />
-                            </div>
+                           <LanguageSelector variant={darkMode ? 'dark' : 'light'} className="max-md:!text-white max-md:!border-white/30 max-md:!bg-white/10" />
                            <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/20 mx-1 hidden sm:block"></div>
                            <button
                                onClick={() => setDarkMode(!darkMode)}
