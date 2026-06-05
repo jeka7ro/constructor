@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -515,22 +515,25 @@ export default function AdminDashboard() {
                         <span className="text-[10px] font-bold">Angajați</span>
                     </NavLink>
 
-                    {/* 2. Șantiere (sau spacer) */}
+                    {/* 2. Șantiere (sau Rapoarte daca nu are santiere lungi, specifice SAPE) */}
                     {hasLongTerm ? (
                         <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                             <Building2 className="w-6 h-6 mb-1.5" />
                             <span className="text-[10px] font-bold">Șantiere</span>
                         </NavLink>
                     ) : (
-                        <div className="w-[72px]" />
+                        <NavLink to="/admin/reports" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-violet-600 dark:text-violet-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
+                            <BarChart3 className="w-6 h-6 mb-1.5" />
+                            <span className="text-[10px] font-bold">Rapoarte</span>
+                        </NavLink>
                     )}
                 </div>
 
                 {/* 3. Dashboard (Home) - Centered Shrink-0 */}
                 <div className="relative flex justify-center w-[96px] shrink-0">
-                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-lime-600 shadow-[0_5px_15px_rgba(101,163,13,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-lime-400/50 scale-105' : ''}`}>
+                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-blue-600 shadow-[0_5px_15px_rgba(37,99,235,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-blue-400/50 scale-105' : ''}`}>
                         {tenant?.logo_url ? (
-                            <img src={tenant.logo_url} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md brightness-0 invert" />
+                            <img src={tenant.logo_url} alt="Logo" className="w-12 h-12 object-contain drop-shadow-sm rounded-full bg-white/10" />
                         ) : (
                             <LayoutDashboard className="w-8 h-8" />
                         )}

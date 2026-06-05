@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
+import { useTenantStore } from '../../store/tenantStore'
 import api from '../../lib/api'
+import ScreedsReports from './ScreedsReports'
 import {
     FileDown, Calendar, Users, Building2, Loader2, Download, Eye,
     BarChart3, Clock, TrendingUp, Activity, Filter, PieChart as PieChartIcon, FileSpreadsheet
@@ -23,6 +25,17 @@ const toLocalISO = (d) => {
 }
 
 export default function ReportsPage() {
+    const { tenant } = useTenantStore()
+    const isScreeds = tenant?.features?.includes('screeds') === true
+
+    if (isScreeds) {
+        return <ScreedsReports />
+    }
+
+    return <TimesheetsReports />
+}
+
+function TimesheetsReports() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
