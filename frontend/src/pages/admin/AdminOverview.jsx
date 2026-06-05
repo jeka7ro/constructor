@@ -79,22 +79,34 @@ export default function AdminOverview() {
     const hasWarehouse = tenant?.features?.includes('warehouse') || tenant?.has_warehouse === true
 
     const [weeklyOrdersCount, setWeeklyOrdersCount] = useState(0)
+    const [todayOrdersCount, setTodayOrdersCount] = useState(0)
+    
     useEffect(() => {
         if (!isScreeds || !allWorkOrders) return;
         const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        
         const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
         startOfWeek.setHours(0,0,0,0);
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(endOfWeek.getDate() + 6);
         endOfWeek.setHours(23,59,59,999);
         
-        const count = allWorkOrders.filter(wo => {
+        let wCount = 0;
+        let tCount = 0;
+        
+        allWorkOrders.forEach(wo => {
             const dateStr = wo.start_date || wo.deadline_date;
-            if (!dateStr) return false;
-            const d = new Date(dateStr.split('T')[0]);
-            return d >= startOfWeek && d <= endOfWeek;
-        }).length;
-        setWeeklyOrdersCount(count);
+            if (!dateStr) return;
+            const dStr = dateStr.split('T')[0];
+            const d = new Date(dStr);
+            
+            if (dStr === todayStr) tCount++;
+            if (d >= startOfWeek && d <= endOfWeek) wCount++;
+        });
+        
+        setWeeklyOrdersCount(wCount);
+        setTodayOrdersCount(tCount);
     }, [allWorkOrders, isScreeds]);
 
     // Worker detail drawer
@@ -351,36 +363,30 @@ export default function AdminOverview() {
             </div>
 
             {/* KPI Row */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div className={`grid gap-3 mb-6 ${isScreeds ? 'grid-cols-3 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
                 {statsLoading ? (
                     Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} className="h-24 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
                     ))
+                ) : isScreeds ? (
+                    <>
+                        <KPICard label="Lucrări Azi" value={todayOrdersCount} icon={Timer} colorTheme="blue" onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label="Săptămâna Curentă" value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label="Necesar Nisip" value={necesar.length} icon={Package} colorTheme="amber" onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                    </>
                 ) : (
                     <>
                         <KPICard label={t('dashboard.employees')} value={stats.total_users} icon={Users} colorTheme="blue" onClick={() => navigate('/admin/users')} />
-                        {/* Sites KPI — doar daca tenant are santiere clasice */}
                         {isLongTerm && (
                             <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} colorTheme="indigo" onClick={() => navigate('/admin/sites')} />
                         )}
-                        {/* Work Orders KPI — doar daca tenant are lucrari scurte */}
-                        {isShortTerm && !isScreeds && (
+                        {isShortTerm && (
                             <KPICard label="Comenzi" value={workOrdersStats.total} icon={ClipboardList} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
                         )}
-                        
-                        {isScreeds ? (
-                            <>
-                                <KPICard label="Lucrări Săptămâna Curentă" value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
-                                <KPICard label="Necesar Nisip" value={necesar.length} icon={Package} colorTheme="amber" onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                            </>
-                        ) : (
-                            <>
-                                <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} colorTheme="green" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                                <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} colorTheme="orange" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                                <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} colorTheme="purple" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                                <KPICard label={t('dashboard.hours_week')} value={formatTime(stats.total_hours_week)} icon={TrendingUp} colorTheme="slate" isText onClick={() => navigate('/admin/reports')} />
-                            </>
-                        )}
+                        <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} colorTheme="green" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} colorTheme="orange" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} colorTheme="purple" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('dashboard.hours_week')} value={formatTime(stats.total_hours_week)} icon={TrendingUp} colorTheme="slate" isText onClick={() => navigate('/admin/reports')} />
                     </>
                 )}
             </div>
