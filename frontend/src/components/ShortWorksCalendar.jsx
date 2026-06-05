@@ -40,7 +40,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
         if (!timeStr) return 3; // Default to 08:00 (row 3 when starting at 06:00)
         const [hours] = timeStr.split(':').map(Number);
         const row = hours - 6 + 1; // 06:00 is row 1
-        return Math.max(1, Math.min(18, row));
+        return Math.max(1, Math.min(13, row));
     };
 
     return (
@@ -109,7 +109,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                 {/* Time Gutter */}
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-12 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
-                    {Array.from({ length: 18 }).map((_, i) => (
+                    {Array.from({ length: 13 }).map((_, i) => (
                         <div key={i} className="h-20 border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
                             {(i + 6).toString().padStart(2, '0')}:00
                         </div>
@@ -137,7 +137,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid grid-cols-7 grid-rows-[repeat(18,minmax(80px,80px))] bg-slate-50/30 dark:bg-slate-900/30">
+                    <div className="relative grid grid-cols-7 grid-rows-[repeat(13,minmax(80px,80px))] bg-slate-50/30 dark:bg-slate-900/30">
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">Nicio comandă în această săptămână</span>
@@ -145,7 +145,7 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                         )}
                         
                         {/* Grid Lines */}
-                        {Array.from({ length: 18 * 7 }).map((_, i) => (
+                        {Array.from({ length: 13 * 7 }).map((_, i) => (
                             <div key={i} className="border-r border-b border-slate-200 dark:border-slate-800/60" />
                         ))}
 

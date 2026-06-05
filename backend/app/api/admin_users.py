@@ -513,6 +513,7 @@ def get_users(
     search: Optional[str] = None,
     role_id: Optional[str] = None,
     is_active: Optional[bool] = None,
+    user_type: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -532,6 +533,19 @@ def get_users(
         query = query.filter(User.role_id == role_id)
     if is_active is not None:
         query = query.filter(User.is_active == is_active)
+        
+    if user_type == 'employee':
+        query = query.filter(
+            ~Role.name.in_(['Administrator', 'Super Administrator', 'ADMIN', 'SUPER_ADMIN']),
+            User.employee_code != 'ADMIN'
+        )
+    elif user_type == 'admin':
+        query = query.filter(
+            or_(
+                Role.name.in_(['Administrator', 'Super Administrator', 'ADMIN', 'SUPER_ADMIN']),
+                User.employee_code == 'ADMIN'
+            )
+        )
     
     total = query.count()
     offset = (page - 1) * page_size

@@ -108,19 +108,12 @@ export default function EmployeesManagement() {
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const params = { search, page: preferences.currentPage, page_size: preferences.pageSize }
+            const params = { search, page: preferences.currentPage, page_size: preferences.pageSize, user_type: 'employee' }
             if (roleFilter) params.role_id = roleFilter
             if (statusFilter !== '') params.is_active = statusFilter === 'true'
             const response = await api.get('/admin/users/', { params })
-            // Show ONLY non-admin employees on this page
-            const ADMIN_ROLE_NAMES = ['Administrator', 'Super Administrator', 'ADMIN']
-            const filtered = (response.data.users || []).filter(u =>
-                !(u.employee_code === 'ADMIN' ||
-                  (u.last_name === 'Admin' && u.first_name === 'User') ||
-                  ADMIN_ROLE_NAMES.includes(u.role_name))
-            )
-            setUsers(filtered)
-            setTotalUsers(filtered.length)
+            setUsers(response.data.users || [])
+            setTotalUsers(response.data.total || 0)
         } catch (error) {
             console.error('Error fetching users:', error)
         } finally {

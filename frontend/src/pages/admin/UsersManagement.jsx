@@ -65,14 +65,9 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const params = { page: 1, page_size: 100 }
+            const params = { page: 1, page_size: 100, user_type: 'admin' }
             const response = await api.get('/admin/users/', { params })
-            const all = response.data.users || []
-            const adminUsers = all.filter(u =>
-                !(u.employee_code === 'ADMIN' || (u.last_name === 'Admin' && u.first_name === 'User')) &&
-                ADMIN_ROLE_NAMES.includes(u.role_name)
-            )
-            setUsers(adminUsers)
+            setUsers(response.data.users || [])
         } catch (err) {
             console.error('Error fetching users:', err)
         } finally {

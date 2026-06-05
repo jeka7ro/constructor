@@ -98,20 +98,20 @@ function NavButtons({ lat, lon, address }) {
     if (!googleUrl) return null
 
     return (
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="grid grid-cols-3 gap-2 mt-3">
             {googleUrl && (
                 <a href={googleUrl} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/30">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-blue-600 text-white text-[11px] sm:text-xs font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                     </svg>
-                    Google Maps
+                    Google
                 </a>
             )}
             {wazeUrl && (
                 <a href={wazeUrl} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05C8F7] text-white text-sm font-bold hover:bg-[#04b0d8] active:scale-95 transition-all shadow-md shadow-cyan-400/30">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-[#05C8F7] text-white text-[11px] sm:text-xs font-bold hover:bg-[#04b0d8] active:scale-95 transition-all shadow-sm shadow-cyan-400/20 whitespace-nowrap">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20.54 6.63C19.08 4.05 16.73 2.19 14 1.54V1.5c0-.83-.67-1.5-1.5-1.5S11 .67 11 1.5v.04C8.27 2.19 5.92 4.05 4.46 6.63A8.959 8.959 0 003 11c0 4.97 4.03 9 9 9s9-4.03 9-9c0-1.62-.43-3.14-1.46-4.37zM8.5 13c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5S14.67 10 15.5 10s1.5.67 1.5 1.5S16.33 13 15.5 13zm-3.5 4c-1.66 0-3-1.34-3-3h6c0 1.66-1.34 3-3 3z"/>
                     </svg>
                     Waze
@@ -119,9 +119,9 @@ function NavButtons({ lat, lon, address }) {
             )}
             {appleUrl && (
                 <a href={appleUrl} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-800 dark:bg-slate-600 text-white text-sm font-bold hover:bg-slate-700 active:scale-95 transition-all shadow-md">
-                    <Navigation className="w-4 h-4" />
-                    Apple Maps
+                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-slate-800 dark:bg-slate-600 text-white text-[11px] sm:text-xs font-bold hover:bg-slate-700 active:scale-95 transition-all shadow-sm whitespace-nowrap">
+                    <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    Apple
                 </a>
             )}
         </div>
