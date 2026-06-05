@@ -32,7 +32,7 @@ const EMPTY_FORM = {
     start_time: '07:00',
     deadline_date: '',
     // Cantitati
-    volumes: [{ label: '', quantity: '', unit: 'm²' }],
+    volumes: [{ label: '', quantity: '', unit: 'm²', thickness: '' }],
     // Materiale
     materials: [{ name: '', quantity: '', unit: '' }],
     // Echipa + vehicul
@@ -115,7 +115,7 @@ export default function WorkOrderForm() {
                 if (!isEdit && acts.length === 1) {
                     setForm(prev => ({
                         ...prev,
-                        volumes: [{ label: acts[0].name, quantity: '', unit: 'm²' }]
+                        volumes: [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }]
                     }))
                 }
             } catch {}
@@ -144,7 +144,7 @@ export default function WorkOrderForm() {
                         site_geofence_radius: wo.site_geofence_radius || 100,
                         assigned_team_id: wo.assigned_team_id || '',
                         assigned_vehicle_id: wo.assigned_vehicle_id || '',
-                        volumes: wo.volumes?.length ? wo.volumes : [{ label: '', quantity: '', unit: 'm²' }],
+                        volumes: wo.volumes?.length ? wo.volumes : [{ label: '', quantity: '', unit: 'm²', thickness: '' }],
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
                     }))
                     setSavedId(wo.id)
@@ -264,23 +264,44 @@ export default function WorkOrderForm() {
     const selectedSite = sites.find(s => s.id === form.site_id)
 
     return (
-        <div className="p-2 sm:p-4 max-w-4xl mx-auto space-y-3 pb-32">
+        <div className="p-2 sm:p-4 max-w-3xl mx-auto space-y-4">
             {/* Header */}
-            <div className="flex items-center gap-3">
-                <button
-                    onClick={() => navigate('/admin/work-orders')}
-                    className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                    <ChevronLeft className="w-5 h-5 text-slate-500" />
-                </button>
-                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30">
-                    <ClipboardList className="w-5 h-5 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate('/admin/work-orders')}
+                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-slate-500" />
+                    </button>
+                    <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
+                        <ClipboardList className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            {isEdit ? 'Editare Comanda' : 'Comanda Noua'}
+                        </h1>
+                        <p className="text-xs text-slate-500">Completeaza campurile de mai jos</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
-                        {isEdit ? 'Editare Comanda' : 'Comanda Noua'}
-                    </h1>
-                    <p className="text-xs text-slate-500">Completeaza campurile de mai jos</p>
+                {/* Actions Top Right */}
+                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    <button
+                        onClick={() => handleSave(false)}
+                        disabled={saving || sending}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 h-11 sm:h-10 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Salvează
+                    </button>
+                    <button
+                        onClick={() => handleSave(true)}
+                        disabled={saving || sending}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 h-11 sm:h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
+                    >
+                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Trimite
+                    </button>
                 </div>
             </div>
 
@@ -290,7 +311,7 @@ export default function WorkOrderForm() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
                 <div className="space-y-4">
                     <Section icon={FileText} title="Detalii Comandă" zIndex={80}>
                 <Field label="Titlu Comanda" required>
@@ -467,10 +488,8 @@ export default function WorkOrderForm() {
                     </div>
                 )}
             </Section>
-            </div>
-
-            <div className="space-y-4">
-            {/* 4. Planificare — prima sectiune din coloana dreapta */}
+            
+            {/* 4. Planificare */}
             <Section icon={Calendar} title="Planificare" zIndex={50}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <Field label="Data Incepere" required>
@@ -501,30 +520,52 @@ export default function WorkOrderForm() {
                             <Plus className="w-3 h-3" /> Adauga
                         </button>
                     </div>
-                    {form.volumes.map((vol, i) => (
-                        <div key={i} className="flex gap-2 items-center">
-                            <SearchableSelect 
-                                value={vol.label} 
-                                onChange={val => updateRow('volumes', i, 'label', val)}
-                                options={activities.map(act => ({ value: act.name, label: act.name }))}
-                                placeholder="Alege activitatea..."
-                                className="flex-1"
-                            />
-                            <input value={vol.quantity} onChange={e => updateRow('volumes', i, 'quantity', e.target.value)}
-                                placeholder="Cant." type="number"
-                                className="w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
-                            <select value={vol.unit} onChange={e => updateRow('volumes', i, 'unit', e.target.value)}
-                                className="w-20 px-2 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm">
-                                {VOLUME_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                            {form.volumes.length > 1 && (
-                                <button onClick={() => removeRow('volumes', i)}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                    {form.volumes.map((vol, i) => {
+                        const surface = parseFloat(vol.quantity) || 0;
+                        const thickness = parseFloat(vol.thickness) || 0;
+                        const sandKg = surface * thickness * 1.6;
+                        
+                        return (
+                        <div key={i} className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                                <SearchableSelect 
+                                    value={vol.label} 
+                                    onChange={val => updateRow('volumes', i, 'label', val)}
+                                    options={activities.map(act => ({ value: act.name, label: act.name }))}
+                                    placeholder="Alege activitatea..."
+                                    className="flex-1 min-w-[150px]"
+                                />
+                                <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
+                                    <div className="flex gap-2 flex-1 sm:flex-none">
+                                        <input value={vol.quantity} onChange={e => updateRow('volumes', i, 'quantity', e.target.value)}
+                                            placeholder="Cant." type="number"
+                                            className="w-full sm:w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
+                                        <select value={vol.unit} onChange={e => updateRow('volumes', i, 'unit', e.target.value)}
+                                            className="w-20 px-2 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm shrink-0">
+                                            {VOLUME_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <input value={vol.thickness} onChange={e => updateRow('volumes', i, 'thickness', e.target.value)}
+                                            placeholder="Grosime (cm)" type="number" step="any"
+                                            className="flex-1 sm:w-32 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
+                                        
+                                        {form.volumes.length > 1 && (
+                                            <button onClick={() => removeRow('volumes', i)}
+                                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors shrink-0">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            {sandKg > 0 && (
+                                <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-3 rounded-lg w-fit mt-1 sm:ml-auto">
+                                    Necesar estimativ nisip: {sandKg.toLocaleString('ro-RO')} kg ({(sandKg / 1000).toLocaleString('ro-RO')} tone)
+                                </div>
                             )}
                         </div>
-                    ))}
+                    )})}
                 </div>
 
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
@@ -653,32 +694,6 @@ export default function WorkOrderForm() {
                         </div>
                     </Section>
                 </div>
-            </div>
-
-            {/* Butoane fixe jos */}
-            <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-3 flex gap-3 justify-end z-[100] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-                <button
-                    onClick={() => navigate('/admin/work-orders')}
-                    className="px-5 h-11 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                >
-                    Anuleaza
-                </button>
-                <button
-                    onClick={() => handleSave(false)}
-                    disabled={saving || sending}
-                    className="flex items-center gap-2 px-5 h-11 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
-                >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Salvează
-                </button>
-                <button
-                    onClick={() => handleSave(true)}
-                    disabled={saving || sending}
-                    className="flex items-center gap-2 px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
-                >
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Trimite la Echipă
-                </button>
             </div>
         </div>
     )
