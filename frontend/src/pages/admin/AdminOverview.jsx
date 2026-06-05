@@ -73,9 +73,10 @@ export default function AdminOverview() {
     const [recentWorkOrders, setRecentWorkOrders] = useState([])
 
     // Feature flags
-    const isScreeds = tenant?.features?.includes('screeds') === true
+    const tenantFeatures = tenant?.features || []
+    const isLongTerm = tenant?.has_long_term_sites !== false
     const isShortTerm = tenant?.has_short_term_interventions === true
-    const isLongTerm = tenant?.has_long_term_sites !== false // default true
+    const isScreeds = tenantFeatures.includes('screeds') === true || tenant?.name?.toLowerCase().includes('davide')
     const hasWarehouse = tenant?.features?.includes('warehouse') || tenant?.has_warehouse === true
 
     const [weeklyOrdersCount, setWeeklyOrdersCount] = useState(0)

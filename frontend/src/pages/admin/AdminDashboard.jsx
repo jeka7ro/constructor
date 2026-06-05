@@ -12,6 +12,12 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
+const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_BASE}${url}`;
+}
+
 export default function AdminDashboard() {
     const { admin, logout, updateAdmin } = useAdminStore()
     const { tenant } = useTenantStore()
@@ -320,7 +326,7 @@ export default function AdminDashboard() {
                             <>
                                 <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-14 h-14' : 'w-10 h-10'}`}>
                                     {tenant.logo_url ? (
-                                        <img src={tenant.logo_url} alt="Tenant Logo" className="w-full h-full object-contain bg-white rounded-lg p-1" />
+                                        <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="w-full h-full object-contain bg-white rounded-lg p-1" />
                                     ) : (
                                         <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/20">
                                             {tenant.name?.charAt(0) || 'P'}
@@ -533,7 +539,7 @@ export default function AdminDashboard() {
                 <div className="relative flex justify-center w-[96px] shrink-0">
                     <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-blue-600 shadow-[0_5px_15px_rgba(37,99,235,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-blue-400/50 scale-105' : ''}`}>
                         {tenant?.logo_url ? (
-                            <img src={tenant.logo_url} alt="Logo" className="w-12 h-12 object-contain drop-shadow-sm rounded-full bg-white/10" />
+                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-12 h-12 object-contain drop-shadow-sm rounded-full bg-white/10" />
                         ) : (
                             <LayoutDashboard className="w-8 h-8" />
                         )}

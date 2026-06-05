@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function SettingsPage() {
     const { t } = useTranslation()
-    const { openDialog } = useUIStore()
+    const { showDialog } = useUIStore()
     const { tenant } = useTenantStore()
     const tenantFeatures = tenant?.features || []
     const hasTimesheets = !tenantFeatures.includes('disable_timesheets')
@@ -84,9 +84,9 @@ export default function SettingsPage() {
             })
             setSettings(prev => ({ ...prev, org_logo: resp.data.logo_url }))
             setLogoFile(null)
-            openDialog({ type: 'info', title: 'Succes', message: 'Logo încărcat cu succes!', confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'info', title: 'Succes', message: 'Logo încărcat cu succes!', confirmText: 'OK', cancelText: null })
         } catch (err) {
-            openDialog({ type: 'danger', title: 'Eroare Încărcare', message: 'Eroare la încărcare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: 'Eroare Încărcare', message: 'Eroare la încărcare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null })
         } finally {
             setUploading(false)
         }
@@ -95,7 +95,7 @@ export default function SettingsPage() {
     const handleSave = () => {
         // TODO: Save to backend
         localStorage.setItem('pontaj_dashboard_layout', JSON.stringify(dashboardLayout))
-        openDialog({ type: 'info', title: 'Salvat', message: 'Setările au fost salvate cu succes!', confirmText: 'OK', cancelText: null })
+        showDialog({ type: 'info', title: 'Salvat', message: 'Setările au fost salvate cu succes!', confirmText: 'OK', cancelText: null })
     }
 
     return (

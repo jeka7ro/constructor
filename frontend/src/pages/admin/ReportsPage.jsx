@@ -26,7 +26,7 @@ const toLocalISO = (d) => {
 
 export default function ReportsPage() {
     const { tenant } = useTenantStore()
-    const isScreeds = tenant?.features?.includes('screeds') === true
+    const isScreeds = tenant?.features?.includes('screeds') === true || tenant?.name?.toLowerCase().includes('davide')
 
     if (isScreeds) {
         return <ScreedsReports />
