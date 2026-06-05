@@ -974,7 +974,7 @@ export default function WorkerOrdersPage() {
                 <div className="bg-white border-b border-slate-200 px-4 py-4 sticky top-0 z-20">
                     <h1 className="text-base font-bold text-slate-900 flex items-center gap-2">
                         <ClipboardList className="w-5 h-5 text-green-600" />
-                        Comenzile Mele
+                        Comenzi de Lucru
                     </h1>
                     {isLeader && (
                         <p className="text-xs text-green-600 font-semibold mt-0.5">Planning complet — Sef Echipa</p>
@@ -996,7 +996,7 @@ export default function WorkerOrdersPage() {
                         <ShortWorksCalendar workOrders={orders} />
                         
                         <div className="space-y-3">
-                            <h2 className="text-sm font-bold text-slate-800 ml-1">Toate Comenzile</h2>
+                            <h2 className="text-sm font-bold text-slate-800 ml-1">Comenzi de Lucru</h2>
                             {orders.map(o => (
                                 <OrderCard key={o.id} order={o} onClick={() => openOrder(o)} />
                             ))}
