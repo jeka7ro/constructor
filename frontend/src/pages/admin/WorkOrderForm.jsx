@@ -182,6 +182,17 @@ export default function WorkOrderForm() {
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
                     }))
                     setSavedId(wo.id)
+                    
+                    // Auto-geocode if address exists but no coordinates
+                    if (wo.site_address && !wo.site_latitude && !wo.site_longitude) {
+                        try {
+                            const geores = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(wo.site_address)}&format=json&limit=1`, { headers: { 'Accept-Language': 'ro' } })
+                            const data = await geores.json()
+                            if (data && data.length > 0) {
+                                setForm(p => ({ ...p, site_latitude: parseFloat(data[0].lat).toFixed(6), site_longitude: parseFloat(data[0].lon).toFixed(6) }))
+                            }
+                        } catch {}
+                    }
                 } catch {}
             }
         }

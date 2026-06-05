@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ import api from '../lib/api';
 export default function ShortWorksCalendar({ workOrders = [] }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
+    const [isScrollable, setIsScrollable] = useState(false);
+    const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const navigate = useNavigate();
 
@@ -42,6 +44,31 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
         const row = hours - 6 + 1; // 06:00 is row 1
         return Math.max(1, Math.min(13, row));
     };
+
+    // Auto-scroll to earliest event
+    useEffect(() => {
+        if (containerRef.current) {
+            let earliestRow = 13;
+            let hasEvents = false;
+            
+            weeklyOrders.forEach(wo => {
+                const dateStr = wo.start_date || wo.deadline_date;
+                if (!dateStr) return;
+                try {
+                    const datePart = dateStr.split('T')[0];
+                    const [year, month, day] = datePart.split('T')[0].split('-').map(Number);
+                    const woDate = new Date(year, month - 1, day, 12, 0, 0);
+                    if (weekDays.some(d => isSameDay(d, woDate))) {
+                        hasEvents = true;
+                        earliestRow = Math.min(earliestRow, getGridRowFromTime(wo.start_time));
+                    }
+                } catch (e) {}
+            });
+            
+            const targetRow = hasEvents ? Math.max(1, earliestRow - 1) : 2; // scroll a bit above the earliest event, or default 07:00
+            containerRef.current.scrollTop = (targetRow - 1) * 80;
+        }
+    }, [weeklyOrders, currentDate]);
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px]">
@@ -105,7 +132,20 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
             </div>
 
             {/* Calendar Grid Container (Desktop) */}
-            <div className="flex-1 overflow-auto hidden md:flex">
+            <div 
+                ref={containerRef}
+                className={`flex-1 hidden md:flex relative ${isScrollable ? 'overflow-auto' : 'overflow-hidden cursor-pointer'}`}
+                onClick={() => !isScrollable && setIsScrollable(true)}
+                onMouseLeave={() => setIsScrollable(false)}
+            >
+                {!isScrollable && (
+                    <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+                        <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
+                            <Hand className="w-3.5 h-3.5" />
+                            Click pentru a derula
+                        </div>
+                    </div>
+                )}
                 {/* Time Gutter */}
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-12 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
