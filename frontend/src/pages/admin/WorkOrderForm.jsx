@@ -259,6 +259,23 @@ export default function WorkOrderForm() {
             setSaving(false); setSending(false)
         }
     }
+    const handleAcceptSand = (sandKg) => {
+        setForm(p => {
+            const mats = [...p.materials];
+            const existingIndex = mats.findIndex(m => m.name?.toLowerCase().includes('nisip'));
+            if (existingIndex >= 0) {
+                mats[existingIndex] = { ...mats[existingIndex], quantity: sandKg, unit: 'kg' };
+            } else {
+                const last = mats[mats.length - 1];
+                if (last && !last.name && !last.quantity) {
+                    mats[mats.length - 1] = { name: 'Nisip', quantity: sandKg, unit: 'kg' };
+                } else {
+                    mats.push({ name: 'Nisip', quantity: sandKg, unit: 'kg' });
+                }
+            }
+            return { ...p, materials: mats };
+        });
+    };
 
     const selectedClient = clients.find(c => c.id === form.client_id)
     const selectedSite = sites.find(s => s.id === form.site_id)
@@ -572,8 +589,17 @@ export default function WorkOrderForm() {
                                 </div>
                             </div>
                             {sandKg > 0 && (
-                                <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-3 rounded-lg w-fit mt-1 sm:ml-auto">
-                                    Necesar estimativ nisip: {sandKg.toLocaleString('ro-RO')} kg ({(sandKg / 1000).toLocaleString('ro-RO')} tone)
+                                <div className="flex flex-wrap items-center gap-2 mt-1 sm:ml-auto w-full sm:w-auto">
+                                    <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-3 rounded-lg">
+                                        Necesar estimativ nisip: {sandKg.toLocaleString('ro-RO')} kg ({(sandKg / 1000).toLocaleString('ro-RO')} tone)
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleAcceptSand(sandKg)}
+                                        className="flex items-center gap-1 text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Plus className="w-3 h-3" /> Adaugă la Materiale
+                                    </button>
                                 </div>
                             )}
                         </div>
