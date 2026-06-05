@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
 import api from '../lib/api';
 
-export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled }) {
+export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled, onOrderClick }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
@@ -300,7 +300,12 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             borderColor: `${colorHex}50`,
                                             zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0))
                                         }}
-                                        onClick={() => !isDragging && navigate(`/admin/work-orders/${wo.id}`)}
+                                        onClick={() => {
+                                            if (!isDragging) {
+                                                if (onOrderClick) onOrderClick(wo);
+                                                else navigate(`/admin/work-orders/${wo.id}`);
+                                            }
+                                        }}
                                         title={`${wo.title} — trageți pentru a muta`}
                                     >
                                         <div className="text-[10px] text-slate-500 font-semibold mb-0.5 flex items-center gap-1">
@@ -364,7 +369,10 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                     <div 
                                         className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform"
                                         style={{ borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` }}
-                                        onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
+                                        onClick={() => {
+                                            if (onOrderClick) onOrderClick(wo);
+                                            else navigate(`/admin/work-orders/${wo.id}`);
+                                        }}
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight">

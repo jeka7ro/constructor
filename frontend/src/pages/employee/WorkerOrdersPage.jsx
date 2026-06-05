@@ -1126,7 +1126,11 @@ export default function WorkerOrdersPage() {
                     </div>
                 ) : (
                     <div className="p-4 space-y-4">
-                        <ShortWorksCalendar workOrders={orders} onOrderRescheduled={fetchOrders} />
+                        <ShortWorksCalendar 
+                            workOrders={orders} 
+                            onOrderRescheduled={fetchOrders} 
+                            onOrderClick={(wo) => setSelectedOrder(wo)} 
+                        />
                         
                         <div className="space-y-4">
                             {(() => {
