@@ -903,17 +903,25 @@ export default function WorkerOrdersPage() {
         return () => navigator.geolocation.clearWatch(id)
     }, [])
 
-    useEffect(() => { fetchOrders() }, [])
+    useEffect(() => {
+        fetchOrders()
+        const interval = setInterval(() => {
+            if (!selected) {
+                fetchOrders(true)
+            }
+        }, 10000)
+        return () => clearInterval(interval)
+    }, [selected])
 
-    const fetchOrders = async () => {
-        setLoading(true)
+    const fetchOrders = async (silent = false) => {
+        if (!silent) setLoading(true)
         try {
             const res = await api.get('/worker/orders')
             setOrders(res.data || [])
         } catch {
-            showToast('error', 'Eroare la incarcarea comenzilor.')
+            if (!silent) showToast('error', 'Eroare la incarcarea comenzilor.')
         } finally {
-            setLoading(false)
+            if (!silent) setLoading(false)
         }
     }
 
@@ -1277,7 +1285,16 @@ export default function WorkerOrdersPage() {
             {/* Buton principal fix jos — START/STOP WORK */}
             {!isCompleted && (
                 <div className="bg-white border-t border-slate-200 px-4 py-3 shrink-0">
-                    {!hasOpenCheckin ? (
+                    {activeTab === 'trimite' ? (
+                        <button
+                            disabled={closing || !canClose}
+                            onClick={handleClose}
+                            className={`w-full py-4 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60 ${canClose ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-400'}`}
+                        >
+                            <CheckCircle2 className="w-5 h-5" />
+                            {closing ? 'Se finalizeaza...' : (canClose ? 'Finalizeaza comanda' : 'Adauga datele necesare')}
+                        </button>
+                    ) : !hasOpenCheckin ? (
                         <button
                             disabled={loadingAction || !selected.my_acknowledged}
                             onClick={handleCheckin}
@@ -1287,28 +1304,14 @@ export default function WorkerOrdersPage() {
                             {loadingAction ? 'Se proceseaza...' : 'Start work'}
                         </button>
                     ) : (
-                        <div className="space-y-2">
-                            {/* Daca poate inchide, arata butonul de finalizare */}
-                            {canClose && activeTab === 'trimite' ? (
-                                <button
-                                    disabled={closing}
-                                    onClick={handleClose}
-                                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
-                                >
-                                    <CheckCircle2 className="w-5 h-5" />
-                                    {closing ? 'Se finalizeaza...' : 'Finalizeaza comanda'}
-                                </button>
-                            ) : (
-                                <button
-                                    disabled={loadingAction}
-                                    onClick={handleCheckout}
-                                    className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
-                                >
-                                    <LogOut className="w-5 h-5" />
-                                    {loadingAction ? 'Se proceseaza...' : 'Stop work'}
-                                </button>
-                            )}
-                        </div>
+                        <button
+                            disabled={loadingAction}
+                            onClick={handleCheckout}
+                            className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
+                        >
+                            <LogOut className="w-5 h-5" />
+                            {loadingAction ? 'Se proceseaza...' : 'Stop work'}
+                        </button>
                     )}
                     {!selected.my_acknowledged && !hasOpenCheckin && (
                         <p className="text-center text-xs text-slate-400 mt-1.5">
