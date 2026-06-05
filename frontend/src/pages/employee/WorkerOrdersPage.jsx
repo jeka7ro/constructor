@@ -654,7 +654,6 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                         <input
                             type="file"
                             accept="image/*"
-                            capture="environment"
                             className="hidden"
                             ref={fileRef}
                             onChange={e => {
@@ -735,7 +734,6 @@ function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion
                         <input
                             type="file"
                             accept="image/*"
-                            capture="environment"
                             className="hidden"
                             ref={fileRef}
                             onChange={e => {
@@ -778,7 +776,6 @@ function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion
                         <input
                             type="file"
                             accept="image/*"
-                            capture="environment"
                             className="hidden"
                             ref={machineFileRef}
                             onChange={e => {
