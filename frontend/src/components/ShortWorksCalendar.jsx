@@ -208,6 +208,10 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                         onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
                                         title={`${wo.title} — click pentru detalii`}
                                     >
+                                        <div className="text-[10px] text-slate-500 font-semibold mb-0.5 flex items-center gap-1">
+                                            <Clock className="w-2.5 h-2.5" />
+                                            {wo.start_time || '00:00'}
+                                        </div>
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate" title={wo.title}>
                                             {wo.title}
                                         </div>
