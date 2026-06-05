@@ -460,7 +460,10 @@ export default function AdminDashboard() {
             {/* Main Content Area — dark class on html element handles all dark: variants */}
             <div className="flex-1 flex flex-col min-w-0 relative">
                 {/* Header Bar */}
-                <header className={`h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-6 flex items-center justify-between sticky top-0 z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10`}>
+                <header 
+                    className={`h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-6 flex items-center justify-between sticky top-0 z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white max-md:border-b-0`}
+                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                >
                     <div className="flex items-center gap-4">
                          <button 
                              onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -472,9 +475,9 @@ export default function AdminDashboard() {
                          {/* Mobile Logo & Tenant Name */}
                          <div className="md:hidden flex items-center gap-2">
                               {tenant?.logo_url && (
-                                  <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-slate-50 drop-shadow-sm p-0.5" />
+                                  <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white drop-shadow-sm p-0.5" />
                               )}
-                              <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 truncate max-w-[200px]">
+                              <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 max-md:text-white truncate max-w-[200px]">
                                   {tenant?.name || 'Smart Timesheet'}
                               </span>
                          </div>
@@ -485,12 +488,14 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3 sm:gap-5">
                         {/* Right side items: Language, Theme, Notifications */}
                         <div className="flex items-center gap-2">
-                           <LanguageSelector variant={darkMode ? 'dark' : 'light'} />
+                            <div className="max-md:opacity-90 max-md:invert max-md:brightness-200 dark:max-md:invert-0 dark:max-md:brightness-100">
+                               <LanguageSelector variant={darkMode ? 'dark' : 'light'} />
+                            </div>
                            <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/20 mx-1 hidden sm:block"></div>
                            <button
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode') : t('admin.dark_mode')}
-                               className="w-8 h-8 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 shadow-sm"
+                               className="w-8 h-8 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 max-md:border-white/30 text-slate-500 max-md:text-white dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 max-md:hover:bg-white/10 transition-all duration-200 shadow-sm"
                            >
                                {darkMode
                                    ? <Moon className="w-4 h-4 text-blue-300" />
@@ -499,7 +504,7 @@ export default function AdminDashboard() {
                            </button>
                            {!isScreeds && (
                                <>
-                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 transition-colors relative text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" title="Sesizări Noi">
+                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 max-md:border-white/30 transition-colors relative text-slate-500 max-md:text-white hover:text-blue-600 max-md:hover:text-white hover:bg-slate-50 max-md:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" title="Sesizări Noi">
                                        <MessageSquareWarning className="w-4 h-4" />
                                        {openComplaintsCount > 0 && (
                                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
@@ -507,7 +512,7 @@ export default function AdminDashboard() {
                                            </span>
                                        )}
                                    </button>
-                                   <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 transition-colors relative text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" onClick={() => navigate('/admin/notifications')}>
+                                   <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 max-md:border-white/30 transition-colors relative text-slate-500 max-md:text-white hover:text-blue-600 max-md:hover:text-white hover:bg-slate-50 max-md:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" onClick={() => navigate('/admin/notifications')}>
                                        <Bell className="w-4 h-4" />
                                        {unreadCount > 0 && (
                                            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
@@ -575,7 +580,7 @@ export default function AdminDashboard() {
 
                 {/* 3. Dashboard (Home) - Centered Shrink-0 */}
                 <div className="relative flex justify-center w-[96px] shrink-0">
-                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-blue-600 shadow-[0_5px_15px_rgba(37,99,235,0.5)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-blue-400/50 scale-105' : ''}`}>
+                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-[color:var(--mobile-bg)] shadow-[0_5px_15px_rgba(0,0,0,0.15)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-[color:var(--mobile-bg)] scale-105' : ''}`} style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}>
                         {tenant?.favicon_url ? (
                             <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-sm rounded-lg" />
                         ) : tenant?.logo_url ? (
