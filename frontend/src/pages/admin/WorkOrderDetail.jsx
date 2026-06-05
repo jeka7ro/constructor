@@ -4,7 +4,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity
 } from 'lucide-react'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
@@ -518,6 +518,49 @@ export default function WorkOrderDetail() {
                             <p className="text-sm text-slate-400 text-center py-4">Niciun material consumat înregistrat</p>
                         )}
                     </Section>
+
+                    {/* Măsurători Reale & Validare AI */}
+                    {(wo.actual_surface_m2 || wo.actual_sand_quantity || wo.ai_sand_kg) && (
+                        <Section icon={Activity} title="Măsurători & Verificare AI">
+                            <div className="space-y-2">
+                                {wo.actual_surface_m2 && (
+                                    <Row label="Suprafață Măsurată (m²)" value={wo.actual_surface_m2} />
+                                )}
+                                {wo.actual_sand_quantity && (
+                                    <Row label="Nisip Declarat (Muncitor)" value={`${wo.actual_sand_quantity} kg`} />
+                                )}
+                                {wo.ai_sand_kg && (
+                                    <div className={`mt-3 p-3 rounded-xl border ${
+                                        Math.abs(wo.actual_sand_quantity - wo.ai_sand_kg) / wo.ai_sand_kg > 0.05
+                                            ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                                            : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800'
+                                    }`}>
+                                        <div className="flex items-start gap-2">
+                                            {Math.abs(wo.actual_sand_quantity - wo.ai_sand_kg) / wo.ai_sand_kg > 0.05 ? (
+                                                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                                            ) : (
+                                                <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+                                            )}
+                                            <div>
+                                                <p className={`text-sm font-bold ${
+                                                    Math.abs(wo.actual_sand_quantity - wo.ai_sand_kg) / wo.ai_sand_kg > 0.05
+                                                        ? 'text-red-800 dark:text-red-400'
+                                                        : 'text-emerald-800 dark:text-emerald-400'
+                                                }`}>
+                                                    AI a extras de pe ecran: {wo.ai_sand_kg} kg nisip
+                                                </p>
+                                                {Math.abs(wo.actual_sand_quantity - wo.ai_sand_kg) / wo.ai_sand_kg > 0.05 && (
+                                                    <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+                                                        Atenție: Muncitorul a introdus o valoare diferită ({wo.actual_sand_quantity} kg). Verifică poza manual pentru a corecta.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </Section>
+                    )}
                 </div>
             </div>
 
@@ -525,22 +568,74 @@ export default function WorkOrderDetail() {
             {/* ── Fotografii ──────────────────────────────────────────────────── */}
             <Section icon={Camera} title={`Fotografii (${photos.length})`}>
                 {photos.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                        {photos.map((p, i) => {
-                            const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
-                            return (
-                                <div key={i}
-                                    className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group cursor-zoom-in hover:border-blue-400 transition-all hover:shadow-md"
-                                    onClick={() => setLightbox(src)}>
-                                    <img src={src} alt={`Poza ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                    {p.photo_type && (
-                                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-bold rounded uppercase">
-                                            {p.photo_type}
-                                        </span>
-                                    )}
+                    <div className="space-y-6">
+                        {/* Poze Calculator Masina (OCR) */}
+                        {photos.filter(p => p.photo_type === 'machine_computer').length > 0 && (
+                            <div>
+                                <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Camera className="w-4 h-4" /> Verificare AI (Ecrane Bremat)
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                    {photos.filter(p => p.photo_type === 'machine_computer').map((p, i) => {
+                                        const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
+                                        return (
+                                            <div key={`mc-${i}`}
+                                                className="relative aspect-square rounded-xl overflow-hidden border-2 border-indigo-400 cursor-zoom-in hover:shadow-lg transition-all"
+                                                onClick={() => setLightbox(src)}>
+                                                <img src={src} alt="Ecran Masina" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                <div className="absolute bottom-0 left-0 right-0 bg-indigo-900/80 backdrop-blur-sm p-1.5 text-center">
+                                                    <span className="text-white text-[10px] font-bold">ECRAN MAȘINĂ</span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
-                            )
-                        })}
+                            </div>
+                        )}
+
+                        {/* Poze Finalizare (Client) */}
+                        {photos.filter(p => p.photo_type === 'completion').length > 0 && (
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Poze Finalizare (Către Client)</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                    {photos.filter(p => p.photo_type === 'completion').map((p, i) => {
+                                        const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
+                                        return (
+                                            <div key={`comp-${i}`}
+                                                className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:border-blue-400 hover:shadow-md transition-all"
+                                                onClick={() => setLightbox(src)}>
+                                                <img src={src} alt={`Finalizare ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                <span className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-lg shadow-sm">
+                                                    FINAL
+                                                </span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Alte poze */}
+                        {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').length > 0 && (
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Alte Fotografii (Interne)</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                    {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').map((p, i) => {
+                                        const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
+                                        return (
+                                            <div key={`alt-${i}`}
+                                                className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:shadow-md transition-all"
+                                                onClick={() => setLightbox(src)}>
+                                                <img src={src} alt={`Interna ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-bold rounded uppercase">
+                                                    {p.photo_type || 'intern'}
+                                                </span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center py-10 gap-3">

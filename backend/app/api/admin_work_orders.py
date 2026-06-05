@@ -75,6 +75,7 @@ class WorkOrderCreate(BaseModel):
     title: str
     notes: Optional[str] = None
     start_date: Optional[str] = None
+    start_time: Optional[str] = None
     deadline_date: Optional[str] = None
     # Locație
     site_id: Optional[str] = None
@@ -226,6 +227,7 @@ def create_work_order(
         title=payload.title,
         notes=payload.notes,
         start_date=payload.start_date,
+        start_time=payload.start_time,
         deadline_date=payload.deadline_date,
         site_id=payload.site_id,
         site_address=payload.site_address,
@@ -291,7 +293,7 @@ def update_work_order(
     old_materials = list(wo.materials) if wo.materials else []
 
     fields = [
-        "title", "notes", "start_date", "deadline_date",
+        "title", "notes", "start_date", "start_time", "deadline_date",
         "site_id", "site_address", "client_id", "client_name",
         "client_email", "client_phone", "requirements", "materials", "volumes",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes"

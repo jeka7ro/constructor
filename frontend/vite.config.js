@@ -6,6 +6,7 @@ export default defineConfig({
         react(),
     ],
     server: {
+        host: true, // Allow external devices (like iPad) to connect for HMR
         port: 3000,
         proxy: {
             '/api': {

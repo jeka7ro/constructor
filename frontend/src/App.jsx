@@ -101,6 +101,7 @@ const WorkOrders = lazy(() => import('./pages/admin/WorkOrders'))
 const WorkOrderForm   = lazy(() => import('./pages/admin/WorkOrderForm'))
 const WorkOrderDetail = lazy(() => import('./pages/admin/WorkOrderDetail'))
 const WorkOrderConfirm = lazy(() => import('./pages/public/WorkOrderConfirm'))
+const WorkOrderCalculations = lazy(() => import('./pages/admin/WorkOrderCalculations'))
 
 function App() {
     const { user } = useAuthStore()
@@ -128,13 +129,33 @@ function App() {
                     }
                     
                     if (iconUrl) {
-                        let link = document.querySelector("link[rel~='icon']");
+                        // Update standard icon
+                        let link = document.querySelector("link[rel='icon']");
                         if (!link) {
                             link = document.createElement('link');
                             link.rel = 'icon';
                             document.head.appendChild(link);
                         }
                         link.href = iconUrl;
+                        
+                        // Update apple-touch-icon for iOS/Chrome shortcuts
+                        let appleLink = document.querySelector("link[rel='apple-touch-icon']");
+                        if (!appleLink) {
+                            appleLink = document.createElement('link');
+                            appleLink.rel = 'apple-touch-icon';
+                            document.head.appendChild(appleLink);
+                        }
+                        appleLink.href = iconUrl;
+                    }
+
+                    if (res.data.primary_color) {
+                        let metaTheme = document.querySelector("meta[name='theme-color']");
+                        if (!metaTheme) {
+                            metaTheme = document.createElement('meta');
+                            metaTheme.name = 'theme-color';
+                            document.head.appendChild(metaTheme);
+                        }
+                        metaTheme.content = res.data.primary_color;
                     }
                 } catch (err) {
                     console.error('Failed to load tenant config', err)
@@ -144,7 +165,10 @@ function App() {
                 }
             }
         }
+        
         fetchTenantConfig()
+        const interval = setInterval(fetchTenantConfig, 15000)
+        return () => clearInterval(interval)
     }, [])
 
     // Apply tenant styles synchronously when tenant state is available (from persist or fetch)
@@ -262,9 +286,14 @@ function App() {
                     {/* Public Routes - Work Order confirmation */}
                     <Route path="/confirm/:token" element={<WorkOrderConfirm />} />
 
-                    {/* Employee Routes */}
-                    <Route path="/login" element={<Login />} />
+                    {/* Public Routes */}
+                    <Route path="/login" element={
+                        <PublicWorkerRoute>
+                            <Login />
+                        </PublicWorkerRoute>
+                    } />
 
+                    {/* Employee Routes */}
                     {user ? (
                         <Route element={<EmployeeLayout />}>
                             <Route path="/" element={<HomeRouter />} />
@@ -295,6 +324,19 @@ function App() {
 function SmartRedirect() {
     const location = window.location.pathname
     const subdomain = useTenantStore.getState().getCurrentSubdomain()
+    const { user } = useAuthStore.getState()
+    const { admin } = useAdminStore.getState()
+
+    // If user has a worker token and goes to root, prioritize worker interface
+    if (user && location === '/') {
+        return <WorkspaceRouter isAdmin={false} />
+    }
+
+    // Default routing based on role
+    // Only redirect to admin if they are hitting the root OR an admin route
+    if (admin && (location === '/' || location.startsWith('/admin'))) {
+        return <Navigate to="/admin/dashboard" replace />
+    }
     
     // If no subdomain, we are on root, redirect to workspace router
     if (!subdomain) {
@@ -349,6 +391,22 @@ function AdminProtectedRoute({ children }) {
         return <Navigate to="/admin/login" replace />
     }
 
+    return children
+}
+
+function PublicWorkerRoute({ children }) {
+    const { user } = useAuthStore()
+    if (user) {
+        return <Navigate to="/" replace />
+    }
+    return children
+}
+
+function PublicAdminRoute({ children }) {
+    const { admin } = useAdminStore()
+    if (admin) {
+        return <Navigate to="/admin/dashboard" replace />
+    }
     return children
 }
 

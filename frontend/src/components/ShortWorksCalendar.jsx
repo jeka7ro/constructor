@@ -6,11 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
 import api from '../lib/api';
 
-export default function ShortWorksCalendar({ workOrders = [] }) {
+export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
     const [showScrollHint, setShowScrollHint] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [draggedOrder, setDraggedOrder] = useState(null);
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const navigate = useNavigate();
@@ -178,10 +180,52 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                             </div>
                         )}
                         
-                        {/* Grid Lines */}
-                        {Array.from({ length: 13 * 7 }).map((_, i) => (
-                            <div key={i} className="border-r border-b border-slate-200 dark:border-slate-800/60" />
-                        ))}
+                        {/* Grid Lines acting as Drop Zones */}
+                        {Array.from({ length: 13 * 7 }).map((_, i) => {
+                            const dayIndex = i % 7;
+                            const hourIndex = Math.floor(i / 7);
+                            return (
+                                <div 
+                                    key={i} 
+                                    className={`border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    onDragEnter={(e) => e.preventDefault()}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.dataTransfer.dropEffect = "move";
+                                    }}
+                                    onDrop={async (e) => {
+                                        e.preventDefault();
+                                        setIsDragging(false);
+                                        setDraggedOrder(null);
+                                        const woId = e.dataTransfer.getData("text/plain");
+                                        if (!woId) return;
+
+                                        const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
+                                        const targetTime = `${(hourIndex + 6).toString().padStart(2, '0')}:00`;
+
+                                        const wo = workOrders.find(o => o.id === woId);
+                                        if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
+
+                                        setSyncing(true);
+                                        try {
+                                            await api.put(`/admin/work-orders/${woId}`, {
+                                                start_date: targetDate,
+                                                start_time: targetTime
+                                            });
+                                            if (onOrderRescheduled) {
+                                                onOrderRescheduled();
+                                            } else {
+                                                window.location.reload();
+                                            }
+                                        } catch (error) {
+                                            console.error("Eroare la mutare comanda:", error);
+                                        } finally {
+                                            setSyncing(false);
+                                        }
+                                    }}
+                                />
+                            );
+                        })}
 
                         {/* Events overlay */}
                         {(() => {
@@ -225,11 +269,27 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                 const baseWidthPercent = 100 / 7;
                                 const leftPercent = wo.dayIndex * baseWidthPercent;
                                 const widthValue = `calc(${baseWidthPercent}% - 8px)`;
+                                const isThisDragged = draggedOrder === wo.id;
 
                                 return (
                                     <div 
                                         key={wo.id}
-                                        className="absolute p-1.5 overflow-hidden rounded-md border-l-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer mx-1"
+                                        draggable={true}
+                                        onDragStart={(e) => {
+                                            e.stopPropagation();
+                                            e.dataTransfer.setData("text/plain", String(wo.id));
+                                            e.dataTransfer.effectAllowed = "move";
+                                            // Defer state update to avoid React unmounting/re-rendering canceling the drag
+                                            setTimeout(() => {
+                                                setIsDragging(true);
+                                                setDraggedOrder(wo.id);
+                                            }, 0);
+                                        }}
+                                        onDragEnd={() => {
+                                            setIsDragging(false);
+                                            setDraggedOrder(null);
+                                        }}
+                                        className={`absolute p-1.5 overflow-hidden rounded-md border-l-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-move mx-1 ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} ${syncing ? 'opacity-70 pointer-events-none' : ''} ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}`}
                                         style={{
                                             top: `${(wo.rowStart - 1) * 80 + 4}px`,
                                             height: '72px',
@@ -238,10 +298,10 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                                             backgroundColor: `${colorHex}30`,
                                             borderLeftColor: colorHex,
                                             borderColor: `${colorHex}50`,
-                                            zIndex: 10 + wo._layoutIndex
+                                            zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0))
                                         }}
-                                        onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
-                                        title={`${wo.title} — click pentru detalii`}
+                                        onClick={() => !isDragging && navigate(`/admin/work-orders/${wo.id}`)}
+                                        title={`${wo.title} — trageți pentru a muta`}
                                     >
                                         <div className="text-[10px] text-slate-500 font-semibold mb-0.5 flex items-center gap-1">
                                             <Clock className="w-2.5 h-2.5" />

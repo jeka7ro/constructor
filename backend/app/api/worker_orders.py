@@ -364,11 +364,11 @@ async def upload_photo(
     if wo.status == "completed":
         raise HTTPException(status_code=400, detail="Comanda este deja finalizata.")
 
-    # Seful de echipa poate adauga doar poze 'internal'
+    # Seful de echipa poate adauga doar poze 'internal', 'machine_computer' sau 'completion'
     is_leader = _is_team_leader(current_user, db)
-    if is_leader and photo_type not in ("internal", "completion"):
+    if is_leader and photo_type not in ("internal", "completion", "machine_computer"):
         photo_type = "internal"
-    if not is_leader:
+    if not is_leader and photo_type != "machine_computer":
         photo_type = "completion"
 
     # Valideaza tipul fisierului
@@ -405,13 +405,26 @@ async def upload_photo(
         WorkOrderPhoto.photo_type == "completion"
     ).count()
 
+    # OCR processing if machine_computer
+    ocr_data = None
+    if photo_type == "machine_computer":
+        from app.services.vision_ocr import extract_machine_screen_data
+        ocr_data = extract_machine_screen_data(file_path)
+        if ocr_data and ocr_data.get('status') == 'success' or ocr_data.get('status') == 'mock':
+            if ocr_data.get('sand_kg') is not None:
+                wo.ai_sand_kg = ocr_data['sand_kg']
+            if ocr_data.get('cement_kg') is not None:
+                wo.ai_cement_kg = ocr_data['cement_kg']
+            db.commit()
+
     return {
         "photo_id": photo.id,
         "photo_url": f"/api/{file_path}",
         "photo_type": photo_type,
         "completion_count": completion_count,
         "min_required": wo.min_photos_required,
-        "can_close": completion_count >= wo.min_photos_required
+        "can_close": completion_count >= wo.min_photos_required,
+        "ocr_data": ocr_data
     }
 
 
@@ -444,6 +457,8 @@ class CloseOrderPayload(BaseModel):
     materials_consumed: Optional[list] = []
     volumes: Optional[list] = []
     notes: Optional[str] = None
+    actual_surface_m2: Optional[float] = None
+    actual_sand_quantity: Optional[float] = None
 
 
 @router.post("/{order_id}/close")
@@ -483,6 +498,10 @@ def close_order(
         wo.volumes = payload.volumes
     if payload.notes:
         wo.notes = (wo.notes or "") + f"\n[Muncitor la finalizare]: {payload.notes}"
+    if payload.actual_surface_m2 is not None:
+        wo.actual_surface_m2 = payload.actual_surface_m2
+    if payload.actual_sand_quantity is not None:
+        wo.actual_sand_quantity = payload.actual_sand_quantity
     wo.status = "completed"
     wo.updated_at = datetime.utcnow()
 

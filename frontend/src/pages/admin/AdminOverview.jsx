@@ -395,7 +395,7 @@ export default function AdminOverview() {
             {/* Calendar Timesheet - Visible only for short term interventions */}
             {isShortTerm && (
                 <div className="mb-6">
-                    <ShortWorksCalendar workOrders={allWorkOrders} />
+                    <ShortWorksCalendar workOrders={allWorkOrders} onOrderRescheduled={fetchWorkOrdersStats} />
                 </div>
             )}
 

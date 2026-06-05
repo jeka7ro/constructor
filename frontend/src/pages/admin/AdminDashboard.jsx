@@ -281,7 +281,7 @@ export default function AdminDashboard() {
         return cat.items.length > 0
     })
 
-    const [expandedCategories, setExpandedCategories] = useState({ general: true })
+    const [expandedCategories, setExpandedCategories] = useState({ general: true, operations: true })
 
     // Auto-expand category based on current route
     useEffect(() => {
@@ -342,12 +342,16 @@ export default function AdminDashboard() {
             <aside className={`
                 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                bg-slate-950 border-slate-800 text-slate-300 shadow-2xl
+                ${darkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
                 border-r transition-all duration-300 flex flex-col relative
-            `}>
+            `}
+            style={{ 
+                '--tenant-bg': tenant?.primary_color || '#2563EB',
+                '--tenant-border': tenant?.primary_color ? 'rgba(255,255,255,0.1)' : '#1D4ED8'
+            }}>
                 
                 {/* Logo Area matches Header height */}
-                <div className={`h-20 flex items-center border-b shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative border-slate-800`}>
+                <div className={`h-20 flex items-center border-b shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative ${darkMode ? 'border-slate-800' : 'border-[color:var(--tenant-border)]'}`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-2 w-full pr-8' : 'justify-center'}`}>
                         {tenant ? (
                             <>
@@ -373,13 +377,13 @@ export default function AdminDashboard() {
                                 <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-full px-2' : 'w-10 h-10'}`}>
                                     {sidebarOpen ? (
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-600">
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[color:var(--tenant-bg)] shadow-inner">
                                                 <span className="text-white font-bold text-xs">ST</span>
                                             </div>
                                             <span className="font-extrabold text-[14px] leading-tight tracking-tighter text-white">Smart Timesheet</span>
                                         </div>
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-600">
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[color:var(--tenant-bg)] shadow-inner">
                                             <span className="text-white font-bold text-xs">ST</span>
                                         </div>
                                     )}
@@ -399,10 +403,10 @@ export default function AdminDashboard() {
                                     onClick={() => toggleCategory(cat.id)}
                                     className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
                                 >
-                                    <span className="text-[11px] font-bold uppercase tracking-widest tracking-wider transition-colors text-slate-500 group-hover:text-slate-300">
+                                    <span className={`text-[11px] font-bold uppercase tracking-widest tracking-wider transition-colors ${darkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-blue-200 group-hover:text-white'}`}>
                                         {cat.label}
                                     </span>
-                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} text-slate-600 group-hover:text-slate-400`} />
+                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} ${darkMode ? 'text-slate-600 group-hover:text-slate-400' : 'text-blue-300 group-hover:text-blue-100'}`} />
                                 </div>
                             )}
 
@@ -414,8 +418,8 @@ export default function AdminDashboard() {
                                         to={item.path}
                                         className={({ isActive }) =>
                                             `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
-                                                ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
-                                                : 'text-slate-400 font-medium hover:bg-white/10 hover:text-white'
+                                                ? (darkMode ? 'bg-[color:var(--tenant-bg)] text-white font-semibold shadow-md shadow-black/20' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
+                                                : (darkMode ? 'text-slate-400 font-medium hover:bg-white/10 hover:text-white' : 'text-blue-100 font-medium hover:bg-white/10 hover:text-white')
                                             }`
                                         }
                                         title={!sidebarOpen ? item.label : undefined}
@@ -438,14 +442,14 @@ export default function AdminDashboard() {
 
                             {/* Separator when collapsed */}
                             {!sidebarOpen && index < filteredCategories.length - 1 && (
-                                <div className="h-px my-3 mx-2 bg-slate-800" />
+                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-slate-800' : 'bg-[color:var(--tenant-border)]'}`} />
                             )}
                         </div>
                     ))}
                 </nav>
 
                 {/* Footer Brand */}
-                <div className="py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden border-slate-800">
+                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${darkMode ? 'border-slate-800' : 'border-[color:var(--tenant-border)]'}`}>
                     <div 
                         className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
                         title="Smart Timesheet"

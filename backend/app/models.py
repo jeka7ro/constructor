@@ -950,6 +950,12 @@ class WorkOrder(Base):
     # volumes: [{label, quantity, unit, price}] — specificatii estimate
     # materials: [{name, quantity, unit}] — materiale estimate
     # materials_consumed: [{name, quantity, unit, note}] — materiale reale la finalizare
+    actual_surface_m2 = Column(Float, nullable=True)
+    actual_sand_quantity = Column(Float, nullable=True)
+    
+    # AI Validations
+    ai_sand_kg = Column(Float, nullable=True)
+    ai_cement_kg = Column(Float, nullable=True)
 
     # ── Workflow acceptare comanda ────────────────────────────────────────────
     # Seful de echipa accepta oficial

@@ -16,6 +16,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
+import { useTenantStore } from '../../store/tenantStore'
 import api from '../../lib/api'
 import {
     MapPin, Calendar as CalendarIcon, Clock, Users, Truck, Phone, Mail,
@@ -223,7 +224,7 @@ function TabBar({ active, onChange }) {
                     onClick={() => onChange(id)}
                     className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors ${
                         active === id
-                            ? 'text-green-600 border-b-2 border-green-600'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
                             : 'text-slate-400 border-b-2 border-transparent'
                     }`}
                 >
@@ -597,7 +598,7 @@ function TabMateriale({ order, onSaveConsumed }) {
                     className={`mt-2 w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
                         saved
                             ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                            : 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
                     } disabled:opacity-60`}
                 >
                     {saved ? <><Check className="w-4 h-4" /> Salvat</> : saving ? 'Se salveaza...' : <><Check className="w-4 h-4" /> Salveaza consumul</>}
@@ -685,9 +686,10 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (poze finalizare + inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, onUploadCompletion, uploadingCompletion, onClose, closing }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, onClose, closing, actualSurface, setActualSurface, actualSand, setActualSand, ocrData }) {
     const fileRef = useRef(null)
-    const canClose = completionPhotos.length >= (order.min_photos_required || 2)
+    const machineFileRef = useRef(null)
+    const canClose = completionPhotos.length >= (order.min_photos_required || 2) && machinePhotos.length > 0
     const isCompleted = order.status === 'completed'
 
     return (
@@ -703,13 +705,13 @@ function TabTrimite({ order, completionPhotos, onUploadCompletion, uploadingComp
                 <>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                         <p className="text-xs text-slate-600">
-                            Poze de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-green-600' : 'text-red-600'}>
+                            Poze de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
                                 {completionPhotos.length} / {order.min_photos_required}
                             </strong>
                         </p>
                         <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
                             <div
-                                className="h-full rounded-full bg-green-500 transition-all"
+                                className="h-full rounded-full bg-blue-500 transition-all"
                                 style={{ width: `${Math.min(100, (completionPhotos.length / (order.min_photos_required || 2)) * 100)}%` }}
                             />
                         </div>
@@ -745,11 +747,83 @@ function TabTrimite({ order, completionPhotos, onUploadCompletion, uploadingComp
                         <button
                             disabled={uploadingCompletion || isCompleted}
                             onClick={() => fileRef.current?.click()}
-                            className="w-full py-3 border-2 border-dashed border-green-200 rounded-xl text-sm text-green-600 font-semibold hover:bg-green-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                            className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
                         >
                             <Camera className="w-4 h-4" />
                             {uploadingCompletion ? 'Se incarca...' : 'Fotografiaza lucrarea finalizata'}
                         </button>
+                    </Section>
+
+                    <Section label="Poză Calculator Mașină (OBLIGATORIU pt OCR)">
+                        {machinePhotos.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                                {machinePhotos.map(p => (
+                                    <a key={p.id} href={`/api${p.url}`} target="_blank" rel="noreferrer">
+                                        <img
+                                            src={`/api${p.url}`}
+                                            alt="Poza Calculator Masina"
+                                            className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm"
+                                        />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {ocrData && ocrData.status === 'success' && (
+                            <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
+                                ✅ Verificat AI: <strong>Nisip: {ocrData.sand_kg}kg</strong> | Ciment: {ocrData.cement_kg}kg
+                            </div>
+                        )}
+
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            ref={machineFileRef}
+                            onChange={e => {
+                                const f = e.target.files?.[0]
+                                if (f) onUploadMachine(f)
+                                e.target.value = ''
+                            }}
+                        />
+                        <button
+                            disabled={uploadingMachine || isCompleted}
+                            onClick={() => machineFileRef.current?.click()}
+                            className="w-full py-3 border-2 border-dashed border-indigo-300 rounded-xl text-sm text-indigo-700 font-semibold hover:bg-indigo-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                        >
+                            <Camera className="w-4 h-4" />
+                            {uploadingMachine ? 'AI analizeaza...' : 'Fotografiaza Ecran Mașină (Bremat)'}
+                        </button>
+                    </Section>
+
+                    <Section label="Date Măsurători Lucrare (OBLIGATORIU)">
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Suprafața turnată (m²)</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    step="0.01"
+                                    value={actualSurface}
+                                    onChange={(e) => setActualSurface(e.target.value)}
+                                    placeholder="Ex: 120.5"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip folosită</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    step="0.01"
+                                    value={actualSand}
+                                    onChange={(e) => setActualSand(e.target.value)}
+                                    placeholder="Ex: 8500"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
                     </Section>
                 </>
             )}
@@ -763,7 +837,7 @@ function TabTrimite({ order, completionPhotos, onUploadCompletion, uploadingComp
 function Section({ label, children }) {
     return (
         <div className="px-4 pt-3 pb-1">
-            <h4 className="text-[10px] font-bold text-green-700 uppercase tracking-widest mb-2">{label}</h4>
+            <h4 className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2">{label}</h4>
             <div className="space-y-1">{children}</div>
         </div>
     )
@@ -783,6 +857,7 @@ function Row({ label, value }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function WorkerOrdersPage() {
     const { user, logout } = useAuthStore()
+    const tenant = useTenantStore(s => s.tenant)
     const showToast = useUIStore(s => s.showToast)
 
     const handleLogout = async () => {
@@ -806,12 +881,16 @@ export default function WorkerOrdersPage() {
     const [photos, setPhotos]         = useState([])
     const [checkins, setCheckins]     = useState([])
     const [location, setLocation]     = useState(null)
+    const [actualSurface, setActualSurface] = useState('')
+    const [actualSand, setActualSand] = useState('')
+    const [ocrData, setOcrData]       = useState(null)
 
     // Action states
     const [acknowledging, setAcknowledging]           = useState(false)
     const [loadingAction, setLoadingAction]           = useState(false)
     const [uploadingCompletion, setUploadingCompletion] = useState(false)
     const [uploadingInternal, setUploadingInternal]   = useState(false)
+    const [uploadingMachine, setUploadingMachine]     = useState(false)
     const [closing, setClosing]                       = useState(false)
 
     const isLeader = user?.role?.code === 'TEAM_LEADER' || user?.role?.code === 'SEF_ECHIPA'
@@ -846,6 +925,8 @@ export default function WorkerOrdersPage() {
         setActiveTab('info')
         setPhotos([])
         setCheckins([])
+        setActualSurface(order.actual_surface_m2 || '')
+        setActualSand(order.actual_sand_quantity || '')
         fetchOrderPhotos(order.id)
         fetchOrderCheckins(order.id)
     }
@@ -925,16 +1006,27 @@ export default function WorkerOrdersPage() {
 
     // UPLOAD PHOTO
     const handleUploadPhoto = async (file, photoType) => {
-        const setter = photoType === 'internal' ? setUploadingInternal : setUploadingCompletion
+        let setter = setUploadingCompletion
+        if (photoType === 'internal') setter = setUploadingInternal
+        if (photoType === 'machine_computer') setter = setUploadingMachine
+        
         setter(true)
         try {
             const fd = new FormData()
             fd.append('file', file)
             fd.append('photo_type', photoType)
-            await api.post(`/worker/orders/${selected.id}/photos`, fd, {
+            const res = await api.post(`/worker/orders/${selected.id}/photos`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
             showToast('success', 'Poza adaugata.')
+            
+            if (photoType === 'machine_computer' && res.data?.ocr_data) {
+                setOcrData(res.data.ocr_data)
+                if (res.data.ocr_data.sand_kg) {
+                    setActualSand(res.data.ocr_data.sand_kg) // autofill
+                }
+            }
+            
             await fetchOrderPhotos(selected.id)
             await refreshSelected()
         } catch (e) {
@@ -958,11 +1050,22 @@ export default function WorkerOrdersPage() {
 
     // CLOSE ORDER
     const handleClose = async () => {
+        if (ocrData?.sand_kg && actualSand) {
+            const difference = Math.abs(parseFloat(actualSand) - parseFloat(ocrData.sand_kg));
+            const percentage = (difference / parseFloat(ocrData.sand_kg)) * 100;
+            if (percentage > 5) {
+                const proceed = window.confirm(`ATENȚIE!\n\nCantitatea de nisip introdusă (${actualSand}kg) diferă semnificativ de valoarea citită de AI de pe ecran (${ocrData.sand_kg}kg).\n\nEști sigur că vrei să salvezi cantitatea ta? Dacă e o greșeală, apasă Anulare (Cancel) și corectează.`);
+                if (!proceed) return;
+            }
+        }
+    
         setClosing(true)
         try {
             const res = await api.post(`/worker/orders/${selected.id}/close`, {
                 materials_consumed: selected.materials_consumed || [],
                 volumes: selected.volumes || [],
+                actual_surface_m2: parseFloat(actualSurface) || null,
+                actual_sand_quantity: parseFloat(actualSand) || null,
             })
             showToast('success', res.data?.message || 'Comanda finalizata.')
             await refreshSelected()
@@ -978,7 +1081,9 @@ export default function WorkerOrdersPage() {
     const hasOpenCheckin = Boolean(openCheckin)
     const isCompleted = selected?.status === 'completed'
     const completionPhotos = photos.filter(p => p.photo_type === 'completion')
-    const canClose = completionPhotos.length >= (selected?.min_photos_required || 2)
+    const machinePhotos = photos.filter(p => p.photo_type === 'machine_computer')
+    const hasMeasurements = actualSurface !== '' && actualSand !== '' && parseFloat(actualSurface) > 0 && parseFloat(actualSand) > 0
+    const canClose = completionPhotos.length >= (selected?.min_photos_required || 2) && hasMeasurements && machinePhotos.length > 0
 
     // ─────────────────────────────────────────────────────────────────────────
     // RENDER: LISTA comenzi
@@ -987,7 +1092,10 @@ export default function WorkerOrdersPage() {
         return (
             <div className="min-h-screen bg-slate-50">
                 {/* Header cu Profil si Logout */}
-                <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white p-4 shadow-lg sticky top-0 z-20">
+                <div 
+                    className="text-white p-4 shadow-lg sticky top-0 z-20 bg-[color:var(--mobile-bg)]"
+                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                >
                     <div className="flex items-center justify-between max-w-md mx-auto">
                         <div className="flex items-center gap-3">
                             {user?.avatar_path && (
@@ -1014,11 +1122,11 @@ export default function WorkerOrdersPage() {
 
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="w-8 h-8 border-3 border-green-200 border-t-green-600 rounded-full animate-spin" />
+                        <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                     </div>
                 ) : (
                     <div className="p-4 space-y-4">
-                        <ShortWorksCalendar workOrders={orders} />
+                        <ShortWorksCalendar workOrders={orders} onOrderRescheduled={fetchOrders} />
                         
                         <div className="space-y-4">
                             {(() => {
@@ -1150,10 +1258,18 @@ export default function WorkerOrdersPage() {
                     <TabTrimite
                         order={selected}
                         completionPhotos={completionPhotos}
+                        machinePhotos={machinePhotos}
                         onUploadCompletion={f => handleUploadPhoto(f, 'completion')}
+                        onUploadMachine={f => handleUploadPhoto(f, 'machine_computer')}
                         uploadingCompletion={uploadingCompletion}
+                        uploadingMachine={uploadingMachine}
                         onClose={handleClose}
                         closing={closing}
+                        actualSurface={actualSurface}
+                        setActualSurface={setActualSurface}
+                        actualSand={actualSand}
+                        setActualSand={setActualSand}
+                        ocrData={ocrData}
                     />
                 )}
             </div>
@@ -1165,7 +1281,7 @@ export default function WorkerOrdersPage() {
                         <button
                             disabled={loadingAction || !selected.my_acknowledged}
                             onClick={handleCheckin}
-                            className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors"
+                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors"
                         >
                             <LogIn className="w-5 h-5" />
                             {loadingAction ? 'Se proceseaza...' : 'Start work'}

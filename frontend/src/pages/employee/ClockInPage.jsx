@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useTenantStore } from '../../store/tenantStore'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
@@ -76,6 +77,7 @@ export default function ClockInPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, setAuth, accessToken, refreshToken, logout } = useAuthStore()
+    const tenant = useTenantStore(s => s.tenant)
 
     const [loading, setLoading] = useState(true)
     const [unreadComplaints, setUnreadComplaints] = useState(0)
@@ -933,7 +935,10 @@ export default function ClockInPage() {
             )}
 
             {/* Header with Profile */}
-            <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white p-4 shadow-lg">
+            <div 
+                className="text-white p-4 shadow-lg bg-[color:var(--mobile-bg)]"
+                style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+            >
                 <div className="flex items-center justify-between max-w-md mx-auto">
                     <div className="flex items-center gap-3">
                         {user?.avatar_path && (
