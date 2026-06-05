@@ -342,11 +342,12 @@ export default function AdminDashboard() {
             <aside className={`
                 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                bg-blue-600 border-r border-blue-700 text-white transition-all duration-300 flex flex-col relative shadow-xl
+                ${tenant ? 'bg-blue-600 border-blue-700 text-white shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white'} 
+                border-r transition-all duration-300 flex flex-col relative
             `}>
                 
                 {/* Logo Area matches Header height */}
-                <div className={`h-20 flex items-center border-b border-blue-500/50 shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative`}>
+                <div className={`h-20 flex items-center border-b shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative ${tenant ? 'border-blue-500/50' : 'border-slate-200 dark:border-white/10'}`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-2 w-full pr-8' : 'justify-center'}`}>
                         {tenant ? (
                             <>
@@ -370,13 +371,13 @@ export default function AdminDashboard() {
                                 <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-full px-2' : 'w-10 h-10'}`}>
                                     {sidebarOpen ? (
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tenant ? 'bg-white/20' : 'bg-blue-600'}`}>
                                                 <span className="text-white font-bold text-xs">ST</span>
                                             </div>
-                                            <span className="font-extrabold text-[14px] leading-tight tracking-tighter text-white">Smart Timesheet</span>
+                                            <span className={`font-extrabold text-[14px] leading-tight tracking-tighter ${tenant ? 'text-white' : 'text-slate-900 dark:text-white/95'}`}>Smart Timesheet</span>
                                         </div>
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tenant ? 'bg-white/20' : 'bg-blue-600'}`}>
                                             <span className="text-white font-bold text-xs">ST</span>
                                         </div>
                                     )}
@@ -396,10 +397,10 @@ export default function AdminDashboard() {
                                     onClick={() => toggleCategory(cat.id)}
                                     className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
                                 >
-                                    <span className="text-[11px] font-bold text-blue-100 uppercase tracking-widest tracking-wider group-hover:text-white transition-colors">
+                                    <span className={`text-[11px] font-bold uppercase tracking-widest tracking-wider transition-colors ${tenant ? 'text-blue-100 group-hover:text-white' : 'text-slate-900 font-black dark:font-bold dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300'}`}>
                                         {cat.label}
                                     </span>
-                                    <ChevronRight className={`w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''}`} />
+                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} ${tenant ? 'text-blue-200 group-hover:text-white' : 'text-slate-600 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-300'}`} />
                                 </div>
                             )}
 
@@ -411,8 +412,8 @@ export default function AdminDashboard() {
                                         to={item.path}
                                         className={({ isActive }) =>
                                             `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
-                                                ? 'bg-white text-blue-600 font-semibold shadow-md'
-                                                : 'text-blue-50 font-bold hover:bg-white/10 hover:text-white'
+                                                ? (tenant ? 'bg-white text-blue-600 font-semibold shadow-md' : 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20')
+                                                : (tenant ? 'text-blue-50 font-bold hover:bg-white/10 hover:text-white' : 'text-slate-900 font-bold dark:font-normal dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-100 dark:hover:bg-white/10 hover:text-blue-600 dark:hover:text-white')
                                             }`
                                         }
                                         title={!sidebarOpen ? item.label : undefined}
@@ -435,14 +436,14 @@ export default function AdminDashboard() {
 
                             {/* Separator when collapsed */}
                             {!sidebarOpen && index < filteredCategories.length - 1 && (
-                                <div className="h-px bg-blue-500/50 my-3 mx-2" />
+                                <div className={`h-px my-3 mx-2 ${tenant ? 'bg-blue-500/50' : 'bg-slate-200 dark:bg-white/5'}`} />
                             )}
                         </div>
                     ))}
                 </nav>
 
                 {/* Footer Brand */}
-                <div className="py-5 px-4 border-t border-blue-500/50 shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden">
+                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${tenant ? 'border-blue-500/50' : 'border-slate-200 dark:border-white/10'}`}>
                     <div 
                         className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
                         title="Smart Timesheet"
