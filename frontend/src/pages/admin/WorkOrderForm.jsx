@@ -523,7 +523,7 @@ export default function WorkOrderForm() {
                     {form.volumes.map((vol, i) => {
                         const surface = parseFloat(vol.quantity) || 0;
                         const thickness = parseFloat(vol.thickness) || 0;
-                        const sandKg = surface * thickness * 1.6;
+                        const sandKg = surface * thickness * 16;
                         
                         return (
                         <div key={i} className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
