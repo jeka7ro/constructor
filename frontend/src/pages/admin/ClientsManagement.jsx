@@ -305,8 +305,8 @@ export default function ClientsManagement() {
             {/* Modal Add/Edit */}
             {showModal && createPortal(
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg overflow-hidden shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden transform scale-100 opacity-100 transition-all" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Briefcase className="w-5 h-5 text-slate-500" />
                                 {editingClient ? 'Editează Client' : 'Adaugă Client Nou'}
@@ -316,7 +316,7 @@ export default function ClientsManagement() {
                             </button>
                         </div>
                         
-                        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 overflow-y-auto">
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Companie / Client *</label>
@@ -369,6 +369,16 @@ export default function ClientsManagement() {
                                         longitude={formData.longitude} 
                                         onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} 
                                     />
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Latitudine</label>
+                                            <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.latitude || ''} placeholder="Latitudine" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Longitudine</label>
+                                            <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.longitude || ''} placeholder="Longitudine" />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div>

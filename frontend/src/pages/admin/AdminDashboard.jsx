@@ -135,10 +135,11 @@ export default function AdminDashboard() {
         return () => clearInterval(t)
     }, [])
 
-    // Dynamic Favicon based on Tenant Logo
+    // Dynamic Favicon based on Tenant Logo or Favicon
     useEffect(() => {
-        if (tenant?.logo_url) {
-            const url = getImageUrl(tenant.logo_url)
+        const iconUrl = tenant?.favicon_url ? getImageUrl(tenant.favicon_url) : (tenant?.logo_url ? getImageUrl(tenant.logo_url) : null);
+        if (iconUrl) {
+            const url = iconUrl;
             
             let iconLink = document.querySelector("link[rel~='icon']")
             if (!iconLink) {
@@ -156,8 +157,7 @@ export default function AdminDashboard() {
             }
             appleLink.href = url
         }
-    }, [tenant?.logo_url])
-
+    }, [tenant?.logo_url, tenant?.favicon_url])
     // Close panel on outside click
     useEffect(() => {
         const handler = (e) => {
@@ -352,7 +352,9 @@ export default function AdminDashboard() {
                         {tenant ? (
                             <>
                                 <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-14 h-14' : 'w-10 h-10'}`}>
-                                    {tenant.logo_url ? (
+                                    {(!sidebarOpen && tenant.favicon_url) ? (
+                                        <img src={getImageUrl(tenant.favicon_url)} alt="Tenant Favicon" className="w-full h-full object-contain bg-white rounded-lg p-1" />
+                                    ) : tenant.logo_url ? (
                                         <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="w-full h-full object-contain bg-white rounded-lg p-1" />
                                     ) : (
                                         <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/20">

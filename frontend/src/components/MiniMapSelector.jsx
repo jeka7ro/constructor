@@ -18,16 +18,24 @@ const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
     useEffect(() => {
         if (!mapRef.current) return
         
-        const defaultLat = latitude ? parseFloat(latitude) : 45.9432 // Romania center
-        const defaultLon = longitude ? parseFloat(longitude) : 24.9668
-        const zoom = latitude && longitude ? 15 : 6
-
         if (!mapInstance.current) {
-            mapInstance.current = L.map(mapRef.current).setView([defaultLat, defaultLon], zoom)
+            mapInstance.current = L.map(mapRef.current).setView([45.9432, 24.9668], 6)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap',
                 maxZoom: 19
             }).addTo(mapInstance.current)
+
+            if (!latitude && !longitude && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude: userLat, longitude: userLon } = position.coords;
+                        mapInstance.current.setView([userLat, userLon], 15);
+                    },
+                    (error) => console.log("Geolocation error:", error)
+                );
+            } else if (latitude && longitude) {
+                mapInstance.current.setView([parseFloat(latitude), parseFloat(longitude)], 15);
+            }
 
             mapInstance.current.on('click', (e) => {
                 const { lat, lng } = e.latlng
