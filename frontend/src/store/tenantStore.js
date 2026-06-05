@@ -15,6 +15,10 @@ const useTenantStore = create(
                 const searchParams = new URLSearchParams(window.location.search)
                 if (searchParams.has('tenant')) {
                     const t = searchParams.get('tenant')
+                    if (t === 'reset' || t === 'master') {
+                        localStorage.removeItem('pontaj_test_tenant')
+                        return null
+                    }
                     localStorage.setItem('pontaj_test_tenant', t)
                     return t
                 }
