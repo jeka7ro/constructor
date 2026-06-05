@@ -304,7 +304,13 @@ function SmartRedirect() {
         return <WorkspaceRouter isAdmin={location.startsWith('/admin')} />
     }
 
-    return <Navigate to="/" replace />
+    // If trying to access admin routes, redirect to admin login
+    if (location.startsWith('/admin')) {
+        return <Navigate to="/admin/login" replace />
+    }
+
+    // Otherwise redirect to employee login
+    return <Navigate to="/login" replace />
 }
 
 function HomeRouter() {
@@ -315,15 +321,6 @@ function HomeRouter() {
         return <WorkerOrdersPage />
     }
     return <ClockInPage />
-}
-
-    // If trying to access admin routes, redirect to admin login
-    if (location.startsWith('/admin')) {
-        return <Navigate to="/admin/login" replace />
-    }
-
-    // Otherwise redirect to employee login
-    return <Navigate to="/login" replace />
 }
 
 // Protected route for admin users
