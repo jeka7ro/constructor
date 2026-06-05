@@ -318,8 +318,7 @@ export default function WorkOrderDetail() {
             </div>
 
             {/* ── KPIs ────────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                <KPI icon={Timer}    label="Ore"            value={`${totalHours}h`} sub={`${sessCount} sesiuni`}   color="blue" />
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 <KPI icon={Users}    label="Angajați"       value={workersValue}     sub={workersSub}       color="purple" />
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label="Volum"         value={volumeTotal > 0 ? volumeTotal : '—'} sub={(wo.volumes || [])[0]?.unit || 'unități'} color="green" />
