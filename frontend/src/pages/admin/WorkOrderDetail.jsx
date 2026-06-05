@@ -210,8 +210,8 @@ export default function WorkOrderDetail() {
             q = q / 1000;
             u = 'tone';
         }
-        matValue = q;
-        matSub = `${u} ${m.name}`;
+        matValue = `${q} ${u}`;
+        matSub = m.name;
     } else if (activeMats.length > 1) {
         let totalT = 0;
         let names = [];
@@ -224,11 +224,11 @@ export default function WorkOrderDetail() {
         });
         
         if (totalT > 0) {
-            matValue = totalT;
+            matValue = `${totalT} tone`;
             // Limit names to avoid overflow
             let namesStr = names.join(', ');
             if (namesStr.length > 20) namesStr = namesStr.substring(0, 17) + '...';
-            matSub = `tone (${namesStr})`;
+            matSub = namesStr;
         } else {
             matValue = activeMats.length;
             matSub = 'tipuri materiale';
