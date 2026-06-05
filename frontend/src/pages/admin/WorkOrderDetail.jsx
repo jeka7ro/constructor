@@ -522,61 +522,6 @@ export default function WorkOrderDetail() {
                 </div>
             </div>
 
-            {/* ── Pontaj ──────────────────────────────────────────────────────── */}
-            <Section icon={Timer} title="Pontaj — Ore Lucrate pe Comandă">
-                {sessions ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div>
-                            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                                {[
-                                    { v: `${totalHours}h`, l: 'Total Ore', c: 'blue' },
-                                    { v: sessCount,        l: 'Sesiuni',   c: 'violet' },
-                                    { v: activeWorkersCount, l: 'Angajați', c: 'emerald' }
-                                ].map(({ v, l, c }) => (
-                                    <div key={l} className={`bg-${c}-50 dark:bg-${c}-900/20 rounded-xl p-2 sm:p-3 text-center`}>
-                                        <div className={`text-lg sm:text-2xl font-black text-${c}-700 dark:text-${c}-400`}>{v}</div>
-                                        <div className={`text-[9px] sm:text-xs font-bold text-${c}-500 uppercase tracking-wider`}>{l}</div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {(sessions.sessions || []).length === 0
-                                    ? <p className="text-sm text-slate-400 py-4 text-center">Nicio sesiune înregistrată</p>
-                                    : (sessions.sessions || []).map((s, i) => (
-                                        <div key={i} className="py-3 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                                                <User className="w-4 h-4 text-blue-600" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-bold text-slate-800 dark:text-white">{s.user_name}</div>
-                                                <div className="text-xs text-slate-500">{s.date} · {fmtTime(s.check_in)} → {s.check_out ? fmtTime(s.check_out) : '⏱ activ'}</div>
-                                            </div>
-                                            <span className={`text-sm font-extrabold ${s.active ? 'text-blue-500' : 'text-slate-700 dark:text-white'}`}>
-                                                {s.active ? 'activ' : `${s.hours}h`}
-                                            </span>
-                                        </div>
-                                    ))
-                                }
-                            </div>
-                        </div>
-                        {hoursChartData.length > 0 && (
-                            <div>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ore per Angajat</p>
-                                <ResponsiveContainer width="100%" height={220}>
-                                    <BarChart data={hoursChartData} barCategoryGap="30%">
-                                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                                        <YAxis tick={{ fontSize: 11 }} />
-                                        <Tooltip formatter={(v) => [`${v}h`, 'Ore']} />
-                                        <Bar dataKey="ore" fill="#6366f1" radius={[6, 6, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <p className="text-sm text-slate-400 text-center py-4">Se încarcă sesiunile...</p>
-                )}
-            </Section>
 
             {/* ── Fotografii ──────────────────────────────────────────────────── */}
             <Section icon={Camera} title={`Fotografii (${photos.length})`}>

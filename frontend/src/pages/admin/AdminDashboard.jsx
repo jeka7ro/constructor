@@ -248,6 +248,7 @@ export default function AdminDashboard() {
     const tenantFeatures = tenant?.features || []
     const hasLongTerm = tenant?.has_long_term_sites !== false
     const hasShortTerm = tenant?.has_short_term_interventions === true
+    const isScreeds = tenantFeatures.includes('screeds') === true || tenant?.name?.toLowerCase().includes('davide')
 
     const isFeatureEnabled = (path) => {
         if (['/admin/sites', '/admin/site-photos'].includes(path)) return hasLongTerm
@@ -480,14 +481,11 @@ export default function AdminDashboard() {
                          <span className={`font-bold text-lg hidden md:block tracking-tight text-slate-900 font-extrabold dark:text-white/90`}>{t('admin.admin_system')}</span>
                     </div>
 
-                    <div className="flex items-center gap-5">
-                        {/* Language Selector */}
-                        <LanguageSelector variant={darkMode ? 'dark' : 'light'} />
-
-                        <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/20"></div>
-
-                        {/* Theme Toggle Button & Notifications */}
+                    <div className="flex items-center gap-3 sm:gap-5">
+                        {/* Right side items: Language, Theme, Notifications */}
                         <div className="flex items-center gap-2">
+                           <LanguageSelector variant={darkMode ? 'dark' : 'light'} />
+                           <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/20 mx-1 hidden sm:block"></div>
                            <button
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode') : t('admin.dark_mode')}
@@ -498,23 +496,27 @@ export default function AdminDashboard() {
                                    : <Sun className="w-4 h-4 text-amber-500" />
                                }
                            </button>
-                           <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 transition-colors relative text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" title="Sesizări Noi">
-                               <MessageSquareWarning className="w-4 h-4" />
-                               {openComplaintsCount > 0 && (
-                                   <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
-                                       {openComplaintsCount > 99 ? '99+' : openComplaintsCount}
-                                   </span>
-                               )}
-                           </button>
-                           <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 transition-colors relative text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" onClick={() => navigate('/admin/notifications')}>
-                               <Bell className="w-4 h-4" />
-                               {unreadCount > 0 && (
-                                   <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-                               )}
-                           </button>
+                           {!isScreeds && (
+                               <>
+                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 transition-colors relative text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" title="Sesizări Noi">
+                                       <MessageSquareWarning className="w-4 h-4" />
+                                       {openComplaintsCount > 0 && (
+                                           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
+                                               {openComplaintsCount > 99 ? '99+' : openComplaintsCount}
+                                           </span>
+                                       )}
+                                   </button>
+                                   <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 transition-colors relative text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" onClick={() => navigate('/admin/notifications')}>
+                                       <Bell className="w-4 h-4" />
+                                       {unreadCount > 0 && (
+                                           <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+                                       )}
+                                   </button>
+                               </>
+                           )}
                         </div>
                         
-                        <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/20"></div>
+                        <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/20 hidden sm:block"></div>
 
                         {/* User Profile */}
                         <div className="flex items-center gap-3">
