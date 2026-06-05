@@ -234,6 +234,7 @@ export default function OrganizationsManagement() {
     const filteredOrgs = orgs.filter(o => o.name.toLowerCase().includes(search.toLowerCase()))
 
     const moduleOptions = [
+        { id: 'timesheets', label: 'Pontaje' },
         { id: 'sites', label: 'Șantiere' },
         { id: 'fleet', label: 'Parc Auto' },
         { id: 'warehouse', label: 'Magazie & Inventar' },
@@ -571,15 +572,24 @@ export default function OrganizationsManagement() {
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Module Functionale</label>
                                         <button type="button" onClick={() => {
-                                            if(formData.features.length === moduleOptions.length) setFormData({...formData, features: []})
-                                            else setFormData({...formData, features: moduleOptions.map(m => m.id)})
+                                            const regularMods = moduleOptions.filter(m => m.id !== 'timesheets').map(m => m.id)
+                                            const isAllSelected = moduleOptions.every(m => m.id === 'timesheets' ? !formData.features.includes('disable_timesheets') : formData.features.includes(m.id))
+                                            
+                                            if (isAllSelected) {
+                                                setFormData({...formData, features: ['disable_timesheets']})
+                                            } else {
+                                                setFormData({...formData, features: regularMods})
+                                            }
                                         }} className="text-[11px] font-extrabold text-blue-600 hover:text-blue-700 uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded-full">
-                                            {formData.features.length === moduleOptions.length ? 'Deselecteaza Tot' : 'Selecteaza Tot'}
+                                            {moduleOptions.every(m => m.id === 'timesheets' ? !formData.features.includes('disable_timesheets') : formData.features.includes(m.id)) ? 'Deselecteaza Tot' : 'Selecteaza Tot'}
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         {moduleOptions.map(mod => {
-                                            const isChecked = formData.features.includes(mod.id)
+                                            const isChecked = mod.id === 'timesheets' 
+                                                ? !formData.features.includes('disable_timesheets') 
+                                                : formData.features.includes(mod.id)
+                                                
                                             return (
                                                 <label key={mod.id} className={`flex items-center justify-between px-4 py-2.5 rounded-full border cursor-pointer transition-all ${isChecked ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50'}`}>
                                                     <span className={`text-sm font-semibold ${isChecked ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>{mod.label}</span>
@@ -588,8 +598,13 @@ export default function OrganizationsManagement() {
                                                         <input type="checkbox" className="sr-only" checked={isChecked}
                                                             onChange={e => {
                                                                 const f = formData.features
-                                                                if(e.target.checked) setFormData({...formData, features: [...f, mod.id]})
-                                                                else setFormData({...formData, features: f.filter(x => x !== mod.id)})
+                                                                if(e.target.checked) {
+                                                                    if (mod.id === 'timesheets') setFormData({...formData, features: f.filter(x => x !== 'disable_timesheets')})
+                                                                    else setFormData({...formData, features: [...f, mod.id]})
+                                                                } else {
+                                                                    if (mod.id === 'timesheets') setFormData({...formData, features: [...f, 'disable_timesheets']})
+                                                                    else setFormData({...formData, features: f.filter(x => x !== mod.id)})
+                                                                }
                                                             }} />
                                                     </div>
                                                 </label>

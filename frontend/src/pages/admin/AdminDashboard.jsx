@@ -221,6 +221,7 @@ export default function AdminDashboard() {
     const isFeatureEnabled = (path) => {
         if (['/admin/sites', '/admin/site-photos'].includes(path)) return hasLongTerm
         if (path === '/admin/work-orders') return hasShortTerm
+        if (path === '/admin/timesheets') return !tenantFeatures.includes('disable_timesheets')
         if (['/admin/fleet', '/admin/transport'].includes(path)) return tenantFeatures.includes('fleet')
         if (['/admin/warehouse', '/admin/material-requests'].includes(path)) return tenantFeatures.includes('warehouse') || tenant?.has_warehouse === true
         if (path === '/admin/accommodations') return tenantFeatures.includes('accommodations')
