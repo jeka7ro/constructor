@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand } from 'lucide-react';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
@@ -18,6 +18,12 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
     // Generate week days (Monday to Sunday)
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
     const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+
+    const isCurrentWeek = isSameWeek(currentDate, new Date(), { weekStartsOn: 1 });
+    const weekEnd = addDays(weekStart, 6);
+    const weekLabel = isCurrentWeek 
+        ? "Săpt. curentă" 
+        : `${format(weekStart, 'dd MMM', { locale: ro })} - ${format(weekEnd, 'dd MMM', { locale: ro })}`;
 
     // Filter work orders that fall in this week
     const weeklyOrders = useMemo(() => {
@@ -109,11 +115,11 @@ export default function ShortWorksCalendar({ workOrders = [] }) {
                     <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
                         <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <span className="px-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Săptămâna curentă</span>
+                    <span className="px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[110px] text-center">{weekLabel}</span>
                     <button onClick={() => navigateWeek(1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
                         <ChevronRight className="w-4 h-4" />
                     </button>
-                </div>
+                    </div>
                 </div>
             </div>
 
