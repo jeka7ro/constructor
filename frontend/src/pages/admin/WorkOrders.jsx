@@ -403,6 +403,10 @@ export default function WorkOrders() {
                     searchable={true}
                     searchPlaceholder="Caută comandă..."
                     emptyText={filterStatus ? `Nicio comandă cu statusul "${STATUS_CONFIG[filterStatus]?.label}"` : 'Nicio comandă de lucru'}
+                    rowStyle={(wo) => wo.assigned_team_color ? {
+                        backgroundColor: `${wo.assigned_team_color}08`,
+                        boxShadow: `inset 4px 0 0 ${wo.assigned_team_color}`
+                    } : undefined}
                     onRowClick={(wo) => navigate(`/admin/work-orders/${wo.id}`)}
                     mobileCard={(wo) => {
                         const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
