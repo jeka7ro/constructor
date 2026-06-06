@@ -249,7 +249,10 @@ export default function WorkOrderForm() {
                 } catch {}
                 setDetecting(false)
             },
-            () => setDetecting(false),
+            (err) => {
+                setDetecting(false);
+                alert('Eroare detectare GPS: ' + err.message + '\nTe rugăm să verifici dacă ai permis accesul la locație în browser/telefon.');
+            },
             { enableHighAccuracy: true, timeout: 10000 }
         )
     }
@@ -268,8 +271,16 @@ export default function WorkOrderForm() {
         })
     }
 
-    const buildPayload = () => ({
-        title: form.title,
+    const buildPayload = () => {
+        let generatedTitle = form.title.trim();
+        if (!generatedTitle) {
+            const cName = form.client_mode === 'existing' 
+                ? clients.find(c => c.id === form.client_id)?.name 
+                : form.client_name;
+            generatedTitle = `Comandă ${cName || 'Fără Titlu'}`;
+        }
+        return {
+            title: generatedTitle,
         access_notes: form.access_notes,
         start_date: form.start_date || null,
         start_time: form.start_time || null,
@@ -287,7 +298,8 @@ export default function WorkOrderForm() {
         assigned_vehicle_id: form.assigned_vehicle_id || null,
         volumes: form.volumes.filter(v => v.label),
         materials: form.materials.filter(m => m.name),
-    })
+    }
+}
 
     const uploadInstructionPhotos = async (woId) => {
         for (const p of instructionPhotos) {
@@ -299,7 +311,6 @@ export default function WorkOrderForm() {
     }
 
     const handleSave = async (andSend = false) => {
-        if (!form.title.trim()) return setError('Titlul comenzii este obligatoriu.')
         setError(null)
         andSend ? setSending(true) : setSaving(true)
         try {
@@ -371,228 +382,251 @@ export default function WorkOrderForm() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* Coloana Stânga */}
                 <div className="space-y-6">
-                    <Section icon={FileText} title="Detalii Comandă" zIndex={80}>
-                <Field label="Titlu Comanda" required>
-                    <input
-                        type="text"
-                        value={form.title}
-                        onChange={e => set('title', e.target.value)}
-                        placeholder="Ex: Sapa 120mp - Familia Ionescu, Str. Florilor 12"
-                        className={INPUT}
-                        autoFocus
-                    />
-                </Field>
-            </Section>
-
-            {/* 2. Client & Locatie */}
-            <Section icon={User} title="Client & Locatie" zIndex={70}>
-                <div className="flex gap-2 mb-1">
-                    {[['existing', 'Client Existent'], ['new', 'Client Nou']].map(([m, label]) => (
-                        <button key={m} onClick={() => set('client_mode', m)}
-                            className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.client_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
-                            {label}
-                        </button>
-                    ))}
-                </div>
-
-                {form.client_mode === 'existing' ? (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                            <div className="md:col-span-2">
-                                <Field label="Selecteaza Client">
-                                    <select value={form.client_id} onChange={e => {
-                                        const cl = clients.find(c => c.id === e.target.value)
-                                        setForm(p => ({
-                                            ...p,
-                                            client_id: e.target.value,
-                                            client_name: cl?.name || '',
-                                            client_email: cl?.email || '',
-                                            client_phone: cl?.phone || '',
-                                            client_language: cl?.preferred_language || 'ro',
-                                        }))
-                                    }} className={SELECT}>
-                                        <option value="">— Alege client —</option>
-                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                </Field>
-                            </div>
-                            <div className="md:col-span-1">
-                                <Field label="Limba">
-                                    <select 
-                                        value={form.client_language} 
-                                        onChange={e => set('client_language', e.target.value)}
-                                        className={SELECT}
-                                    >
-                                        <option value="ro">🇷🇴 Română</option>
-                                        <option value="en">🇬🇧 Engleză</option>
-                                        <option value="fr">🇫🇷 Franceză</option>
-                                        <option value="de">🇩🇪 Germană</option>
-                                        <option value="nl">🇳🇱 Olandeză</option>
-                                        <option value="ru">🇷🇺 Rusă</option>
-                                    </select>
-                                </Field>
-                            </div>
-                        </div>
-                        {selectedClient && (
-                            <div className="mt-1 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300 space-y-0.5">
-                                {selectedClient.phone && <p>{selectedClient.phone}</p>}
-                                {selectedClient.email && <p>{selectedClient.email}</p>}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="space-y-3">
-                        <Field label="Nume Client" required>
-                            <input type="text" value={form.client_name}
-                                onChange={e => set('client_name', e.target.value)}
-                                placeholder="Familia Ionescu / SC Firma SRL"
-                                className={INPUT} />
-                        </Field>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                            <Field label="Telefon">
-                                <input type="text" value={form.client_phone}
-                                    onChange={e => set('client_phone', e.target.value)}
-                                    placeholder="+40 722 ..."
-                                    className={INPUT} />
+                    <Section icon={FileText} title="Detalii, Client și Locație" zIndex={80}>
+                        {/* 1. Titlu & Număr */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Field label="Titlu Comandă (Opțional)">
+                                <input
+                                    type="text"
+                                    value={form.title}
+                                    onChange={e => set('title', e.target.value)}
+                                    placeholder="Numele este opțional..."
+                                    className={INPUT}
+                                    autoFocus
+                                />
                             </Field>
-                            <Field label="Email">
-                                <input type="email" value={form.client_email}
-                                    onChange={e => set('client_email', e.target.value)}
-                                    placeholder="contact@..."
-                                    className={INPUT} />
-                            </Field>
-                            <Field label="Limba">
-                                <select 
-                                    value={form.client_language} 
-                                    onChange={e => set('client_language', e.target.value)}
-                                    className={SELECT}
-                                >
-                                    <option value="ro">🇷🇴 Română</option>
-                                    <option value="en">🇬🇧 Engleză</option>
-                                    <option value="fr">🇫🇷 Franceză</option>
-                                    <option value="de">🇩🇪 Germană</option>
-                                    <option value="nl">🇳🇱 Olandeză</option>
-                                    <option value="ru">🇷🇺 Rusă</option>
-                                </select>
-                            </Field>
-                        </div>
-                    </div>
-                )}
-            </Section>
-
-            {/* 3. Locatie + GPS */}
-            <Section icon={MapPin} title="Locatie Lucrare" zIndex={60}>
-                <div className="flex gap-2 mb-1">
-                    {[['existing', 'Santier Existent'], ['new', 'Adresa Manuala']].map(([m, label]) => (
-                        <button key={m} onClick={() => set('site_mode', m)}
-                            className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.site_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
-                            {label}
-                        </button>
-                    ))}
-                </div>
-
-                {form.site_mode === 'existing' ? (
-                    <>
-                        <Field label="Selecteaza Santier">
-                            <select value={form.site_id} onChange={e => {
-                                const s = sites.find(x => x.id === e.target.value)
-                                setForm(p => ({
-                                    ...p,
-                                    site_id: e.target.value,
-                                    site_address: s?.address || '',
-                                    site_latitude: s?.latitude || '',
-                                    site_longitude: s?.longitude || '',
-                                }))
-                            }} className={SELECT}>
-                                <option value="">— Alege santier —</option>
-                                {sites.map(s => <option key={s.id} value={s.id}>{s.name} {s.address ? `— ${s.address}` : ''}</option>)}
-                            </select>
-                        </Field>
-                        {selectedSite && (
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300">
-                                {selectedSite.address}
-                                {selectedSite.latitude && (
-                                    <p className="text-xs text-slate-400 mt-0.5">GPS: {selectedSite.latitude}, {selectedSite.longitude}</p>
-                                )}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="space-y-4">
-                        <Field label="Adresa Lucrarii" required>
-                            <AddressAutocomplete 
-                                value={form.site_address}
-                                onChange={(addr, lat, lon) => {
-                                    setForm(p => ({
-                                        ...p,
-                                        site_address: addr,
-                                        ...(lat && lon ? { site_latitude: lat, site_longitude: lon } : {})
-                                    }))
-                                }}
-                                placeholder="Str. ..., Nr. ..., Oras, Judet"
-                                className={INPUT} 
-                            />
-                        </Field>
-
-                        {/* GPS */}
-                        <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Coordonate GPS</span>
-                                <button
-                                    type="button"
-                                    onClick={handleDetectGPS}
-                                    disabled={detecting}
-                                    className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
-                                >
-                                    {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                    Detecteaza automat
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                    <label className="block text-xs text-slate-400 mb-1 ml-1">Latitudine</label>
-                                    <input type="number" step="any" value={form.site_latitude}
-                                        onChange={e => set('site_latitude', e.target.value)}
-                                        placeholder="44.4268"
-                                        className={INPUT} />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-slate-400 mb-1 ml-1">Longitudine</label>
-                                    <input type="number" step="any" value={form.site_longitude}
-                                        onChange={e => set('site_longitude', e.target.value)}
-                                        placeholder="26.1025"
-                                        className={INPUT} />
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-slate-400 mb-1 ml-1">Raza Geo (m)</label>
-                                    <input type="number" value={form.site_geofence_radius}
-                                        onChange={e => set('site_geofence_radius', e.target.value)}
-                                        placeholder="100"
-                                        min="10" max="5000"
-                                        className={INPUT} />
+                            <div className="flex flex-col justify-end">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1 tracking-wider">
+                                    Număr Comandă (Auto)
+                                </span>
+                                <div className="h-11 flex items-center px-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 font-mono text-sm font-bold shadow-inner">
+                                    #COM-{(savedId || id) ? String(savedId || id).padStart(4, '0') : 'NOUĂ'}
                                 </div>
                             </div>
-                            <MiniMapSelector
-                                latitude={form.site_latitude}
-                                longitude={form.site_longitude}
-                                onLocationChange={async (lat, lon) => {
-                                    setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
-                                    try {
-                                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`, { headers: { 'Accept-Language': 'ro' } })
-                                        const data = await res.json()
-                                        if (data?.display_name) {
-                                            const a = data.address || {}
-                                            const parts = [a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road, a.city || a.town || a.village || a.municipality, a.county].filter(Boolean)
-                                            const addr = parts.length > 0 ? parts.join(', ') : data.display_name
-                                            setForm(p => ({ ...p, site_address: addr }))
-                                        }
-                                    } catch {}
-                                }}
-                            />
                         </div>
-                    </div>
-                )}
-            </Section>
+
+                        <div className="h-px w-full bg-slate-100 dark:bg-slate-800 my-6"></div>
+
+                        {/* 2. Client */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <User className="w-4 h-4 text-blue-500" />
+                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Client</h3>
+                            </div>
+                            <div className="flex gap-2 mb-4">
+                                {[['existing', 'Client Existent'], ['new', 'Client Nou']].map(([m, label]) => (
+                                    <button key={m} onClick={() => set('client_mode', m)}
+                                        className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.client_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {form.client_mode === 'existing' ? (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                                        <div className="md:col-span-2">
+                                            <Field label="Selecteaza Client">
+                                                <select value={form.client_id} onChange={e => {
+                                                    const cl = clients.find(c => c.id === e.target.value)
+                                                    setForm(p => ({
+                                                        ...p,
+                                                        client_id: e.target.value,
+                                                        client_name: cl?.name || '',
+                                                        client_email: cl?.email || '',
+                                                        client_phone: cl?.phone || '',
+                                                        client_language: cl?.preferred_language || 'ro',
+                                                    }))
+                                                }} className={SELECT}>
+                                                    <option value="">— Alege client —</option>
+                                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                            </Field>
+                                        </div>
+                                        <div className="md:col-span-1">
+                                            <Field label="Limba">
+                                                <select 
+                                                    value={form.client_language} 
+                                                    onChange={e => set('client_language', e.target.value)}
+                                                    className={SELECT}
+                                                >
+                                                    <option value="ro">🇷🇴 Română</option>
+                                                    <option value="en">🇬🇧 Engleză</option>
+                                                    <option value="fr">🇫🇷 Franceză</option>
+                                                    <option value="de">🇩🇪 Germană</option>
+                                                    <option value="nl">🇳🇱 Olandeză</option>
+                                                    <option value="ru">🇷🇺 Rusă</option>
+                                                </select>
+                                            </Field>
+                                        </div>
+                                    </div>
+                                    {selectedClient && (
+                                        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300 space-y-0.5">
+                                            {selectedClient.phone && <p>{selectedClient.phone}</p>}
+                                            {selectedClient.email && <p>{selectedClient.email}</p>}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="space-y-3">
+                                    <Field label="Nume Client" required>
+                                        <input type="text" value={form.client_name}
+                                            onChange={e => set('client_name', e.target.value)}
+                                            placeholder="Familia Ionescu / SC Firma SRL"
+                                            className={INPUT} />
+                                    </Field>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                                        <Field label="Telefon">
+                                            <input type="text" value={form.client_phone}
+                                                onChange={e => set('client_phone', e.target.value)}
+                                                placeholder="+40 722 ..."
+                                                className={INPUT} />
+                                        </Field>
+                                        <Field label="Email">
+                                            <input type="email" value={form.client_email}
+                                                onChange={e => set('client_email', e.target.value)}
+                                                placeholder="contact@..."
+                                                className={INPUT} />
+                                        </Field>
+                                        <Field label="Limba">
+                                            <select 
+                                                value={form.client_language} 
+                                                onChange={e => set('client_language', e.target.value)}
+                                                className={SELECT}
+                                            >
+                                                <option value="ro">🇷🇴 Română</option>
+                                                <option value="en">🇬🇧 Engleză</option>
+                                                <option value="fr">🇫🇷 Franceză</option>
+                                                <option value="de">🇩🇪 Germană</option>
+                                                <option value="nl">🇳🇱 Olandeză</option>
+                                                <option value="ru">🇷🇺 Rusă</option>
+                                            </select>
+                                        </Field>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="h-px w-full bg-slate-100 dark:bg-slate-800 my-6"></div>
+
+                        {/* 3. Locatie + GPS */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <MapPin className="w-4 h-4 text-emerald-500" />
+                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Locație Lucrare</h3>
+                            </div>
+                            <div className="flex gap-2 mb-4">
+                                {[['existing', 'Santier Existent'], ['new', 'Adresa Manuala']].map(([m, label]) => (
+                                    <button key={m} onClick={() => set('site_mode', m)}
+                                        className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.site_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {form.site_mode === 'existing' ? (
+                                <>
+                                    <Field label="Selecteaza Santier">
+                                        <select value={form.site_id} onChange={e => {
+                                            const s = sites.find(x => x.id === e.target.value)
+                                            setForm(p => ({
+                                                ...p,
+                                                site_id: e.target.value,
+                                                site_address: s?.address || '',
+                                                site_latitude: s?.latitude || '',
+                                                site_longitude: s?.longitude || '',
+                                            }))
+                                        }} className={SELECT}>
+                                            <option value="">— Alege santier —</option>
+                                            {sites.map(s => <option key={s.id} value={s.id}>{s.name} {s.address ? `— ${s.address}` : ''}</option>)}
+                                        </select>
+                                    </Field>
+                                    {selectedSite && (
+                                        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300">
+                                            {selectedSite.address}
+                                            {selectedSite.latitude && (
+                                                <p className="text-xs text-slate-400 mt-0.5">GPS: {selectedSite.latitude}, {selectedSite.longitude}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="space-y-4">
+                                    <Field label="Adresa Lucrarii" required>
+                                        <AddressAutocomplete 
+                                            value={form.site_address}
+                                            onChange={(addr, lat, lon) => {
+                                                setForm(p => ({
+                                                    ...p,
+                                                    site_address: addr,
+                                                    ...(lat && lon ? { site_latitude: lat, site_longitude: lon } : {})
+                                                }))
+                                            }}
+                                            placeholder="Str. ..., Nr. ..., Oras, Judet"
+                                            className={INPUT} 
+                                        />
+                                    </Field>
+
+                                    {/* GPS */}
+                                    <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Coordonate GPS</span>
+                                            <button
+                                                type="button"
+                                                onClick={handleDetectGPS}
+                                                disabled={detecting}
+                                                className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
+                                            >
+                                                {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                Detecteaza automat
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1 ml-1">Latitudine</label>
+                                                <input type="number" step="any" value={form.site_latitude}
+                                                    onChange={e => set('site_latitude', e.target.value)}
+                                                    placeholder="44.4268"
+                                                    className={INPUT} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1 ml-1">Longitudine</label>
+                                                <input type="number" step="any" value={form.site_longitude}
+                                                    onChange={e => set('site_longitude', e.target.value)}
+                                                    placeholder="26.1025"
+                                                    className={INPUT} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1 ml-1">Raza Geo (m)</label>
+                                                <input type="number" value={form.site_geofence_radius}
+                                                    onChange={e => set('site_geofence_radius', e.target.value)}
+                                                    placeholder="100"
+                                                    min="10" max="5000"
+                                                    className={INPUT} />
+                                            </div>
+                                        </div>
+                                        <MiniMapSelector
+                                            latitude={form.site_latitude}
+                                            longitude={form.site_longitude}
+                                            onLocationChange={async (lat, lon) => {
+                                                setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
+                                                try {
+                                                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`, { headers: { 'Accept-Language': 'ro' } })
+                                                    const data = await res.json()
+                                                    if (data?.display_name) {
+                                                        const a = data.address || {}
+                                                        const parts = [a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road, a.city || a.town || a.village || a.municipality, a.county].filter(Boolean)
+                                                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
+                                                        setForm(p => ({ ...p, site_address: addr }))
+                                                    }
+                                                } catch {}
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </Section>
 
             {/* 4. Planificare + Pret */}
             <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
@@ -616,7 +650,7 @@ export default function WorkOrderForm() {
             </Section>
 
             {/* 6. Echipa + Vehicul */}
-            <Section icon={Users} title="Echipa si Vehicul" zIndex={20}>
+            <Section icon={Users} title="Echipa si Vehicul" zIndex={40}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <Field label="Șef de Echipă / Responsabil">
                         <SearchableSelect
@@ -663,7 +697,7 @@ export default function WorkOrderForm() {
             <div className="space-y-6">
             
             {/* 5. Volume + Materiale */}
-            <Section icon={FileText} title="Cantitati Estimate" zIndex={40}>
+            <Section icon={FileText} title="Cantitati Estimate" zIndex={30}>
                 {/* Volumes */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
