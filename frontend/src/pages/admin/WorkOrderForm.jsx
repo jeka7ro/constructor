@@ -328,44 +328,23 @@ export default function WorkOrderForm() {
     const selectedSite = sites.find(s => s.id === form.site_id)
 
     return (
-        <div className="p-2 sm:p-4 max-w-3xl mx-auto space-y-4">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate('/admin/work-orders')}
-                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-                    >
-                        <ChevronLeft className="w-5 h-5 text-slate-500" />
-                    </button>
-                    <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
-                        <ClipboardList className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
-                            {isEdit ? 'Editare Comanda' : 'Comanda Noua'}
-                        </h1>
-                        <p className="text-xs text-slate-500">Completeaza campurile de mai jos</p>
-                    </div>
+            <div className="flex items-center gap-3">
+                <button
+                    onClick={() => navigate('/admin/work-orders')}
+                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                >
+                    <ChevronLeft className="w-5 h-5 text-slate-500" />
+                </button>
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
+                    <ClipboardList className="w-5 h-5 text-white" />
                 </div>
-                {/* Actions Top Right */}
-                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                    <button
-                        onClick={() => handleSave(false)}
-                        disabled={saving || sending}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 h-11 sm:h-10 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Salvează
-                    </button>
-                    <button
-                        onClick={() => handleSave(true)}
-                        disabled={saving || sending}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 h-11 sm:h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
-                    >
-                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        Trimite
-                    </button>
+                <div>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                        {isEdit ? 'Editare Comandă' : 'Comandă Nouă'}
+                    </h1>
+                    <p className="text-sm text-slate-500">Completează câmpurile de mai jos</p>
                 </div>
             </div>
 
@@ -375,8 +354,9 @@ export default function WorkOrderForm() {
                 </div>
             )}
 
-            <div className="flex flex-col gap-4">
-                <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {/* Coloana Stânga */}
+                <div className="space-y-6">
                     <Section icon={FileText} title="Detalii Comandă" zIndex={80}>
                 <Field label="Titlu Comanda" required>
                     <input
@@ -597,8 +577,13 @@ export default function WorkOrderForm() {
                             />
                         </div>
                     </div>
+                    </div>
                 )}
             </Section>
+            </div>
+
+            {/* Coloana Dreapta */}
+            <div className="space-y-6">
             
             {/* 4. Planificare + Pret */}
             <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
@@ -820,6 +805,32 @@ export default function WorkOrderForm() {
                         </div>
                     </Section>
                 </div>
+            </div>
+
+            {/* Actions Bottom */}
+            <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+                <button
+                    onClick={() => navigate('/admin/work-orders')}
+                    className="px-6 h-11 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                    Anulează
+                </button>
+                <button
+                    onClick={() => handleSave(false)}
+                    disabled={saving || sending}
+                    className="flex items-center justify-center gap-2 px-6 h-11 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 shadow-sm"
+                >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Salvează
+                </button>
+                <button
+                    onClick={() => handleSave(true)}
+                    disabled={saving || sending}
+                    className="flex items-center justify-center gap-2 px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
+                >
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Trimite
+                </button>
             </div>
         </div>
     )
