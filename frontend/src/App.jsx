@@ -38,6 +38,7 @@ const NotificationsPage = lazy(() => import('./pages/admin/NotificationsPage'))
 const FleetManagement = lazy(() => import('./pages/admin/FleetManagement'))
 const TransportManagement = lazy(() => import('./pages/admin/TransportManagement'))
 const WarehouseManagement = lazy(() => import('./pages/admin/WarehouseManagement'))
+const ImportInvoice = lazy(() => import('./pages/admin/ImportInvoice'))
 const ComplaintsManagement = lazy(() => import('./pages/admin/ComplaintsManagement'))
 const AccommodationsManagement = lazy(() => import('./pages/admin/AccommodationsManagement'))
 const LeavesManagement = lazy(() => import('./pages/admin/LeavesManagement'))
@@ -271,6 +272,7 @@ function App() {
                         <Route path="fleet" element={<FleetManagement />} />
                         <Route path="transport" element={<TransportManagement />} />
                         <Route path="warehouse" element={<WarehouseManagement />} />
+                        <Route path="import-factura" element={<ImportInvoice />} />
                         <Route path="complaints" element={<ComplaintsManagement />} />
                         <Route path="accommodations" element={<AccommodationsManagement />} />
                                 <Route path="expenses" element={<ExpensesManagement />} />

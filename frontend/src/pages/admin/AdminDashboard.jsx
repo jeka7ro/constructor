@@ -209,6 +209,7 @@ export default function AdminDashboard() {
             label: 'Logistică & Financiar',
             items: [
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
+                { path: '/admin/import-factura', icon: FileText, label: 'Import Factură' },
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
                 { path: '/admin/transport', icon: Navigation, label: 'Foi de Parcurs' },
                 { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
@@ -258,14 +259,14 @@ export default function AdminDashboard() {
         if (['/admin/fleet', '/admin/transport'].includes(path)) return tenantFeatures.includes('fleet')
         if (['/admin/warehouse', '/admin/material-requests'].includes(path)) return tenantFeatures.includes('warehouse') || tenant?.has_warehouse === true
         if (path === '/admin/accommodations') return tenantFeatures.includes('accommodations')
-        if (path === '/admin/expenses') return tenantFeatures.includes('expenses')
+        if (['/admin/expenses', '/admin/import-factura'].includes(path)) return tenantFeatures.includes('expenses')
         if (path === '/admin/reports') return tenantFeatures.includes('reports')
         return true
     }
 
     const filteredCategories = categories.map(cat => {
         let roleFilteredItems = admin?.role === 'LOGISTIC'
-            ? cat.items.filter(item => ['/admin/warehouse', '/admin/fleet', '/admin/transport', '/admin/settings', '/admin/notifications'].includes(item.path))
+            ? cat.items.filter(item => ['/admin/warehouse', '/admin/import-factura', '/admin/fleet', '/admin/transport', '/admin/settings', '/admin/notifications'].includes(item.path))
             : cat.items
             
         let featureFilteredItems = roleFilteredItems.filter(item => isFeatureEnabled(item.path))
