@@ -41,6 +41,7 @@ def parse_invoice(
         invoice_number = facture_match.group(1).strip()
 
     # Parse items
+    items = []
     # 1. Try Standard Format
     item_pattern = re.compile(r'^([\d\.,]+)\s+([A-Z]+)\s+(.*?)\s+([\d\.,]+)\s+([\d\.,]+)$')
     for line in lines:

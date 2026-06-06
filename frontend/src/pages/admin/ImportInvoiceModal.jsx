@@ -137,6 +137,7 @@ export default function ImportInvoiceModal({ onClose }) {
                             type="file"
                             accept="application/pdf"
                             onChange={handleFileSelect}
+                            title=""
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-12 text-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-all group-hover:border-indigo-500 dark:group-hover:border-indigo-400">
