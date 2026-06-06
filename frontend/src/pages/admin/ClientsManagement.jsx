@@ -499,16 +499,18 @@ export default function ClientsManagement() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Persoană de Contact</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            value={formData.contact_person}
-                                            onChange={e => setFormData({...formData, contact_person: e.target.value})}
-                                        />
-                                    </div>
+                                <div className={`grid ${formData.client_type === 'juridica' ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                                    {formData.client_type === 'juridica' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Persoană de Contact</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                value={formData.contact_person}
+                                                onChange={e => setFormData({...formData, contact_person: e.target.value})}
+                                            />
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Limba Preferată</label>
                                         <select
