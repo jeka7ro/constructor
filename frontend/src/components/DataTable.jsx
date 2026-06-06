@@ -140,7 +140,7 @@ export default function DataTable({
             {/* Table */}
             <div className={`overflow-x-auto ${mobileCard ? 'hidden md:block' : ''}`}>
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-y border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                    <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>
                             {/* Row number column */}
                             <th className="px-6 py-4 text-center w-16 select-none">

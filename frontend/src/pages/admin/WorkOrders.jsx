@@ -12,12 +12,12 @@ import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
 
 const STATUS_CONFIG = {
-    draft:       { label: 'Nouă',       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
-    sent:        { label: 'Trimisă',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
-    confirmed:   { label: 'Confirmată',  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
-    in_progress: { label: 'În Execuție', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
-    completed:   { label: 'Finalizată',  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
-    cancelled:   { label: 'Anulată',     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' },
+    draft:       { label: 'Nouă',       color: 'bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', dot: 'bg-slate-400' },
+    sent:        { label: 'Trimisă',     color: 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800', dot: 'bg-amber-500' },
+    confirmed:   { label: 'Confirmată',  color: 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', dot: 'bg-emerald-500' },
+    in_progress: { label: 'În Execuție', color: 'bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', dot: 'bg-blue-500' },
+    completed:   { label: 'Finalizată',  color: 'bg-violet-50 text-violet-600 border border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800', dot: 'bg-violet-500' },
+    cancelled:   { label: 'Anulată',     color: 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', dot: 'bg-red-500' },
 }
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -45,7 +45,7 @@ export default function WorkOrders() {
             const res = await api.get(`/admin/work-orders${params}`)
             const data = Array.isArray(res.data) ? res.data : (res.data?.items || [])
             setWorkOrders(data)
-        } catch { /* silently fail */ }
+        } catch (e) { alert('API Error: ' + (e.response?.data?.detail || e.message)) }
         finally { setLoading(false) }
     }
 
@@ -107,7 +107,7 @@ export default function WorkOrders() {
             await navigator.clipboard.writeText(url)
             setCopiedId(id)
             setTimeout(() => setCopiedId(null), 2000)
-        } catch {}
+        } catch(e) { alert('API Error: ' + (e.response?.data?.detail || e.message));}
     }
 
     const getLink = (wo) => {
@@ -168,7 +168,7 @@ export default function WorkOrders() {
                             try {
                                 const res = await api.get(`/admin/work-orders/${wo.id}/sessions`)
                                 setSessionsModal({ woId: wo.id, title: wo.title, data: res.data })
-                            } catch { setSessionsModal({ woId: wo.id, title: wo.title, data: { error: true } }) }
+                            } catch(e) { alert('API Error: ' + (e.response?.data?.detail || e.message)); setSessionsModal({ woId: wo.id, title: wo.title, data: { error: true } }) }
                             finally { setSessionsLoading(false) }
                         }}
                         title="Ore lucrate pe comandă"
@@ -327,7 +327,7 @@ export default function WorkOrders() {
     ]
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -403,10 +403,6 @@ export default function WorkOrders() {
                     searchable={true}
                     searchPlaceholder="Caută comandă..."
                     emptyText={filterStatus ? `Nicio comandă cu statusul "${STATUS_CONFIG[filterStatus]?.label}"` : 'Nicio comandă de lucru'}
-                    rowStyle={(wo) => wo.assigned_team_color ? {
-                        backgroundColor: `${wo.assigned_team_color}08`,
-                        boxShadow: `inset 4px 0 0 ${wo.assigned_team_color}`
-                    } : undefined}
                     onRowClick={(wo) => navigate(`/admin/work-orders/${wo.id}`)}
                     mobileCard={(wo) => {
                         const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
@@ -535,7 +531,7 @@ export default function WorkOrders() {
                                         await api.patch(`/admin/work-orders/${matModal.woId}/materials-consumed`, { materials_consumed: matModal.rows })
                                         await fetchOrders()
                                         setMatModal(null)
-                                    } catch { /* ignore */ }
+                                    } catch(e) { alert('API Error: ' + (e.response?.data?.detail || e.message)); /* ignore */ }
                                     finally { setMatSaving(false) }
                                 }}
                                 className="px-5 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-md shadow-emerald-500/30 transition-all disabled:opacity-50"
