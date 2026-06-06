@@ -458,27 +458,18 @@ export default function WorkOrderForm() {
                 {currentStep === 1 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Section icon={FileText} title="Detalii, Client și Locație" zIndex={80}>
-                        {/* 1. Titlu & Număr */}
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
-                                <Field label="Titlu Comandă (Opțional)">
-                                    <input
-                                        type="text"
-                                        value={form.title}
-                                        onChange={e => set('title', e.target.value)}
-                                        placeholder="Numele este opțional..."
-                                        className={INPUT}
-                                        autoFocus
-                                    />
-                                </Field>
-                            </div>
-                            <div className="w-full sm:w-32">
-                                <Field label="ID (Auto)">
-                                    <div className="h-11 flex items-center px-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 font-mono text-xs font-bold shadow-inner truncate">
-                                        #DC-{(savedId || id) ? String(savedId || id).padStart(4, '0') : 'AUTO'}
-                                    </div>
-                                </Field>
-                            </div>
+                        {/* 1. Titlu */}
+                        <div>
+                            <Field label="Titlu Comandă (Opțional)">
+                                <input
+                                    type="text"
+                                    value={form.title}
+                                    onChange={e => set('title', e.target.value)}
+                                    placeholder="De ex. Lucrare bloc nou... (Codul DC va fi generat automat)"
+                                    className={INPUT}
+                                    autoFocus
+                                />
+                            </Field>
                         </div>
 
                         <div className="h-px w-full bg-slate-100 dark:bg-slate-800 my-6"></div>
