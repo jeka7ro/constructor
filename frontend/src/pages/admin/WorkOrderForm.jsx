@@ -806,7 +806,7 @@ export default function WorkOrderForm() {
                                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
                                     <div className="flex gap-2 flex-1 sm:flex-none">
                                         <input value={vol.quantity} onChange={e => updateRow('volumes', i, 'quantity', e.target.value)}
-                                            placeholder="Cant." type="number"
+                                            placeholder="Cant." type="number" min="0"
                                             className="w-full sm:w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                                         <select value={vol.unit} onChange={e => updateRow('volumes', i, 'unit', e.target.value)}
                                             className="w-20 px-2 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm shrink-0">
@@ -815,7 +815,7 @@ export default function WorkOrderForm() {
                                     </div>
                                     <div className="flex gap-2 w-full sm:w-auto">
                                         <input value={vol.thickness} onChange={e => updateRow('volumes', i, 'thickness', e.target.value)}
-                                            placeholder="Grosime (cm)" type="number" step="any"
+                                            placeholder="Grosime (cm)" type="number" step="any" min="0"
                                             className="flex-1 sm:w-32 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                                         
                                         {form.volumes.length > 1 && (
@@ -868,7 +868,7 @@ export default function WorkOrderForm() {
                                 placeholder="Alege materialul..."
                                 className="flex-1"
                             />
-                            <input type="number" placeholder="Cant." value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
+                            <input type="number" min="0" placeholder="Cant." value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
                                 className="w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                             <input type="text" placeholder="Unit. (kg, m)" value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
                                 className="w-16 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
@@ -939,7 +939,7 @@ export default function WorkOrderForm() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                     <Field label="Valoare estimată">
                         <div className="flex w-full shadow-sm rounded-xl">
-                            <input type="number" 
+                            <input type="number" min="0"
                                 value={form.estimated_amount || ''}
                                 onChange={e => {
                                     set('estimated_amount', e.target.value)
