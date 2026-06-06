@@ -95,6 +95,8 @@ class WorkOrderCreate(BaseModel):
     min_photos_required: Optional[int] = 2
     # Note acces — cod intrare, etaj, apartament (vizibil echipei, nu clientului)
     access_notes: Optional[str] = None
+    # Preț Estimativ
+    estimated_price: Optional[str] = None
 
 class WorkOrderUpdate(WorkOrderCreate):
     title: Optional[str] = None
@@ -140,6 +142,8 @@ def _serialize(wo: WorkOrder) -> dict:
         "confirmed_by_name": wo.confirmed_by_name,
         "client_signature": wo.client_signature,
         "pdf_path": wo.pdf_path,
+        "final_invoice_path": wo.final_invoice_path,
+        "estimated_price": wo.estimated_price,
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
         # Echipa si vehicul
@@ -244,6 +248,7 @@ def create_work_order(
         assigned_vehicle_id=payload.assigned_vehicle_id,
         min_photos_required=payload.min_photos_required or 2,
         access_notes=payload.access_notes,
+        estimated_price=getattr(payload, 'estimated_price', None),
         status="draft",
         created_by=current_admin.id,
     )
@@ -298,7 +303,8 @@ def update_work_order(
         "title", "notes", "start_date", "start_time", "deadline_date",
         "site_id", "site_address", "client_id", "client_name",
         "client_email", "client_phone", "requirements", "materials", "volumes",
-        "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes"
+        "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
+        "estimated_price"
     ]
     for f in fields:
         v = getattr(payload, f, None)
@@ -505,12 +511,13 @@ def send_work_order(
     ).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
-    if wo.status == "confirmed":
-        raise HTTPException(status_code=400, detail="Comanda a fost deja confirmată.")
+    if wo.status not in ["draft", "sent", "completed"]:
+        raise HTTPException(status_code=400, detail="Doar comenzile noi sau finalizate pot fi trimise la client.")
     
-    wo.status = "sent"
-    db.commit()
-    db.refresh(wo)
+    if wo.status == "draft":
+        wo.status = "sent"
+        db.commit()
+        db.refresh(wo)
 
     # Construiește link-ul public
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
@@ -522,6 +529,49 @@ def send_work_order(
     confirm_url = f"{base_url}/confirm/{wo.token}"
     
     return {**_serialize(wo), "confirm_url": confirm_url}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FINAL INVOICE UPLOAD
+# ──────────────────────────────────────────────────────────────────────────────
+@router.post("/work-orders/{wo_id}/final-invoice")
+async def upload_final_invoice(
+    wo_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Upload factura finala pentru comanda."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost gasita.")
+
+    if file.content_type not in ["application/pdf", "image/jpeg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Doar PDF, JPG sau PNG sunt permise.")
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fisierul este prea mare. Maxim 10MB.")
+
+    ext = os.path.splitext(file.filename or "invoice.pdf")[1].lower() or ".pdf"
+    safe_filename = f"final_invoice_{uuid.uuid4().hex[:8]}{ext}"
+    storage_path = f"work_orders/{wo_id}/{safe_filename}"
+
+    try:
+        from app.storage import upload_file, get_content_type
+        file_url = upload_file(content, storage_path, get_content_type(safe_filename))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare upload: {str(e)}")
+
+    # Update WorkOrder
+    wo.final_invoice_path = storage_path
+    db.commit()
+    db.refresh(wo)
+
+    return _serialize(wo)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

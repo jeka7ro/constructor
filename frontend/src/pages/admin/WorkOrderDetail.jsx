@@ -138,6 +138,26 @@ export default function WorkOrderDetail() {
     const [photos, setPhotos]   = useState([])
     const [loading, setLoading] = useState(true)
     const [lightbox, setLightbox] = useState(null)
+    const [uploadingInvoice, setUploadingInvoice] = useState(false)
+
+    const handleInvoiceUpload = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setUploadingInvoice(true)
+        const formData = new FormData()
+        formData.append('file', file)
+        try {
+            await api.post(`/admin/work-orders/${id}/final-invoice`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            alert('Factura finală a fost încărcată cu succes!')
+            load()
+        } catch (err) {
+            alert(err.response?.data?.detail || 'Eroare la încărcare factură.')
+        } finally {
+            setUploadingInvoice(false)
+        }
+    }
 
     const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
@@ -368,6 +388,7 @@ export default function WorkOrderDetail() {
                         <Row label="Client"              value={wo.client_name} />
                         <Row label="Email Client"        value={wo.client_email} />
                         <Row label="Telefon Client"      value={wo.client_phone} />
+                        {wo.estimated_price && <Row label="Preț Estimativ" value={wo.estimated_price} />}
                         <Row label="Creat la"            value={fmtFull(wo.created_at)} />
                         <Row label="Ultima Actualizare"  value={fmtFull(wo.updated_at)} />
                     </Section>
@@ -446,6 +467,34 @@ export default function WorkOrderDetail() {
                                             className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors">
                                             <ExternalLink className="w-3 h-3" /> Link Confirmare Client
                                         </a>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Final Invoice Section for Completed Orders */}
+                            {wo.status === 'completed' && (
+                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Factură Finală (PDF)</p>
+                                    {wo.final_invoice_path ? (
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <FileText className="w-5 h-5 text-blue-500 shrink-0" />
+                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">Factură Finală Încarcată</span>
+                                            </div>
+                                            <a href={`${API_BASE}${wo.final_invoice_path}`} target="_blank" rel="noreferrer"
+                                                className="px-3 py-1.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-full text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-50 transition-colors">
+                                                Vezi PDF
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-center">
+                                            <FileText className="w-6 h-6 text-slate-400 mb-2" />
+                                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">Nu ai încărcat factura finală.</p>
+                                            <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold transition-colors">
+                                                {uploadingInvoice ? 'Se încarcă...' : 'Alege PDF Factură'}
+                                                <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleInvoiceUpload} disabled={uploadingInvoice} />
+                                            </label>
+                                        </div>
                                     )}
                                 </div>
                             )}

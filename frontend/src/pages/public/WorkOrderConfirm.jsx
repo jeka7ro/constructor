@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw } from 'lucide-react'
 import api from '../../lib/api'
 
@@ -112,9 +112,184 @@ function SignaturePad({ onChange, disabled }) {
     )
 }
 
+const LANG_DICT = {
+    ro: {
+        workOrder: 'Comandă de Lucru',
+        confirmed: 'Comandă Confirmată!',
+        confirmedBy: 'Confirmată de',
+        onDate: 'pe',
+        signature: 'Semnătură înregistrată',
+        start: 'Start',
+        deadline: 'Termen',
+        client: 'Beneficiar',
+        location: 'Locație Lucrare',
+        requirements: 'Cerințe de Lucru',
+        volumes: 'Volume Estimate',
+        materials: 'Materiale',
+        notes: 'Observații',
+        confirmOrder: 'Confirmare Comandă',
+        confirmDesc: 'Completați datele, aplicați semnătura digitală și confirmați.',
+        confirmedByLabel: 'Confirmat de *',
+        namePlaceholder: 'Nume și prenume / Companie',
+        digitalSignature: 'Semnătură Digitală *',
+        signatureRequired: 'Semnătura este obligatorie',
+        terms: 'Am citit și sunt de acord cu toate cerințele, condițiile și termenele specificate în această comandă de lucru.',
+        confirmBtn: 'Confirm și Semnez Comanda',
+        confirmingBtn: 'Se confirmă...',
+        estimatedPrice: 'Preț Estimativ',
+        finalInvoice: 'Factură Finală (PDF)',
+        downloadPdf: 'Descarcă PDF',
+        completionPhotos: 'Poze Finalizare'
+    },
+    en: {
+        workOrder: 'Work Order',
+        confirmed: 'Order Confirmed!',
+        confirmedBy: 'Confirmed by',
+        onDate: 'on',
+        signature: 'Registered Signature',
+        start: 'Start',
+        deadline: 'Deadline',
+        client: 'Client',
+        location: 'Location',
+        requirements: 'Requirements',
+        volumes: 'Estimated Volumes',
+        materials: 'Materials',
+        notes: 'Notes',
+        confirmOrder: 'Order Confirmation',
+        confirmDesc: 'Fill in your details, apply your digital signature, and confirm.',
+        confirmedByLabel: 'Confirmed by *',
+        namePlaceholder: 'Full Name / Company',
+        digitalSignature: 'Digital Signature *',
+        signatureRequired: 'Signature is required',
+        terms: 'I have read and agree to all the requirements, terms, and conditions specified in this work order.',
+        confirmBtn: 'Confirm and Sign',
+        confirmingBtn: 'Confirming...',
+        estimatedPrice: 'Estimated Price',
+        finalInvoice: 'Final Invoice (PDF)',
+        downloadPdf: 'Download PDF',
+        completionPhotos: 'Completion Photos'
+    },
+    fr: {
+        workOrder: 'Bon de travail',
+        confirmed: 'Commande confirmée !',
+        confirmedBy: 'Confirmé par',
+        onDate: 'le',
+        signature: 'Signature enregistrée',
+        start: 'Début',
+        deadline: 'Date limite',
+        client: 'Client',
+        location: 'Lieu',
+        requirements: 'Exigences',
+        volumes: 'Volumes estimés',
+        materials: 'Matériaux',
+        notes: 'Remarques',
+        confirmOrder: 'Confirmation de commande',
+        confirmDesc: 'Remplissez vos coordonnées, appliquez votre signature numérique et confirmez.',
+        confirmedByLabel: 'Confirmé par *',
+        namePlaceholder: 'Nom et prénom / Entreprise',
+        digitalSignature: 'Signature numérique *',
+        signatureRequired: 'La signature est obligatoire',
+        terms: "J'ai lu et j'accepte toutes les exigences, termes et conditions spécifiés dans ce bon de travail.",
+        confirmBtn: 'Confirmer et signer',
+        confirmingBtn: 'Confirmation en cours...',
+        estimatedPrice: 'Prix estimé',
+        finalInvoice: 'Facture finale (PDF)',
+        downloadPdf: 'Télécharger le PDF',
+        completionPhotos: 'Photos de réalisation'
+    },
+    de: {
+        workOrder: 'Arbeitsauftrag',
+        confirmed: 'Auftrag bestätigt!',
+        confirmedBy: 'Bestätigt von',
+        onDate: 'am',
+        signature: 'Registrierte Unterschrift',
+        start: 'Start',
+        deadline: 'Frist',
+        client: 'Kunde',
+        location: 'Standort',
+        requirements: 'Anforderungen',
+        volumes: 'Geschätzte Mengen',
+        materials: 'Materialien',
+        notes: 'Notizen',
+        confirmOrder: 'Auftragsbestätigung',
+        confirmDesc: 'Füllen Sie Ihre Daten aus, fügen Sie Ihre digitale Unterschrift hinzu und bestätigen Sie.',
+        confirmedByLabel: 'Bestätigt von *',
+        namePlaceholder: 'Vollständiger Name / Firma',
+        digitalSignature: 'Digitale Unterschrift *',
+        signatureRequired: 'Unterschrift ist erforderlich',
+        terms: 'Ich habe alle in diesem Arbeitsauftrag festgelegten Anforderungen, Bedingungen und Fristen gelesen und stimme ihnen zu.',
+        confirmBtn: 'Bestätigen und Unterschreiben',
+        confirmingBtn: 'Wird bestätigt...',
+        estimatedPrice: 'Geschätzter Preis',
+        finalInvoice: 'Schlussrechnung (PDF)',
+        downloadPdf: 'PDF herunterladen',
+        completionPhotos: 'Fertigstellungsfotos'
+    },
+    nl: {
+        workOrder: 'Werkbon',
+        confirmed: 'Bestelling bevestigd!',
+        confirmedBy: 'Bevestigd door',
+        onDate: 'op',
+        signature: 'Geregistreerde handtekening',
+        start: 'Start',
+        deadline: 'Deadline',
+        client: 'Klant',
+        location: 'Locatie',
+        requirements: 'Vereisten',
+        volumes: 'Geschatte volumes',
+        materials: 'Materialen',
+        notes: 'Opmerkingen',
+        confirmOrder: 'Orderbevestiging',
+        confirmDesc: 'Vul uw gegevens in, plaats uw digitale handtekening en bevestig.',
+        confirmedByLabel: 'Bevestigd door *',
+        namePlaceholder: 'Volledige naam / Bedrijf',
+        digitalSignature: 'Digitale handtekening *',
+        signatureRequired: 'Handtekening is verplicht',
+        terms: 'Ik heb alle vereisten, voorwaarden en termijnen vermeld in deze werkbon gelezen en ga hiermee akkoord.',
+        confirmBtn: 'Bevestigen en tekenen',
+        confirmingBtn: 'Bevestigen...',
+        estimatedPrice: 'Geschatte prijs',
+        finalInvoice: 'Eindfactuur (PDF)',
+        downloadPdf: 'PDF downloaden',
+        completionPhotos: "Voltooiingsfoto's"
+    },
+    ru: {
+        workOrder: 'Заказ-наряд',
+        confirmed: 'Заказ подтвержден!',
+        confirmedBy: 'Подтверждено',
+        onDate: 'дата',
+        signature: 'Зарегистрированная подпись',
+        start: 'Начало',
+        deadline: 'Срок',
+        client: 'Клиент',
+        location: 'Местоположение',
+        requirements: 'Требования',
+        volumes: 'Оценочные объемы',
+        materials: 'Материалы',
+        notes: 'Примечания',
+        confirmOrder: 'Подтверждение заказа',
+        confirmDesc: 'Заполните свои данные, поставьте цифровую подпись и подтвердите.',
+        confirmedByLabel: 'Подтверждено (кем) *',
+        namePlaceholder: 'ФИО / Компания',
+        digitalSignature: 'Цифровая подпись *',
+        signatureRequired: 'Подпись обязательна',
+        terms: 'Я прочитал и согласен со всеми требованиями, условиями и сроками, указанными в этом заказе-наряде.',
+        confirmBtn: 'Подтвердить и подписать',
+        confirmingBtn: 'Подтверждение...',
+        estimatedPrice: 'Ориентировочная цена',
+        finalInvoice: 'Финальный счет (PDF)',
+        downloadPdf: 'Скачать PDF',
+        completionPhotos: 'Фото завершения'
+    }
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WorkOrderConfirm() {
     const { token } = useParams()
+    const [searchParams] = useSearchParams()
+    const lang = searchParams.get('lang') || 'ro'
+    const t = LANG_DICT[lang] || LANG_DICT['ro']
+    
     const [order, setOrder] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -202,7 +377,7 @@ export default function WorkOrderConfirm() {
                         )}
                         <div>
                             <p className="font-black text-slate-900 text-lg">{order?.org_name}</p>
-                            <p className="text-xs text-slate-500 font-medium">Comandă de Lucru</p>
+                            <p className="text-xs text-slate-500 font-medium">{t.workOrder}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -217,16 +392,16 @@ export default function WorkOrderConfirm() {
                 {confirmed && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
                         <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto mb-3" />
-                        <h2 className="text-xl font-black text-emerald-800 mb-1">Comandă Confirmată!</h2>
+                        <h2 className="text-xl font-black text-emerald-800 mb-1">{t.confirmed}</h2>
                         {order?.confirmed_at && (
                             <p className="text-emerald-600 text-sm">
-                                Confirmată de <strong>{order.confirmed_by_name}</strong> pe{' '}
-                                {new Date(order.confirmed_at).toLocaleString('ro-RO')}
+                                {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
+                                {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
                             </p>
                         )}
                         {order?.client_signature && (
                             <div className="mt-4 pt-4 border-t border-emerald-200">
-                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">Semnătură înregistrată</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{t.signature}</p>
                                 <img src={order.client_signature} alt="Semnătură" className="max-h-20 mx-auto opacity-80" />
                             </div>
                         )}
@@ -242,13 +417,13 @@ export default function WorkOrderConfirm() {
                             {order?.start_date && (
                                 <span className="flex items-center gap-1.5">
                                     <Calendar className="w-4 h-4 text-blue-500" />
-                                    Start: <strong>{formatDate(order.start_date)}</strong>
+                                    {t.start}: <strong>{formatDate(order.start_date)}</strong>
                                 </span>
                             )}
                             {order?.deadline_date && (
                                 <span className="flex items-center gap-1.5">
                                     <Calendar className="w-4 h-4 text-red-500" />
-                                    Deadline: <strong>{formatDate(order.deadline_date)}</strong>
+                                    {t.deadline}: <strong>{formatDate(order.deadline_date)}</strong>
                                 </span>
                             )}
                         </div>
@@ -257,7 +432,7 @@ export default function WorkOrderConfirm() {
                         {order?.client_name && (
                             <div className="px-6 py-4">
                                 <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" /> Beneficiar
+                                    <User className="w-3.5 h-3.5" /> {t.client}
                                 </h3>
                                 <p className="font-bold text-slate-900">{order.client_name}</p>
                                 {order.client_email && <p className="text-sm text-slate-600 mt-0.5">✉️ {order.client_email}</p>}
@@ -267,15 +442,23 @@ export default function WorkOrderConfirm() {
                         {(order?.site_name || order?.site_address) && (
                             <div className="px-6 py-4">
                                 <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-                                    <MapPin className="w-3.5 h-3.5" /> Locație Lucrare
+                                    <MapPin className="w-3.5 h-3.5" /> {t.location}
                                 </h3>
                                 {order.site_name && <p className="font-bold text-slate-900">{order.site_name}</p>}
                                 {order.site_address && <p className="text-sm text-slate-600 mt-0.5">{order.site_address}</p>}
                             </div>
                         )}
+                        {order?.estimated_price && (
+                            <div className="px-6 py-4 border-b border-slate-100">
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
+                                    💰 {t.estimatedPrice}
+                                </h3>
+                                <p className="font-bold text-slate-900 text-lg">{order.estimated_price}</p>
+                            </div>
+                        )}
                         {order?.requirements?.filter(r => r.description)?.length > 0 && (
                             <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">Cerințe de Lucru</h3>
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.requirements}</h3>
                                 <div className="space-y-2">
                                     {order.requirements.filter(r => r.description).map((r, i) => (
                                         <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
@@ -297,7 +480,7 @@ export default function WorkOrderConfirm() {
                         )}
                         {order?.volumes?.filter(v => v.label)?.length > 0 && (
                             <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">Volume Estimate</h3>
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.volumes}</h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     {order.volumes.filter(v => v.label).map((v, i) => (
                                         <div key={i} className="p-3 bg-slate-50 rounded-xl">
@@ -312,7 +495,7 @@ export default function WorkOrderConfirm() {
                         )}
                         {order?.materials?.filter(m => m.name)?.length > 0 && (
                             <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">Materiale</h3>
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.materials}</h3>
                                 <div className="space-y-1.5">
                                     {order.materials.filter(m => m.name).map((m, i) => (
                                         <div key={i} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
@@ -325,8 +508,36 @@ export default function WorkOrderConfirm() {
                         )}
                         {order?.notes && (
                             <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">Observații</h3>
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">{t.notes}</h3>
                                 <p className="text-sm text-slate-700 bg-amber-50 rounded-xl p-3 border border-amber-100 leading-relaxed">{order.notes}</p>
+                            </div>
+                        )}
+                        
+                        {/* Download Final Invoice - Public view */}
+                        {order?.final_invoice_path && (
+                            <div className="px-6 py-5 bg-blue-50/50">
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-blue-500 mb-3 flex items-center gap-1.5">
+                                    <ClipboardList className="w-3.5 h-3.5" /> {t.finalInvoice}
+                                </h3>
+                                <a href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${order.final_invoice_path}`} target="_blank" rel="noreferrer"
+                                    className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-xl shadow-sm hover:border-blue-400 hover:shadow-md transition-all group">
+                                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">{t.finalInvoice}</span>
+                                    <span className="text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-full">{t.downloadPdf}</span>
+                                </a>
+                            </div>
+                        )}
+                        
+                        {/* Completion Photos - Public view */}
+                        {order?.completion_photos && order.completion_photos.length > 0 && (
+                            <div className="px-6 py-5">
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.completionPhotos}</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {order.completion_photos.map((p, i) => (
+                                        <div key={i} className="aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group">
+                                            <img src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${p.photo_path}`} alt="Poza" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -336,33 +547,33 @@ export default function WorkOrderConfirm() {
                 {!confirmed && (
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
                         <div>
-                            <h3 className="font-extrabold text-slate-900 text-lg mb-1">Confirmare Comandă</h3>
+                            <h3 className="font-extrabold text-slate-900 text-lg mb-1">{t.confirmOrder}</h3>
                             <p className="text-sm text-slate-500 leading-relaxed">
-                                Completați datele, aplicați semnătura digitală și confirmați.
+                                {t.confirmDesc}
                             </p>
                         </div>
 
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                                Confirmat de *
+                                {t.confirmedByLabel}
                             </label>
                             <input
                                 type="text"
                                 value={confirmedByName}
                                 onChange={e => setConfirmedByName(e.target.value)}
-                                placeholder="Nume și prenume / Companie"
+                                placeholder={t.namePlaceholder}
                                 className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-white outline-none transition-all shadow-sm"
                             />
                         </div>
 
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
-                                <Pen className="w-3.5 h-3.5" /> Semnătură Digitală *
+                                <Pen className="w-3.5 h-3.5" /> {t.digitalSignature}
                             </label>
                             <SignaturePad onChange={setSignature} />
                             {!signature && (
                                 <p className="text-xs text-amber-600 font-medium mt-1.5 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" /> Semnătura este obligatorie
+                                    <AlertCircle className="w-3 h-3" /> {t.signatureRequired}
                                 </p>
                             )}
                         </div>
@@ -375,7 +586,7 @@ export default function WorkOrderConfirm() {
                                 </div>
                             </div>
                             <span className="text-sm font-semibold text-slate-700 leading-relaxed">
-                                Am citit și sunt de acord cu toate cerințele, condițiile și termenele specificate în această comandă de lucru.
+                                {t.terms}
                             </span>
                         </label>
 
@@ -392,8 +603,8 @@ export default function WorkOrderConfirm() {
                             style={{ backgroundColor: primaryColor }}
                         >
                             {confirming
-                                ? <><Loader2 className="w-5 h-5 animate-spin" /> Se confirmă...</>
-                                : <><CheckCircle2 className="w-5 h-5" /> Confirm și Semnez Comanda</>
+                                ? <><Loader2 className="w-5 h-5 animate-spin" /> {t.confirmingBtn}</>
+                                : <><CheckCircle2 className="w-5 h-5" /> {t.confirmBtn}</>
                             }
                         </button>
                     </div>

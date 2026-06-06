@@ -931,8 +931,12 @@ class WorkOrder(Base):
     confirmed_ip        = Column(String(45), nullable=True)
     client_signature    = Column(Text, nullable=True)   # Base64 PNG semnătură client
 
-    # ── PDF ───────────────────────────────────────────────────────────────────
-    pdf_path        = Column(String(500), nullable=True)
+    # ── PDF / Facturi ──────────────────────────────────────────────────────────
+    pdf_path            = Column(String(500), nullable=True)
+    final_invoice_path  = Column(String(500), nullable=True) # PDF cu factura finală
+
+    # ── Preț Estimativ ─────────────────────────────────────────────────────────
+    estimated_price     = Column(String(100), nullable=True) # Ex: "1500 EUR"
 
     # ── Note Acces (cod intrare, etaj, apartament) — vizibile echipei, nu clientului ──
     access_notes    = Column(Text, nullable=True)

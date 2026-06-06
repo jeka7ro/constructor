@@ -563,9 +563,9 @@ export default function WorkOrderForm() {
                 )}
             </Section>
             
-            {/* 4. Planificare */}
-            <Section icon={Calendar} title="Planificare" zIndex={50}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* 4. Planificare + Pret */}
+            <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <Field label="Data Incepere" required>
                         <input type="date" value={form.start_date}
                             onChange={e => set('start_date', e.target.value)}
@@ -579,6 +579,12 @@ export default function WorkOrderForm() {
                     <Field label="Termen Limita">
                         <input type="date" value={form.deadline_date}
                             onChange={e => set('deadline_date', e.target.value)}
+                            className={INPUT} />
+                    </Field>
+                    <Field label="Preț Estimativ (Proformă)">
+                        <input type="text" value={form.estimated_price || ''}
+                            onChange={e => set('estimated_price', e.target.value)}
+                            placeholder="ex: 1500 EUR"
                             className={INPUT} />
                     </Field>
                 </div>

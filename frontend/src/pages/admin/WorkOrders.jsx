@@ -31,6 +31,7 @@ export default function WorkOrders() {
     const [deletingId, setDeletingId] = useState(null)
     const [sendingId, setSendingId] = useState(null)
     const [sendResult, setSendResult] = useState(null)
+    const [sendModal, setSendModal] = useState(null)          // { wo: object }
     const [sigModal, setSigModal] = useState(null)           // { name, sig }
     const [sessionsModal, setSessionsModal] = useState(null)  // { woId, title, data }
     const [sessionsLoading, setSessionsLoading] = useState(false)
@@ -50,12 +51,32 @@ export default function WorkOrders() {
 
     useEffect(() => { fetchOrders() }, [filterStatus])
 
-    const handleSend = async (wo) => {
+    const handleSendClick = (wo) => {
+        setSendModal({ wo })
+    }
+
+    const handleSendConfirm = async (lang) => {
+        if (!sendModal) return
+        const wo = sendModal.wo
         setSendingId(wo.id)
         try {
             const res = await api.post(`/admin/work-orders/${wo.id}/send`)
             setWorkOrders(prev => prev.map(w => w.id === wo.id ? res.data : w))
-            setSendResult({ id: wo.id, url: res.data.confirm_url })
+            const url = `${res.data.confirm_url}?lang=${lang}`
+            setSendResult({ id: wo.id, url })
+            setSendModal(null)
+            
+            // Build Whatsapp text
+            const msgs = {
+                'ro': 'Salut! Accesează linkul pentru a vizualiza documentul:',
+                'en': 'Hello! Please click the link to view the document:',
+                'fr': 'Bonjour! Veuillez cliquer sur le lien pour voir le document:',
+                'de': 'Hallo! Bitte klicken Sie auf den Link, um das Dokument anzuzeigen:',
+                'nl': 'Hallo! Klik op de link om het document te bekijken:',
+                'ru': 'Здравствуйте! Пожалуйста, перейдите по ссылке, чтобы просмотреть документ:'
+            }
+            const text = encodeURIComponent(`${msgs[lang] || msgs['ro']}\n\n${url}`)
+            window.open(`https://wa.me/?text=${text}`, '_blank')
         } catch (e) {
             alert(e.response?.data?.detail || 'Eroare la trimitere.')
         } finally {
@@ -114,11 +135,11 @@ export default function WorkOrders() {
                         <ExternalLink className="w-4 h-4" />
                     </a>
                 )}
-                {wo.status === 'draft' && (
+                {(wo.status === 'draft' || wo.status === 'completed') && (
                     <button
-                        onClick={() => handleSend(wo)}
+                        onClick={() => handleSendClick(wo)}
                         disabled={sendingId === wo.id}
-                        title="Marchează ca trimisă"
+                        title={wo.status === 'draft' ? "Trimite Proformă" : "Trimite Confirmare Finalizare"}
                         className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-slate-500 hover:text-amber-600"
                     >
                         <Send className="w-4 h-4" />
@@ -604,6 +625,37 @@ export default function WorkOrders() {
                                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                 <span className="text-xs text-slate-500 dark:text-slate-400">Semnătură digitală autentică — stocată securizat</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            {/* Send Modal */}
+            {sendModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSendModal(null)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-extrabold text-slate-900 dark:text-white">Trimite {sendModal.wo.status === 'draft' ? 'Proformă' : 'Confirmare'}</h3>
+                                <p className="text-xs text-slate-500 mt-1">Selectează limba pentru client</p>
+                            </div>
+                            <button onClick={() => setSendModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-6 grid grid-cols-2 gap-3">
+                            {[
+                                { id: 'ro', label: 'Română', flag: '🇷🇴' },
+                                { id: 'en', label: 'Engleză', flag: '🇬🇧' },
+                                { id: 'fr', label: 'Franceză', flag: '🇫🇷' },
+                                { id: 'de', label: 'Germană', flag: '🇩🇪' },
+                                { id: 'nl', label: 'Olandeză', flag: '🇳🇱' },
+                                { id: 'ru', label: 'Rusă', flag: '🇷🇺' },
+                            ].map(lang => (
+                                <button key={lang.id} onClick={() => handleSendConfirm(lang.id)} disabled={sendingId === sendModal.wo.id}
+                                    className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group disabled:opacity-50">
+                                    <span className="text-2xl">{lang.flag}</span>
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600">{lang.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
