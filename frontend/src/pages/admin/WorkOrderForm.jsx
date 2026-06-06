@@ -439,6 +439,40 @@ export default function WorkOrderForm() {
     const selectedClient = clients.find(c => c.id === form.client_id)
     const selectedSite = sites.find(s => s.id === form.site_id)
 
+    // Calculation variables for render
+    let autoNet = 0;
+    let autoBase = 0;
+    let autoExtra = 0;
+    let autoFoil = 0;
+    let autoMesh = 0;
+    let isAutoRender = false;
+    let surfaceForAuto = 0;
+    let extraThickForAuto = 0;
+
+    form.volumes.forEach(vol => {
+        const surface = parseFloat(vol.quantity) || 0;
+        const thickness = parseFloat(vol.thickness) || 0;
+        if (vol.label?.toLowerCase()?.includes('sapa') && surface > 0) {
+            isAutoRender = true;
+            surfaceForAuto += surface;
+            const extraThickness = Math.max(0, thickness - 5);
+            extraThickForAuto = extraThickness;
+            autoBase += 12.5 * surface;
+            autoExtra += extraThickness * 1.25 * surface;
+            autoFoil += vol.has_foil ? 1.2 * surface : 0;
+            autoMesh += vol.has_mesh ? 2.5 * surface : 0;
+        }
+    });
+
+    autoNet = autoBase + autoExtra + autoFoil + autoMesh;
+    let autoVat = 0;
+    let totalGross = autoNet;
+    const clientForRender = clients.find(c => c.id === form.client_id);
+    if (isAutoRender && clientForRender?.client_type === 'fizica') {
+        autoVat = autoNet * 0.21;
+        totalGross = autoNet + autoVat;
+    }
+
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl">
             {/* Header */}
