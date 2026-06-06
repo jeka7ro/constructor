@@ -1032,9 +1032,9 @@ export default function WorkOrderForm() {
 
             {/* 7. Preț Estimativ (Proformă) */}
             <Section icon={Banknote} title="Preț Estimativ (Proformă)" zIndex={10}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                <div className="flex flex-col gap-4">
                     <Field label="Valoare estimată">
-                        <div className="flex w-full shadow-sm rounded-xl">
+                        <div className="flex w-full sm:w-1/2 shadow-sm rounded-xl">
                             <input type="number" min="0"
                                 value={form.estimated_amount || ''}
                                 onChange={e => {
@@ -1059,64 +1059,63 @@ export default function WorkOrderForm() {
                                 <option value="RON">RON</option>
                                 <option value="USD">USD</option>
                             </select>
-
                         </div>
-                        {isAutoRender && (
-                            <div className="mt-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 w-full col-span-1 sm:col-span-2">
-                                <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">Calcul Cost (Vizibil doar Admin)</p>
-                                <div className="space-y-1.5 text-sm">
-                                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                        <span>Șapă de bază (≤5cm)</span>
-                                        <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
-                                    </div>
-                                    {autoExtra > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>Grosime extra ({extraThickForAuto} cm)</span>
-                                            <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
-                                        </div>
-                                    )}
-                                    {autoFoil > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>Folie plastic</span>
-                                            <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
-                                        </div>
-                                    )}
-                                    {autoMesh > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>Plasă metalică</span>
-                                            <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
-                                        </div>
-                                    )}
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-                                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                                        <span>Total Net:</span>
-                                        <span>{autoNet.toFixed(2)} EUR</span>
-                                    </div>
-                                    {clientForRender?.client_type === 'fizica' ? (
-                                        <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
-                                            <span>TVA (21% Persoană Fizică):</span>
-                                            <span>{autoVat.toFixed(2)} EUR</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex justify-between text-slate-500 text-xs">
-                                            <span>TVA: 0% (Persoană Juridică)</span>
-                                            <span>0.00 EUR</span>
-                                        </div>
-                                    )}
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-                                    <div className="flex justify-between text-base font-black text-blue-600 dark:text-blue-400">
-                                        <span>TOTAL DE PLATĂ:</span>
-                                        <span>{totalGross.toFixed(2)} EUR</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         <p className="text-xs text-slate-400 mt-1.5 font-medium flex items-center gap-1.5">
                             <Info className="w-3.5 h-3.5" />
                             Apare pe proforma trimisă clientului
                         </p>
                     </Field>
+                    
+                    {isAutoRender && (
+                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 w-full mt-2">
+                            <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">Calcul Cost (Vizibil doar Admin)</p>
+                            <div className="space-y-2.5 text-sm">
+                                <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium">Șapă de bază (≤5cm)</span>
+                                    <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × 12.50 = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoBase.toFixed(2)} EUR</b></span>
+                                </div>
+                                {autoExtra > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="font-medium">Grosime extra ({extraThickForAuto} cm)</span>
+                                        <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × {(extraThickForAuto * 1.25).toFixed(2)} = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoExtra.toFixed(2)} EUR</b></span>
+                                    </div>
+                                )}
+                                {autoFoil > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="font-medium">Folie plastic</span>
+                                        <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × 1.20 = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFoil.toFixed(2)} EUR</b></span>
+                                    </div>
+                                )}
+                                {autoMesh > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="font-medium">Plasă metalică</span>
+                                        <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × 2.50 = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoMesh.toFixed(2)} EUR</b></span>
+                                    </div>
+                                )}
+                                <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
+                                <div className="flex justify-between items-center font-bold text-slate-800 dark:text-slate-200">
+                                    <span>Total Net:</span>
+                                    <span>{autoNet.toFixed(2)} EUR</span>
+                                </div>
+                                {clientForRender?.client_type === 'fizica' ? (
+                                    <div className="flex justify-between items-center font-bold text-amber-600 dark:text-amber-500 mt-1.5">
+                                        <span>TVA (21% Persoană Fizică):</span>
+                                        <span>{autoVat.toFixed(2)} EUR</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-between items-center text-slate-500 text-xs mt-1.5">
+                                        <span>TVA: 0% (Persoană Juridică)</span>
+                                        <span>0.00 EUR</span>
+                                    </div>
+                                )}
+                                <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
+                                <div className="flex justify-between items-center text-base font-black text-blue-600 dark:text-blue-400">
+                                    <span>TOTAL DE PLATĂ:</span>
+                                    <span>{totalGross.toFixed(2)} EUR</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Section>
 
