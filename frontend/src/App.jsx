@@ -272,7 +272,6 @@ function App() {
                         <Route path="fleet" element={<FleetManagement />} />
                         <Route path="transport" element={<TransportManagement />} />
                         <Route path="warehouse" element={<WarehouseManagement />} />
-                        <Route path="import-factura" element={<ImportInvoice />} />
                         <Route path="complaints" element={<ComplaintsManagement />} />
                         <Route path="accommodations" element={<AccommodationsManagement />} />
                                 <Route path="expenses" element={<ExpensesManagement />} />

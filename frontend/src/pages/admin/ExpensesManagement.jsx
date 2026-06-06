@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { 
     Wallet, TrendingDown, DollarSign, Plus, Building2, User as UserIcon, Calendar, Upload, FileText, Trash2, X, FileEdit, Banknote, Search, CheckCircle, PackageSearch
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import ImportInvoiceModal from './ImportInvoiceModal'
 import api from '../../lib/api'
 
 export default function ExpensesManagement() {
@@ -17,6 +17,7 @@ export default function ExpensesManagement() {
 
     // Modal state
     const [showModal, setShowModal] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
     const [formData, setFormData] = useState({
         site_id: '',
@@ -127,13 +128,13 @@ export default function ExpensesManagement() {
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Cheltuieli & Deconturi</h1>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Link
-                        to="/admin/import-factura"
-                        className="flex items-center gap-2 px-4 h-10 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50 text-sm font-bold rounded-full transition-colors"
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center gap-2 px-4 h-10 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-full transition-colors shadow-sm"
                     >
-                        <FileText className="w-4 h-4" />
-                        Import Factură (Materiale)
-                    </Link>
+                        <FileText className="w-4 h-4 text-slate-500" />
+                        Import Factură
+                    </button>
                     <button
                         onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
@@ -364,6 +365,9 @@ export default function ExpensesManagement() {
                         </div>
                     </div>
                 </div>
+            )}
+            {showImportModal && (
+                <ImportInvoiceModal onClose={() => setShowImportModal(false)} />
             )}
         </div>
     )
