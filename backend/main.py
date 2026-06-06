@@ -13,7 +13,7 @@ load_dotenv()
 
 # Import routers
 from app.api import (
-    auth, admin_auth, admin_users, admin_sites, admin_roles, photo_upload,
+    auth, admin_auth, admin_users, admin_sites, admin_roles, photo_upload, admin_invoices,
     admin_reports, clockin, timesheets, teams, sites, site_photos,
     admin_teams, admin_vehicles, warehouse, admin_clients, admin_vehicle_categories,
     admin_material_requests, user_material_requests, user_warehouse, user_notifications,
@@ -298,6 +298,7 @@ app.include_router(user_notifications.router, prefix="/api")
 app.include_router(alerts.router, prefix="/api", tags=["alerts"])
 app.include_router(public_tenant.router)
 app.include_router(admin_work_orders.router, prefix="/api/admin", tags=["admin-work-orders"])
+app.include_router(admin_invoices.router, prefix="/api")
 app.include_router(admin_organizations.router, prefix="/api")
 app.include_router(admin_transport.router, prefix="/api")
 app.include_router(admin_leaves.router, prefix="/api")
