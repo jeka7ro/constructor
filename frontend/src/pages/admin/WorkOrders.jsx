@@ -305,7 +305,7 @@ export default function WorkOrders() {
                         </span>
                         {wo.assigned_team_name && (
                             <span 
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mt-1" 
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mt-1 whitespace-nowrap" 
                                 style={{ 
                                     backgroundColor: `${wo.assigned_team_color}15`, 
                                     color: wo.assigned_team_color, 
