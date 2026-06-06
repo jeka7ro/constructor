@@ -143,14 +143,14 @@ export default function DataTable({
                     <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>
                             {/* Row number column */}
-                            <th className="px-6 py-4 text-center w-16 select-none">
+                            <th className="px-4 py-4 text-center w-16 select-none">
                                 {t('common.row_number')}
                             </th>
                             {columns.map(col => (
                                 <th
                                     key={col.key}
                                     className={[
-                                        'px-6 py-4 text-left whitespace-nowrap select-none',
+                                        'px-4 py-4 text-left whitespace-nowrap select-none',
                                         col.sortable ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''
                                     ].join(' ')}
                                     onClick={col.sortable ? () => handleSort(col.key) : undefined}
@@ -166,13 +166,13 @@ export default function DataTable({
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                         {loading ? (
                             <tr>
-                                <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-sm text-slate-400">
+                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-slate-400">
                                     {t('common.loading')}
                                 </td>
                             </tr>
                         ) : slice.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-sm text-slate-400">
+                                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-sm text-slate-400">
                                     {emptyText || t('common.no_data')}
                                 </td>
                             </tr>
@@ -188,11 +188,11 @@ export default function DataTable({
                                         onRowClick(row)
                                     } : undefined}
                                 >
-                                    <td className="px-6 py-4 text-center text-slate-500 font-medium tabular-nums">
+                                    <td className="px-4 py-4 text-center text-slate-500 font-medium tabular-nums">
                                         {from + idx + 1}
                                     </td>
                                     {columns.map(col => (
-                                        <td key={col.key} className="px-6 py-4 align-middle text-slate-900 dark:text-white font-medium">
+                                        <td key={col.key} className="px-4 py-4 align-middle text-slate-900 dark:text-white font-medium">
                                             {col.render ? col.render(row, from + idx) : (row[col.key] ?? '—')}
                                         </td>
                                     ))}

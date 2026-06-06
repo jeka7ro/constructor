@@ -119,12 +119,12 @@ export default function WorkOrders() {
     const renderActions = (wo) => {
         const link = getLink(wo)
         return (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-end gap-1">
                 {wo.status !== 'draft' && (
                     <button
                         onClick={() => copyLink(link, wo.id)}
                         title="Copiază link confirmare"
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
                     >
                         {copiedId === wo.id ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                     </button>
@@ -135,7 +135,7 @@ export default function WorkOrders() {
                         target="_blank"
                         rel="noreferrer"
                         title="Deschide pagina client"
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
                     >
                         <ExternalLink className="w-4 h-4" />
                     </a>
@@ -146,7 +146,7 @@ export default function WorkOrders() {
                             onClick={() => handleSendClick(wo, 'whatsapp')}
                             disabled={sendingId === wo.id}
                             title={wo.status === 'draft' ? "Trimite Proformă pe WhatsApp" : "Trimite Confirmare pe WhatsApp"}
-                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
+                            className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
                         >
                             <Send className="w-4 h-4" />
                         </button>
@@ -154,7 +154,7 @@ export default function WorkOrders() {
                             onClick={() => handleSendClick(wo, 'email')}
                             disabled={sendingId === wo.id}
                             title={wo.status === 'draft' ? "Trimite Proformă pe Email" : "Trimite Confirmare pe Email"}
-                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
+                            className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
                         >
                             <Mail className="w-4 h-4" />
                         </button>
@@ -195,7 +195,7 @@ export default function WorkOrders() {
                 <button
                     onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)}
                     title="Editează"
-                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
                 >
                     <Pencil className="w-4 h-4" />
                 </button>
