@@ -28,6 +28,7 @@ const EMPTY_FORM = {
     client_company_vat: '',
     client_company_bank: '',
     client_company_iban: '',
+    client_company_swift: '',
     // Locatie
     site_mode: 'existing',
     site_id: '',

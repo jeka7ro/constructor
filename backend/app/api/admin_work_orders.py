@@ -93,6 +93,7 @@ class WorkOrderCreate(BaseModel):
     client_company_vat: Optional[str] = None
     client_company_bank: Optional[str] = None
     client_company_iban: Optional[str] = None
+    client_company_swift: Optional[str] = None
     # Conținut
     requirements: Optional[list] = []
     materials: Optional[list] = []
@@ -233,11 +234,15 @@ def create_work_order(
                 client_type=getattr(payload, 'client_type', 'fizica'),
                 contact_person=getattr(payload, 'client_contact_person', None),
                 address=getattr(payload, 'client_address', None),
-                language=getattr(payload, 'client_language', 'ro'),
-                company_reg_number=getattr(payload, 'client_company_reg_number', None),
-                company_vat=getattr(payload, 'client_company_vat', None),
-                company_bank=getattr(payload, 'client_company_bank', None),
-                company_iban=getattr(payload, 'client_company_iban', None),
+                preferred_language=getattr(payload, 'client_language', 'ro'),
+                reg_com=getattr(payload, 'client_company_reg_number', None),
+                cui=getattr(payload, 'client_company_vat', None),
+                bank_name=getattr(payload, 'client_company_bank', None),
+                iban=getattr(payload, 'client_company_iban', None),
+                swift=getattr(payload, 'client_company_swift', None),
+                # Note: 'swift' field exists on Client, let's also capture it if it was sent.
+                # However, we only added 'swift' to WorkOrderCreate recently or not?
+                # Actually, WorkOrderCreate does not have 'client_company_swift'. Let's ignore it for now.
             )
             db.add(cl)
             db.commit()
