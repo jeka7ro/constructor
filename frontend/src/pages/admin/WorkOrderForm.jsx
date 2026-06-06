@@ -694,6 +694,11 @@ export default function WorkOrderForm() {
                             )}
                         </div>
                     </Section>
+                </div>
+            )}
+            
+            {currentStep === 2 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* 4. Planificare + Pret */}
             <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
@@ -864,7 +869,11 @@ export default function WorkOrderForm() {
                     ))}
                 </div>
             </Section>
-
+                </div>
+            )}
+            
+            {currentStep === 3 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             <Section icon={Image} title="Instructiuni Acces (vizibile echipei)" zIndex={10}>
                 <Field label="Note Acces">
