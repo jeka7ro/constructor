@@ -383,7 +383,7 @@ export default function WorkOrderForm() {
 
                 {form.client_mode === 'existing' ? (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                             <div className="md:col-span-2">
                                 <Field label="Selecteaza Client">
                                     <select value={form.client_id} onChange={e => {
@@ -434,7 +434,7 @@ export default function WorkOrderForm() {
                                 placeholder="Familia Ionescu / SC Firma SRL"
                                 className={INPUT} />
                         </Field>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                             <Field label="Telefon">
                                 <input type="text" value={form.client_phone}
                                     onChange={e => set('client_phone', e.target.value)}
@@ -582,7 +582,7 @@ export default function WorkOrderForm() {
 
             {/* 4. Planificare + Pret */}
             <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                     <Field label="Data Incepere" required>
                         <input type="date" value={form.start_date}
                             onChange={e => set('start_date', e.target.value)}
@@ -609,7 +609,7 @@ export default function WorkOrderForm() {
 
             {/* 6. Echipa + Vehicul */}
             <Section icon={Users} title="Echipa si Vehicul" zIndex={20}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <Field label="Șef de Echipă / Responsabil">
                         <SearchableSelect
                             value={form.assigned_team_id}
