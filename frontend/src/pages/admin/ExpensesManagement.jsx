@@ -23,6 +23,7 @@ export default function ExpensesManagement() {
     // Modal state
     const [showModal, setShowModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
+    const [importFile, setImportFile] = useState(null)
     const [isUploading, setIsUploading] = useState(false)
     const [formData, setFormData] = useState({
         site_id: '',
@@ -133,8 +134,22 @@ export default function ExpensesManagement() {
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Cheltuieli & Deconturi</h1>
                 </div>
                 <div className="flex items-center gap-3">
+                    <input 
+                        type="file" 
+                        id="expenses-import-upload" 
+                        accept="application/pdf"
+                        className="hidden" 
+                        onChange={(e) => {
+                            const file = e.target.files[0]
+                            if (file) {
+                                setImportFile(file)
+                                setShowImportModal(true)
+                            }
+                            e.target.value = null;
+                        }} 
+                    />
                     <button
-                        onClick={() => setShowImportModal(true)}
+                        onClick={() => document.getElementById('expenses-import-upload').click()}
                         className="flex items-center gap-2 px-4 h-10 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-full transition-colors shadow-sm"
                     >
                         <FileText className="w-4 h-4 text-slate-500" />
@@ -198,6 +213,7 @@ export default function ExpensesManagement() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-white dark:bg-slate-900 sticky top-0 z-10 shadow-sm border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             <tr>
+                                <th className="px-4 py-3 w-12 text-center font-bold">NR.</th>
                                 <th className="px-4 py-3 font-bold">Dată</th>
                                 <th className="px-4 py-3 font-bold">Categorie</th>
                                 <th className="px-4 py-3 font-bold">Detalii</th>
@@ -221,8 +237,9 @@ export default function ExpensesManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                expenses.map(exp => (
+                                expenses.map((exp, index) => (
                                     <tr key={exp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-4 py-3 text-center text-slate-400 font-bold text-xs">{index + 1}</td>
                                         <td className="px-6 py-4">
                                             <span className="text-slate-700 dark:text-slate-300 font-medium">
                                                 {new Date(exp.date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' })}

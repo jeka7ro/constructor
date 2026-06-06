@@ -6,9 +6,9 @@ import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import SearchableSelect from '../../components/SearchableSelect'
 
-export default function ImportInvoiceModal({ onClose }) {
-    const showToast = useUIStore(s => s.showToast)
-    const [file, setFile] = useState(null)
+export default function ImportInvoiceModal({ onClose, initialFile }) {
+    const { showToast } = useUIStore()
+    const [file, setFile] = useState(initialFile || null)
     const [isProcessing, setIsProcessing] = useState(false)
     const [progress, setProgress] = useState(0)
     const [progressText, setProgressText] = useState('')
@@ -19,13 +19,17 @@ export default function ImportInvoiceModal({ onClose }) {
 
     useEffect(() => {
         api.get('/warehouse')
-            .then(res => setWarehouseItems(res.data))
+            .then(res => setWarehouseItems(res.data.items || []))
             .catch(err => console.error("Failed to load warehouse items", err))
     }, [])
 
-    const handleFileSelect = async (e) => {
-        const selected = e.target.files[0]
-        if (!selected) return
+    useEffect(() => {
+        if (initialFile && !parsedData && !isProcessing) {
+            processFile(initialFile);
+        }
+    }, [initialFile])
+
+    const processFile = async (selected) => {
         if (selected.type !== 'application/pdf') {
             showToast('Doar fișiere PDF sunt permise!', 'error')
             return
@@ -37,44 +41,39 @@ export default function ImportInvoiceModal({ onClose }) {
         setProgressText('Încărcare fișier...')
 
         try {
-            // Convert to base64
-            const reader = new FileReader()
-            reader.readAsDataURL(selected)
-            reader.onload = async () => {
-                try {
-                    const { text } = await extractTextFromImageOrPdf(selected, (stage, pct) => {
-                        setProgressText(stage)
-                        setProgress(pct)
-                    })
+            const { text } = await extractTextFromImageOrPdf(selected, (stage, pct) => {
+                setProgressText(stage)
+                setProgress(pct)
+            })
 
-                    setProgressText('Parsare date pe server...')
-                    const res = await api.post('/admin/invoices/parse', { preExtractedText: text })
-                    
-                    // Add mapping state to items
-                    const items = res.data.items.map(it => {
-                        // Auto-map if exact name match exists
-                        const existing = warehouseItems.find(w => w.name.toLowerCase() === it.name.toLowerCase())
-                        return {
-                            ...it,
-                            mapped_item_id: existing ? existing.id : '',
-                            is_new: !existing
-                        }
-                    })
-
-                    setParsedData({ ...res.data, items })
-                    showToast('Factură extrasă cu succes!', 'success')
-                } catch (err) {
-                    console.error(err)
-                    showToast('Eroare la extragere: ' + (err.response?.data?.detail || err.message, 'error'))
-                } finally {
-                    setIsProcessing(false)
+            setProgressText('Parsare date pe server...')
+            const res = await api.post('/admin/invoices/parse', { preExtractedText: text })
+            
+            // Add mapping state to items
+            const items = res.data.items.map(it => {
+                // Auto-map if exact name match exists
+                const existing = warehouseItems.find(w => w.name.toLowerCase() === it.name.toLowerCase())
+                return {
+                    ...it,
+                    mapped_item_id: existing ? existing.id : '',
+                    is_new: !existing
                 }
-            }
+            })
+
+            setParsedData({ ...res.data, items })
+            showToast('Factură extrasă cu succes!', 'success')
         } catch (err) {
             console.error(err)
-            showToast('Eroare la citirea fișierului', 'error')
+            showToast('Eroare la extragere: ' + (err.response?.data?.detail || err.message), 'error')
+        } finally {
             setIsProcessing(false)
         }
+    }
+
+    const handleFileSelect = async (e) => {
+        const selected = e.target.files[0]
+        if (!selected) return
+        processFile(selected);
     }
 
     const handleSave = async () => {
