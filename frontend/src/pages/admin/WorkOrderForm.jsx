@@ -1131,7 +1131,7 @@ export default function WorkOrderForm() {
                             setCurrentStep(s => s - 1)
                             window.scrollTo({ top: 0, behavior: 'smooth' })
                         } else {
-                            navigate('/admin/work-orders')
+                            navigate(-1)
                         }
                     }}
                     className="px-6 h-11 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"

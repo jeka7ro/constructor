@@ -194,8 +194,8 @@ export default function WorkOrderDetail() {
             <div className="text-center">
                 <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
                 <p className="text-slate-600 dark:text-slate-400 font-semibold">Comanda nu a fost găsită</p>
-                <button onClick={() => navigate('/admin/work-orders')} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">
-                    ← Înapoi la Comenzi
+                <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">
+                    ← Înapoi
                 </button>
             </div>
         </div>
@@ -320,7 +320,7 @@ export default function WorkOrderDetail() {
             {/* ── Header ──────────────────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                    <button onClick={() => navigate('/admin/work-orders')}
+                    <button onClick={() => navigate(-1)}
                         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
                         <ChevronLeft className="w-5 h-5 text-slate-500" />
                     </button>
