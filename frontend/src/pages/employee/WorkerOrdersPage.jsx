@@ -1158,15 +1158,6 @@ export default function WorkerOrdersPage() {
         })
     }
 
-        try {
-            const res = await api.post(`/worker/orders/${selected.id}/reopen`)
-            showToast(res.data?.message || 'Comanda redeschisa.', 'success')
-            await refreshSelected()
-        } catch (e) {
-            showToast(e.response?.data?.detail || 'Eroare la redeschidere.', 'error')
-        }
-    }
-
     // ── State derivat
     const openCheckin = checkins.find(c => c.user_id === user?.id && !c.checkout_at)
     const hasOpenCheckin = Boolean(openCheckin)
