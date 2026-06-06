@@ -963,7 +963,7 @@ export default function WorkerOrdersPage() {
 
     const openOrder = async (order) => {
         setSelected(order)
-        setActiveTab('info')
+        setActiveTab(order.status === 'completed' ? 'trimite' : 'info')
         setPhotos([])
         setCheckins([])
         setActualSurface(order.actual_surface_m2 || '')
@@ -1215,8 +1215,7 @@ export default function WorkerOrdersPage() {
                             workOrders={orders} 
                             onOrderRescheduled={fetchOrders} 
                             onOrderClick={(wo) => {
-                                setSelected(wo);
-                                setActiveTab(wo.status === 'completed' ? 'trimite' : 'info');
+                                openOrder(wo);
                             }} 
                         />
                         
