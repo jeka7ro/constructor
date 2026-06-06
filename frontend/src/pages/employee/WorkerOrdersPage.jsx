@@ -1180,9 +1180,6 @@ export default function WorkerOrdersPage() {
                 >
                     <div className="flex items-center justify-between max-w-md mx-auto">
                         <div className="flex items-center gap-3">
-                            <button onClick={() => window.location.href = '/'} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
-                                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                            </button>
                             {user?.avatar_path && (
                                 <img
                                     src={user.avatar_path.startsWith('http') ? user.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
@@ -1230,7 +1227,7 @@ export default function WorkerOrdersPage() {
     // RENDER: DETALIU comanda
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
+        <div className={`fixed inset-x-0 top-0 bottom-[80px] z-40 bg-slate-50 flex flex-col transition-transform duration-300 ${selected ? 'translate-x-0' : 'translate-x-full'}`}>
             {/* Header comanda */}
             <div className="bg-white border-b border-slate-200 shrink-0 z-20">
                 <div className="flex items-center gap-3 px-4 py-3">
@@ -1241,9 +1238,6 @@ export default function WorkerOrdersPage() {
                         <ChevronRight className="w-5 h-5 rotate-180" />
                     </button>
                     <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.title}</h2>
-                    <button onClick={() => window.location.href = '/'} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shrink-0">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </button>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${STATUS_COLOR[selected.status] || ''}`}>
                         {STATUS_LABEL[selected.status] || selected.status}
                     </span>
@@ -1336,42 +1330,17 @@ export default function WorkerOrdersPage() {
                 </div>
             )}
 
-            {/* Buton principal fix jos — START/STOP WORK */}
-            {!isCompleted && (
+            {/* Buton principal fix jos — DOAR FINALIZEAZA */}
+            {!isCompleted && activeTab === 'trimite' && (
                 <div className="bg-white border-t border-slate-200 px-4 py-3 shrink-0">
-                    {activeTab === 'trimite' ? (
-                        <button
-                            disabled={closing || !canClose}
-                            onClick={handleClose}
-                            className={`w-full py-4 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60 ${canClose ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-400'}`}
-                        >
-                            <CheckCircle2 className="w-5 h-5" />
-                            {closing ? 'Se finalizeaza...' : (canClose ? 'Finalizeaza comanda' : 'Adauga datele necesare')}
-                        </button>
-                    ) : !hasOpenCheckin ? (
-                        <button
-                            disabled={loadingAction || !selected.my_acknowledged}
-                            onClick={handleCheckin}
-                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors"
-                        >
-                            <LogIn className="w-5 h-5" />
-                            {loadingAction ? 'Se proceseaza...' : 'Start work'}
-                        </button>
-                    ) : (
-                        <button
-                            disabled={loadingAction}
-                            onClick={handleCheckout}
-                            className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60"
-                        >
-                            <LogOut className="w-5 h-5" />
-                            {loadingAction ? 'Se proceseaza...' : 'Stop work'}
-                        </button>
-                    )}
-                    {!selected.my_acknowledged && !hasOpenCheckin && (
-                        <p className="text-center text-xs text-slate-400 mt-1.5">
-                            Confirma comanda in tab-ul Info inainte de a incepe lucrul.
-                        </p>
-                    )}
+                    <button
+                        disabled={closing || !canClose}
+                        onClick={handleClose}
+                        className={`w-full py-4 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60 ${canClose ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-400'}`}
+                    >
+                        <CheckCircle2 className="w-5 h-5" />
+                        {closing ? 'Se finalizeaza...' : (canClose ? 'Finalizeaza comanda' : 'Adauga datele necesare')}
+                    </button>
                 </div>
             )}
 

@@ -315,9 +315,16 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate" title={wo.title}>
                                             {wo.title}
                                         </div>
-                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1">
-                                            <MapPin className="w-2.5 h-2.5" />
-                                            {wo.client_name || wo.site_name || 'Fără locație'}
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center justify-between gap-1">
+                                            <div className="flex items-center gap-1 truncate">
+                                                <MapPin className="w-2.5 h-2.5" />
+                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || 'Fără locație'}</span>
+                                            </div>
+                                            {wo.status === 'completed' && (
+                                                <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm bg-emerald-100 text-emerald-700 uppercase tracking-wider shrink-0">
+                                                    Finalizată
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-[10px] font-semibold mt-1 truncate" style={{ color: colorHex }}>
                                             {wo.assigned_team_name || 'Neasignat'}
@@ -383,9 +390,16 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                                 {wo.start_time || '07:00'}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                            <span className="truncate">{wo.client_name || wo.site_name || 'Fără locație'}</span>
+                                        <div className="flex items-center justify-between text-xs text-slate-500">
+                                            <div className="flex items-center gap-1.5 truncate">
+                                                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || 'Fără locație'}</span>
+                                            </div>
+                                            {wo.status === 'completed' && (
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 uppercase tracking-wider shrink-0 ml-2">
+                                                    Finalizată
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-xs font-bold mt-1" style={{ color: colorHex }}>
                                             {wo.assigned_team_name || 'Neasignat'}
