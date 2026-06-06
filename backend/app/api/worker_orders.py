@@ -605,3 +605,28 @@ def get_checkins(
             "worked_minutes": c.worked_minutes,
         })
     return result
+
+@router.delete("/{order_id}/photos/{photo_id}")
+def delete_worker_photo(
+    order_id: str,
+    photo_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Muncitorul sterge o poza incarcata de el din comanda."""
+    from app.storage import delete_file
+    photo = db.query(WorkOrderPhoto).filter(
+        WorkOrderPhoto.id == photo_id,
+        WorkOrderPhoto.work_order_id == order_id
+    ).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Poza nu a fost gasita.")
+    
+    try:
+        delete_file(photo.photo_path)
+    except Exception:
+        pass
+    
+    db.delete(photo)
+    db.commit()
+    return {"message": "Poza a fost stearsa."}

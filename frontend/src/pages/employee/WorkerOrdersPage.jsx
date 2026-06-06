@@ -37,9 +37,7 @@ import { ro } from 'date-fns/locale'
 
 const TABS = [
     { id: 'info',       label: 'Info',       icon: Info },
-    { id: 'ore',        label: 'Ore',        icon: Timer },
     { id: 'materiale',  label: 'Materiale',  icon: Package },
-    { id: 'extra',      label: 'Extra',      icon: Layers },
     { id: 'trimite',    label: 'Trimite',    icon: Send },
 ]
 
@@ -365,7 +363,7 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
                         {instPhotos.map(p => (
                             <a
                                 key={p.id}
-                                href={`/api${p.url}`}
+                                href={p.url}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-3 hover:bg-slate-50 transition-colors"
@@ -651,9 +649,9 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                         {internalPhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {internalPhotos.map(p => (
-                                    <a key={p.id} href={`/api${p.url}`} target="_blank" rel="noreferrer">
+                                    <a key={p.id} href={p.url} target="_blank" rel="noreferrer">
                                         <img
-                                            src={`/api${p.url}`}
+                                            src={p.url}
                                             alt={p.description || 'Poza interna'}
                                             className="w-full aspect-square object-cover rounded-xl border border-slate-200"
                                         />
@@ -696,7 +694,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (poze finalizare + inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, onClose, closing, actualSurface, setActualSurface, actualSand, setActualSand, ocrData, onReopen }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, onClose, closing, actualSurface, setActualSurface, actualSand, setActualSand, ocrData, onReopen, onDeletePhoto }) {
     const fileRef = useRef(null)
     const machineFileRef = useRef(null)
     const canClose = completionPhotos.length >= (order.min_photos_required || 2) && machinePhotos.length > 0
@@ -737,13 +735,23 @@ function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion
                         {completionPhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {completionPhotos.map(p => (
-                                    <a key={p.id} href={`/api${p.url}`} target="_blank" rel="noreferrer">
-                                        <img
-                                            src={`/api${p.url}`}
-                                            alt="Poza finalizare"
-                                            className="w-full aspect-square object-cover rounded-xl border border-slate-200"
-                                        />
-                                    </a>
+                                    <div key={p.id} className="relative">
+                                        <a href={p.url} target="_blank" rel="noreferrer">
+                                            <img
+                                                src={p.url}
+                                                alt="Poza finalizare"
+                                                className="w-full aspect-square object-cover rounded-xl border border-slate-200"
+                                            />
+                                        </a>
+                                        {order.status !== 'completed' && (
+                                            <button 
+                                                onClick={() => onDeletePhoto(p.id)}
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -773,13 +781,23 @@ function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion
                         {machinePhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {machinePhotos.map(p => (
-                                    <a key={p.id} href={`/api${p.url}`} target="_blank" rel="noreferrer">
-                                        <img
-                                            src={`/api${p.url}`}
-                                            alt="Poza Calculator Masina"
-                                            className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm"
-                                        />
-                                    </a>
+                                    <div key={p.id} className="relative">
+                                        <a href={p.url} target="_blank" rel="noreferrer">
+                                            <img
+                                                src={p.url}
+                                                alt="Poza Calculator Masina"
+                                                className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm"
+                                            />
+                                        </a>
+                                        {order.status !== 'completed' && (
+                                            <button 
+                                                onClick={() => onDeletePhoto(p.id)}
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -902,6 +920,7 @@ export default function WorkerOrdersPage() {
     // Action states
     const [acknowledging, setAcknowledging]           = useState(false)
     const [loadingAction, setLoadingAction]           = useState(false)
+    const [confirmDialog, setConfirmDialog] = useState(null)
     const [uploadingCompletion, setUploadingCompletion] = useState(false)
     const [uploadingInternal, setUploadingInternal]   = useState(false)
     const [uploadingMachine, setUploadingMachine]     = useState(false)
@@ -1070,17 +1089,23 @@ export default function WorkerOrdersPage() {
         await refreshSelected()
     }
 
-    // CLOSE ORDER
     const handleClose = async () => {
         if (ocrData?.sand_kg && actualSand) {
             const difference = Math.abs(parseFloat(actualSand) - parseFloat(ocrData.sand_kg));
             const percentage = (difference / parseFloat(ocrData.sand_kg)) * 100;
             if (percentage > 5) {
-                const proceed = window.confirm(`ATENȚIE!\n\nCantitatea de nisip introdusă (${actualSand}kg) diferă semnificativ de valoarea citită de AI de pe ecran (${ocrData.sand_kg}kg).\n\nEști sigur că vrei să salvezi cantitatea ta? Dacă e o greșeală, apasă Anulare (Cancel) și corectează.`);
-                if (!proceed) return;
+                setConfirmDialog({
+                    title: 'ATENȚIE!',
+                    message: `Cantitatea de nisip introdusă (${actualSand}kg) diferă semnificativ de valoarea citită de AI de pe ecran (${ocrData.sand_kg}kg).\n\nEști sigur că vrei să salvezi cantitatea ta? Dacă e o greșeală, apasă Anulare și corectează.`,
+                    onConfirm: executeClose
+                })
+                return;
             }
         }
-    
+        executeClose()
+    }
+
+    const executeClose = async () => {
         setClosing(true)
         try {
             const res = await api.post(`/worker/orders/${selected.id}/close`, {
@@ -1101,8 +1126,37 @@ export default function WorkerOrdersPage() {
 
     // REOPEN ORDER
     const handleReopen = async () => {
-        const proceed = window.confirm("Ești sigur că vrei să redeschizi comanda? Statusul se va schimba din nou în „În lucru”.");
-        if (!proceed) return;
+        setConfirmDialog({
+            title: 'Redeschide Comanda',
+            message: 'Ești sigur că vrei să redeschizi comanda? Statusul se va schimba din nou în „În lucru”.',
+            onConfirm: async () => {
+                try {
+                    const res = await api.post(`/worker/orders/${selected.id}/reopen`)
+                    showToast(res.data?.message || 'Comanda redeschisa.', 'success')
+                    await refreshSelected()
+                } catch (e) {
+                    showToast(e.response?.data?.detail || 'Eroare la redeschidere.', 'error')
+                }
+            }
+        })
+    }
+
+    // DELETE PHOTO
+    const handleDeletePhoto = async (photoId) => {
+        setConfirmDialog({
+            title: 'Ștergere Poză',
+            message: 'Ești sigur că vrei să ștergi această poză?',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/worker/orders/${selected.id}/photos/${photoId}`)
+                    showToast('Poza a fost ștearsă.', 'success')
+                    await fetchOrderPhotos(selected.id)
+                } catch (e) {
+                    showToast(e.response?.data?.detail || 'Eroare la ștergerea pozei.', 'error')
+                }
+            }
+        })
+    }
 
         try {
             const res = await api.post(`/worker/orders/${selected.id}/reopen`)
@@ -1135,6 +1189,9 @@ export default function WorkerOrdersPage() {
                 >
                     <div className="flex items-center justify-between max-w-md mx-auto">
                         <div className="flex items-center gap-3">
+                            <button onClick={() => window.location.href = '/'} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
+                                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            </button>
                             {user?.avatar_path && (
                                 <img
                                     src={user.avatar_path.startsWith('http') ? user.avatar_path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.avatar_path}`}
@@ -1194,6 +1251,9 @@ export default function WorkerOrdersPage() {
                         <ChevronRight className="w-5 h-5 rotate-180" />
                     </button>
                     <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.title}</h2>
+                    <button onClick={() => window.location.href = '/'} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shrink-0">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </button>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${STATUS_COLOR[selected.status] || ''}`}>
                         {STATUS_LABEL[selected.status] || selected.status}
                     </span>
@@ -1252,9 +1312,39 @@ export default function WorkerOrdersPage() {
                         setActualSand={setActualSand}
                         ocrData={ocrData}
                         onReopen={handleReopen}
+                        onDeletePhoto={handleDeletePhoto}
                     />
                 )}
             </div>
+
+            {confirmDialog && (
+                <div className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{confirmDialog.title}</h3>
+                        <p className="text-slate-600 mb-6 whitespace-pre-line">{confirmDialog.message}</p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmDialog(null)}
+                                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                            >
+                                Anulare
+                            </button>
+                            <button
+                                onClick={() => {
+                                    confirmDialog.onConfirm();
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+                            >
+                                Confirmă
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Buton principal fix jos — START/STOP WORK */}
             {!isCompleted && (
