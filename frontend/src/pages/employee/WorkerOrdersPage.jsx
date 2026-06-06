@@ -339,7 +339,14 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
                 <Section label="Contact">
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3">
                         {order.client_name && (
-                            <p className="text-sm font-bold text-slate-900 mb-1">{order.client_name}</p>
+                            <p className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
+                                {order.client_name}
+                                {order.client_language && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                                        Limba: {order.client_language}
+                                    </span>
+                                )}
+                            </p>
                         )}
                         <div className="flex items-center gap-3 mt-2">
                             {order.client_phone && (

@@ -385,7 +385,7 @@ export default function WorkOrderDetail() {
                     <Section icon={FileText} title="Detalii Generale">
                         <Row label="ID Comandă"          value={wo.id?.slice(0, 8).toUpperCase()} mono />
                         <Row label="Status"              value={cfg.label} />
-                        <Row label="Client"              value={wo.client_name} />
+                        <Row label="Client"              value={wo.client_name ? `${wo.client_name} ${wo.client_language ? `(Limba: ${wo.client_language.toUpperCase()})` : ''}` : ''} />
                         <Row label="Email Client"        value={wo.client_email} />
                         <Row label="Telefon Client"      value={wo.client_phone} />
                         {wo.estimated_price && <Row label="Preț Estimativ" value={wo.estimated_price} />}

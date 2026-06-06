@@ -88,6 +88,7 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "site_lng": (wo.site.longitude if wo.site else None) or wo.site_longitude,
         "client_name": wo.client_name,
         "client_phone": wo.client_phone,
+        "client_language": wo.client_language,
         "requirements": wo.requirements or [],
         "materials": wo.materials or [],
         "materials_consumed": wo.materials_consumed or [],
