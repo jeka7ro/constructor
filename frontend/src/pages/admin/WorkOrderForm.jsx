@@ -224,8 +224,20 @@ export default function WorkOrderForm() {
 
     const handleDetectGPS = () => {
         setDetecting(true)
-        navigator.geolocation?.getCurrentPosition(
+        if (!navigator.geolocation) {
+            alert('Geolocatia nu este suportata de browser.');
+            setDetecting(false);
+            return;
+        }
+
+        const gpsTimeout = setTimeout(() => {
+            setDetecting(false);
+            alert('Timpul a expirat. Verifică dacă browser-ul are permisiunea de a accesa locația (GPS) în setările telefonului.');
+        }, 8000);
+
+        navigator.geolocation.getCurrentPosition(
             async pos => {
+                clearTimeout(gpsTimeout);
                 const lat = pos.coords.latitude.toFixed(6)
                 const lon = pos.coords.longitude.toFixed(6)
                 setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
@@ -250,10 +262,11 @@ export default function WorkOrderForm() {
                 setDetecting(false)
             },
             (err) => {
+                clearTimeout(gpsTimeout);
                 setDetecting(false);
                 alert('Eroare detectare GPS: ' + err.message + '\nTe rugăm să verifici dacă ai permis accesul la locație în browser/telefon.');
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: 8000 }
         )
     }
 
@@ -384,24 +397,25 @@ export default function WorkOrderForm() {
                 <div className="space-y-6">
                     <Section icon={FileText} title="Detalii, Client și Locație" zIndex={80}>
                         {/* 1. Titlu & Număr */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Field label="Titlu Comandă (Opțional)">
-                                <input
-                                    type="text"
-                                    value={form.title}
-                                    onChange={e => set('title', e.target.value)}
-                                    placeholder="Numele este opțional..."
-                                    className={INPUT}
-                                    autoFocus
-                                />
-                            </Field>
-                            <div className="flex flex-col justify-end">
-                                <span className="text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1 tracking-wider">
-                                    Număr Comandă (Auto)
-                                </span>
-                                <div className="h-11 flex items-center px-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 font-mono text-sm font-bold shadow-inner">
-                                    #COM-{(savedId || id) ? String(savedId || id).padStart(4, '0') : 'NOUĂ'}
-                                </div>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex-1">
+                                <Field label="Titlu Comandă (Opțional)">
+                                    <input
+                                        type="text"
+                                        value={form.title}
+                                        onChange={e => set('title', e.target.value)}
+                                        placeholder="Numele este opțional..."
+                                        className={INPUT}
+                                        autoFocus
+                                    />
+                                </Field>
+                            </div>
+                            <div className="w-full sm:w-32">
+                                <Field label="ID (Auto)">
+                                    <div className="h-11 flex items-center px-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 font-mono text-xs font-bold shadow-inner truncate">
+                                        #DC-{(savedId || id) ? String(savedId || id).padStart(4, '0') : 'AUTO'}
+                                    </div>
+                                </Field>
                             </div>
                         </div>
 
@@ -630,7 +644,7 @@ export default function WorkOrderForm() {
 
             {/* 4. Planificare + Pret */}
             <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                <div className="grid grid-cols-3 gap-2 md:gap-4 items-end">
                     <Field label="Data Incepere" required>
                         <input type="date" value={form.start_date}
                             onChange={e => set('start_date', e.target.value)}

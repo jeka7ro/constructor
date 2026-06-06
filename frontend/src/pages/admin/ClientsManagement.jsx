@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2 } from 'lucide-react'
+import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2, RotateCw } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import api from '../../lib/api'
@@ -12,8 +12,13 @@ export default function ClientsManagement() {
     // Modal states
     const [showModal, setShowModal] = useState(false)
     const [editingClient, setEditingClient] = useState(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [detecting, setDetecting] = useState(false)
     const [formData, setFormData] = useState({
+        client_type: 'juridica',
         name: '',
+        first_name: '',
+        last_name: '',
         cui: '',
         reg_com: '',
         address: '',
@@ -22,11 +27,13 @@ export default function ClientsManagement() {
         contact_person: '',
         phone: '',
         email: '',
-        preferred_language: 'ro'
+        preferred_language: 'ro',
+        bank_name: '',
+        iban: '',
+        swift: ''
     })
 
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' })
-    const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
         fetchClients()
@@ -53,8 +60,18 @@ export default function ClientsManagement() {
     const handleOpenModal = (client = null) => {
         if (client) {
             setEditingClient(client)
+            let firstName = ''
+            let lastName = ''
+            if (client.client_type === 'fizica') {
+                const parts = (client.name || '').split(' ')
+                lastName = parts.pop() || ''
+                firstName = parts.join(' ') || ''
+            }
             setFormData({
-                name: client.name || '',
+                client_type: client.client_type || 'juridica',
+                name: client.client_type === 'juridica' ? (client.name || '') : '',
+                first_name: firstName,
+                last_name: lastName,
                 cui: client.cui || '',
                 reg_com: client.reg_com || '',
                 address: client.address || '',
@@ -63,12 +80,18 @@ export default function ClientsManagement() {
                 contact_person: client.contact_person || '',
                 phone: client.phone || '',
                 email: client.email || '',
-                preferred_language: client.preferred_language || 'ro'
+                preferred_language: client.preferred_language || 'ro',
+                bank_name: client.bank_name || '',
+                iban: client.iban || '',
+                swift: client.swift || ''
             })
         } else {
             setEditingClient(null)
             setFormData({
+                client_type: 'juridica',
                 name: '',
+                first_name: '',
+                last_name: '',
                 cui: '',
                 reg_com: '',
                 address: '',
@@ -77,10 +100,61 @@ export default function ClientsManagement() {
                 contact_person: '',
                 phone: '',
                 email: '',
-                preferred_language: 'ro'
+                preferred_language: 'ro',
+                bank_name: '',
+                iban: '',
+                swift: ''
             })
         }
         setShowModal(true)
+    }
+
+    const handleDetectGPS = () => {
+        setDetecting(true)
+        if (!navigator.geolocation) {
+            alert('Geolocatia nu este suportata de browser.');
+            setDetecting(false);
+            return;
+        }
+
+        const gpsTimeout = setTimeout(() => {
+            setDetecting(false);
+            alert('Timpul a expirat. Verifică dacă browser-ul are permisiunea de a accesa locația (GPS) în setările telefonului.');
+        }, 8000);
+
+        navigator.geolocation.getCurrentPosition(
+            async pos => {
+                clearTimeout(gpsTimeout);
+                const lat = pos.coords.latitude.toFixed(6)
+                const lon = pos.coords.longitude.toFixed(6)
+                setFormData(p => ({ ...p, latitude: lat, longitude: lon }))
+                // Reverse geocoding
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+                        { headers: { 'Accept-Language': 'ro' } }
+                    )
+                    const data = await res.json()
+                    if (data?.display_name) {
+                        const a = data.address || {}
+                        const parts = [
+                            a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
+                            a.city || a.town || a.village || a.municipality,
+                            a.county,
+                        ].filter(Boolean)
+                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
+                        setFormData(p => ({ ...p, address: addr }))
+                    }
+                } catch {}
+                setDetecting(false)
+            },
+            (err) => {
+                clearTimeout(gpsTimeout);
+                setDetecting(false);
+                alert('Eroare detectare GPS: ' + err.message + '\nTe rugăm să verifici dacă ai permis accesul la locație în browser/telefon.');
+            },
+            { enableHighAccuracy: true, timeout: 8000 }
+        )
     }
 
     const handleCloseModal = () => {
@@ -94,8 +168,19 @@ export default function ClientsManagement() {
         setIsSubmitting(true)
         
         // Curățăm string-urile goale transformându-le în null
-        // Astfel evităm erori de validare pe backend (ex: EmailStr pe un string gol)
         const payload = { ...formData }
+        
+        if (payload.client_type === 'fizica') {
+            payload.name = `${payload.first_name} ${payload.last_name}`.trim()
+            payload.cui = null
+            payload.reg_com = null
+            payload.bank_name = null
+            payload.iban = null
+            payload.swift = null
+        }
+        delete payload.first_name
+        delete payload.last_name
+
         Object.keys(payload).forEach(key => {
             if (payload[key] === '') {
                 payload[key] = null
@@ -321,65 +406,95 @@ export default function ClientsManagement() {
                         
                         <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 overflow-y-auto">
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Companie / Client *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        value={formData.name}
-                                        onChange={e => setFormData({...formData, name: e.target.value})}
-                                    />
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">CUI</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            value={formData.cui}
-                                            onChange={e => setFormData({...formData, cui: e.target.value})}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nr. Reg. Comerțului</label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            value={formData.reg_com}
-                                            onChange={e => setFormData({...formData, reg_com: e.target.value})}
-                                        />
-                                    </div>
+                                {/* Toggle Fizica/Juridica */}
+                                <div className="flex gap-2 mb-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
+                                    <button type="button" onClick={() => setFormData({...formData, client_type: 'juridica'})}
+                                        className={`flex-1 px-4 h-8 rounded-full text-xs font-bold transition-all ${formData.client_type === 'juridica' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+                                        Persoană Juridică
+                                    </button>
+                                    <button type="button" onClick={() => setFormData({...formData, client_type: 'fizica'})}
+                                        className={`flex-1 px-4 h-8 rounded-full text-xs font-bold transition-all ${formData.client_type === 'fizica' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+                                        Persoană Fizică
+                                    </button>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Adresă Sediu</label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        value={formData.address}
-                                        onChange={e => setFormData({...formData, address: e.target.value})}
-                                    />
-                                </div>
-
-                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-                                    <div className="flex justify-between items-center mb-2 ml-1">
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Coordonate GPS (Opțional)</label>
-                                    </div>
-                                    <MiniMapSelector 
-                                        latitude={formData.latitude} 
-                                        longitude={formData.longitude} 
-                                        onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} 
-                                    />
-                                    <div className="grid grid-cols-2 gap-3 mt-3">
+                                {formData.client_type === 'juridica' ? (
+                                    <>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Latitudine</label>
-                                            <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.latitude || ''} placeholder="Latitudine" />
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Companie *</label>
+                                            <input
+                                                type="text" required
+                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">CUI</label>
+                                                <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.cui} onChange={e => setFormData({...formData, cui: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nr. Reg. Comerțului</label>
+                                                <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.reg_com} onChange={e => setFormData({...formData, reg_com: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Nume Bancă</label>
+                                                <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.bank_name} onChange={e => setFormData({...formData, bank_name: e.target.value})} />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">IBAN</label>
+                                                    <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.iban} onChange={e => setFormData({...formData, iban: e.target.value})} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">SWIFT</label>
+                                                    <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.swift} onChange={e => setFormData({...formData, swift: e.target.value})} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume *</label>
+                                            <input type="text" required className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Longitudine</label>
-                                            <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.longitude || ''} placeholder="Longitudine" />
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Prenume *</label>
+                                            <input type="text" required className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Adresă / Sediu</label>
+                                    <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                                </div>
+
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                    <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700">
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 tracking-wider">
+                                            COORDONATE GPS
+                                        </span>
+                                        <button type="button" onClick={handleDetectGPS} disabled={detecting}
+                                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 disabled:opacity-50 transition-colors">
+                                            <RotateCw className={`w-3.5 h-3.5 ${detecting ? 'animate-spin' : ''}`} />
+                                            {detecting ? 'Detectare...' : 'Detectează automat'}
+                                        </button>
+                                    </div>
+                                    <div className="p-3">
+                                        <MiniMapSelector latitude={formData.latitude} longitude={formData.longitude} onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} />
+                                        <div className="grid grid-cols-2 gap-3 mt-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Latitudine</label>
+                                                <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.latitude || ''} placeholder="Latitudine" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">Longitudine</label>
+                                                <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.longitude || ''} placeholder="Longitudine" />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
