@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { 
-    Wallet, TrendingDown, DollarSign, Plus, Building2, User as UserIcon, Calendar, Upload, FileText, Trash2, X, FileEdit, Banknote, Search, CheckCircle
+    Wallet, TrendingDown, DollarSign, Plus, Building2, User as UserIcon, Calendar, Upload, FileText, Trash2, X, FileEdit, Banknote, Search, CheckCircle, PackageSearch
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import api from '../../lib/api'
 
 export default function ExpensesManagement() {
@@ -125,13 +126,22 @@ export default function ExpensesManagement() {
                     </div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Cheltuieli & Deconturi</h1>
                 </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Adaugă Cheltuială
-                </button>
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="/admin/import-factura"
+                        className="flex items-center gap-2 px-4 h-10 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50 text-sm font-bold rounded-full transition-colors"
+                    >
+                        <FileText className="w-4 h-4" />
+                        Import Factură (Materiale)
+                    </Link>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center gap-2 px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Adaugă Cheltuială
+                    </button>
+                </div>
             </div>
 
             {/* Total Indicator */}

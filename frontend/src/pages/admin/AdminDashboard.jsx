@@ -209,7 +209,7 @@ export default function AdminDashboard() {
             label: 'Logistică & Financiar',
             items: [
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
-                { path: '/admin/import-factura', icon: FileText, label: 'Import Factură' },
+                
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
                 { path: '/admin/transport', icon: Navigation, label: 'Foi de Parcurs' },
                 { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
