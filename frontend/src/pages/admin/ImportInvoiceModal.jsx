@@ -65,6 +65,9 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
         } catch (err) {
             console.error(err)
             showToast('Eroare la extragere: ' + (err.response?.data?.detail || err.message), 'error')
+            if (initialFile) {
+                onClose()
+            }
         } finally {
             setIsProcessing(false)
         }
