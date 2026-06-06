@@ -104,6 +104,45 @@ export default function WorkOrderForm() {
 
     const set = (key, val) => setForm(p => ({ ...p, [key]: val }))
 
+
+    // Auto-calculate estimated_amount based on volumes and client type
+    useEffect(() => {
+        let isAutoCalculated = false;
+        let totalNet = 0;
+        
+        form.volumes.forEach(vol => {
+            const surface = parseFloat(vol.quantity) || 0;
+            const thickness = parseFloat(vol.thickness) || 0;
+            if (vol.label?.toLowerCase()?.includes('sapa') && surface > 0) {
+                isAutoCalculated = true;
+                const extraThickness = Math.max(0, thickness - 5);
+                const basePrice = 12.5 * surface;
+                const extraPrice = extraThickness * 1.25 * surface;
+                const foilPrice = vol.has_foil ? 1.2 * surface : 0;
+                const meshPrice = vol.has_mesh ? 2.5 * surface : 0;
+                
+                totalNet += basePrice + extraPrice + foilPrice + meshPrice;
+            }
+        });
+
+        if (isAutoCalculated) {
+            let totalGross = totalNet;
+            const client = clients.find(c => c.id === form.client_id);
+            if (client?.client_type === 'fizica') {
+                totalGross = totalNet * 1.21;
+            }
+            totalGross = Math.round(totalGross * 100) / 100;
+            
+            if (form.estimated_amount !== totalGross || form.is_auto_calculated !== true) {
+                setForm(p => ({ ...p, estimated_amount: totalGross, is_auto_calculated: true }));
+            }
+        } else {
+            if (form.is_auto_calculated) {
+                setForm(p => ({ ...p, is_auto_calculated: false }));
+            }
+        }
+    }, [form.volumes, form.client_id, clients, form.estimated_amount, form.is_auto_calculated]);
+
     useEffect(() => {
         const load = async () => {
             try {
@@ -827,6 +866,29 @@ export default function WorkOrderForm() {
                                     </div>
                                 </div>
                             </div>
+                            {vol.label?.toLowerCase()?.includes('sapa') && (
+                                <div className="flex flex-wrap gap-4 mt-2 px-1">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={!!vol.has_foil}
+                                            onChange={e => updateRow('volumes', i, 'has_foil', e.target.checked)}
+                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                        />
+                                        Include Folie plastic (1,2 EUR/m²)
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={!!vol.has_mesh}
+                                            onChange={e => updateRow('volumes', i, 'has_mesh', e.target.checked)}
+                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                        />
+                                        Include Plasă metalică (2,50 EUR/m²)
+                                    </label>
+                                </div>
+                            )}
+
                             {sandKg > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 mt-1 sm:ml-auto w-full sm:w-auto">
                                     <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-3 rounded-lg">

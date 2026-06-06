@@ -140,6 +140,7 @@ def _serialize(wo: WorkOrder) -> dict:
         "client_name": client_display,
         "client_email": wo.client_email,
         "client_phone": wo.client_phone,
+        "client_type": wo.client.client_type if wo.client else "juridica",
         "client_language": wo.client_language,
         "requirements": wo.requirements or [],
         "materials": wo.materials or [],
