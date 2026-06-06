@@ -12,6 +12,7 @@ router = APIRouter()
 
 # --- Schemas ---
 class ClientBase(BaseModel):
+    client_type: str = Field("juridica", max_length=20)
     name: str = Field(..., min_length=2, max_length=255)
     cui: Optional[str] = Field(None, max_length=50)
     reg_com: Optional[str] = Field(None, max_length=50)
@@ -22,12 +23,16 @@ class ClientBase(BaseModel):
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[EmailStr] = None
     preferred_language: str = Field("ro", max_length=10)
+    bank_name: Optional[str] = Field(None, max_length=100)
+    iban: Optional[str] = Field(None, max_length=50)
+    swift: Optional[str] = Field(None, max_length=20)
     is_active: bool = True
 
 class ClientCreate(ClientBase):
     pass
 
 class ClientUpdate(BaseModel):
+    client_type: Optional[str] = Field(None, max_length=20)
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     cui: Optional[str] = Field(None, max_length=50)
     reg_com: Optional[str] = Field(None, max_length=50)
@@ -38,6 +43,9 @@ class ClientUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[EmailStr] = None
     preferred_language: Optional[str] = Field(None, max_length=10)
+    bank_name: Optional[str] = Field(None, max_length=100)
+    iban: Optional[str] = Field(None, max_length=50)
+    swift: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
 
 class ClientResponse(ClientBase):

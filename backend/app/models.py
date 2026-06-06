@@ -298,6 +298,7 @@ class Client(Base):
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    client_type = Column(String(20), default="juridica", nullable=False)
     name = Column(String(255), nullable=False)
     cui = Column(String(50), nullable=True)
     reg_com = Column(String(50), nullable=True)
@@ -308,6 +309,9 @@ class Client(Base):
     phone = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
     preferred_language = Column(String(10), default="ro", nullable=False)
+    bank_name = Column(String(100), nullable=True)
+    iban = Column(String(50), nullable=True)
+    swift = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
