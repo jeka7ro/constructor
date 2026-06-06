@@ -23,7 +23,7 @@ import {
     FileImage, Download, ChevronRight, CheckCircle2,
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
-    Timer, Layers, Send, LogIn, LogOut, Lock, Eye
+    Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
@@ -38,6 +38,7 @@ import { ro } from 'date-fns/locale'
 const TABS = [
     { id: 'info',       label: 'Info',       icon: Info },
     { id: 'materiale',  label: 'Materiale',  icon: Package },
+    { id: 'poze',       label: 'Poze',       icon: Camera },
     { id: 'trimite',    label: 'Trimite',    icon: Send },
 ]
 
@@ -213,23 +214,67 @@ function OrderCard({ order, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENT: Tab Bar
 // ─────────────────────────────────────────────────────────────────────────────
-function TabBar({ active, onChange }) {
+function TabBar({ active, onChange, onHomePress, tenant }) {
+    const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+    const getImageUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http') || url.startsWith('data:')) return url;
+        const base = API_BASE.replace(/\/$/, '');
+        const path = url.startsWith('/') ? url : `/${url}`;
+        return `${base}${path}`;
+    };
+
     return (
-        <div className="bg-blue-100/40 backdrop-blur-xl border-4 border-b-0 border-white/80 px-4 py-3 flex justify-around items-center shadow-[0_-10px_25px_rgba(59,130,246,0.5)] rounded-t-3xl pb-[calc(env(safe-area-inset-bottom)+12px)]">
-            {TABS.map(({ id, label, icon: Icon }) => (
+        <div className="bg-blue-100/40 backdrop-blur-xl border-4 border-b-0 border-white/80 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(59,130,246,0.5)] rounded-t-3xl pb-[calc(env(safe-area-inset-bottom)+12px)] relative">
+            <div className="flex justify-around w-[40%]">
+                {TABS.slice(0, 2).map(({ id, label, icon: Icon }) => (
+                    <button
+                        key={id}
+                        onClick={() => onChange(id)}
+                        className={`flex flex-col items-center p-2 w-[72px] transition-all ${
+                            active === id
+                                ? 'text-blue-700 scale-110 drop-shadow-md'
+                                : 'text-slate-500'
+                        }`}
+                    >
+                        <Icon className="w-7 h-7 mb-1.5" />
+                        <span className="text-[10px] font-bold text-center leading-tight uppercase">{label}</span>
+                    </button>
+                ))}
+            </div>
+
+            <div className="relative flex justify-center w-[20%]">
                 <button
-                    key={id}
-                    onClick={() => onChange(id)}
-                    className={`flex flex-col items-center p-2 w-[80px] transition-all ${
-                        active === id
-                            ? 'text-blue-700 scale-110 drop-shadow-md'
-                            : 'text-slate-500'
-                    }`}
+                    onClick={onHomePress}
+                    className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-[color:var(--mobile-bg)] shadow-[0_10px_25px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.2)] ring-2 ring-[color:var(--mobile-bg)] opacity-90`}
+                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
-                    <Icon className="w-7 h-7 mb-1.5" />
-                    <span className="text-[10px] font-bold text-center leading-tight uppercase">{label}</span>
+                    {tenant?.favicon_url ? (
+                        <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
+                    ) : tenant?.logo_url ? (
+                        <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
+                    ) : (
+                        <Home className="w-8 h-8 drop-shadow-md" />
+                    )}
                 </button>
-            ))}
+            </div>
+
+            <div className="flex justify-around w-[40%]">
+                {TABS.slice(2).map(({ id, label, icon: Icon }) => (
+                    <button
+                        key={id}
+                        onClick={() => onChange(id)}
+                        className={`flex flex-col items-center p-2 w-[72px] transition-all ${
+                            active === id
+                                ? 'text-blue-700 scale-110 drop-shadow-md'
+                                : 'text-slate-500'
+                        }`}
+                    >
+                        <Icon className="w-7 h-7 mb-1.5" />
+                        <span className="text-[10px] font-bold text-center leading-tight uppercase">{label}</span>
+                    </button>
+                ))}
+            </div>
         </div>
     )
 }
@@ -699,12 +744,91 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB: TRIMITE (poze finalizare + inchidere comanda)
+// TAB: POZE
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, onClose, closing, actualSurface, setActualSurface, actualSand, setActualSand, ocrData, onReopen, onDeletePhoto }) {
+function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto }) {
     const fileRef = useRef(null)
     const machineFileRef = useRef(null)
-    const canClose = completionPhotos.length >= (order.min_photos_required || 2) && machinePhotos.length > 0
+    const isCompleted = order.status === 'completed'
+
+    return (
+        <div className="pb-28 px-4 pt-4 space-y-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                <p className="text-xs text-slate-600">
+                    Poze de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
+                        {completionPhotos.length} / {order.min_photos_required}
+                    </strong>
+                </p>
+                <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                    <div
+                        className="h-full rounded-full bg-blue-500 transition-all"
+                        style={{ width: `${Math.min(100, (completionPhotos.length / (order.min_photos_required || 2)) * 100)}%` }}
+                    />
+                </div>
+            </div>
+
+            <Section label="Poze Finalizare (merg la client)">
+                {completionPhotos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                        {completionPhotos.map(p => (
+                            <div key={p.id} className="relative">
+                                <a href={p.url} target="_blank" rel="noreferrer">
+                                    <img src={p.url} alt="Poza finalizare" className="w-full aspect-square object-cover rounded-xl border border-slate-200" />
+                                </a>
+                                {!isCompleted && (
+                                    <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <input type="file" accept="image/*" className="hidden" ref={fileRef} onChange={e => { const f = e.target.files?.[0]; if (f) onUploadCompletion(f); e.target.value = ''; }} />
+                <button disabled={uploadingCompletion || isCompleted} onClick={() => fileRef.current?.click()} className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
+                    <Camera className="w-4 h-4" />
+                    {uploadingCompletion ? 'Se incarca...' : 'Fotografiaza lucrarea finalizata'}
+                </button>
+            </Section>
+
+            <Section label="Poză Calculator Mașină (OBLIGATORIU pt OCR)">
+                {machinePhotos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                        {machinePhotos.map(p => (
+                            <div key={p.id} className="relative">
+                                <a href={p.url} target="_blank" rel="noreferrer">
+                                    <img src={p.url} alt="Poza Calculator Masina" className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm" />
+                                </a>
+                                {!isCompleted && (
+                                    <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+                
+                {ocrData && ocrData.status === 'success' && (
+                    <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
+                        ✅ Verificat AI: <strong>Nisip: {ocrData.sand_kg}kg</strong> | Ciment: {ocrData.cement_kg}kg
+                    </div>
+                )}
+
+                <input type="file" accept="image/*" className="hidden" ref={machineFileRef} onChange={e => { const f = e.target.files?.[0]; if (f) onUploadMachine(f); e.target.value = ''; }} />
+                <button disabled={uploadingMachine || isCompleted} onClick={() => machineFileRef.current?.click()} className="w-full py-3 border-2 border-dashed border-indigo-300 rounded-xl text-sm text-indigo-700 font-semibold hover:bg-indigo-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
+                    <Camera className="w-4 h-4" />
+                    {uploadingMachine ? 'AI analizeaza...' : 'Fotografiaza Ecran Mașină (Bremat)'}
+                </button>
+            </Section>
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: TRIMITE (inchidere comanda)
+// ─────────────────────────────────────────────────────────────────────────────
+function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualSand, setActualSand, onReopen }) {
     const isCompleted = order.status === 'completed'
 
     return (
@@ -724,117 +848,19 @@ function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion
                 </div>
             ) : (
                 <>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                        <p className="text-xs text-slate-600">
-                            Poze de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
-                                {completionPhotos.length} / {order.min_photos_required}
-                            </strong>
-                        </p>
-                        <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                            <div
-                                className="h-full rounded-full bg-blue-500 transition-all"
-                                style={{ width: `${Math.min(100, (completionPhotos.length / (order.min_photos_required || 2)) * 100)}%` }}
-                            />
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4">
+                        <p className="text-sm font-semibold text-slate-800 mb-1">Verificare închidere comanda</p>
+                        <div className="text-xs space-y-1">
+                            <div className="flex items-center gap-1.5">
+                                {completionPhotos.length >= order.min_photos_required ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-red-500" />}
+                                <span className={completionPhotos.length >= order.min_photos_required ? 'text-slate-600' : 'text-red-600'}>Poze lucrare ({completionPhotos.length}/{order.min_photos_required})</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                {machinePhotos.length > 0 ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-red-500" />}
+                                <span className={machinePhotos.length > 0 ? 'text-slate-600' : 'text-red-600'}>Poza calculator masina</span>
+                            </div>
                         </div>
                     </div>
-
-                    <Section label="Poze Finalizare (merg la client)">
-                        {completionPhotos.length > 0 && (
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                                {completionPhotos.map(p => (
-                                    <div key={p.id} className="relative">
-                                        <a href={p.url} target="_blank" rel="noreferrer">
-                                            <img
-                                                src={p.url}
-                                                alt="Poza finalizare"
-                                                className="w-full aspect-square object-cover rounded-xl border border-slate-200"
-                                            />
-                                        </a>
-                                        {order.status !== 'completed' && (
-                                            <button 
-                                                onClick={() => onDeletePhoto(p.id)}
-                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            ref={fileRef}
-                            onChange={e => {
-                                const f = e.target.files?.[0]
-                                if (f) onUploadCompletion(f)
-                                e.target.value = ''
-                            }}
-                        />
-                        <button
-                            disabled={uploadingCompletion || isCompleted}
-                            onClick={() => fileRef.current?.click()}
-                            className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
-                        >
-                            <Camera className="w-4 h-4" />
-                            {uploadingCompletion ? 'Se incarca...' : 'Fotografiaza lucrarea finalizata'}
-                        </button>
-                    </Section>
-
-                    <Section label="Poză Calculator Mașină (OBLIGATORIU pt OCR)">
-                        {machinePhotos.length > 0 && (
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                                {machinePhotos.map(p => (
-                                    <div key={p.id} className="relative">
-                                        <a href={p.url} target="_blank" rel="noreferrer">
-                                            <img
-                                                src={p.url}
-                                                alt="Poza Calculator Masina"
-                                                className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm"
-                                            />
-                                        </a>
-                                        {order.status !== 'completed' && (
-                                            <button 
-                                                onClick={() => onDeletePhoto(p.id)}
-                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        
-                        {ocrData && ocrData.status === 'success' && (
-                            <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
-                                ✅ Verificat AI: <strong>Nisip: {ocrData.sand_kg}kg</strong> | Ciment: {ocrData.cement_kg}kg
-                            </div>
-                        )}
-
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            ref={machineFileRef}
-                            onChange={e => {
-                                const f = e.target.files?.[0]
-                                if (f) onUploadMachine(f)
-                                e.target.value = ''
-                            }}
-                        />
-                        <button
-                            disabled={uploadingMachine || isCompleted}
-                            onClick={() => machineFileRef.current?.click()}
-                            className="w-full py-3 border-2 border-dashed border-indigo-300 rounded-xl text-sm text-indigo-700 font-semibold hover:bg-indigo-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
-                        >
-                            <Camera className="w-4 h-4" />
-                            {uploadingMachine ? 'AI analizeaza...' : 'Fotografiaza Ecran Mașină (Bremat)'}
-                        </button>
-                    </Section>
 
                     <Section label="Date Măsurători Lucrare (OBLIGATORIU)">
                         <div className="space-y-3">
@@ -891,6 +917,8 @@ function Row({ label, value }) {
     )
 }
 
+import { useNavigate } from 'react-router-dom'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -898,6 +926,7 @@ export default function WorkerOrdersPage() {
     const { user, logout } = useAuthStore()
     const tenant = useTenantStore(s => s.tenant)
     const showToast = useUIStore(s => s.showToast)
+    const navigate = useNavigate()
 
     const handleLogout = async () => {
         try {
@@ -1286,8 +1315,8 @@ export default function WorkerOrdersPage() {
                         uploadingInternal={uploadingInternal}
                     />
                 )}
-                {activeTab === 'trimite' && (
-                    <TabTrimite
+                {activeTab === 'poze' && (
+                    <TabPoze
                         order={selected}
                         completionPhotos={completionPhotos}
                         machinePhotos={machinePhotos}
@@ -1295,15 +1324,20 @@ export default function WorkerOrdersPage() {
                         onUploadMachine={f => handleUploadPhoto(f, 'machine_computer')}
                         uploadingCompletion={uploadingCompletion}
                         uploadingMachine={uploadingMachine}
-                        onClose={handleClose}
-                        closing={closing}
+                        ocrData={ocrData}
+                        onDeletePhoto={handleDeletePhoto}
+                    />
+                )}
+                {activeTab === 'trimite' && (
+                    <TabTrimite
+                        order={selected}
+                        completionPhotos={completionPhotos}
+                        machinePhotos={machinePhotos}
                         actualSurface={actualSurface}
                         setActualSurface={setActualSurface}
                         actualSand={actualSand}
                         setActualSand={setActualSand}
-                        ocrData={ocrData}
                         onReopen={handleReopen}
-                        onDeletePhoto={handleDeletePhoto}
                     />
                 )}
             </div>
@@ -1353,7 +1387,7 @@ export default function WorkerOrdersPage() {
 
             {/* TabBar mutat in panoul de jos */}
             <div className="shrink-0 z-20">
-                <TabBar active={activeTab} onChange={setActiveTab} />
+                <TabBar active={activeTab} onChange={setActiveTab} onHomePress={() => navigate('/')} tenant={tenant} />
             </div>
         </div>
     )
