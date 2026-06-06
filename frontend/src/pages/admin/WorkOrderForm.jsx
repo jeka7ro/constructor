@@ -458,22 +458,6 @@ export default function WorkOrderForm() {
                 {currentStep === 1 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Section icon={FileText} title="Detalii, Client și Locație" zIndex={80}>
-                        {/* 1. Titlu */}
-                        <div>
-                            <Field label="Titlu Comandă (Opțional)">
-                                <input
-                                    type="text"
-                                    value={form.title}
-                                    onChange={e => set('title', e.target.value)}
-                                    placeholder="De ex. Lucrare bloc nou... (Codul DC va fi generat automat)"
-                                    className={INPUT}
-                                    autoFocus
-                                />
-                            </Field>
-                        </div>
-
-                        <div className="h-px w-full bg-slate-100 dark:bg-slate-800 my-6"></div>
-
                         {/* 2. Client */}
                         <div>
                             <div className="flex items-center gap-2 mb-3">
