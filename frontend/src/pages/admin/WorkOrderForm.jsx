@@ -579,11 +579,7 @@ export default function WorkOrderForm() {
                     </div>
                 )}
             </Section>
-            </div>
 
-            {/* Coloana Dreapta */}
-            <div className="space-y-6">
-            
             {/* 4. Planificare + Pret */}
             <Section icon={Calendar} title="Planificare și Ofertare" zIndex={50}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -610,6 +606,54 @@ export default function WorkOrderForm() {
                     </Field>
                 </div>
             </Section>
+
+            {/* 6. Echipa + Vehicul */}
+            <Section icon={Users} title="Echipa si Vehicul" zIndex={20}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Șef de Echipă / Responsabil">
+                        <SearchableSelect
+                            value={form.assigned_team_id}
+                            onChange={teamId => {
+                                set('assigned_team_id', teamId);
+                                if (teamId) {
+                                    const selectedTeam = teams.find(t => t.id === teamId);
+                                    if (selectedTeam && selectedTeam.team_leader_id) {
+                                        const autoVehicle = vehicles.find(v => v.user_ids?.includes(selectedTeam.team_leader_id));
+                                        if (autoVehicle) {
+                                            set('assigned_vehicle_id', autoVehicle.id);
+                                        }
+                                    }
+                                } else {
+                                    set('assigned_vehicle_id', '');
+                                }
+                            }}
+                            options={teams.map(t => ({
+                                value: t.id,
+                                label: t.team_leader_name && t.team_leader_name !== 'N/A' ? t.team_leader_name : t.name,
+                                subLabel: t.team_leader_name && t.team_leader_name !== 'N/A' && t.name !== t.team_leader_name ? `Echipa: ${t.name}` : undefined
+                            }))}
+                            placeholder="— Fără alocare —"
+                        />
+                    </Field>
+                    <Field label="Vehicul / Camion">
+                        <SearchableSelect
+                            value={form.assigned_vehicle_id}
+                            onChange={val => set('assigned_vehicle_id', val)}
+                            options={vehicles.map(v => ({
+                                value: v.id,
+                                label: `${v.plate_number || 'Fără nr.'} ${v.brand ? `— ${v.brand}` : ''}`,
+                                subLabel: v.name
+                            }))}
+                            placeholder="— Fără vehicul —"
+                        />
+                    </Field>
+                </div>
+            </Section>
+            </div>
+
+            {/* Coloana Dreapta */}
+            <div className="space-y-6">
+            
             {/* 5. Volume + Materiale */}
             <Section icon={FileText} title="Cantitati Estimate" zIndex={40}>
                 {/* Volumes */}
@@ -716,48 +760,6 @@ export default function WorkOrderForm() {
                 </div>
             </Section>
 
-            {/* 6. Echipa + Vehicul */}
-            <Section icon={Users} title="Echipa si Vehicul" zIndex={20}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Șef de Echipă / Responsabil">
-                        <SearchableSelect
-                            value={form.assigned_team_id}
-                            onChange={teamId => {
-                                set('assigned_team_id', teamId);
-                                if (teamId) {
-                                    const selectedTeam = teams.find(t => t.id === teamId);
-                                    if (selectedTeam && selectedTeam.team_leader_id) {
-                                        const autoVehicle = vehicles.find(v => v.user_ids?.includes(selectedTeam.team_leader_id));
-                                        if (autoVehicle) {
-                                            set('assigned_vehicle_id', autoVehicle.id);
-                                        }
-                                    }
-                                } else {
-                                    set('assigned_vehicle_id', '');
-                                }
-                            }}
-                            options={teams.map(t => ({
-                                value: t.id,
-                                label: t.team_leader_name && t.team_leader_name !== 'N/A' ? t.team_leader_name : t.name,
-                                subLabel: t.team_leader_name && t.team_leader_name !== 'N/A' && t.name !== t.team_leader_name ? `Echipa: ${t.name}` : undefined
-                            }))}
-                            placeholder="— Fără alocare —"
-                        />
-                    </Field>
-                    <Field label="Vehicul / Camion">
-                        <SearchableSelect
-                            value={form.assigned_vehicle_id}
-                            onChange={val => set('assigned_vehicle_id', val)}
-                            options={vehicles.map(v => ({
-                                value: v.id,
-                                label: `${v.plate_number || 'Fără nr.'} ${v.brand ? `— ${v.brand}` : ''}`,
-                                subLabel: v.name
-                            }))}
-                            placeholder="— Fără vehicul —"
-                        />
-                    </Field>
-                </div>
-            </Section>
 
             <Section icon={Image} title="Instructiuni Acces (vizibile echipei)" zIndex={10}>
                 <Field label="Note Acces">
