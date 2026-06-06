@@ -5,7 +5,7 @@ import {
     ClipboardList, Plus, Send, Eye, Pencil, Trash2,
     CheckCircle2, Clock, CircleDot, XCircle, Copy,
     ExternalLink, ChevronDown, Filter, Pen, X, Timer, User, Package, Trash,
-    FileText, CheckCircle, Play, Ban, MapPin
+    FileText, CheckCircle, Play, Ban, MapPin, Mail
 } from 'lucide-react'
 import api from '../../lib/api'
 import KPICard from '../../components/KPICard'
@@ -51,13 +51,13 @@ export default function WorkOrders() {
 
     useEffect(() => { fetchOrders() }, [filterStatus])
 
-    const handleSendClick = (wo) => {
-        setSendModal({ wo })
+    const handleSendClick = (wo, method) => {
+        setSendModal({ wo, method })
     }
 
     const handleSendConfirm = async (lang) => {
         if (!sendModal) return
-        const wo = sendModal.wo
+        const { wo, method } = sendModal
         setSendingId(wo.id)
         try {
             const res = await api.post(`/admin/work-orders/${wo.id}/send`)
@@ -66,7 +66,7 @@ export default function WorkOrders() {
             setSendResult({ id: wo.id, url })
             setSendModal(null)
             
-            // Build Whatsapp text
+            // Build text
             const msgs = {
                 'ro': 'Salut! Accesează linkul pentru a vizualiza documentul:',
                 'en': 'Hello! Please click the link to view the document:',
@@ -75,8 +75,13 @@ export default function WorkOrders() {
                 'nl': 'Hallo! Klik op de link om het document te bekijken:',
                 'ru': 'Здравствуйте! Пожалуйста, перейдите по ссылке, чтобы просмотреть документ:'
             }
-            const text = encodeURIComponent(`${msgs[lang] || msgs['ro']}\n\n${url}`)
-            window.open(`https://wa.me/?text=${text}`, '_blank')
+            const body = `${msgs[lang] || msgs['ro']}\n\n${url}`
+
+            if (method === 'whatsapp') {
+                window.open(`https://wa.me/?text=${encodeURIComponent(body)}`, '_blank')
+            } else if (method === 'email') {
+                window.location.href = `mailto:${wo.client_email || ''}?subject=${encodeURIComponent('Ofertă / Proformă')}&body=${encodeURIComponent(body)}`
+            }
         } catch (e) {
             alert(e.response?.data?.detail || 'Eroare la trimitere.')
         } finally {
@@ -136,14 +141,24 @@ export default function WorkOrders() {
                     </a>
                 )}
                 {(wo.status === 'draft' || wo.status === 'completed') && (
-                    <button
-                        onClick={() => handleSendClick(wo)}
-                        disabled={sendingId === wo.id}
-                        title={wo.status === 'draft' ? "Trimite Proformă" : "Trimite Confirmare Finalizare"}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-slate-500 hover:text-amber-600"
-                    >
-                        <Send className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => handleSendClick(wo, 'whatsapp')}
+                            disabled={sendingId === wo.id}
+                            title={wo.status === 'draft' ? "Trimite Proformă pe WhatsApp" : "Trimite Confirmare pe WhatsApp"}
+                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
+                        >
+                            <Send className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => handleSendClick(wo, 'email')}
+                            disabled={sendingId === wo.id}
+                            title={wo.status === 'draft' ? "Trimite Proformă pe Email" : "Trimite Confirmare pe Email"}
+                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
+                        >
+                            <Mail className="w-4 h-4" />
+                        </button>
+                    </div>
                 )}
                 {['confirmed', 'in_progress', 'completed'].includes(wo.status) && (
                     <button

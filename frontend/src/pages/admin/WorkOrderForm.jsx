@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
     ChevronLeft, Plus, Trash2, ClipboardList, Check,
     User, MapPin, Calendar, FileText, Loader2,
-    Users, Truck, Image, X, Clock, Save, Send
+    Users, Truck, Image, X, Clock, Save, Send, Banknote, Info
 } from 'lucide-react'
 import api from '../../lib/api'
 import MiniMapSelector from '../../components/MiniMapSelector'
@@ -39,6 +39,9 @@ const EMPTY_FORM = {
     // Echipa + vehicul
     assigned_team_id: '',
     assigned_vehicle_id: '',
+    // Pret
+    estimated_amount: '',
+    estimated_currency: 'EUR',
     // Acces
     access_notes: '',
 }
@@ -180,9 +183,20 @@ export default function WorkOrderForm() {
                         site_geofence_radius: wo.site_geofence_radius || 100,
                         assigned_team_id: wo.assigned_team_id || '',
                         assigned_vehicle_id: wo.assigned_vehicle_id || '',
+                        estimated_price: wo.estimated_price || '',
                         volumes: wo.volumes?.length ? wo.volumes : [{ label: '', quantity: '', unit: 'm²', thickness: '' }],
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
                     }))
+                    
+                    if (wo.estimated_price) {
+                        const match = wo.estimated_price.match(/^([\d.,]+)\s*([a-zA-Z]+)?$/)
+                        if (match) {
+                            setForm(p => ({ ...p, estimated_amount: match[1], estimated_currency: match[2] || 'EUR' }))
+                        } else {
+                            setForm(p => ({ ...p, estimated_amount: wo.estimated_price, estimated_currency: 'EUR' }))
+                        }
+                    }
+
                     setSavedId(wo.id)
                     
                     // Auto-geocode if address exists but no coordinates
@@ -598,12 +612,6 @@ export default function WorkOrderForm() {
                             onChange={e => set('deadline_date', e.target.value)}
                             className={INPUT} />
                     </Field>
-                    <Field label="Preț Estimativ (Proformă)">
-                        <input type="text" value={form.estimated_price || ''}
-                            onChange={e => set('estimated_price', e.target.value)}
-                            placeholder="ex: 1500 EUR"
-                            className={INPUT} />
-                    </Field>
                 </div>
             </Section>
 
@@ -808,6 +816,43 @@ export default function WorkOrderForm() {
                 </div>
             </div>
 
+            {/* 7. Preț Estimativ (Proformă) */}
+            <Section icon={Banknote} title="Preț Estimativ (Proformă)" zIndex={10}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                    <Field label="Valoare estimată">
+                        <div className="flex w-full shadow-sm rounded-xl">
+                            <input type="number" 
+                                value={form.estimated_amount || ''}
+                                onChange={e => {
+                                    set('estimated_amount', e.target.value)
+                                    set('estimated_price', e.target.value ? `${e.target.value} ${form.estimated_currency || 'EUR'}` : '')
+                                }}
+                                placeholder="ex: 1500"
+                                className={`w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-l-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
+                            />
+                            <select
+                                value={form.estimated_currency || 'EUR'}
+                                onChange={e => {
+                                    set('estimated_currency', e.target.value)
+                                    if (form.estimated_amount) {
+                                        set('estimated_price', `${form.estimated_amount} ${e.target.value}`)
+                                    }
+                                }}
+                                className="w-24 px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-l-0 border-slate-200 dark:border-slate-700 rounded-r-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            >
+                                <option value="EUR">EUR</option>
+                                <option value="RON">RON</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5 font-medium flex items-center gap-1.5">
+                            <Info className="w-3.5 h-3.5" />
+                            Apare pe proforma trimisă clientului
+                        </p>
+                    </Field>
+                </div>
+            </Section>
+
             {/* Actions Bottom */}
             <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
                 <button
@@ -818,19 +863,11 @@ export default function WorkOrderForm() {
                 </button>
                 <button
                     onClick={() => handleSave(false)}
-                    disabled={saving || sending}
+                    disabled={saving}
                     className="flex items-center justify-center gap-2 px-6 h-11 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 shadow-sm"
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Salvează
-                </button>
-                <button
-                    onClick={() => handleSave(true)}
-                    disabled={saving || sending}
-                    className="flex items-center justify-center gap-2 px-6 h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
-                >
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Trimite
                 </button>
             </div>
         </div>
