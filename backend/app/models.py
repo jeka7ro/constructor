@@ -307,6 +307,7 @@ class Client(Base):
     contact_person = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
+    preferred_language = Column(String(10), default="ro", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -910,6 +911,7 @@ class WorkOrder(Base):
     client_name     = Column(String(255), nullable=True)    # Nume client (ad-hoc sau cache)
     client_email    = Column(String(255), nullable=True)    # Email la care se trimite link-ul
     client_phone    = Column(String(50), nullable=True)
+    client_language = Column(String(10), default="ro", nullable=False)
 
     # ── Conținut comandă (JSON arrays) ───────────────────────────────────────
     # requirements: [{"description": "...", "category": "...", "qty": "..."}]

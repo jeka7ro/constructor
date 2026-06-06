@@ -85,6 +85,7 @@ class WorkOrderCreate(BaseModel):
     client_name: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
+    client_language: Optional[str] = "ro"
     # Conținut
     requirements: Optional[list] = []
     materials: Optional[list] = []
@@ -131,6 +132,7 @@ def _serialize(wo: WorkOrder) -> dict:
         "client_name": client_display,
         "client_email": wo.client_email,
         "client_phone": wo.client_phone,
+        "client_language": wo.client_language,
         "requirements": wo.requirements or [],
         "materials": wo.materials or [],
         "materials_consumed": wo.materials_consumed or [],

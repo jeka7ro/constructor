@@ -21,7 +21,8 @@ export default function ClientsManagement() {
         longitude: '',
         contact_person: '',
         phone: '',
-        email: ''
+        email: '',
+        preferred_language: 'ro'
     })
 
     const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' })
@@ -61,7 +62,8 @@ export default function ClientsManagement() {
                 longitude: client.longitude || '',
                 contact_person: client.contact_person || '',
                 phone: client.phone || '',
-                email: client.email || ''
+                email: client.email || '',
+                preferred_language: client.preferred_language || 'ro'
             })
         } else {
             setEditingClient(null)
@@ -74,7 +76,8 @@ export default function ClientsManagement() {
                 longitude: '',
                 contact_person: '',
                 phone: '',
-                email: ''
+                email: '',
+                preferred_language: 'ro'
             })
         }
         setShowModal(true)
@@ -410,6 +413,22 @@ export default function ClientsManagement() {
                                             onChange={e => setFormData({...formData, email: e.target.value})}
                                         />
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Limba Preferată</label>
+                                    <select
+                                        className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                        value={formData.preferred_language}
+                                        onChange={e => setFormData({...formData, preferred_language: e.target.value})}
+                                    >
+                                        <option value="ro">Română</option>
+                                        <option value="en">Engleză</option>
+                                        <option value="fr">Franceză</option>
+                                        <option value="de">Germană</option>
+                                        <option value="nl">Olandeză</option>
+                                        <option value="ru">Rusă</option>
+                                    </select>
                                 </div>
 
                                 <div className="pt-2 flex justify-end gap-3 mt-6">

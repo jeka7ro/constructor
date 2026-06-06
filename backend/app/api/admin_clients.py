@@ -21,6 +21,7 @@ class ClientBase(BaseModel):
     contact_person: Optional[str] = Field(None, max_length=255)
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[EmailStr] = None
+    preferred_language: str = Field("ro", max_length=10)
     is_active: bool = True
 
 class ClientCreate(ClientBase):
@@ -36,6 +37,7 @@ class ClientUpdate(BaseModel):
     contact_person: Optional[str] = Field(None, max_length=255)
     phone: Optional[str] = Field(None, max_length=50)
     email: Optional[EmailStr] = None
+    preferred_language: Optional[str] = Field(None, max_length=10)
     is_active: Optional[bool] = None
 
 class ClientResponse(ClientBase):

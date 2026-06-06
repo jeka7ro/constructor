@@ -649,13 +649,18 @@ export default function WorkOrders() {
                                 { id: 'de', label: 'Germană', flag: '🇩🇪' },
                                 { id: 'nl', label: 'Olandeză', flag: '🇳🇱' },
                                 { id: 'ru', label: 'Rusă', flag: '🇷🇺' },
-                            ].map(lang => (
+                            ].map(lang => {
+                                const isPreferred = sendModal.wo.client_language === lang.id;
+                                return (
                                 <button key={lang.id} onClick={() => handleSendConfirm(lang.id)} disabled={sendingId === sendModal.wo.id}
-                                    className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group disabled:opacity-50">
+                                    className={`relative flex items-center gap-2 p-3 rounded-xl border transition-all group disabled:opacity-50
+                                        ${isPreferred ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20'}
+                                    `}>
                                     <span className="text-2xl">{lang.flag}</span>
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600">{lang.label}</span>
+                                    <span className={`text-sm font-bold ${isPreferred ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300 group-hover:text-blue-600'}`}>{lang.label}</span>
+                                    {isPreferred && <span className="absolute top-1 right-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">Pref</span>}
                                 </button>
-                            ))}
+                            )})}
                         </div>
                     </div>
                 </div>

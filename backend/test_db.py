@@ -1,14 +1,11 @@
-import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.database import SessionLocal
-from app.models import Client, WorkOrder
+import sys
+from dotenv import load_dotenv
+load_dotenv()
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+from sqlalchemy import text
+from app.database import engine
 
-db = SessionLocal()
-print("Clients:")
-for c in db.query(Client).all():
-    print(c.id, c.name, c.email)
-
-print("\nWorkOrders:")
-for w in db.query(WorkOrder).all():
-    print(w.id, w.title, w.client_id, w.client_name)
+with engine.connect() as conn:
+    res = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema='public'"))
+    print([r[0] for r in res])

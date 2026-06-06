@@ -20,6 +20,7 @@ const EMPTY_FORM = {
     client_name: '',
     client_email: '',
     client_phone: '',
+    client_language: 'ro',
     // Locatie
     site_mode: 'existing',
     site_id: '',
@@ -170,6 +171,7 @@ export default function WorkOrderForm() {
                         client_name: wo.client_name || '',
                         client_email: wo.client_email || '',
                         client_phone: wo.client_phone || '',
+                        client_language: wo.client_language || 'ro',
                         site_mode: wo.site_id ? 'existing' : 'new',
                         site_id: wo.site_id || '',
                         site_address: wo.site_address || '',
@@ -410,6 +412,7 @@ export default function WorkOrderForm() {
                                     client_name: cl?.name || '',
                                     client_email: cl?.email || '',
                                     client_phone: cl?.phone || '',
+                                    client_language: cl?.preferred_language || 'ro',
                                 }))
                             }} className={SELECT}>
                                 <option value="">— Alege client —</option>
@@ -447,6 +450,23 @@ export default function WorkOrderForm() {
                         </div>
                     </div>
                 )}
+                
+                <div className="mt-3">
+                    <Field label="Limba de Corespondență">
+                        <select 
+                            value={form.client_language} 
+                            onChange={e => set('client_language', e.target.value)}
+                            className={SELECT}
+                        >
+                            <option value="ro">Română</option>
+                            <option value="en">Engleză</option>
+                            <option value="fr">Franceză</option>
+                            <option value="de">Germană</option>
+                            <option value="nl">Olandeză</option>
+                            <option value="ru">Rusă</option>
+                        </select>
+                    </Field>
+                </div>
             </Section>
 
             {/* 3. Locatie + GPS */}
