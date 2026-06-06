@@ -41,10 +41,8 @@ def parse_invoice(
         invoice_number = facture_match.group(1).strip()
 
     # Parse items
-    items = []
-    # Match: <QTY> <UNIT> <NAME> <UNIT_PRICE> <NET_PRICE>
+    # 1. Try Standard Format
     item_pattern = re.compile(r'^([\d\.,]+)\s+([A-Z]+)\s+(.*?)\s+([\d\.,]+)\s+([\d\.,]+)$')
-    
     for line in lines:
         m = item_pattern.match(line)
         if m:
@@ -53,14 +51,12 @@ def parse_invoice(
             name = m.group(3).strip()
             uprice_str = m.group(4).replace('.', '').replace(',', '.')
             tprice_str = m.group(5).replace('.', '').replace(',', '.')
-            
             try:
                 qty = float(qty_str)
                 unit_price = float(uprice_str)
                 total_price = float(tprice_str)
             except ValueError:
                 continue
-                
             items.append({
                 "id": str(uuid.uuid4()),
                 "name": name,
@@ -68,9 +64,32 @@ def parse_invoice(
                 "unit": unit,
                 "unit_price": unit_price,
                 "total_price": total_price,
-                "mapped_item_id": None, # For frontend to map to existing
+                "mapped_item_id": None,
                 "is_new": True
             })
+
+    # 2. Try Belgian Sand Invoice Format
+    if not items:
+        belgian_pattern = re.compile(r'(SABLE DE CHAPE BLANC)([\d\.,]+)1740\s+TERNAT')
+        for line in lines:
+            m = belgian_pattern.search(line)
+            if m:
+                name = m.group(1).strip()
+                qty_str = m.group(2).replace(',', '.')
+                try:
+                    qty = float(qty_str)
+                except ValueError:
+                    continue
+                items.append({
+                    "id": str(uuid.uuid4()),
+                    "name": name,
+                    "quantity": qty,
+                    "unit": "to", # tons
+                    "unit_price": 0.0, # VAT removed, manual calculation maybe later
+                    "total_price": 0.0,
+                    "mapped_item_id": None,
+                    "is_new": True
+                })
             
     return {
         "supplier": supplier,

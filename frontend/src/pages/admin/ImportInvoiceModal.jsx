@@ -105,17 +105,25 @@ export default function ImportInvoiceModal({ onClose }) {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen space-y-6">
-            <header>
-                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                        <FileText className="w-5 h-5 text-white" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white dark:bg-slate-900 w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center shadow-inner">
+                            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Import Factură Materiale</h2>
+                            <p className="text-xs text-slate-500">Extragere automată a cantităților în Gestiune</p>
+                        </div>
                     </div>
-                    Import Factură
-                </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Încarcă o factură PDF pentru a extrage automat cantitățile și a le adăuga în Gestiune.</p>
-            </header>
-
+                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
             
                 {!parsedData && !isProcessing && (
                     <div
