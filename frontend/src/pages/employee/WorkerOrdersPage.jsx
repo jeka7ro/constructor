@@ -215,19 +215,19 @@ function OrderCard({ order, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function TabBar({ active, onChange }) {
     return (
-        <div className="flex bg-white z-10 pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-blue-100/40 backdrop-blur-xl border-4 border-b-0 border-white/80 px-4 py-3 flex justify-around items-center shadow-[0_-10px_25px_rgba(59,130,246,0.5)] rounded-t-3xl pb-[calc(env(safe-area-inset-bottom)+12px)]">
             {TABS.map(({ id, label, icon: Icon }) => (
                 <button
                     key={id}
                     onClick={() => onChange(id)}
-                    className={`flex-1 flex flex-col items-center gap-1 pt-3 pb-2 text-[10px] font-semibold transition-colors ${
+                    className={`flex flex-col items-center p-2 w-[80px] transition-all ${
                         active === id
-                            ? 'text-blue-600'
-                            : 'text-slate-400'
+                            ? 'text-blue-700 scale-110 drop-shadow-md'
+                            : 'text-slate-500'
                     }`}
                 >
-                    <Icon className="w-4 h-4" />
-                    {label}
+                    <Icon className="w-7 h-7 mb-1.5" />
+                    <span className="text-[10px] font-bold text-center leading-tight uppercase">{label}</span>
                 </button>
             ))}
         </div>
@@ -970,7 +970,7 @@ export default function WorkerOrdersPage() {
 
     const openOrder = async (order) => {
         setSelected(order)
-        setActiveTab(order.status === 'completed' ? 'trimite' : 'info')
+        setActiveTab('info') // Always open info tab first
         setPhotos([])
         setCheckins([])
         setActualSurface(order.actual_surface_m2 || '')
@@ -1234,7 +1234,7 @@ export default function WorkerOrdersPage() {
     // RENDER: DETALIU comanda
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <div className={`fixed inset-x-0 top-0 bottom-[80px] z-40 bg-slate-50 flex flex-col transition-transform duration-300 ${selected ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`fixed inset-x-0 top-0 bottom-0 z-[60] bg-slate-50 flex flex-col transition-transform duration-300 ${selected ? 'translate-x-0' : 'translate-x-full'}`}>
             {/* Header comanda */}
             <div className="bg-white border-b border-slate-200 shrink-0 z-20">
                 <div className="flex items-center gap-3 px-4 py-3">
@@ -1352,7 +1352,7 @@ export default function WorkerOrdersPage() {
             )}
 
             {/* TabBar mutat in panoul de jos */}
-            <div className="bg-white border-t border-slate-200 shrink-0 z-20">
+            <div className="shrink-0 z-20">
                 <TabBar active={activeTab} onChange={setActiveTab} />
             </div>
         </div>
