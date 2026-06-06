@@ -393,7 +393,14 @@ export default function ExpensesManagement() {
                 </div>
             )}
             {showImportModal && (
-                <ImportInvoiceModal onClose={() => setShowImportModal(false)} />
+                <ImportInvoiceModal 
+                    initialFile={importFile}
+                    onClose={() => {
+                        setShowImportModal(false)
+                        setImportFile(null)
+                        fetchExpenses()
+                    }} 
+                />
             )}
         </div>
     )
