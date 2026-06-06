@@ -10,17 +10,24 @@ from .admin_auth import get_current_admin
 
 router = APIRouter(prefix="/admin/invoices", tags=["Admin Invoices"])
 
+class ParsePayload(BaseModel):
+    preExtractedText: str
+
 @router.post("/parse")
 def parse_invoice(
-    payload: dict = Body(...),
+    payload: ParsePayload,
     admin: Admin = Depends(get_current_admin)
 ):
     """
     Parses preExtractedText from the frontend and returns structured invoice data.
     """
-    text = payload.get("preExtractedText", "")
+    text = payload.preExtractedText
     if not text:
         raise HTTPException(status_code=400, detail="No text provided")
+        
+    # LOG IT FOR DEBUGGING
+    with open("last_ocr_text.txt", "w") as f:
+        f.write(text)
 
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     
@@ -69,13 +76,13 @@ def parse_invoice(
                 "is_new": True
             })
 
-    # 2. Try Belgian Sand Invoice Format
+    # 2. Try Belgian Sand Invoice Format (robust against OCR errors)
     if not items:
-        belgian_pattern = re.compile(r'(SABLE DE CHAPE BLANC)([\d\.,]+)1740\s+TERNAT')
+        belgian_pattern = re.compile(r'(SABLE DE CHAPE BLANC).*?(\d{1,2}[.,]\d{2,3}).*?(1740|TERNAT)', re.IGNORECASE)
         for line in lines:
             m = belgian_pattern.search(line)
             if m:
-                name = m.group(1).strip()
+                name = "SABLE DE CHAPE BLANC" # Normalize name
                 qty_str = m.group(2).replace(',', '.')
                 try:
                     qty = float(qty_str)
@@ -96,7 +103,8 @@ def parse_invoice(
         "supplier": supplier,
         "date": invoice_date,
         "invoice_number": invoice_number,
-        "items": items
+        "items": items,
+        "debug_text": text # Send back the raw text so the frontend/devtools can see it
     }
 
 @router.post("/import")

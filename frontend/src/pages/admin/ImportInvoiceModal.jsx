@@ -12,9 +12,10 @@ export default function ImportInvoiceModal({ onClose }) {
     const [isProcessing, setIsProcessing] = useState(false)
     const [progress, setProgress] = useState(0)
     const [progressText, setProgressText] = useState('')
-    const [parsedData, setParsedData] = useState(null) // { supplier, date, invoice_number, items }
+    const [parsedData, setParsedData] = useState(null) // { supplier, date, invoice_number, items, debug_text }
     const [warehouseItems, setWarehouseItems] = useState([])
     const [isSaving, setIsSaving] = useState(false)
+    const [isPhysicalPerson, setIsPhysicalPerson] = useState(false)
 
     useEffect(() => {
         api.get('/warehouse')
@@ -79,12 +80,28 @@ export default function ImportInvoiceModal({ onClose }) {
     const handleSave = async () => {
         if (!parsedData || !parsedData.items.length) return
         setIsSaving(true)
+        
+        // Prepare payload, applying VAT if physical person
+        const payload = {
+            ...parsedData,
+            items: parsedData.items.map(it => {
+                const multiplier = isPhysicalPerson ? 1.19 : 1.0;
+                const newUnitPrice = Number((parseFloat(it.unit_price || 0) * multiplier).toFixed(2));
+                const qty = parseFloat(it.quantity || 0);
+                return {
+                    ...it,
+                    unit_price: newUnitPrice,
+                    total_price: Number((qty * newUnitPrice).toFixed(2))
+                }
+            })
+        }
+
         try {
-            await api.post('/admin/invoices/import', parsedData)
+            await api.post('/admin/invoices/import', payload)
             showToast('Import realizat cu succes!', 'success')
             onClose()
         } catch (err) {
-            showToast('Eroare la salvare: ' + (err.response?.data?.detail || err.message, 'error'))
+            showToast('Eroare la salvare: ' + (err.response?.data?.detail || err.message), 'error')
         } finally {
             setIsSaving(false)
         }
@@ -270,30 +287,104 @@ export default function ImportInvoiceModal({ onClose }) {
                                 </table>
                             </div>
                             {parsedData.items.length === 0 && (
-                                <div className="p-8 text-center text-slate-500">Nu a rămas niciun articol.</div>
+                                <div className="p-8 text-center text-slate-500 flex flex-col items-center">
+                                    <span>Nu a rămas niciun articol extras automat din PDF.</span>
+                                    {parsedData.debug_text && (
+                                        <details className="mt-4 text-left max-w-lg w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-xs overflow-auto max-h-40">
+                                            <summary className="cursor-pointer font-bold text-slate-700 dark:text-slate-300 mb-2">Debug Text OCR</summary>
+                                            <pre className="whitespace-pre-wrap">{parsedData.debug_text}</pre>
+                                        </details>
+                                    )}
+                                </div>
                             )}
                         </div>
 
+                        {/* Extra Materials (Manual Addition) */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div>
+                                <h4 className="font-bold text-slate-900 dark:text-white mb-1">Adăugare Materiale Extra</h4>
+                                <p className="text-xs text-slate-500">Adaugă rapid materiale din bife, prețurile sunt fără TVA.</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        setParsedData(prev => ({
+                                            ...prev,
+                                            items: [...prev.items, {
+                                                id: 'manual-folie-' + Date.now(),
+                                                name: 'Folie plastic',
+                                                quantity: 1,
+                                                unit: 'mp',
+                                                unit_price: 1.2,
+                                                total_price: 1.2,
+                                                mapped_item_id: '',
+                                                is_new: true
+                                            }]
+                                        }))
+                                    }}
+                                    className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-lg border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1"
+                                >
+                                    <Plus className="w-4 h-4" /> Folie plastic (1.2/mp)
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setParsedData(prev => ({
+                                            ...prev,
+                                            items: [...prev.items, {
+                                                id: 'manual-plasa-' + Date.now(),
+                                                name: 'Plasă metalică',
+                                                quantity: 1,
+                                                unit: 'buc',
+                                                unit_price: 2.50,
+                                                total_price: 2.50,
+                                                mapped_item_id: '',
+                                                is_new: true
+                                            }]
+                                        }))
+                                    }}
+                                    className="px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 text-sm font-bold rounded-lg border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors flex items-center gap-1"
+                                >
+                                    <Plus className="w-4 h-4" /> Plasă metalică (2.50)
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Actions */}
-                        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
-                            <button
-                                onClick={onClose}
-                                className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 shadow-sm"
-                            >
-                                Anulează
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving || parsedData.items.length === 0}
-                                className="flex items-center gap-2 px-8 py-3 rounded-xl  bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSaving ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <Save className="w-5 h-5" />
-                                )}
-                                Confirmă Importul
-                            </button>
+                        <div className="flex flex-col md:flex-row items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <div className="relative flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        checked={isPhysicalPerson}
+                                        onChange={(e) => setIsPhysicalPerson(e.target.checked)}
+                                    />
+                                </div>
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                                    Client Persoană Fizică (Adaugă TVA)
+                                </span>
+                            </label>
+
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <button
+                                    onClick={onClose}
+                                    className="flex-1 md:flex-none px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 shadow-sm"
+                                >
+                                    Anulează
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving || parsedData.items.length === 0}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSaving ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <Save className="w-5 h-5" />
+                                    )}
+                                    Confirmă Importul
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
