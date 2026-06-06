@@ -577,7 +577,6 @@ export default function WorkOrderForm() {
                             />
                         </div>
                     </div>
-                    </div>
                 )}
             </Section>
             </div>
