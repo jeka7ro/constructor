@@ -119,16 +119,7 @@ export default function WorkOrders() {
     const renderActions = (wo) => {
         const link = getLink(wo)
         return (
-            <div className="flex items-center justify-end gap-1">
-                {wo.status !== 'draft' && (
-                    <button
-                        onClick={() => copyLink(link, wo.id)}
-                        title="Copiază link confirmare"
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
-                    >
-                        {copiedId === wo.id ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                )}
+            <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-[130px] max-w-[180px]">
                 {wo.status !== 'draft' && (
                     <a
                         href={link}
@@ -172,7 +163,7 @@ export default function WorkOrders() {
                             finally { setSessionsLoading(false) }
                         }}
                         title="Ore lucrate pe comandă"
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-slate-500 hover:text-blue-600"
                     >
                         <Timer className="w-4 h-4" />
                     </button>
@@ -187,7 +178,7 @@ export default function WorkOrders() {
                                 : [{ name: '', quantity: '', unit: '', note: '' }]
                         })}
                         title="Materiale consumate"
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-slate-500 hover:text-emerald-600"
                     >
                         <Package className="w-4 h-4" />
                     </button>
@@ -204,7 +195,7 @@ export default function WorkOrders() {
                         onClick={() => handleDelete(wo)}
                         disabled={deletingId === wo.id}
                         title="Șterge"
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-slate-500 hover:text-red-500"
+                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-slate-500 hover:text-red-500"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
