@@ -90,6 +90,7 @@ export default function WorkOrderForm() {
     const [detecting, setDetecting] = useState(false)
     const [error, setError] = useState(null)
     const [instructionPhotos, setInstructionPhotos] = useState([]) // { file, preview }
+    const [currentStep, setCurrentStep] = useState(1)
     const [savedId, setSavedId] = useState(null)
 
     const set = (key, val) => setForm(p => ({ ...p, [key]: val }))
@@ -362,6 +363,31 @@ export default function WorkOrderForm() {
         });
     };
 
+    
+    const handleNext = () => {
+        setError(null)
+        if (currentStep === 1) {
+            if (form.client_mode === 'new') {
+                if (!form.client_name?.trim()) return setError('Introduceți numele noului client.')
+            } else {
+                if (!form.client_id) return setError('Selectați un client.')
+            }
+            if (form.site_mode === 'new') {
+                if (!form.site_address?.trim()) return setError('Introduceți adresa locației noi.')
+            } else {
+                if (!form.site_id) return setError('Selectați o locație.')
+            }
+        }
+        if (currentStep === 2) {
+            if (!form.start_date) return setError('Alegeți data începerii.')
+        }
+
+        if (currentStep < 3) {
+            setCurrentStep(s => s + 1)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+    }
+
     const selectedClient = clients.find(c => c.id === form.client_id)
     const selectedSite = sites.find(s => s.id === form.site_id)
 
@@ -392,9 +418,36 @@ export default function WorkOrderForm() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {/* Coloana Stânga */}
-                <div className="space-y-6">
+
+            {/* Stepper UI */}
+            <div className="flex items-center justify-between mb-8 relative">
+                <div className="absolute left-0 top-1/2 w-full h-1 bg-slate-200 dark:bg-slate-800 -z-10 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-600 transition-all duration-500 ease-out" style={{ width: currentStep === 1 ? '15%' : currentStep === 2 ? '50%' : '100%' }}></div>
+                </div>
+                {[
+                    { step: 1, label: 'Detalii Generale' },
+                    { step: 2, label: 'Planificare & Resurse' },
+                    { step: 3, label: 'Financiar & Acces' }
+                ].map(s => (
+                    <div key={s.step} className="flex flex-col items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${
+                            currentStep >= s.step 
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-2 border-slate-200 dark:border-slate-700'
+                        }`}>
+                            {currentStep > s.step ? <Check className="w-4 h-4" /> : s.step}
+                        </div>
+                        <span className={`text-xs font-bold hidden sm:block ${currentStep >= s.step ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                            {s.label}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            <div className="max-w-3xl mx-auto space-y-6">
+
+                {currentStep === 1 && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Section icon={FileText} title="Detalii, Client și Locație" zIndex={80}>
                         {/* 1. Titlu & Număr */}
                         <div className="flex flex-col sm:flex-row gap-4">
@@ -705,11 +758,7 @@ export default function WorkOrderForm() {
                     </Field>
                 </div>
             </Section>
-            </div>
 
-            {/* Coloana Dreapta */}
-            <div className="space-y-6">
-            
             {/* 5. Volume + Materiale */}
             <Section icon={FileText} title="Cantitati Estimate" zIndex={30}>
                 {/* Volumes */}
@@ -844,7 +893,7 @@ export default function WorkOrderForm() {
                                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoAdd} />
                             </div>
                             {instructionPhotos.length > 0 && (
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     {instructionPhotos.map((p, i) => (
                                         <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
                                             <img src={p.preview} alt="" className="w-full h-full object-cover" />
@@ -861,8 +910,7 @@ export default function WorkOrderForm() {
                             <p className="text-xs text-slate-400">Aceste poze sunt vizibile doar pentru echipa, nu apar la client.</p>
                         </div>
                     </Section>
-                </div>
-            </div>
+
 
             {/* 7. Preț Estimativ (Proformă) */}
             <Section icon={Banknote} title="Preț Estimativ (Proformă)" zIndex={10}>
@@ -901,22 +949,45 @@ export default function WorkOrderForm() {
                 </div>
             </Section>
 
+                    </div>
+                )}
+            </div>
+
             {/* Actions Bottom */}
-            <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
                 <button
-                    onClick={() => navigate('/admin/work-orders')}
+                    onClick={() => {
+                        if (currentStep > 1) {
+                            setCurrentStep(s => s - 1)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                        } else {
+                            navigate('/admin/work-orders')
+                        }
+                    }}
                     className="px-6 h-11 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                    Anulează
+                    {currentStep > 1 ? 'Înapoi' : 'Anulează'}
                 </button>
-                <button
-                    onClick={() => handleSave(false)}
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 px-6 h-11 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 shadow-sm"
-                >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Salvează
-                </button>
+                
+                <div className="flex gap-3">
+                    {currentStep < 3 ? (
+                        <button
+                            onClick={handleNext}
+                            className="flex items-center justify-center gap-2 px-8 h-11 rounded-full border border-transparent bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-all shadow-sm"
+                        >
+                            Următorul
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => handleSave(false)}
+                            disabled={saving}
+                            className="flex items-center justify-center gap-2 px-8 h-11 rounded-full border border-transparent bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-sm"
+                        >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Salvează și Finalizează
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     )
