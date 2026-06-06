@@ -1,6 +1,7 @@
 import re
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Body
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime
 
