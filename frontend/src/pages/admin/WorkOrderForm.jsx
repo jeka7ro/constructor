@@ -1008,7 +1008,8 @@ export default function WorkOrderForm() {
                                     set('estimated_price', e.target.value ? `${e.target.value} ${form.estimated_currency || 'EUR'}` : '')
                                 }}
                                 placeholder="ex: 1500"
-                                className={`w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-l-xl text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
+                                disabled={form.is_auto_calculated}
+                                className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-l-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${form.is_auto_calculated ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400'}`}
                             />
                             <select
                                 value={form.estimated_currency || 'EUR'}
@@ -1024,7 +1025,59 @@ export default function WorkOrderForm() {
                                 <option value="RON">RON</option>
                                 <option value="USD">USD</option>
                             </select>
+
                         </div>
+                        {isAutoRender && (
+                            <div className="mt-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 w-full col-span-1 sm:col-span-2">
+                                <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">Calcul Cost (Vizibil doar Admin)</p>
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                        <span>Șapă de bază (≤5cm)</span>
+                                        <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
+                                    </div>
+                                    {autoExtra > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>Grosime extra ({extraThickForAuto} cm)</span>
+                                            <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {autoFoil > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>Folie plastic</span>
+                                            <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {autoMesh > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>Plasă metalică</span>
+                                            <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+                                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                                        <span>Total Net:</span>
+                                        <span>{autoNet.toFixed(2)} EUR</span>
+                                    </div>
+                                    {clientForRender?.client_type === 'fizica' ? (
+                                        <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
+                                            <span>TVA (21% Persoană Fizică):</span>
+                                            <span>{autoVat.toFixed(2)} EUR</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between text-slate-500 text-xs">
+                                            <span>TVA: 0% (Persoană Juridică)</span>
+                                            <span>0.00 EUR</span>
+                                        </div>
+                                    )}
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+                                    <div className="flex justify-between text-base font-black text-blue-600 dark:text-blue-400">
+                                        <span>TOTAL DE PLATĂ:</span>
+                                        <span>{totalGross.toFixed(2)} EUR</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <p className="text-xs text-slate-400 mt-1.5 font-medium flex items-center gap-1.5">
                             <Info className="w-3.5 h-3.5" />
                             Apare pe proforma trimisă clientului
