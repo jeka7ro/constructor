@@ -403,22 +403,42 @@ export default function WorkOrderForm() {
 
                 {form.client_mode === 'existing' ? (
                     <>
-                        <Field label="Selecteaza Client">
-                            <select value={form.client_id} onChange={e => {
-                                const cl = clients.find(c => c.id === e.target.value)
-                                setForm(p => ({
-                                    ...p,
-                                    client_id: e.target.value,
-                                    client_name: cl?.name || '',
-                                    client_email: cl?.email || '',
-                                    client_phone: cl?.phone || '',
-                                    client_language: cl?.preferred_language || 'ro',
-                                }))
-                            }} className={SELECT}>
-                                <option value="">— Alege client —</option>
-                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </Field>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="md:col-span-2">
+                                <Field label="Selecteaza Client">
+                                    <select value={form.client_id} onChange={e => {
+                                        const cl = clients.find(c => c.id === e.target.value)
+                                        setForm(p => ({
+                                            ...p,
+                                            client_id: e.target.value,
+                                            client_name: cl?.name || '',
+                                            client_email: cl?.email || '',
+                                            client_phone: cl?.phone || '',
+                                            client_language: cl?.preferred_language || 'ro',
+                                        }))
+                                    }} className={SELECT}>
+                                        <option value="">— Alege client —</option>
+                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </Field>
+                            </div>
+                            <div className="md:col-span-1">
+                                <Field label="Limba">
+                                    <select 
+                                        value={form.client_language} 
+                                        onChange={e => set('client_language', e.target.value)}
+                                        className={SELECT}
+                                    >
+                                        <option value="ro">🇷🇴 Română</option>
+                                        <option value="en">🇬🇧 Engleză</option>
+                                        <option value="fr">🇫🇷 Franceză</option>
+                                        <option value="de">🇩🇪 Germană</option>
+                                        <option value="nl">🇳🇱 Olandeză</option>
+                                        <option value="ru">🇷🇺 Rusă</option>
+                                    </select>
+                                </Field>
+                            </div>
+                        </div>
                         {selectedClient && (
                             <div className="mt-1 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300 space-y-0.5">
                                 {selectedClient.phone && <p>{selectedClient.phone}</p>}
@@ -434,7 +454,7 @@ export default function WorkOrderForm() {
                                 placeholder="Familia Ionescu / SC Firma SRL"
                                 className={INPUT} />
                         </Field>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <Field label="Telefon">
                                 <input type="text" value={form.client_phone}
                                     onChange={e => set('client_phone', e.target.value)}
@@ -447,26 +467,23 @@ export default function WorkOrderForm() {
                                     placeholder="contact@..."
                                     className={INPUT} />
                             </Field>
+                            <Field label="Limba">
+                                <select 
+                                    value={form.client_language} 
+                                    onChange={e => set('client_language', e.target.value)}
+                                    className={SELECT}
+                                >
+                                    <option value="ro">🇷🇴 Română</option>
+                                    <option value="en">🇬🇧 Engleză</option>
+                                    <option value="fr">🇫🇷 Franceză</option>
+                                    <option value="de">🇩🇪 Germană</option>
+                                    <option value="nl">🇳🇱 Olandeză</option>
+                                    <option value="ru">🇷🇺 Rusă</option>
+                                </select>
+                            </Field>
                         </div>
                     </div>
                 )}
-                
-                <div className="mt-3">
-                    <Field label="Limba de Corespondență">
-                        <select 
-                            value={form.client_language} 
-                            onChange={e => set('client_language', e.target.value)}
-                            className={SELECT}
-                        >
-                            <option value="ro">Română</option>
-                            <option value="en">Engleză</option>
-                            <option value="fr">Franceză</option>
-                            <option value="de">Germană</option>
-                            <option value="nl">Olandeză</option>
-                            <option value="ru">Rusă</option>
-                        </select>
-                    </Field>
-                </div>
             </Section>
 
             {/* 3. Locatie + GPS */}
