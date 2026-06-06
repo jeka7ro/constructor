@@ -6,7 +6,7 @@ def encode_image_to_base64(image_path: str) -> str:
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-def extract_machine_screen_data(image_path: str):
+def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = None):
     """
     Extracts 'Zand' (Sand) and 'Cement' values from a Bremat machine screen photo.
     Returns a dict with: sand_kg, cement_kg.
@@ -24,7 +24,10 @@ def extract_machine_screen_data(image_path: str):
         
     try:
         import requests
-        base64_image = encode_image_to_base64(image_path)
+        if image_bytes:
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        else:
+            base64_image = encode_image_to_base64(image_path)
         
         headers = {
             "Content-Type": "application/json",

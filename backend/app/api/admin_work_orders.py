@@ -404,16 +404,20 @@ async def upload_instruction_photo(
         raise HTTPException(status_code=400, detail="Fisier prea mare. Maxim 20MB.")
 
     ext = os.path.splitext(file.filename or "photo.jpg")[1].lower() or ".jpg"
-    filename = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join(PHOTO_UPLOAD_DIR, filename)
-    with open(file_path, "wb") as f:
-        f.write(content)
+    safe_filename = f"{uuid.uuid4().hex[:8]}{ext}"
+    storage_path = f"work_orders/{wo_id}/{safe_filename}"
+
+    try:
+        from app.storage import upload_file, get_content_type
+        file_url = upload_file(content, storage_path, get_content_type(safe_filename))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare upload: {str(e)}")
 
     photo = WorkOrderPhoto(
         id=str(uuid.uuid4()),
         work_order_id=wo_id,
         uploaded_by_id=None,  # admin (nu user)
-        photo_path=file_path,
+        photo_path=storage_path,
         description=description,
         file_size=len(content),
         photo_type="instruction"
@@ -423,7 +427,7 @@ async def upload_instruction_photo(
 
     return {
         "photo_id": photo.id,
-        "photo_url": f"/api/{file_path}",
+        "photo_url": file_url,
         "photo_type": "instruction",
         "message": "Poza de instructiuni adaugata cu succes."
     }
@@ -437,6 +441,7 @@ def list_work_order_photos(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Lista pozelor unei comenzi. Adminul vede toate tipurile."""
+    from app.storage import get_file_url
     wo = db.query(WorkOrder).filter(
         WorkOrder.id == wo_id,
         WorkOrder.organization_id == current_admin.organization_id
@@ -451,7 +456,7 @@ def list_work_order_photos(
 
     return [{
         "id": p.id,
-        "url": f"/api/{p.photo_path}",
+        "url": get_file_url(p.photo_path),
         "description": p.description,
         "photo_type": p.photo_type,
         "uploaded_at": p.uploaded_at.isoformat(),
@@ -467,16 +472,16 @@ def delete_instruction_photo(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Sterge o poza de instructiuni (admin poate sterge orice tip)."""
+    from app.storage import delete_file
     photo = db.query(WorkOrderPhoto).filter(
         WorkOrderPhoto.id == photo_id,
         WorkOrderPhoto.work_order_id == wo_id
     ).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Poza nu a fost gasita.")
-    # Sterge fisierul de pe disk
+    # Sterge fisierul
     try:
-        if os.path.exists(photo.photo_path):
-            os.remove(photo.photo_path)
+        delete_file(photo.photo_path)
     except Exception:
         pass
     db.delete(photo)

@@ -277,9 +277,20 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
                             {order.site_address}
                         </p>
                     </div>
-                    {(order.site_lat && (order.site_lon || order.site_lng)) && (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative">
+                    {(order.site_lat && (order.site_lon || order.site_lng)) ? (
+                        <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative mb-2">
                             <MiniMapSelector latitude={order.site_lat} longitude={order.site_lon || order.site_lng} />
+                        </div>
+                    ) : (
+                        <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative mb-2">
+                            <iframe 
+                                width="100%" 
+                                height="100%" 
+                                frameBorder="0" 
+                                style={{ border: 0 }} 
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(order.site_address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`} 
+                                allowFullScreen
+                            />
                         </div>
                     )}
                     <NavButtons lat={order.site_lat} lon={order.site_lon || order.site_lng} address={order.site_address} />
@@ -685,7 +696,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (poze finalizare + inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, onClose, closing, actualSurface, setActualSurface, actualSand, setActualSand, ocrData }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, onClose, closing, actualSurface, setActualSurface, actualSand, setActualSand, ocrData, onReopen }) {
     const fileRef = useRef(null)
     const machineFileRef = useRef(null)
     const canClose = completionPhotos.length >= (order.min_photos_required || 2) && machinePhotos.length > 0
@@ -699,6 +710,12 @@ function TabTrimite({ order, completionPhotos, machinePhotos, onUploadCompletion
                     <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 mb-1">Comanda finalizata</h3>
                     <p className="text-sm text-slate-500">Adminul va trimite link-ul clientului pentru semnatura digitala.</p>
+                    <button
+                        onClick={onReopen}
+                        className="mt-6 text-sm text-blue-600 underline font-semibold"
+                    >
+                        Anulează Finalizarea (Corectează datele)
+                    </button>
                 </div>
             ) : (
                 <>
@@ -1082,6 +1099,20 @@ export default function WorkerOrdersPage() {
         }
     }
 
+    // REOPEN ORDER
+    const handleReopen = async () => {
+        const proceed = window.confirm("Ești sigur că vrei să redeschizi comanda? Statusul se va schimba din nou în „În lucru”.");
+        if (!proceed) return;
+
+        try {
+            const res = await api.post(`/worker/orders/${selected.id}/reopen`)
+            showToast(res.data?.message || 'Comanda redeschisa.', 'success')
+            await refreshSelected()
+        } catch (e) {
+            showToast(e.response?.data?.detail || 'Eroare la redeschidere.', 'error')
+        }
+    }
+
     // ── State derivat
     const openCheckin = checkins.find(c => c.user_id === user?.id && !c.checkout_at)
     const hasOpenCheckin = Boolean(openCheckin)
@@ -1135,7 +1166,10 @@ export default function WorkerOrdersPage() {
                         <ShortWorksCalendar 
                             workOrders={orders} 
                             onOrderRescheduled={fetchOrders} 
-                            onOrderClick={(wo) => setSelected(wo)} 
+                            onOrderClick={(wo) => {
+                                setSelected(wo);
+                                setActiveTab(wo.status === 'completed' ? 'trimite' : 'info');
+                            }} 
                         />
                         
                         {/* Eliminat lista duplicată de comenzi, deoarece ShortWorksCalendar afiseaza deja comenzile */}
@@ -1217,6 +1251,7 @@ export default function WorkerOrdersPage() {
                         actualSand={actualSand}
                         setActualSand={setActualSand}
                         ocrData={ocrData}
+                        onReopen={handleReopen}
                     />
                 )}
             </div>

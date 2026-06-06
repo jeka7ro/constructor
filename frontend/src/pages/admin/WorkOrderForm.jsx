@@ -95,9 +95,9 @@ export default function WorkOrderForm() {
             try {
                 const [cRes, sRes, tRes, vRes, aRes, wRes] = await Promise.all([
                     api.get('/admin/clients'),
-                    api.get('/admin/sites'),
+                    api.get('/admin/sites/'),
                     api.get('/admin/teams/'),
-                    api.get('/admin/vehicles').catch(() => ({ data: [] })),
+                    api.get('/admin/vehicles/').catch(() => ({ data: [] })),
                     api.get('/activities/?is_active=true').catch(() => ({ data: [] })),
                     api.get('/warehouse/items').catch(() => ({ data: [] }))
                 ])

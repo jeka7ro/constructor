@@ -383,17 +383,20 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="Poza prea mare. Maxim 20MB.")
 
     ext = os.path.splitext(file.filename or "photo.jpg")[1].lower() or ".jpg"
-    filename = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    safe_filename = f"{uuid.uuid4().hex[:8]}{ext}"
+    storage_path = f"work_orders/{order_id}/{safe_filename}"
 
-    with open(file_path, "wb") as f:
-        f.write(content)
+    try:
+        from app.storage import upload_file, get_content_type
+        file_url = upload_file(content, storage_path, get_content_type(safe_filename))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare upload: {str(e)}")
 
     photo = WorkOrderPhoto(
         id=str(uuid.uuid4()),
         work_order_id=order_id,
         uploaded_by_id=current_user.id,
-        photo_path=file_path,
+        photo_path=storage_path,
         description=description,
         file_size=len(content),
         photo_type=photo_type
@@ -411,7 +414,7 @@ async def upload_photo(
     ocr_data = None
     if photo_type == "machine_computer":
         from app.services.vision_ocr import extract_machine_screen_data
-        ocr_data = extract_machine_screen_data(file_path)
+        ocr_data = extract_machine_screen_data(image_bytes=content)
         if ocr_data and ocr_data.get('status') == 'success' or ocr_data.get('status') == 'mock':
             if ocr_data.get('sand_kg') is not None:
                 wo.ai_sand_kg = ocr_data['sand_kg']
@@ -421,7 +424,7 @@ async def upload_photo(
 
     return {
         "photo_id": photo.id,
-        "photo_url": f"/api/{file_path}",
+        "photo_url": file_url,
         "photo_type": photo_type,
         "completion_count": completion_count,
         "min_required": wo.min_photos_required,
@@ -444,15 +447,37 @@ def get_photos(
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost gasita.")
 
+    from app.storage import get_file_url
     photos = db.query(WorkOrderPhoto).filter(WorkOrderPhoto.work_order_id == order_id).all()
     return [{
         "id": p.id,
-        "url": f"/uploads/work_order_photos/{os.path.basename(p.photo_path)}" if p.photo_path else None,
+        "url": get_file_url(p.photo_path),
         "description": p.description,
         "photo_type": p.photo_type or "completion",
         "uploaded_at": p.uploaded_at.isoformat(),
         "uploaded_by_id": p.uploaded_by_id
     } for p in photos]
+
+@router.post("/{order_id}/reopen")
+def reopen_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Muncitorul anuleaza finalizarea comenzii."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == order_id,
+        WorkOrder.organization_id == current_user.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost gasita.")
+
+    if wo.status != "completed":
+        raise HTTPException(status_code=400, detail="Doar comenzile finalizate dar inca netrimise pot fi redeschise.")
+
+    wo.status = "in_progress"
+    db.commit()
+    return {"message": "Comanda a fost redeschisa cu succes."}
 
 
 class CloseOrderPayload(BaseModel):
