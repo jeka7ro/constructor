@@ -133,8 +133,8 @@ export default function ImportInvoice() {
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-12 text-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-all group-hover:border-indigo-500 dark:group-hover:border-indigo-400">
-                            <div className="w-20 h-20 mx-auto bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <UploadCloud className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+                            <div className="w-20 h-20 mx-auto bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <UploadCloud className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Trage PDF-ul aici sau apasă pentru a încărca</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">Sistemul va extrage automat materialele și cantitățile.</p>
@@ -154,7 +154,7 @@ export default function ImportInvoice() {
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Se analizează factura...</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{progressText}</p>
                         <div className="w-full max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                            <div className=" from-indigo-500 to-purple-500 h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
                         </div>
                     </div>
                 )}
@@ -208,7 +208,7 @@ export default function ImportInvoice() {
                                                         type="number" 
                                                         value={item.quantity}
                                                         onChange={e => updateItem(item.id, 'quantity', e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                                     />
                                                 </td>
                                                 <td className="px-4 py-3 w-24">
@@ -216,7 +216,7 @@ export default function ImportInvoice() {
                                                         type="text" 
                                                         value={item.unit}
                                                         onChange={e => updateItem(item.id, 'unit', e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none uppercase"
+                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
                                                     />
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -224,7 +224,7 @@ export default function ImportInvoice() {
                                                         type="text" 
                                                         value={item.name}
                                                         onChange={e => updateItem(item.id, 'name', e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium text-slate-900 dark:text-white"
+                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-900 dark:text-white"
                                                     />
                                                 </td>
                                                 <td className="px-4 py-3 min-w-[250px]">
@@ -270,14 +270,14 @@ export default function ImportInvoice() {
                         <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
                             <button
                                 onClick={() => { setParsedData(null); setFile(null); }}
-                                className="px-6 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 shadow-sm"
                             >
                                 Anulează
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving || parsedData.items.length === 0}
-                                className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-8 py-3 rounded-xl  bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSaving ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
