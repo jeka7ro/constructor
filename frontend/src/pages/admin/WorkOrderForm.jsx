@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
     ChevronLeft, Plus, Trash2, ClipboardList, Check,
     User, MapPin, Calendar, FileText, Loader2,
@@ -83,6 +83,7 @@ const SELECT = "w-full px-3 h-9 text-sm rounded-lg border border-slate-200 dark:
 export default function WorkOrderForm() {
     const navigate = useNavigate()
     const { id } = useParams()
+    const [searchParams] = useSearchParams()
     const isEdit = Boolean(id)
     const fileRef = useRef()
 
@@ -170,11 +171,15 @@ export default function WorkOrderForm() {
                     const tomorrow = new Date(today);
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     const getStr = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    const paramDate = searchParams.get('date');
+                    const paramTime = searchParams.get('time');
+                    const initialDate = paramDate || prev.start_date || getStr(today);
                     
                     setForm(prev => ({
                         ...prev,
-                        start_date: prev.start_date || getStr(today),
-                        deadline_date: prev.deadline_date || getStr(tomorrow),
+                        start_date: initialDate,
+                        start_time: paramTime || prev.start_time || '07:00',
+                        deadline_date: prev.deadline_date || initialDate,
                         volumes: acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes
                     }))
 

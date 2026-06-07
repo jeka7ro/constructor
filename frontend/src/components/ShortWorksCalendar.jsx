@@ -187,7 +187,14 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                             return (
                                 <div 
                                     key={i} 
-                                    className={`border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    className={`border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    onClick={() => {
+                                        if (!isDragging) {
+                                            const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
+                                            const targetTime = `${(hourIndex + 6).toString().padStart(2, '0')}:00`;
+                                            navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`);
+                                        }
+                                    }}
                                     onDragEnter={(e) => e.preventDefault()}
                                     onDragOver={(e) => {
                                         e.preventDefault();
@@ -300,7 +307,8 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             borderColor: `${colorHex}50`,
                                             zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0))
                                         }}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             if (!isDragging) {
                                                 if (onOrderClick) onOrderClick(wo);
                                                 else navigate(`/admin/work-orders/${wo.id}`);
