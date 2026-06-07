@@ -8,7 +8,7 @@ from playwright.async_api import async_playwright
 import uuid
 
 from app.database import SessionLocal
-from app.models import Team, WorkOrder, Organization
+from app.models import Team, WorkOrder, Organization, Client
 
 async def run_scraper_for_team(team: Team, db: Session):
     """
@@ -31,13 +31,11 @@ async def run_scraper_for_team(team: Team, db: Session):
             )
             page = await context.new_page()
 
-            # Navigate to login
-            await page.goto("https://app.robaws.com/login", wait_until="networkidle")
+            # Navigate to root (which redirects to SSO login properly)
+            await page.goto("https://app.robaws.com/", wait_until="networkidle")
             
             # Fill login form. 
-            # Note: We assume standard inputs here, but we might need to adjust based on Robaws' real DOM
-            # Usually input[type="email"] and input[type="password"]
-            email_input = page.locator("input[type='email'], input[name='username'], input[name='email']")
+            email_input = page.locator("input[name='username']")
             if await email_input.count() > 0:
                 await email_input.first.fill(team.robaws_email)
             else:
@@ -45,7 +43,7 @@ async def run_scraper_for_team(team: Team, db: Session):
                 await browser.close()
                 return
 
-            pass_input = page.locator("input[type='password'], input[name='password']")
+            pass_input = page.locator("input[name='password']")
             if await pass_input.count() > 0:
                 await pass_input.first.fill(team.robaws_password)
             else:
@@ -53,7 +51,7 @@ async def run_scraper_for_team(team: Team, db: Session):
                 await browser.close()
                 return
 
-            # Press Enter to login or click the button
+            # Press Enter to login
             await pass_input.first.press("Enter")
             
             # Wait for dashboard to load (usually URL changes or a specific dashboard element appears)
@@ -95,6 +93,7 @@ async def run_scraper_for_team(team: Team, db: Session):
                 extracted_orders.append({
                     "external_id": ext_id,
                     "title": full_title[:255],
+                    "client": client,
                     "site_address": address,
                     "start_date": start_date,
                     "start_time": "08:00" # Default as no time is provided
@@ -112,11 +111,33 @@ async def run_scraper_for_team(team: Team, db: Session):
                 ).first()
                 
                 if not existing:
+                    # Gestionare Client
+                    client_id = None
+                    if order.get("client"):
+                        client_record = db.query(Client).filter(
+                            Client.name == order["client"],
+                            Client.organization_id == team.organization_id
+                        ).first()
+                        
+                        if not client_record:
+                            client_record = Client(
+                                organization_id=team.organization_id,
+                                name=order["client"],
+                                client_type="juridica",
+                                country="BE"  # Robaws is generally used in BE/FR
+                            )
+                            db.add(client_record)
+                            db.flush() # get ID
+                            
+                        client_id = client_record.id
+
                     # Cream comanda noua
                     new_wo = WorkOrder(
                         organization_id=team.organization_id,
-                        token=uuid.uuid4().hex, # Dummy token
+                        token=uuid.uuid4().hex,
                         title=order["title"],
+                        client_id=client_id,
+                        client_name=order.get("client"),
                         site_address=order.get("site_address"),
                         start_date=order.get("start_date"),
                         start_time=order.get("start_time"),
@@ -124,7 +145,7 @@ async def run_scraper_for_team(team: Team, db: Session):
                         status="draft",
                         external_id=order["external_id"],
                         source_system="robaws",
-                        created_by=team.team_leader_id
+                        created_by=None
                     )
                     db.add(new_wo)
                     inserted_count += 1
