@@ -58,32 +58,53 @@ async def run_scraper_for_team(team: Team, db: Session):
             
             # Wait for dashboard to load (usually URL changes or a specific dashboard element appears)
             try:
-                await page.wait_for_load_state("networkidle", timeout=15000)
+                await page.wait_for_timeout(10000)
             except Exception:
-                pass # Timeout might happen, let's just proceed
+                pass 
             
-            # Take a screenshot to verify login status later or save for debugging
-            # screenshot_path = f"robaws_debug_{team.id}.png"
-            # await page.screenshot(path=screenshot_path)
-            # print(f"[Robaws] Login screenshot salvat la {screenshot_path}")
+            # Extract content and parse with bs4
+            content = await page.content()
+            
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content, "html.parser")
+            rows = soup.find_all("tr", attrs={"dynamicoverviewtablerow": ""})
+            
+            extracted_orders = []
+            for row in rows:
+                tds = row.find_all("td")
+                if len(tds) < 11: continue
+                
+                ext_id = tds[1].get_text(strip=True)
+                raw_date = tds[2].get_text(strip=True) # DD/MM/YYYY
+                title = tds[3].get_text(strip=True)
+                client = tds[7].get_text(strip=True)
+                address = tds[10].get_text(strip=True)
+                
+                # Format date to YYYY-MM-DD
+                start_date = None
+                try:
+                    if raw_date:
+                        d, m, y = raw_date.split('/')
+                        start_date = f"{y}-{m}-{d}"
+                except Exception:
+                    pass
 
-            # TODO: Add logic here to navigate to the "Calendar" or "Planning" section 
-            # and extract the work orders into dictionaries.
-            # Example extracted order format:
-            # extracted_orders = [
-            #     {
-            #         "external_id": "robaws_12345",
-            #         "title": "Turnare placă beton",
-            #         "site_address": "Strada Muncii 1",
-            #         "start_date": "2026-06-08",
-            #         "start_time": "08:00"
-            #     }
-            # ]
-            
-            extracted_orders = [] # Replace with actual parsing
+                # Append Client to Title if useful
+                full_title = f"[{client}] {title}" if client else title
+
+                extracted_orders.append({
+                    "external_id": ext_id,
+                    "title": full_title[:255],
+                    "site_address": address,
+                    "start_date": start_date,
+                    "start_time": "08:00" # Default as no time is provided
+                })
 
             # ── Salvare în baza de date ───────────────────────────────
+            inserted_count = 0
             for order in extracted_orders:
+                if not order["external_id"]: continue
+                
                 # Verificăm dacă există deja
                 existing = db.query(WorkOrder).filter(
                     WorkOrder.external_id == order["external_id"],
@@ -94,7 +115,7 @@ async def run_scraper_for_team(team: Team, db: Session):
                     # Cream comanda noua
                     new_wo = WorkOrder(
                         organization_id=team.organization_id,
-                        token=uuid.uuid4().hex, # Dummy token sau generat de noi
+                        token=uuid.uuid4().hex, # Dummy token
                         title=order["title"],
                         site_address=order.get("site_address"),
                         start_date=order.get("start_date"),
@@ -103,12 +124,13 @@ async def run_scraper_for_team(team: Team, db: Session):
                         status="draft",
                         external_id=order["external_id"],
                         source_system="robaws",
-                        created_by=team.team_leader_id # Setam creatorul ca fiind seful de echipa sau adminul
+                        created_by=team.team_leader_id
                     )
                     db.add(new_wo)
+                    inserted_count += 1
             
             db.commit()
-            print(f"[Robaws] Extragere completă pentru {team.name}. Comenzi noi găsite: {len(extracted_orders)}.")
+            print(f"[Robaws] Extragere completă pentru {team.name}. Comenzi noi adăugate: {inserted_count} din {len(extracted_orders)} găsite pe pagină.")
 
             await browser.close()
     except Exception as e:

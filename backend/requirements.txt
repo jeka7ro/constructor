@@ -19,3 +19,4 @@ opencv-python-headless==4.9.0.80
 PyMuPDF==1.26.5
 playwright==1.42.0
 apscheduler==3.10.4
+beautifulsoup4==4.12.3
