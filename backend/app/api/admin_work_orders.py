@@ -133,8 +133,8 @@ def _serialize(wo: WorkOrder) -> dict:
         "site_name": site_name,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
         # GPS coordonate santier
-        "site_latitude": float(wo.site.latitude) if wo.site and wo.site.latitude else None,
-        "site_longitude": float(wo.site.longitude) if wo.site and wo.site.longitude else None,
+        "site_latitude": float(wo.site.latitude) if wo.site and wo.site.latitude else wo.site_latitude,
+        "site_longitude": float(wo.site.longitude) if wo.site and wo.site.longitude else wo.site_longitude,
         "geo_radius": float(wo.site.geo_radius) if wo.site and wo.site.geo_radius else None,
         "client_id": wo.client_id,
         "client_name": client_display,
