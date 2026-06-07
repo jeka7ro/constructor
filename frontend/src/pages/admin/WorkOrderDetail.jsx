@@ -12,6 +12,7 @@ import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell
 } from 'recharts'
+import HourlyWeather from '../../components/HourlyWeather'
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS = {
@@ -264,6 +265,7 @@ export default function WorkOrderDetail() {
     let autoExtra = 0;
     let autoFoil = 0;
     let autoMesh = 0;
+    let autoFiber = 0;
     let isAuto = false;
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
@@ -280,10 +282,13 @@ export default function WorkOrderDetail() {
             autoExtra += extraThickness * 1.25 * surface;
             autoFoil += vol.has_foil ? 1.2 * surface : 0;
             autoMesh += vol.has_mesh ? 2.5 * surface : 0;
+            
+            const fiberRate = surface <= 200 ? 2.5 : 2.0;
+            autoFiber += surface * fiberRate;
         }
     });
 
-    autoNet = autoBase + autoExtra + autoFoil + autoMesh;
+    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
     let autoVat = 0;
     let totalGross = autoNet;
     if (isAuto && wo.client_type === 'fizica') {
@@ -409,6 +414,13 @@ export default function WorkOrderDetail() {
                 </div>
             )}
 
+            {/* ── Vreme Orară Detaliată ───────────────────────────────────────── */}
+            <HourlyWeather 
+                lat={lat || 50.8503} 
+                lon={lon || 4.3517} 
+                dateStr={wo.start_date || wo.deadline_date || wo.created_at} 
+            />
+
             {/* ── Main Grid ───────────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
@@ -447,6 +459,12 @@ export default function WorkOrderDetail() {
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                             <span>Plasă metalică</span>
                                             <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {autoFiber > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>Fibre + Duramit</span>
+                                            <span>{surfaceForAuto} m² × {(surfaceForAuto <= 200 ? 2.5 : 2.0).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>

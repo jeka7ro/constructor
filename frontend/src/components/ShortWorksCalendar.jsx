@@ -45,7 +45,7 @@ function WeatherWidget({ lat, lon, dateStr }) {
         }
 
         setLoading(true);
-        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`)
+        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=30`)
             .then(res => res.json())
             .then(resData => {
                 const daily = resData?.daily;
@@ -433,7 +433,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         title={`${wo.title} — trageți pentru a muta`}
                                     >
                                         <div className="absolute top-1 right-1 z-10">
-                                            <WeatherWidget lat={wo.site_latitude} lon={wo.site_longitude} dateStr={wo.start_date || wo.deadline_date} />
+                                            <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
                                         </div>
 
 
@@ -516,7 +516,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                                 {wo.title}
                                             </div>
                                             <div className="absolute top-2 right-2">
-                                                <WeatherWidget lat={wo.site_latitude} lon={wo.site_longitude} dateStr={wo.start_date || wo.deadline_date} />
+                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
                                             </div>
                                         </div>
                                         {calculateOrderSand(wo) > 0 && (

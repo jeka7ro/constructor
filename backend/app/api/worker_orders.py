@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
     WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto,
-    User, Team, TeamMember, Role
+    WorkOrderDocument, User, Team, TeamMember, Role
 )
 from app.api.auth import get_current_user
 
@@ -458,6 +458,31 @@ def get_photos(
         "uploaded_at": p.uploaded_at.isoformat(),
         "uploaded_by_id": p.uploaded_by_id
     } for p in photos]
+
+@router.get("/{order_id}/documents")
+def get_documents(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Lista documentelor/planurilor descarcate din Robaws sau incarcate manual."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == order_id,
+        WorkOrder.organization_id == current_user.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost gasita.")
+
+    from app.storage import get_file_url
+    docs = db.query(WorkOrderDocument).filter(WorkOrderDocument.work_order_id == order_id).all()
+    return [{
+        "id": d.id,
+        "url": get_file_url(d.file_path),
+        "filename": d.filename,
+        "file_size": d.file_size,
+        "content_type": d.content_type,
+        "uploaded_at": d.uploaded_at.isoformat()
+    } for d in docs]
 
 @router.post("/{order_id}/reopen")
 def reopen_order(

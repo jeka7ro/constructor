@@ -176,9 +176,9 @@ async def lifespan(app: FastAPI):
 
     # Start Robaws Scraper Background Scheduler
     scheduler = BackgroundScheduler()
-    scheduler.add_job(run_all_scrapers, 'interval', minutes=30)
+    scheduler.add_job(run_all_scrapers, 'interval', hours=2)
     scheduler.start()
-    print("🤖 Robaws Scraper Scheduler started (runs every 30 min)")
+    print("🤖 Robaws Scraper Scheduler started (runs every 2 hours)")
 
     yield
     # Shutdown

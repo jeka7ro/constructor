@@ -23,7 +23,8 @@ import {
     FileImage, Download, ChevronRight, CheckCircle2,
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
-    Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home
+    Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home,
+    FileText, ExternalLink
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
@@ -282,7 +283,7 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
-function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
+function TabInfo({ order, photos, documents, onAcknowledge, acknowledging }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
 
     // Parse access_notes in bullet lines
@@ -292,7 +293,35 @@ function TabInfo({ order, photos, onAcknowledge, acknowledging }) {
         .filter(Boolean)
 
     return (
-        <div className="pb-28">
+        <div className="pb-28 px-4 pt-4 space-y-4">
+            {/* Planuri/Documente Atasate */}
+            {documents && documents.length > 0 && (
+                <Section label="Documente / Planuri Atașate">
+                    <div className="space-y-2">
+                        {documents.map(doc => (
+                            <a 
+                                key={doc.id} 
+                                href={doc.url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all group"
+                            >
+                                <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-slate-800 truncate">{doc.filename}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase mt-0.5">
+                                        Fisier Descarcat • {Math.round(doc.file_size / 1024)} KB
+                                    </p>
+                                </div>
+                                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                            </a>
+                        ))}
+                    </div>
+                </Section>
+            )}
+
             {/* Titlu */}
             <div className="px-4 pt-4 pb-3">
                 <h2 className="text-base font-bold text-slate-900 leading-snug">{order.title}</h2>
@@ -947,6 +976,7 @@ export default function WorkerOrdersPage() {
     const [selected, setSelected]     = useState(null) // WorkOrder object
     const [activeTab, setActiveTab]   = useState('info')
     const [photos, setPhotos]         = useState([])
+    const [documents, setDocuments]   = useState([])
     const [checkins, setCheckins]     = useState([])
     const [location, setLocation]     = useState(null)
     const [actualSurface, setActualSurface] = useState('')
@@ -1001,10 +1031,12 @@ export default function WorkerOrdersPage() {
         setSelected(order)
         setActiveTab('info') // Always open info tab first
         setPhotos([])
+        setDocuments([])
         setCheckins([])
         setActualSurface(order.actual_surface_m2 || '')
         setActualSand(order.actual_sand_quantity || '')
         fetchOrderPhotos(order.id)
+        fetchOrderDocuments(order.id)
         fetchOrderCheckins(order.id)
     }
 
@@ -1012,6 +1044,13 @@ export default function WorkerOrdersPage() {
         try {
             const res = await api.get(`/worker/orders/${id}/photos`)
             setPhotos(res.data || [])
+        } catch {}
+    }
+
+    const fetchOrderDocuments = async (id) => {
+        try {
+            const res = await api.get(`/worker/orders/${id}/documents`)
+            setDocuments(res.data || [])
         } catch {}
     }
 
@@ -1028,6 +1067,7 @@ export default function WorkerOrdersPage() {
         setSelected(res.data)
         await fetchOrders()
         await fetchOrderPhotos(selected.id)
+        await fetchOrderDocuments(selected.id)
         await fetchOrderCheckins(selected.id)
     }
 
@@ -1286,6 +1326,7 @@ export default function WorkerOrdersPage() {
                     <TabInfo
                         order={selected}
                         photos={photos}
+                        documents={documents}
                         onAcknowledge={handleAcknowledge}
                         acknowledging={acknowledging}
                     />

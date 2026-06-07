@@ -245,28 +245,7 @@ export default function WorkOrders() {
                             Start: {formatDate(wo.start_date)}
                         </div>
                     )}
-                    {wo.deadline_date ? (
-                        <div className="text-sm text-slate-700 dark:text-slate-400">
-                            Termen: {formatDate(wo.deadline_date)}
-                        </div>
-                    ) : (
-                        !wo.start_date && <div className="text-sm text-slate-400">—</div>
-                    )}
-                    {wo.confirmed_at && (
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Confirmat {formatDate(wo.confirmed_at)}
-                            {wo.status === 'confirmed' && wo.client_signature && (
-                                <button
-                                    onClick={() => setSigModal({ name: wo.confirmed_by_name, sig: wo.client_signature })}
-                                    title="Vezi semnătura digitală"
-                                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors text-slate-500 hover:text-violet-600"
-                                >
-                                    <Pen className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
-                    )}
+                    {!wo.start_date && <div className="text-sm text-slate-400">—</div>}
                 </div>
             )
         },
@@ -441,12 +420,7 @@ export default function WorkOrders() {
                                                 Start: {formatDate(wo.start_date)}
                                             </div>
                                         )}
-                                        {wo.deadline_date && (
-                                            <div className="text-sm text-slate-700 dark:text-slate-400">
-                                                Termen: {formatDate(wo.deadline_date)}
-                                            </div>
-                                        )}
-                                        {!wo.start_date && !wo.deadline_date && (
+                                        {!wo.start_date && (
                                             <div className="text-sm text-slate-400">—</div>
                                         )}
                                     </div>

@@ -1,0 +1,108 @@
+<!DOCTYPE html><html translate="no" class="notranslate"><head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="google" content="notranslate">
+    <meta name="robots" content="noindex">
+    <link rel="shortcut icon" type="image/png" href="/static/favicon_robaws.png">
+    <link rel="stylesheet" type="text/css" href="/static/login/login.css?v=4">
+    <link rel="stylesheet" type="text/css" href="/static/login/ext-login.css?v=4">
+    
+    <title>Robaws</title>
+</head>
+<body class="notranslate">
+<div class="login-wrapper flex-column flex-xl-row justify-content-center">
+    <div class="login-panel align-self-center me-0 me-xl-4">
+        <img src="https://static.robaws.com/images/logo/logo_robaws_darktolightblue_gradient.png" href="https://www.robaws.com" alt="Robaws logo" class="logo img-responsive">
+        
+    <div id="robaws-notifications" class="w-100" data-is-prod="true"></div>
+    
+    <form method="post" id="login-form">
+        <h1 class="mt-3 mb-4 text-center">Login</h1>
+        
+        
+        <input type="hidden" name="_csrf" value="XAAGFyDF_upgs9FJQIhaj__N_QUP1W4rBoskr83h0k5tM1v0P2IzIEGgzYhNg-N9c6Vut8740Gc54FYGYrkRnKnUsytfCz-W" style="">
+        <div class="form-group form-floating mt-2" id="username-input-group">
+            <input type="text" class="form-input form-control" id="username-input" name="username" placeholder="Gebruikersnaam" value="" autofocus="autofocus" style="">
+            <label for="username-input">Gebruikersnaam</label>
+        </div>
+        <div class="form-group form-floating" id="password-input-group">
+            <input type="password" class="form-input form-control" id="password-input" name="password" placeholder="Wachtwoord" style="">
+            <label for="password-input">Wachtwoord</label>
+            <span class="w-100 d-inline-flex justify-content-end">
+            <a href="/forgot-password">Wachtwoord vergeten?</a>
+            </span>
+        </div>
+        <div class="form-group form-floating" id="otp-input-group" style="display: none;">
+            <input type="text" class="form-input form-control" id="otp-input" name="otp" placeholder="Geef een éénmalige toegangscode in" style="">
+            <label for="otp-input">Geef een éénmalige toegangscode in</label>
+            <div style="margin-top: 15px">
+                <input type="checkbox" name="mfaTrustedDevice" id="mfa-trusted-device-check" style="">
+                <label for="mfa-trusted-device-check">Niet meer vragen op dit apparaat</label>
+            </div>
+        </div>
+        <button class="button-primary mt-2" type="submit">Login</button>
+    </form>
+    <div class="external-identity w-100 pt-1">
+    <h2 class="text-center position-relative text-border"><span class="fs-5">Of log in met</span></h2>
+    <div class="w-100 d-flex gap-2">
+        
+            <div class="w-100">
+                <form method="get" action="/login/ext/google/login">
+    
+        <input type="hidden" name="_s" value="sso" style="">
+    
+        <input type="hidden" name="redirectUrl" value="https://app.robaws.com/" style="">
+    
+    <button class="external-identity-button" type="submit">
+    <div class="external-identity-button-state"></div>
+    <div class="external-identity-button-content-wrapper">
+        <div class="external-identity-button-icon">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="display: block;">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                <path fill="none" d="M0 0h48v48H0z"></path>
+            </svg>
+        </div>
+        <span style="display: none;">Sign in with Google</span>
+    </div>
+</button>
+</form>
+            </div>
+        
+            <div class="w-100">
+                <form method="get" action="/login/ext/microsoft/login">
+    
+        <input type="hidden" name="_s" value="sso" style="">
+    
+        <input type="hidden" name="redirectUrl" value="https://app.robaws.com/" style="">
+    
+    <button class="external-identity-button" type="submit">
+    <div class="external-identity-button-state"></div>
+    <div class="external-identity-button-content-wrapper">
+        <img src="/static/signin-microsoft.svg" class="external-identity-button-icon" alt="Sign in with Microsoft">
+    </div>
+</button>
+
+</form>
+            </div>
+        
+    </div>
+</div>
+    <div class="links d-flex">
+        <span><a href="https://status.robaws.com" target="_blank">Systeemstatus</a></span>
+        <span><a href="https://support.robaws.com/nl/article/product-updates-2026-mch86v/" target="_blank">Updates</a></span>
+    </div>
+
+    </div>
+    <div class="login-image-panel d-none d-xl-block">
+        <div id="robaws-slideshow" data-date="2026-06-07"><img src="https://images.prismic.io/robaws/ZxfEQ4F3NbkBX3Tq_LP_Basic_GB.png?auto=format,compress&amp;rect=0,0,1080,1080&amp;w=1080&amp;h=1080" style="width: 100%;"></div>
+    </div>
+</div>
+<script type="text/javascript" src="/static/login/jquery-3.6.3.min.js"></script>
+<script type="text/javascript" src="/static/login/login.js?v=5"></script>
+
+
+</body></html>

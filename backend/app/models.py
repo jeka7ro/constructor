@@ -902,6 +902,7 @@ class WorkOrder(Base):
     # Titlu și date generale
     title           = Column(String(255), nullable=False)
     notes           = Column(Text, nullable=True)           # Note interne
+    documents       = relationship("WorkOrderDocument", cascade="all, delete-orphan")
     start_date      = Column(Date, nullable=True)           # Data de start planificată
     start_time      = Column(String(5), nullable=True)      # HH:MM ora de start (ex: "07:00")
     deadline_date   = Column(Date, nullable=True)           # Termen limită
@@ -1050,6 +1051,21 @@ class WorkOrderCheckin(Base):
 
 
 # ── WorkOrder Photos ─────────────────────────────────────────────────────────
+
+class WorkOrderDocument(Base):
+    """Documents and plans attached to a work order, downloaded from Robaws or uploaded manually"""
+    __tablename__ = "work_order_documents"
+
+    id              = Column(String(36), primary_key=True, default=generate_uuid)
+    work_order_id   = Column(String(36), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=False)
+    
+    filename        = Column(String(500), nullable=False)
+    file_path       = Column(String(1000), nullable=False)
+    file_size       = Column(Integer, nullable=True)  # in bytes
+    content_type    = Column(String(100), nullable=True) # e.g. application/pdf, image/png
+    
+    uploaded_at     = Column(DateTime, default=datetime.utcnow, nullable=False)
+
 class WorkOrderPhoto(Base):
     """Photos uploaded by workers when closing a work order. Minimum 2 required."""
     __tablename__ = "work_order_photos"
