@@ -142,7 +142,7 @@ async def run_scraper_for_team(team: Team, db: Session):
                         start_date=order.get("start_date"),
                         start_time=order.get("start_time"),
                         assigned_team_id=team.id,
-                        status="draft",
+                        status="isoflex",
                         external_id=order["external_id"],
                         source_system="robaws",
                         created_by=None
