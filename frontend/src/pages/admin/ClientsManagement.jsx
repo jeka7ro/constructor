@@ -16,6 +16,7 @@ export default function ClientsManagement() {
     const [detecting, setDetecting] = useState(false)
     const [formData, setFormData] = useState({
         client_type: 'juridica',
+        country: 'RO',
         name: '',
         first_name: '',
         last_name: '',
@@ -70,6 +71,7 @@ export default function ClientsManagement() {
             }
             setFormData({
                 client_type: client.client_type || 'juridica',
+                country: client.country || 'RO',
                 name: client.client_type === 'juridica' ? (client.name || '') : '',
                 first_name: firstName,
                 last_name: lastName,
@@ -90,6 +92,7 @@ export default function ClientsManagement() {
             setEditingClient(null)
             setFormData({
                 client_type: 'juridica',
+                country: 'RO',
                 name: '',
                 first_name: '',
                 last_name: '',
@@ -422,21 +425,43 @@ export default function ClientsManagement() {
 
                                 {formData.client_type === 'juridica' ? (
                                     <>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Companie *</label>
-                                            <input
-                                                type="text" required
-                                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                                value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                                            />
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div className="sm:col-span-2">
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Companie *</label>
+                                                <input
+                                                    type="text" required
+                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                    value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Țară</label>
+                                                <select
+                                                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
+                                                    value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}
+                                                >
+                                                    <option value="RO">România</option>
+                                                    <option value="FR">Franța</option>
+                                                    <option value="BE">Belgia</option>
+                                                    <option value="NL">Olanda</option>
+                                                    <option value="DE">Germania</option>
+                                                    <option value="IT">Italia</option>
+                                                    <option value="ES">Spania</option>
+                                                    <option value="GB">Marea Britanie</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">CUI</label>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">
+                                                    {formData.country === 'RO' ? 'CUI' : 'VAT Number (TVA)'}
+                                                </label>
                                                 <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.cui} onChange={e => setFormData({...formData, cui: e.target.value})} />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Nr. Reg. Comerțului</label>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">
+                                                    {formData.country === 'RO' ? 'Nr. Reg. Comerțului' : 'Registration Number'}
+                                                </label>
                                                 <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.reg_com} onChange={e => setFormData({...formData, reg_com: e.target.value})} />
                                             </div>
                                         </div>

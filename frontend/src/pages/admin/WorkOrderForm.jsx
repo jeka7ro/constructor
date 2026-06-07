@@ -22,6 +22,7 @@ const EMPTY_FORM = {
     client_phone: '',
     client_language: 'ro',
     client_type: 'fizica',
+    client_country: 'RO',
     client_contact_person: '',
     client_address: '',
     client_company_reg_number: '',
@@ -641,9 +642,25 @@ export default function WorkOrderForm() {
                                             <Field label="Nume Companie *" required>
                                                 <input type="text" value={form.client_name} onChange={e => set('client_name', e.target.value)} className={INPUT} />
                                             </Field>
+                                            <Field label="Țară">
+                                                <select value={form.client_country} onChange={e => set('client_country', e.target.value)} className={INPUT}>
+                                                    <option value="RO">România</option>
+                                                    <option value="FR">Franța</option>
+                                                    <option value="BE">Belgia</option>
+                                                    <option value="NL">Olanda</option>
+                                                    <option value="DE">Germania</option>
+                                                    <option value="IT">Italia</option>
+                                                    <option value="ES">Spania</option>
+                                                    <option value="GB">Marea Britanie</option>
+                                                </select>
+                                            </Field>
                                             <div className="grid grid-cols-2 gap-3">
-                                                <Field label="CUI"><input type="text" value={form.client_company_vat} onChange={e => set('client_company_vat', e.target.value)} className={INPUT} /></Field>
-                                                <Field label="Nr. Reg. Comerțului"><input type="text" value={form.client_company_reg_number} onChange={e => set('client_company_reg_number', e.target.value)} className={INPUT} /></Field>
+                                                <Field label={form.client_country === 'RO' ? 'CUI' : 'VAT Number (TVA)'}>
+                                                    <input type="text" value={form.client_company_vat} onChange={e => set('client_company_vat', e.target.value)} className={INPUT} />
+                                                </Field>
+                                                <Field label={form.client_country === 'RO' ? 'Nr. Reg. Comerțului' : 'Registration Number'}>
+                                                    <input type="text" value={form.client_company_reg_number} onChange={e => set('client_company_reg_number', e.target.value)} className={INPUT} />
+                                                </Field>
                                             </div>
                                             <div>
                                                 <label className="flex items-center gap-2 cursor-pointer mb-3">
