@@ -51,10 +51,11 @@ export default function BuienradarWidget() {
             
             <div className="p-0 flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden min-h-[300px]">
                 <img 
-                    src={`https://image.buienradar.nl/2.0/image/animation/RadarMapRainBE?w=500&h=512&_=${timestamp}`} 
+                    key={timestamp}
+                    src={`https://image.buienradar.nl/2.0/image/animation/RadarMapRainBE`} 
                     alt="Buienradar BE" 
-                    className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
-                    style={{ mixBlendMode: 'multiply', filter: 'contrast(1.1) brightness(1.05)' }}
+                    className="w-full h-full object-contain opacity-90 hover:opacity-100 transition-opacity"
+                    
                 />
                 <div className="absolute bottom-2 left-2 right-2 text-center">
                     <span className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 shadow-sm border border-white/20">
