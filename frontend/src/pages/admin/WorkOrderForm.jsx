@@ -87,7 +87,15 @@ export default function WorkOrderForm() {
     const isEdit = Boolean(id)
     const fileRef = useRef()
 
-    const [form, setForm] = useState(EMPTY_FORM)
+    const [form, setForm] = useState(() => {
+        if (!isEdit) {
+            try {
+                const saved = localStorage.getItem('work_order_draft_new');
+                if (saved) return JSON.parse(saved);
+            } catch (e) {}
+        }
+        return EMPTY_FORM;
+    })
     const [clients, setClients] = useState([])
     const [sites, setSites] = useState([])
     const [teams, setTeams] = useState([])
@@ -145,6 +153,12 @@ export default function WorkOrderForm() {
     }, [form.volumes, form.client_id, clients, form.estimated_amount, form.is_auto_calculated]);
 
     useEffect(() => {
+        if (!isEdit) {
+            localStorage.setItem('work_order_draft_new', JSON.stringify(form));
+        }
+    }, [form, isEdit]);
+
+    useEffect(() => {
         const load = async () => {
             try {
                 const [cRes, sRes, tRes, vRes, aRes, wRes] = await Promise.all([
@@ -175,16 +189,19 @@ export default function WorkOrderForm() {
                     const paramTime = searchParams.get('time');
                     const initialDate = paramDate || prev.start_date || getStr(today);
                     
-                    setForm(prev => ({
-                        ...prev,
-                        start_date: initialDate,
-                        start_time: paramTime || prev.start_time || '07:00',
-                        deadline_date: prev.deadline_date || initialDate,
-                        volumes: acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes
-                    }))
+                    setForm(prev => {
+                        const hasDraftVolumes = prev.volumes && (prev.volumes.length > 1 || prev.volumes[0].label !== '' || prev.volumes[0].quantity !== '');
+                        return {
+                            ...prev,
+                            start_date: initialDate,
+                            start_time: paramTime || prev.start_time || '07:00',
+                            deadline_date: prev.deadline_date || initialDate,
+                            volumes: !hasDraftVolumes && acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes
+                        };
+                    })
 
-                    // Auto-detect actual location
-                    if ("geolocation" in navigator) {
+                    // Auto-detect actual location only if we don't already have one in the draft
+                    if ("geolocation" in navigator && (!form.site_latitude || form.site_mode !== 'new')) {
                         navigator.geolocation.getCurrentPosition(async (pos) => {
                             const lat = pos.coords.latitude.toFixed(6)
                             const lon = pos.coords.longitude.toFixed(6)
@@ -387,8 +404,13 @@ export default function WorkOrderForm() {
                 await api.put(`/admin/work-orders/${woId}`, buildPayload())
             } else {
                 const res = await api.post('/admin/work-orders', buildPayload())
-                woId = res.data.id
-                setSavedId(woId)
+                if (res.data) {
+                    if (!isEdit) {
+                        localStorage.removeItem('work_order_draft_new');
+                    }
+                    setSavedId(res.data.id)
+                    woId = res.data.id
+                }
             }
             if (instructionPhotos.length) await uploadInstructionPhotos(woId)
             if (andSend) await api.post(`/admin/work-orders/${woId}/send`)
