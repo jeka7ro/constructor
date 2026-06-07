@@ -299,6 +299,7 @@ class Client(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     client_type = Column(String(20), default="juridica", nullable=False)
+    country = Column(String(2), default="RO", nullable=False)
     name = Column(String(255), nullable=False)
     cui = Column(String(50), nullable=True)
     reg_com = Column(String(50), nullable=True)

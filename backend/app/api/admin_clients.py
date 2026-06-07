@@ -13,6 +13,7 @@ router = APIRouter()
 # --- Schemas ---
 class ClientBase(BaseModel):
     client_type: str = Field("juridica", max_length=20)
+    country: str = Field("RO", max_length=2)
     name: str = Field(..., min_length=2, max_length=255)
     cui: Optional[str] = Field(None, max_length=50)
     reg_com: Optional[str] = Field(None, max_length=50)
