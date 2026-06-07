@@ -101,6 +101,7 @@ const WorkOrders = lazy(() => import('./pages/admin/WorkOrders'))
 const WorkOrderForm   = lazy(() => import('./pages/admin/WorkOrderForm'))
 const WorkOrderDetail = lazy(() => import('./pages/admin/WorkOrderDetail'))
 const WorkOrderConfirm = lazy(() => import('./pages/public/WorkOrderConfirm'))
+const QuoteCalculator = lazy(() => import('./pages/public/QuoteCalculator'))
 const WorkOrderCalculations = lazy(() => import('./pages/admin/WorkOrderCalculations'))
 
 function App() {
@@ -284,8 +285,9 @@ function App() {
                         <Route path="work-orders/:id/edit" element={<WorkOrderForm />} />
                     </Route>
 
-                    {/* Public Routes - Work Order confirmation */}
+                    {/* Public Order Routes */}
                     <Route path="/confirm/:token" element={<WorkOrderConfirm />} />
+                    <Route path="/calculator" element={<QuoteCalculator />} />
 
                     {/* Public Routes */}
                     <Route path="/login" element={
