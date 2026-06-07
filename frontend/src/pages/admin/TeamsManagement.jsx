@@ -24,6 +24,8 @@ export default function TeamsManagement() {
     const [newLeader, setNewLeader] = useState('')
     const [newSite, setNewSite] = useState('')
     const [newColor, setNewColor] = useState('#94a3b8')
+    const [newRobawsEmail, setNewRobawsEmail] = useState('')
+    const [newRobawsPassword, setNewRobawsPassword] = useState('')
     const [newMembers, setNewMembers] = useState([])
     const [searchQ, setSearchQ] = useState('')
     const [globalSearch, setGlobalSearch] = useState('')
@@ -76,7 +78,15 @@ export default function TeamsManagement() {
         if (!newName.trim() || !newLeader) return
         setSaving(true)
         try {
-            const payload = { name: newName, team_leader_id: newLeader, site_id: newSite || null, color: newColor, member_ids: newMembers }
+            const payload = { 
+                name: newName, 
+                team_leader_id: newLeader, 
+                site_id: newSite || null, 
+                color: newColor, 
+                robaws_email: newRobawsEmail || null,
+                robaws_password: newRobawsPassword || null,
+                member_ids: newMembers 
+            }
             if (editingTeamId) {
                 await api(`/admin/teams/${editingTeamId}`, { method: 'PUT', body: JSON.stringify(payload) })
             } else {
@@ -88,6 +98,8 @@ export default function TeamsManagement() {
             setNewLeader('')
             setNewSite('')
             setNewColor('#94a3b8')
+            setNewRobawsEmail('')
+            setNewRobawsPassword('')
             setNewMembers([])
             fetchTeams()
         } catch (e) {
@@ -109,6 +121,8 @@ export default function TeamsManagement() {
         setNewLeader(team.team_leader_id || '')
         setNewSite(team.site_id || '')
         setNewColor(team.color || '#94a3b8')
+        setNewRobawsEmail(team.robaws_email || '')
+        setNewRobawsPassword(team.robaws_password || '')
         setNewMembers([])
         setShowModal(true)
     }
@@ -244,7 +258,17 @@ export default function TeamsManagement() {
                     </div>
                     
                     <button
-                        onClick={() => { setEditingTeamId(null); setNewName(''); setNewLeader(''); setNewSite(''); setNewColor('#94a3b8'); setNewMembers([]); setShowModal(true) }}
+                        onClick={() => { 
+                            setEditingTeamId(null); 
+                            setNewName(''); 
+                            setNewLeader(''); 
+                            setNewSite(''); 
+                            setNewColor('#94a3b8'); 
+                            setNewRobawsEmail('');
+                            setNewRobawsPassword('');
+                            setNewMembers([]); 
+                            setShowModal(true) 
+                        }}
                         className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                     >
                         <Plus className="w-4 h-4" />
@@ -311,6 +335,29 @@ export default function TeamsManagement() {
                                     />
                                     <span className="text-sm text-slate-500 uppercase font-bold">{newColor}</span>
                                 </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100">
+                                <h3 className="text-sm font-bold text-slate-800 mb-3">Integrare Wappy (Robaws)</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Email Logare</label>
+                                        <input
+                                            type="email" value={newRobawsEmail} onChange={e => setNewRobawsEmail(e.target.value)}
+                                            placeholder="ex: echipa1@wappy.com"
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Parolă</label>
+                                        <input
+                                            type="text" value={newRobawsPassword} onChange={e => setNewRobawsPassword(e.target.value)}
+                                            placeholder="Parola contului"
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-2">Dacă sunt completate, sistemul va putea prelua automat comenzile acestei echipe din aplicația Wappy.</p>
                             </div>
 
                             <div>

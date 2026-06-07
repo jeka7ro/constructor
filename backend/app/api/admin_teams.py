@@ -19,6 +19,8 @@ class AdminTeamCreate(BaseModel):
     team_leader_id: str
     site_id: Optional[str] = None
     color: Optional[str] = None
+    robaws_email: Optional[str] = None
+    robaws_password: Optional[str] = None
     member_ids: List[str] = Field(default_factory=list)
 
 
@@ -27,6 +29,8 @@ class AdminTeamUpdate(BaseModel):
     team_leader_id: Optional[str] = None
     site_id: Optional[str] = None
     color: Optional[str] = None
+    robaws_email: Optional[str] = None
+    robaws_password: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -57,6 +61,8 @@ def team_to_dict(team, db):
         "site_name": site.name if site else None,
         "is_active": team.is_active,
         "color": team.color,
+        "robaws_email": team.robaws_email,
+        "robaws_password": team.robaws_password,
         "member_count": len(members) + (1 if leader else 0),
         "members": members,
         "created_at": team.created_at.isoformat() if team.created_at else None,
@@ -90,6 +96,8 @@ def create_team(
         organization_id=leader.organization_id,
         site_id=data.site_id,
         color=data.color,
+        robaws_email=data.robaws_email,
+        robaws_password=data.robaws_password,
         is_active=True,
     )
     db.add(team)
@@ -124,6 +132,10 @@ def update_team(
         team.site_id = data.site_id
     if data.color is not None:
         team.color = data.color
+    if data.robaws_email is not None:
+        team.robaws_email = data.robaws_email
+    if data.robaws_password is not None:
+        team.robaws_password = data.robaws_password
     if data.is_active is not None:
         team.is_active = data.is_active
 

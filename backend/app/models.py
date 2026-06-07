@@ -402,6 +402,8 @@ class Team(Base):
     team_leader_id = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     site_id = Column(String(36), ForeignKey("sites.id", ondelete="SET NULL"))
     color = Column(String(7), nullable=True, default="#94a3b8") # HEX color
+    robaws_email = Column(String(255), nullable=True)
+    robaws_password = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
