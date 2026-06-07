@@ -21,6 +21,8 @@ from app.api import (
     public_tenant, admin_work_orders, admin_organizations, admin_transport,
     admin_leaves, calendar_sync, public_work_orders, worker_orders
 )
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.services.robaws_scraper import run_all_scrapers
 
 import threading
 import time as _keepalive_time
@@ -172,8 +174,15 @@ async def lifespan(app: FastAPI):
     ka.start()
     print("💓 Keep-alive thread started (pings every 14 min)")
 
+    # Start Robaws Scraper Background Scheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_all_scrapers, 'interval', minutes=30)
+    scheduler.start()
+    print("🤖 Robaws Scraper Scheduler started (runs every 30 min)")
+
     yield
     # Shutdown
+    scheduler.shutdown()
     _scheduler_stop.set()
     print("👋 Shutting down Pontaj Digital API...")
 

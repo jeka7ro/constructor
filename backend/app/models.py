@@ -983,6 +983,10 @@ class WorkOrder(Base):
     # ── Poze obligatorii ─────────────────────────────────────────────────────
     min_photos_required = Column(Integer, default=2, nullable=False)
 
+    # Integrare externe
+    external_id = Column(String(255), nullable=True) # ID-ul comenzii din Wappy/Robaws
+    source_system = Column(String(50), default="manual", nullable=False) # 'manual' sau 'robaws'
+
     # ── GPS Sosire/Plecare (snapshot la check-in/out) ────────────────────────
     checkin_at          = Column(DateTime, nullable=True)     # Prima sosire echipa
     checkin_lat         = Column(Float, nullable=True)
