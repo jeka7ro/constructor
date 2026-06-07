@@ -356,6 +356,7 @@ export default function WorkOrderForm() {
         client_name: form.client_name,
         client_email: form.client_email,
         client_phone: form.client_phone,
+        client_language: form.client_language || 'ro',
         site_id: form.site_mode === 'existing' ? form.site_id || null : null,
         site_address: form.site_mode === 'new' ? form.site_address : null,
         site_latitude: form.site_mode === 'new' ? (form.site_latitude || null) : null,

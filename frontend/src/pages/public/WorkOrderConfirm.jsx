@@ -4,7 +4,7 @@ import { CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loade
 import api from '../../lib/api'
 
 // ─── Signature Pad ────────────────────────────────────────────────────────────
-function SignaturePad({ onChange, disabled }) {
+function SignaturePad({ onChange, disabled, t }) {
     const canvasRef = useRef(null)
     const drawing = useRef(false)
     const hasDrawn = useRef(false)
@@ -98,14 +98,14 @@ function SignaturePad({ onChange, disabled }) {
                 {isEmpty && !disabled && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
                         <Pen className="w-6 h-6 text-slate-300 mb-1.5" />
-                        <p className="text-sm text-slate-400 font-medium">Semnați aici cu mouse-ul sau degetul</p>
+                        <p className="text-sm text-slate-400 font-medium">{t.signHere}</p>
                     </div>
                 )}
             </div>
             {!disabled && (
                 <button type="button" onClick={clear}
                     className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-500 transition-colors font-bold">
-                    <RotateCcw className="w-3.5 h-3.5" /> Șterge semnătura
+                    <RotateCcw className="w-3.5 h-3.5" /> {t.clearSignature}
                 </button>
             )}
         </div>
@@ -139,7 +139,13 @@ const LANG_DICT = {
         estimatedPrice: 'Preț Estimativ',
         finalInvoice: 'Factură Finală (PDF)',
         downloadPdf: 'Descarcă PDF',
-        completionPhotos: 'Poze Finalizare'
+        completionPhotos: 'Poze Finalizare',
+        signHere: 'Semnați aici cu mouse-ul sau degetul',
+        clearSignature: 'Șterge semnătura',
+        loadingOrder: 'Se încarcă comanda...',
+        orderNotFound: 'Comandă negăsită',
+        errorLoading: 'Nu am putut accesa comanda. Verificați conexiunea la internet.',
+        errorConfirming: 'Eroare la confirmare. Încearcă din nou.'
     },
     en: {
         workOrder: 'Work Order',
@@ -167,7 +173,13 @@ const LANG_DICT = {
         estimatedPrice: 'Estimated Price',
         finalInvoice: 'Final Invoice (PDF)',
         downloadPdf: 'Download PDF',
-        completionPhotos: 'Completion Photos'
+        completionPhotos: 'Completion Photos',
+        signHere: 'Sign here with mouse or finger',
+        clearSignature: 'Clear signature',
+        loadingOrder: 'Loading order...',
+        orderNotFound: 'Order not found',
+        errorLoading: 'Could not access the order. Check your internet connection.',
+        errorConfirming: 'Confirmation error. Try again.'
     },
     fr: {
         workOrder: 'Bon de travail',
@@ -195,7 +207,13 @@ const LANG_DICT = {
         estimatedPrice: 'Prix estimé',
         finalInvoice: 'Facture finale (PDF)',
         downloadPdf: 'Télécharger le PDF',
-        completionPhotos: 'Photos de réalisation'
+        completionPhotos: 'Photos de réalisation',
+        signHere: 'Signez ici avec la souris ou le doigt',
+        clearSignature: 'Effacer la signature',
+        loadingOrder: 'Chargement de la commande...',
+        orderNotFound: 'Commande introuvable',
+        errorLoading: 'Impossible d\'accéder à la commande. Vérifiez votre connexion Internet.',
+        errorConfirming: 'Erreur de confirmation. Réessayez.'
     },
     de: {
         workOrder: 'Arbeitsauftrag',
@@ -223,7 +241,13 @@ const LANG_DICT = {
         estimatedPrice: 'Geschätzter Preis',
         finalInvoice: 'Schlussrechnung (PDF)',
         downloadPdf: 'PDF herunterladen',
-        completionPhotos: 'Fertigstellungsfotos'
+        completionPhotos: 'Fertigstellungsfotos',
+        signHere: 'Hier mit Maus oder Finger unterschreiben',
+        clearSignature: 'Unterschrift löschen',
+        loadingOrder: 'Auftrag wird geladen...',
+        orderNotFound: 'Auftrag nicht gefunden',
+        errorLoading: 'Zugriff auf Auftrag fehlgeschlagen. Überprüfen Sie Ihre Internetverbindung.',
+        errorConfirming: 'Bestätigungsfehler. Versuchen Sie es erneut.'
     },
     nl: {
         workOrder: 'Werkbon',
@@ -251,7 +275,13 @@ const LANG_DICT = {
         estimatedPrice: 'Geschatte prijs',
         finalInvoice: 'Eindfactuur (PDF)',
         downloadPdf: 'PDF downloaden',
-        completionPhotos: "Voltooiingsfoto's"
+        completionPhotos: "Voltooiingsfoto's",
+        signHere: 'Teken hier met muis of vinger',
+        clearSignature: 'Handtekening wissen',
+        loadingOrder: 'Bestelling laden...',
+        orderNotFound: 'Bestelling niet gevonden',
+        errorLoading: 'Kan de bestelling niet openen. Controleer uw internetverbinding.',
+        errorConfirming: 'Bevestigingsfout. Probeer het opnieuw.'
     },
     ru: {
         workOrder: 'Заказ-наряд',
@@ -279,7 +309,13 @@ const LANG_DICT = {
         estimatedPrice: 'Ориентировочная цена',
         finalInvoice: 'Финальный счет (PDF)',
         downloadPdf: 'Скачать PDF',
-        completionPhotos: 'Фото завершения'
+        completionPhotos: 'Фото завершения',
+        signHere: 'Подпишитесь здесь мышью или пальцем',
+        clearSignature: 'Очистить подпись',
+        loadingOrder: 'Загрузка заказа...',
+        orderNotFound: 'Заказ не найден',
+        errorLoading: 'Не удалось получить доступ к заказу. Проверьте подключение к интернету.',
+        errorConfirming: 'Ошибка подтверждения. Попробуйте снова.'
     }
 }
 
@@ -308,7 +344,7 @@ export default function WorkOrderConfirm() {
                 if (data.client_name) setConfirmedByName(data.client_name)
                 if (data.status === 'confirmed') setConfirmed(true)
             } catch (err) {
-                setError(err.response?.data?.detail || 'Nu am putut accesa comanda. Verificați conexiunea la internet.')
+                setError(err.response?.data?.detail || t.errorLoading)
             } finally {
                 setLoading(false)
             }
@@ -327,7 +363,7 @@ export default function WorkOrderConfirm() {
             setOrder(res.data)
             setConfirmed(true)
         } catch (err) {
-            setError(err.response?.data?.detail || 'Eroare la confirmare. Încearcă din nou.')
+            setError(err.response?.data?.detail || t.errorConfirming)
         } finally {
             setConfirming(false)
         }
@@ -344,7 +380,7 @@ export default function WorkOrderConfirm() {
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
             <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                <p className="text-slate-600 font-medium">Se încarcă comanda...</p>
+                <p className="text-slate-600 font-medium">{t.loadingOrder}</p>
             </div>
         </div>
     )
@@ -355,7 +391,7 @@ export default function WorkOrderConfirm() {
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <AlertCircle className="w-8 h-8 text-red-500" />
                 </div>
-                <h1 className="text-xl font-black text-slate-900 mb-2">Comandă negăsită</h1>
+                <h1 className="text-xl font-black text-slate-900 mb-2">{t.orderNotFound}</h1>
                 <p className="text-slate-600">{error}</p>
             </div>
         </div>
@@ -382,7 +418,7 @@ export default function WorkOrderConfirm() {
                     </div>
                     <div className="flex items-center gap-2">
                         <ClipboardList className="w-5 h-5 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-600">Work Order</span>
+                        <span className="text-sm font-bold text-slate-600">{t.workOrder}</span>
                     </div>
                 </div>
             </div>
@@ -570,7 +606,7 @@ export default function WorkOrderConfirm() {
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
                                 <Pen className="w-3.5 h-3.5" /> {t.digitalSignature}
                             </label>
-                            <SignaturePad onChange={setSignature} />
+                            <SignaturePad onChange={setSignature} t={t} />
                             {!signature && (
                                 <p className="text-xs text-amber-600 font-medium mt-1.5 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3" /> {t.signatureRequired}
