@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -199,6 +199,7 @@ export default function AdminDashboard() {
                 { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
                 { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: 'Comenzi de Lucru' },
+                { path: '/calculator', icon: Calculator, label: 'Calculator Clienți (Public)' },
                 { path: '/admin/screed-analytics', icon: Activity, label: 'Tabel Calcul (Sape)' },
                 { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
                 { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
