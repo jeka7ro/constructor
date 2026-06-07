@@ -436,10 +436,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             <WeatherWidget lat={wo.site_latitude} lon={wo.site_longitude} dateStr={wo.start_date || wo.deadline_date} />
                                         </div>
 
-                                        <div className="text-[10px] text-slate-500 font-semibold mb-0.5 flex items-center gap-1">
-                                            <Clock className="w-2.5 h-2.5" />
-                                            {wo.start_time || '07:00'}
-                                        </div>
+
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8" title={wo.title}>
                                             {wo.title}
                                         </div>
@@ -522,17 +519,13 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                                 <WeatherWidget lat={wo.site_latitude} lon={wo.site_longitude} dateStr={wo.start_date || wo.deadline_date} />
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md shrink-0">
-                                                <Clock className="w-3 h-3" />
-                                                {wo.start_time || '07:00'}
-                                            </div>
-                                            {calculateOrderSand(wo) > 0 && (
+                                        {calculateOrderSand(wo) > 0 && (
+                                            <div className="flex items-center gap-2">
                                                 <span className="text-xs text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md shrink-0">
                                                     {calculateOrderSand(wo).toFixed(1)}T Nisip
                                                 </span>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                         <div className="flex items-center justify-between text-xs text-slate-500">
                                             <div className="flex items-center gap-1.5 truncate">
                                                 <MapPin className="w-3.5 h-3.5 shrink-0" />
