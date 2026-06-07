@@ -16,6 +16,7 @@ import {
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
+import BuienradarWidget from '../../components/BuienradarWidget'
 import { useTenantStore } from '../../store/tenantStore'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -392,10 +393,15 @@ export default function AdminOverview() {
                 )}
             </div>
 
-            {/* Calendar Timesheet - Visible only for short term interventions */}
+            {/* Calendar Timesheet and Radar - Visible only for short term interventions */}
             {isShortTerm && (
-                <div className="mb-6">
-                    <ShortWorksCalendar workOrders={allWorkOrders} onOrderRescheduled={fetchWorkOrdersStats} />
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+                    <div className="xl:col-span-3">
+                        <ShortWorksCalendar workOrders={allWorkOrders} onOrderRescheduled={fetchWorkOrdersStats} />
+                    </div>
+                    <div className="xl:col-span-1 min-h-[300px]">
+                        <BuienradarWidget />
+                    </div>
                 </div>
             )}
 
