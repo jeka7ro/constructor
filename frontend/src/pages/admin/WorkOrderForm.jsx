@@ -130,7 +130,11 @@ export default function WorkOrderForm() {
                 const foilPrice = vol.has_foil ? 1.2 * surface : 0;
                 const meshPrice = vol.has_mesh ? 2.5 * surface : 0;
                 
-                totalNet += basePrice + extraPrice + foilPrice + meshPrice;
+                // Fibers + Duramit (Mandatory)
+                const fiberRate = surface <= 200 ? 2.5 : 2.0;
+                const fiberPrice = surface * fiberRate;
+                
+                totalNet += basePrice + extraPrice + foilPrice + meshPrice + fiberPrice;
             }
         });
 
