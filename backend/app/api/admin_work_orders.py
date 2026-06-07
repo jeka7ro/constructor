@@ -87,6 +87,7 @@ class WorkOrderCreate(BaseModel):
     client_phone: Optional[str] = None
     client_language: Optional[str] = "ro"
     client_type: Optional[str] = "fizica"
+    client_country: Optional[str] = "RO"
     client_contact_person: Optional[str] = None
     client_address: Optional[str] = None
     client_company_reg_number: Optional[str] = None
@@ -233,6 +234,7 @@ def create_work_order(
                 email=client_email,
                 phone=client_phone,
                 client_type=getattr(payload, 'client_type', 'fizica'),
+                country=getattr(payload, 'client_country', 'RO'),
                 contact_person=getattr(payload, 'client_contact_person', None),
                 address=getattr(payload, 'client_address', None),
                 preferred_language=getattr(payload, 'client_language', 'ro'),
@@ -360,6 +362,7 @@ def update_work_order(
                 name=wo.client_name,
                 email=wo.client_email,
                 phone=wo.client_phone,
+                country=getattr(payload, 'client_country', 'RO'),
             )
             db.add(cl)
             db.commit()
