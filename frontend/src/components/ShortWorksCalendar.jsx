@@ -1,10 +1,106 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2 } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
 import api from '../lib/api';
+
+const weatherCache = {};
+
+function WeatherWidget({ lat, lon, dateStr }) {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!lat || !lon || !dateStr) return;
+        
+        const cacheKey = `${parseFloat(lat).toFixed(2)}_${parseFloat(lon).toFixed(2)}`;
+        const targetDate = dateStr.split('T')[0];
+
+        const processData = (daily) => {
+            const index = daily.time.findIndex(t => t === targetDate);
+            if (index !== -1) {
+                setData({
+                    code: daily.weather_code[index],
+                    maxTemp: Math.round(daily.temperature_2m_max[index]),
+                    minTemp: Math.round(daily.temperature_2m_min[index])
+                });
+            } else {
+                setData({ error: true });
+            }
+        };
+
+        if (weatherCache[cacheKey]) {
+            if (weatherCache[cacheKey] instanceof Promise) {
+                setLoading(true);
+                weatherCache[cacheKey].then(daily => {
+                    if (daily) processData(daily);
+                    setLoading(false);
+                });
+            } else {
+                processData(weatherCache[cacheKey]);
+            }
+            return;
+        }
+
+        setLoading(true);
+        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`)
+            .then(res => res.json())
+            .then(resData => {
+                const daily = resData?.daily;
+                weatherCache[cacheKey] = daily;
+                return daily;
+            })
+            .catch(() => {
+                weatherCache[cacheKey] = null;
+                return null;
+            });
+            
+        weatherCache[cacheKey] = promise;
+        
+        promise.then(daily => {
+            if (daily) processData(daily);
+            setLoading(false);
+        });
+    }, [lat, lon, dateStr]);
+
+    if (!lat || !lon || !dateStr) return null;
+    if (loading && !data) return <Loader2 className="w-3 h-3 animate-spin opacity-50 text-slate-500" />;
+    if (!data || data.error) return null;
+
+    const getIcon = (code) => {
+        if (code === 0) return <Sun className="w-3 h-3 text-orange-500" />;
+        if ([1, 2].includes(code)) return <CloudSun className="w-3 h-3 text-blue-500" />;
+        if (code === 3) return <Cloud className="w-3 h-3 text-slate-500" />;
+        if ([45, 48].includes(code)) return <CloudFog className="w-3 h-3 text-slate-400" />;
+        if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className="w-3 h-3 text-blue-400" />;
+        if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className="w-3 h-3 text-blue-600" />;
+        if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className="w-3 h-3 text-sky-300" />;
+        if ([95, 96, 99].includes(code)) return <CloudLightning className="w-3 h-3 text-purple-600" />;
+        return <Cloud className="w-3 h-3 text-slate-500" />;
+    };
+
+    return (
+        <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
+            {getIcon(data.code)}
+            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
+        </div>
+    );
+}
+
+const calculateOrderSand = (wo) => {
+    if (!wo.volumes || !Array.isArray(wo.volumes)) return 0;
+    let totalKg = 0;
+    wo.volumes.forEach(vol => {
+        const surface = parseFloat(vol.quantity) || 0;
+        const thickness = parseFloat(vol.thickness) || 0;
+        if (surface > 0 && thickness > 0) {
+            totalKg += surface * thickness * 16;
+        }
+    });
+    return totalKg / 1000;
+};
 
 export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled, onOrderClick }) {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -159,14 +255,34 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                     <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-10">
                         {weekDays.map((day, i) => {
                             const isToday = isSameDay(day, new Date());
+                            let dailySand = 0;
+                            weeklyOrders.forEach(wo => {
+                                const dateStr = wo.start_date || wo.deadline_date;
+                                if (!dateStr) return;
+                                try {
+                                    const datePart = dateStr.split('T')[0];
+                                    const [year, month, d] = datePart.split('-').map(Number);
+                                    const woDate = new Date(year, month - 1, d, 12, 0, 0);
+                                    if (isSameDay(day, woDate)) {
+                                        dailySand += calculateOrderSand(wo);
+                                    }
+                                } catch (e) {}
+                            });
+                            const sandDisplay = dailySand > 0 ? `${dailySand.toFixed(1)}T` : '';
+
                             return (
-                                <div key={i} className={`h-12 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
+                                <div key={i} className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
                                     <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>
                                         {format(day, 'EEE', { locale: ro })}
                                     </span>
-                                    <span className={`text-sm font-black ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                                    <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>
                                         {format(day, 'd')}
                                     </span>
+                                    {dailySand > 0 && (
+                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mt-0.5" title="Total nisip estimat pentru această zi">
+                                            {sandDisplay}
+                                        </span>
+                                    )}
                                 </div>
                             );
                         })}
@@ -316,16 +432,20 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         }}
                                         title={`${wo.title} — trageți pentru a muta`}
                                     >
+                                        <div className="absolute top-1 right-1 z-10">
+                                            <WeatherWidget lat={wo.site_latitude} lon={wo.site_longitude} dateStr={wo.start_date || wo.deadline_date} />
+                                        </div>
+
                                         <div className="text-[10px] text-slate-500 font-semibold mb-0.5 flex items-center gap-1">
                                             <Clock className="w-2.5 h-2.5" />
                                             {wo.start_time || '07:00'}
                                         </div>
-                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate" title={wo.title}>
+                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8" title={wo.title}>
                                             {wo.title}
                                         </div>
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center justify-between gap-1">
-                                            <div className="flex items-center gap-1 truncate">
-                                                <MapPin className="w-2.5 h-2.5" />
+                                            <div className="flex items-center gap-1 truncate pr-8">
+                                                <MapPin className="w-2.5 h-2.5 shrink-0" />
                                                 <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || 'Fără locație'}</span>
                                             </div>
                                             {wo.status === 'completed' && (
@@ -334,8 +454,13 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-[10px] font-semibold mt-1 truncate" style={{ color: colorHex }}>
-                                            {wo.assigned_team_name || 'Neasignat'}
+                                        <div className="text-[10px] font-semibold mt-1 truncate flex items-center justify-between" style={{ color: colorHex }}>
+                                            <span>{wo.assigned_team_name || 'Neasignat'}</span>
+                                            {calculateOrderSand(wo) > 0 && (
+                                                <span className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
+                                                    {calculateOrderSand(wo).toFixed(1)}T
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -382,7 +507,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         </div>
                                     )}
                                     <div 
-                                        className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform"
+                                        className="relative bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform"
                                         style={{ borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` }}
                                         onClick={() => {
                                             if (onOrderClick) onOrderClick(wo);
@@ -390,13 +515,23 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         }}
                                     >
                                         <div className="flex items-start justify-between gap-2">
-                                            <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight">
+                                            <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10">
                                                 {wo.title}
                                             </div>
+                                            <div className="absolute top-2 right-2">
+                                                <WeatherWidget lat={wo.site_latitude} lon={wo.site_longitude} dateStr={wo.start_date || wo.deadline_date} />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
                                             <div className="flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-md shrink-0">
                                                 <Clock className="w-3 h-3" />
                                                 {wo.start_time || '07:00'}
                                             </div>
+                                            {calculateOrderSand(wo) > 0 && (
+                                                <span className="text-xs text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md shrink-0">
+                                                    {calculateOrderSand(wo).toFixed(1)}T Nisip
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex items-center justify-between text-xs text-slate-500">
                                             <div className="flex items-center gap-1.5 truncate">
