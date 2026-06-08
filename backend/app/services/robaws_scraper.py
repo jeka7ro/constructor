@@ -21,6 +21,8 @@ def geocode_address_for_scraper(address: str):
         query += ", Belgium"
         
     import re
+    import time
+    time.sleep(1.1) # Respect Nominatim 1 req/sec limit to prevent IP ban
     headers = {"User-Agent": "IsoflexAppAPI/1.0"}
     
     try:
