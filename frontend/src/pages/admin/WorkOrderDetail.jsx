@@ -521,6 +521,35 @@ export default function WorkOrderDetail() {
                         )}
                     </Section>
 
+                    {/* Traseu Logistic & Kilometri (Multi-Hop) */}
+                    {(wo.route_segments && wo.route_segments.length > 0) && (
+                        <Section icon={Navigation} title="Traseu Logistic (Hop-uri)">
+                            <div className="relative pl-6 space-y-4 before:absolute before:inset-y-2 before:left-[11px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                {wo.route_segments.map((seg, idx) => (
+                                    <div key={idx} className="relative">
+                                        <div className="absolute -left-[29px] top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white dark:ring-slate-800 shadow-sm"></div>
+                                        <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 border border-slate-100 dark:border-slate-700/50 flex flex-col gap-1">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                                    <span className="truncate max-w-[120px] sm:max-w-[180px]">{seg.from}</span>
+                                                    <span className="text-slate-400">→</span>
+                                                    <span className="truncate max-w-[120px] sm:max-w-[180px]">{seg.to}</span>
+                                                </div>
+                                                <div className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-md shrink-0">
+                                                    {seg.km} km
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Parcurs în această zi:</span>
+                                <span className="text-lg font-black text-slate-900 dark:text-white">{wo.route_distance_km?.toFixed(2) || 0} km</span>
+                            </div>
+                        </Section>
+                    )}
+
                     {/* Fișiere Atașate (Robaws) */}
                     {(wo.documents && wo.documents.length > 0) && (
                         <Section icon={Paperclip} title="Fișiere Atașate (Robaws)">

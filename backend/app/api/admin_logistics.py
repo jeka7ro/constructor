@@ -7,7 +7,7 @@ from datetime import date
 import math
 
 from app.database import get_db
-from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite
+from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite, LogisticsDailyPlan
 from app.api.admin_auth import get_current_admin
 
 router = APIRouter(prefix="/admin/logistics", tags=["admin-logistics"])
@@ -166,8 +166,7 @@ def delete_sand_station(station_id: str, db: Session = Depends(get_db), admin=De
 
 
 # ── DAILY ROUTES ────────────────────────────────────────────────────────────
-@router.get("/daily-routes")
-def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+def _calculate_daily_routes(target_date: date, db: Session, admin):
     # 1. Fetch all works for the day
     wos = db.query(WorkOrder).filter(
         WorkOrder.organization_id == admin.organization_id,
@@ -225,10 +224,11 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
                 "lng": base.longitude
             })
             
-        last_lat, last_lng = (base.latitude, base.longitude) if base else (None, None)
+            last_lat, last_lng = (base.latitude, base.longitude) if base else (None, None)
+            last_name = base.name if base else "Unknown"
 
-        for w in works:
-            sand_kg = calc_sand_kg(w)
+            for w in works:
+                sand_kg = calc_sand_kg(w)
             team_sand_kg += sand_kg
             
             # Resolve Work Site Lat/Lng
@@ -244,15 +244,22 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
                     w_lng = s.longitude
                     w_name = f"{w.title} ({s.name})"
 
-            if w_lat and w_lng:
-                dist_from_prev = 0
-                # Add distance
-                if last_lat and last_lng:
-                    dist_from_prev = haversine(last_lat, last_lng, w_lat, w_lng)
-                    team_distance_km += dist_from_prev
-                
-                w.route_distance_km = dist_from_prev
-                w.route_sand_kg = sand_kg
+                if w_lat and w_lng:
+                    dist_from_prev = 0
+                    segment = None
+                    # Add distance
+                    if last_lat and last_lng:
+                        dist_from_prev = haversine(last_lat, last_lng, w_lat, w_lng)
+                        team_distance_km += dist_from_prev
+                        segment = {
+                            "from": "Baza" if last_name == base.name else last_name,
+                            "to": w_name,
+                            "km": round(dist_from_prev, 2)
+                        }
+                    
+                    w.route_distance_km = dist_from_prev
+                    w.route_sand_kg = sand_kg
+                    w.route_segments = [segment] if segment else []
                 
                 waypoints.append({
                     "type": "work",
@@ -265,6 +272,7 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
                 })
                 
                 last_lat, last_lng = w_lat, w_lng
+                last_name = w_name
 
         # Waypoint N: Return to Base
         if base and base.latitude and base.longitude and len(waypoints) > 1:
@@ -278,6 +286,17 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
             if last_lat and last_lng:
                 dist = haversine(last_lat, last_lng, base.latitude, base.longitude)
                 team_distance_km += dist
+                
+                # Assign the return journey to the LAST work order
+                if works:
+                    last_wo = works[-1]
+                    segments = list(last_wo.route_segments) if last_wo.route_segments else []
+                    segments.append({
+                        "from": last_name,
+                        "to": "Baza",
+                        "km": round(dist, 2)
+                    })
+                    last_wo.route_segments = segments
                 
         # Save calculations into DB
         db.commit()
@@ -303,3 +322,50 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
         "active_teams_count": len(routes),
         "routes": routes
     }
+
+@router.get("/daily-routes")
+def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    # 0. Check if an archived plan exists for this date
+    archived_plan = db.query(LogisticsDailyPlan).filter(
+        LogisticsDailyPlan.organization_id == admin.organization_id,
+        LogisticsDailyPlan.date == target_date
+    ).first()
+
+    if archived_plan:
+        # Include a flag to let the frontend know this is archived
+        data = archived_plan.snapshot_data
+        data["is_archived"] = True
+        return data
+
+    data = _calculate_daily_routes(target_date, db, admin)
+    data["is_archived"] = False
+    return data
+
+class ArchiveDayRequest(BaseModel):
+    target_date: date
+
+@router.post("/archive-day")
+def archive_daily_routes(req: ArchiveDayRequest, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    # Always force a fresh calculation to save
+    snapshot = _calculate_daily_routes(req.target_date, db, admin)
+    
+    existing = db.query(LogisticsDailyPlan).filter(
+        LogisticsDailyPlan.organization_id == admin.organization_id,
+        LogisticsDailyPlan.date == req.target_date
+    ).first()
+
+    if existing:
+        existing.snapshot_data = snapshot
+        existing.saved_by_id = admin.id
+    else:
+        plan = LogisticsDailyPlan(
+            organization_id=admin.organization_id,
+            date=req.target_date,
+            snapshot_data=snapshot,
+            saved_by_id=admin.id
+        )
+        db.add(plan)
+    
+    db.commit()
+    return {"status": "ok", "message": "Ziua a fost arhivată în istoric."}
+

@@ -823,6 +823,29 @@ class AlertAcknowledgement(Base):
 
 
 # =============================================================================
+# MODULE LOGISTICS — ISTORIC PLANIFICARI
+# =============================================================================
+
+class LogisticsDailyPlan(Base):
+    """
+    Istoric zilnic (snapshot) al planificării logistice.
+    Salvează definitiv rutele, echipele și locațiile alocate într-o zi anume.
+    """
+    __tablename__ = "logistics_daily_plans"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    
+    date = Column(Date, nullable=False)
+    snapshot_data = Column(JSON, nullable=False) # Copie completă JSON a rutelor din ziua respectivă
+    
+    saved_by_id = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization")
+    saved_by = relationship("Admin")
+
+# =============================================================================
 # MODULE TRANSPORT — FOI DE PARCURS
 # =============================================================================
 
@@ -997,6 +1020,7 @@ class WorkOrder(Base):
     # ── Logistica (calculate automat) ─────────────────────────────────────────
     route_distance_km   = Column(Float, default=0.0, nullable=True)
     route_sand_kg       = Column(Float, default=0.0, nullable=True)
+    route_segments      = Column(JSON, default=list, nullable=True) # Ex: [{"from": "Baza", "to": "Santier 1", "km": 15}]
 
     # ── Cantitati / Specificatii lucrare ────────────────────────────────────
     # volumes: [{label, quantity, unit, price}] — specificatii estimate

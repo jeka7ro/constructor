@@ -1,15 +1,11 @@
-import os
-from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
+import sys
+from sqlalchemy import text
+from app.database import engine
 
-load_dotenv()
-db_url = os.getenv("DATABASE_URL")
-if db_url:
-    engine = create_engine(db_url)
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE organizations ALTER COLUMN logo_url TYPE TEXT;"))
-        conn.execute(text("ALTER TABLE organizations ALTER COLUMN favicon_url TYPE TEXT;"))
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE saas_app.work_orders ADD COLUMN route_segments JSON DEFAULT '[]'::json;"))
         conn.commit()
-    print("Columns altered successfully to TEXT.")
-else:
-    print("No DATABASE_URL found.")
+        print("Added route_segments column!")
+    except Exception as e:
+        print(f"Error: {e}")
