@@ -142,6 +142,9 @@ export default function LogisticsDashboard() {
             console.error("Error fetching daily routes:", error)
         } finally {
             setLoading(false)
+        }
+    }
+
     useEffect(() => {
         fetchRoutes()
     }, [targetDate])
@@ -202,6 +205,7 @@ export default function LogisticsDashboard() {
                         >
                             <ChevronRight className="w-5 h-5" />
                         </button>
+                    </div>
                     {/* Archive Badge (Auto-Archived) */}
                     {data?.is_archived && (
                         <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">

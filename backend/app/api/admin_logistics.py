@@ -229,20 +229,20 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
 
             for w in works:
                 sand_kg = calc_sand_kg(w)
-            team_sand_kg += sand_kg
-            
-            # Resolve Work Site Lat/Lng
-            w_lat = w.site_latitude
-            w_lng = w.site_longitude
-            w_name = w.title or "Comandă fără titlu"
-            
-            # Try from ConstructionSite if available
-            if w.site_id:
-                s = db.query(ConstructionSite).filter(ConstructionSite.id == w.site_id).first()
-                if s and s.latitude and s.longitude:
-                    w_lat = s.latitude
-                    w_lng = s.longitude
-                    w_name = f"{w.title} ({s.name})"
+                team_sand_kg += sand_kg
+                
+                # Resolve Work Site Lat/Lng
+                w_lat = w.site_latitude
+                w_lng = w.site_longitude
+                w_name = w.title or "Comandă fără titlu"
+                
+                # Try from ConstructionSite if available
+                if w.site_id:
+                    s = db.query(ConstructionSite).filter(ConstructionSite.id == w.site_id).first()
+                    if s and s.latitude and s.longitude:
+                        w_lat = s.latitude
+                        w_lng = s.longitude
+                        w_name = f"{w.title} ({s.name})"
 
                 if w_lat and w_lng:
                     dist_from_prev = 0
@@ -268,7 +268,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                     "lat": w_lat,
                     "lng": w_lng,
                     "sand_kg": sand_kg,
-                    "distance_from_prev_km": dist_from_prev
+                    "distance_from_prev_km": dist_from_prev if (w_lat and w_lng) else 0
                 })
                 
                 last_lat, last_lng = w_lat, w_lng
