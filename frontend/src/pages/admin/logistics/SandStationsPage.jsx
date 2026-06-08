@@ -25,7 +25,14 @@ export default function SandStationsPage() {
     const [formData, setFormData] = useState({ name: '', address: '', latitude: '', longitude: '' })
     const [saving, setSaving] = useState(false)
     const [detecting, setDetecting] = useState(false)
-    const [viewMode, setViewMode] = useState('table')
+    const [viewMode, setViewMode] = useState(() => {
+        const saved = localStorage.getItem('sandStations_viewMode')
+        return saved || 'table'
+    })
+
+    useEffect(() => {
+        localStorage.setItem('sandStations_viewMode', viewMode)
+    }, [viewMode])
 
     const handleDetectGPS = () => {
         setDetecting(true)

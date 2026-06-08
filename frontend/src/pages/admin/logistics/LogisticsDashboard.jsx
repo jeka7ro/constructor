@@ -123,7 +123,14 @@ export default function LogisticsDashboard() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTeams, setActiveTeams] = useState([])
-    const [showSandStations, setShowSandStations] = useState(true)
+    const [showSandStations, setShowSandStations] = useState(() => {
+        const saved = localStorage.getItem('logistics_showSandStations')
+        return saved !== null ? JSON.parse(saved) : true
+    })
+
+    useEffect(() => {
+        localStorage.setItem('logistics_showSandStations', JSON.stringify(showSandStations))
+    }, [showSandStations])
 
     const fetchRoutes = async () => {
         try {
