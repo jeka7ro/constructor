@@ -248,10 +248,10 @@ def list_work_orders(
     )
     if status:
         q = q.filter(WorkOrder.status == status)
-    
-    # We no longer filter by start_date/end_date here to ensure no orders are dropped,
-    # the frontend will filter them locally just like before.
-    # The start_date and end_date parameters are only used for the smart auto-archive trigger above.
+    if start_date:
+        q = q.filter(func.coalesce(WorkOrder.start_date, WorkOrder.deadline_date) >= start_date)
+    if end_date:
+        q = q.filter(func.coalesce(WorkOrder.start_date, WorkOrder.deadline_date) <= end_date)
 
     wos = q.order_by(WorkOrder.start_date.desc().nulls_last(), WorkOrder.created_at.desc()).all()
     return [_serialize(wo) for wo in wos]
