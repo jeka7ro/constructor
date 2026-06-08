@@ -407,22 +407,10 @@ export default function AdminOverview() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                        {t('dashboard.title')}
+                        Planning
                     </h1>
-                    <p className="text-sm text-slate-500">
-                        {new Date().toLocaleDateString('ro-RO', { ...tzOption, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                        <span className="ml-2 text-slate-400">•</span>
-                        <span className="ml-2 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
-                            {new Date(nowRef.current).toLocaleTimeString('ro-RO', { ...tzOption })} <span className="text-slate-500 font-medium ml-1">({getTzName()})</span>
-                        </span>
-                    </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {lastRefresh && (
-                        <span className="text-xs text-slate-400">
-                            {t('admin.updated_at')}: {lastRefresh.toLocaleTimeString('ro-RO', { ...tzOption, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
-                    )}
                 </div>
             </div>
 

@@ -26,6 +26,11 @@ export default function AdminDashboard() {
     const navigate = useNavigate()
     const location = useLocation()
     const { t } = useTranslation()
+    const [now, setNow] = useState(new Date())
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000)
+        return () => clearInterval(timer)
+    }, [])
     const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
     const [showNotifications, setShowNotifications] = useState(false)
     const [notifications, setNotifications] = useState([])
@@ -492,8 +497,13 @@ export default function AdminDashboard() {
                                   {tenant?.name || 'Smart Timesheet'}
                               </span>
                          </div>
-                         {/* Desktop Title */}
-                         <span className={`font-bold text-lg hidden md:block tracking-tight text-slate-900 font-extrabold dark:text-white/90`}>{t('admin.admin_system')}</span>
+                         {/* Desktop Title & Date */}
+                         <div className="hidden md:flex flex-col mt-0.5">
+                             <span className={`font-bold text-lg leading-tight tracking-tight text-slate-900 font-extrabold dark:text-white/90`}>{t('admin.admin_system')}</span>
+                             <span className="text-[10px] text-slate-500 font-medium leading-none tracking-wide mt-0.5">
+                                 {now.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString('ro-RO')}
+                             </span>
+                         </div>
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-5">
