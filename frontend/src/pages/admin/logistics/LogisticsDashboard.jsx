@@ -159,13 +159,13 @@ export default function LogisticsDashboard() {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-slate-200 p-1">
-                            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-100 text-slate-700 shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-1">
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-600">
                                 <MapPin className="w-4 h-4" /> Baze
                             </button>
                             <button 
                                 onClick={() => setShowSandStations(!showSandStations)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${showSandStations ? 'bg-red-50 text-red-600 border border-red-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${showSandStations ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 shadow-sm' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-500 dark:text-slate-400 border border-transparent'}`}
                             >
                                 <Beaker className="w-4 h-4" /> Stații Nisip
                             </button>
@@ -281,22 +281,22 @@ export default function LogisticsDashboard() {
                         
                         {/* Map Overlay Stats */}
                         <div className="absolute top-4 right-4 z-[400] pointer-events-none">
-                            <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 pointer-events-auto">
-                                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Legenda Hartă</div>
+                            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto">
+                                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Legenda Hartă</div>
                                 <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                                        <div className="w-3 h-3 rounded-full bg-slate-800 border-2 border-white shadow-sm"></div> Bază / Start
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        <div className="w-3 h-3 rounded-full bg-slate-800 dark:bg-slate-600 border-2 border-white dark:border-slate-700 shadow-sm"></div> Bază / Start
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm"></div> Șantier / Lucrare
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> Șantier / Lucrare
                                     </div>
                                     {showSandStations && (
-                                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> Stații Nisip
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> Stații Nisip
                                         </div>
                                     )}
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                                        <div className="w-5 h-1 border-b-2 border-dashed border-slate-400"></div> Traseu auto
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> Traseu auto
                                     </div>
                                 </div>
                             </div>
@@ -306,18 +306,18 @@ export default function LogisticsDashboard() {
                     {/* Bottom Area: Stats & Teams */}
                     <div className="w-full flex flex-col gap-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1">Total Nisip</span>
-                                <div className="text-2xl font-black text-amber-600">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500">tone</span></div>
+                            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
+                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Total Nisip</span>
+                                <div className="text-2xl font-black text-amber-600 dark:text-amber-500">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">tone</span></div>
                             </div>
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1">Distanță Est.</span>
-                                <div className="text-2xl font-black text-blue-600">{Math.round(data.grand_total_distance_km)} <span className="text-sm font-bold text-slate-500">km</span></div>
+                            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
+                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Distanță Est.</span>
+                                <div className="text-2xl font-black text-blue-600 dark:text-blue-500">{Math.round(data.grand_total_distance_km)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">km</span></div>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-600">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+                            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-blue-600 dark:bg-blue-700">
                                 <h3 className="font-extrabold text-white flex items-center gap-2 text-sm uppercase tracking-wide">
                                     <Filter className="w-4 h-4 text-white" /> Trasee Echipe
                                 </h3>
@@ -334,44 +334,44 @@ export default function LogisticsDashboard() {
                                             <div 
                                                 key={route.team_id} 
                                                 onClick={() => toggleTeam(route.team_id)}
-                                                className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col h-full ${isActive ? 'border-transparent shadow-md' : 'border-slate-100 opacity-50 hover:opacity-80'}`}
-                                                style={{ backgroundColor: isActive ? `${route.team_color}10` : 'white' }}
+                                                className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col h-full bg-white dark:bg-slate-800 ${isActive ? 'border-transparent shadow-md' : 'border-slate-100 dark:border-slate-700 opacity-50 hover:opacity-80'}`}
+                                                style={{ backgroundColor: isActive ? `${route.team_color}15` : undefined }}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-4 h-4 rounded-full shadow-sm shrink-0" style={{ backgroundColor: route.team_color }}></div>
-                                                        <span className="font-bold text-slate-900 leading-tight">{route.team_name}</span>
+                                                        <span className="font-bold text-slate-900 dark:text-white leading-tight">{route.team_name}</span>
                                                     </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-2 pt-3">
-                                                    <div className="bg-white/60 p-2 rounded-lg">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500">Necesar Nisip</div>
-                                                        <div className="font-bold text-amber-600">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
+                                                    <div className="bg-white/60 dark:bg-slate-900/40 p-2 rounded-lg">
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Necesar Nisip</div>
+                                                        <div className="font-bold text-amber-600 dark:text-amber-500">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
                                                     </div>
-                                                    <div className="bg-white/60 p-2 rounded-lg">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500">Distanță</div>
-                                                        <div className="font-bold text-blue-600">{Math.round(route.total_distance_km)} km</div>
+                                                    <div className="bg-white/60 dark:bg-slate-900/40 p-2 rounded-lg">
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Distanță</div>
+                                                        <div className="font-bold text-blue-600 dark:text-blue-400">{Math.round(route.total_distance_km)} km</div>
                                                     </div>
                                                 </div>
                                                 
                                                 {isActive && route.waypoints.length > 0 && (
-                                                    <div className="mt-4 space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200">
+                                                    <div className="mt-4 space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                                         {route.waypoints.map((wp, idx) => (
                                                             <div key={idx} className="flex gap-3 relative z-10 text-xs">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${wp.type.includes('base') ? 'bg-slate-800' : 'bg-blue-600'}`}>
+                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${wp.type.includes('base') ? 'bg-slate-800 dark:bg-slate-600' : 'bg-blue-600 dark:bg-blue-500'}`}>
                                                                     {wp.type.includes('base') ? 'B' : idx}
                                                                 </div>
                                                                 <div className="flex-1 pt-0.5">
-                                                                    <div className="font-bold text-slate-800 leading-tight">
+                                                                    <div className="font-bold text-slate-800 dark:text-slate-200 leading-tight">
                                                                         {wp.name}
                                                                         {wp.distance_from_prev_km > 0 && (
-                                                                            <span className="text-blue-500 ml-1.5 font-bold whitespace-nowrap">
+                                                                            <span className="text-blue-500 dark:text-blue-400 ml-1.5 font-bold whitespace-nowrap">
                                                                                 (+{Math.round(wp.distance_from_prev_km)} km)
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    {wp.sand_kg > 0 && <div className="text-amber-600 font-semibold mt-0.5">Nisip: {(wp.sand_kg/1000).toFixed(1)} t</div>}
+                                                                    {wp.sand_kg > 0 && <div className="text-amber-600 dark:text-amber-500 font-semibold mt-0.5">Nisip: {(wp.sand_kg/1000).toFixed(1)} t</div>}
                                                                 </div>
                                                             </div>
                                                         ))}
