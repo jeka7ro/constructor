@@ -1,14 +1,12 @@
-import os
-from sqlalchemy import create_engine, inspect
-from dotenv import load_dotenv
+import sys
+from app.database import SessionLocal
+from app.models import LogisticSandStation, Organization
 
-load_dotenv()
-db_url = os.getenv("DATABASE_URL")
-if db_url:
-    engine = create_engine(db_url)
-    inspector = inspect(engine)
-    print("TABLES:", inspector.get_table_names())
-    for col in inspector.get_columns('users'):
-        print(f"users col: {col['name']}")
-    for col in inspector.get_columns('admins'):
-        print(f"admins col: {col['name']}")
+db = SessionLocal()
+stations = db.query(LogisticSandStation).all()
+print(f"Found {len(stations)} stations in DB")
+if stations:
+    print(f"Org ID of first station: {stations[0].organization_id}")
+
+orgs = db.query(Organization).all()
+print(f"Available org IDs: {[o.id for o in orgs]}")
