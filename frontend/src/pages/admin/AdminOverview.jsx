@@ -423,22 +423,6 @@ export default function AdminOverview() {
                             {t('admin.updated_at')}: {lastRefresh.toLocaleTimeString('ro-RO', { ...tzOption, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </span>
                     )}
-                    <button
-                        onClick={() => {
-                            const newVal = !isScreeds;
-                            setIsScreeds(newVal);
-                            localStorage.setItem('pontaj_is_screeds_mode', newVal);
-                        }}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${isScreeds ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
-                    >
-                        Modul: {isScreeds ? 'Șape' : 'Șantiere'}
-                    </button>
-                    <button
-                        onClick={() => { fetchStats(true); fetchChartData(); fetchActiveWorkers() }}
-                        className="p-2 hover:bg-white rounded-full transition-colors border border-slate-200 bg-white shadow-sm"
-                    >
-                        <RefreshCw className="w-4 h-4 text-slate-600" />
-                    </button>
                 </div>
             </div>
 

@@ -90,8 +90,6 @@ export default function ScreedsReports() {
         const teamMap = {};
 
         workOrders.forEach(wo => {
-            // Include only confirmed, completed, or in_progress that have actual data
-            if (['draft', 'canceled'].includes(wo.status)) return;
             validWos++;
 
             // Volume
