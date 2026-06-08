@@ -25,6 +25,12 @@ function fitMapBounds(map, data, activeTeams) {
         // Use an asymmetrical padding object so the legend on the right doesn't cover the waypoints
         // and routes have enough space around the edges
         map.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 200 });
+        
+        // Prevent map from zooming too close if bounds only contain a single point (e.g. only the depot)
+        const listener = window.google.maps.event.addListener(map, 'idle', () => {
+            if (map.getZoom() > 14) map.setZoom(14);
+            window.google.maps.event.removeListener(listener);
+        });
     }
 }
 
@@ -107,7 +113,11 @@ const GoogleMapsRoute = ({ origin, destination, waypoints, color, weight, opacit
 }
 
 export default function LogisticsDashboard() {
-    const [targetDate, setTargetDate] = useState(new Date().toISOString().split('T')[0])
+    const [targetDate, setTargetDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+    })
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTeams, setActiveTeams] = useState([])
