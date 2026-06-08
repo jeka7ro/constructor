@@ -97,7 +97,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         // Fallback: hartă Romania
                         if (!mapInstance.current && mapRef.current) {
                             mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false })
-                                .setView([45.9432, 24.9668], 6)
+                                .setView([50.8503, 4.3517], 7)
                             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                 attribution: '© OpenStreetMap', maxZoom: 19
                             }).addTo(mapInstance.current)
@@ -112,7 +112,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             // Nicio informație GPS/adresă — hartă Romania generală
             if (!mapInstance.current && mapRef.current) {
                 mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false })
-                    .setView([45.9432, 24.9668], 6)
+                    .setView([50.8503, 4.3517], 7)
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap', maxZoom: 19
                 }).addTo(mapInstance.current)
