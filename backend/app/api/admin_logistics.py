@@ -338,7 +338,21 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
         return data
 
     data = _calculate_daily_routes(target_date, db, admin)
-    data["is_archived"] = False
+    
+    # Auto-Archive logic: if the date is in the past, save it now!
+    if target_date < date.today():
+        plan = LogisticsDailyPlan(
+            organization_id=admin.organization_id,
+            date=target_date,
+            snapshot_data=data,
+            saved_by_id=admin.id
+        )
+        db.add(plan)
+        db.commit()
+        data["is_archived"] = True
+    else:
+        data["is_archived"] = False
+        
     return data
 
 class ArchiveDayRequest(BaseModel):

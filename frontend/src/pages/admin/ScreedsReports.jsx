@@ -2,18 +2,16 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import {
-    Loader2, Calendar, HardHat, Package, Droplet, LayoutGrid, FileSpreadsheet,
-    TrendingUp, Filter, BarChart3, Truck, Building2
+    Loader2, HardHat, Package, LayoutGrid, FileSpreadsheet,
+    TrendingUp, Filter, BarChart3, Truck, Navigation, CalendarDays
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend, LabelList
+    Legend, LabelList
 } from 'recharts'
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
 const toLocalISO = (d) => {
     const tzOffset = d.getTimezoneOffset() * 60000;
@@ -25,7 +23,6 @@ export default function ScreedsReports() {
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
     const [workOrders, setWorkOrders] = useState([])
-    const [activeTab, setActiveTab] = useState('summary')
 
     // Filters
     const [dateFrom, setDateFrom] = useState('')
@@ -60,23 +57,11 @@ export default function ScreedsReports() {
     const fetchWorkOrders = async () => {
         try {
             setLoading(true)
-            // Fetch all orders and filter locally by date (start_date or deadline_date)
-            const res = await api.get('/admin/work-orders/')
-            const allWos = res.data || []
-            
-            const startStr = dateFrom.replace(/-/g, '')
-            const endStr = dateTo.replace(/-/g, '')
-            
-            const filtered = allWos.filter(wo => {
-                const dateStr = wo.start_date || wo.deadline_date
-                if (!dateStr) return false
-                const d = dateStr.split('T')[0].replace(/-/g, '')
-                return d >= startStr && d <= endStr
-            })
-            
-            setWorkOrders(filtered)
+            // Fetch orders for the specific range (this triggers backend Auto-Archive)
+            const res = await api.get(`/admin/work-orders?start_date=${dateFrom}&end_date=${dateTo}`)
+            setWorkOrders(res.data || [])
         } catch (e) {
-            console.error("Eroare incarcare work orders:", e)
+            console.error("Eroare incarcare rapoarte:", e)
         } finally {
             setLoading(false)
         }
@@ -85,7 +70,7 @@ export default function ScreedsReports() {
     const computeMetrics = () => {
         let totalVolume = 0;
         let totalSand = 0; // Tone
-        let totalCement = 0; // Saci sau Kg
+        let totalKm = 0;
         let validWos = 0;
 
         const byDayMap = {};
@@ -105,37 +90,51 @@ export default function ScreedsReports() {
             }
             totalVolume += woVol;
 
-            // Materials consumed
+            // Materials consumed (Sand in T, convert to T if kg)
             if (wo.materials_consumed && wo.materials_consumed.length > 0) {
                 wo.materials_consumed.forEach(m => {
                     const name = (m.name || '').toLowerCase();
-                    const qty = parseFloat(m.quantity) || 0;
-                    if (name.includes('nisip')) totalSand += qty;
-                    if (name.includes('ciment')) totalCement += qty;
+                    let qty = parseFloat(m.quantity) || 0;
+                    if (name.includes('nisip')) {
+                        // Assume unit might be kg if > 1000, otherwise tons. But Usually user inputs kg.
+                        // Let's check unit if available.
+                        const unit = (m.unit || '').toLowerCase();
+                        if (unit === 'kg' || qty > 200) qty = qty / 1000;
+                        totalSand += qty;
+                    }
                 })
             }
+
+            // Route KM (calculated by backend)
+            const woKm = parseFloat(wo.route_distance_km) || 0;
+            totalKm += woKm;
 
             // By Day (using start_date or deadline)
             const dateStr = wo.start_date || wo.deadline_date;
             if (dateStr) {
                 const day = dateStr.split('T')[0];
-                if (!byDayMap[day]) byDayMap[day] = { date: day, volume: 0, count: 0 };
+                if (!byDayMap[day]) byDayMap[day] = { date: day, volume: 0, count: 0, km: 0 };
                 byDayMap[day].volume += woVol;
+                byDayMap[day].km += woKm;
                 byDayMap[day].count++;
             }
 
             // Team ranking
             const team = wo.assigned_team_name || 'Echipă Necunoscută';
-            if (!teamMap[team]) teamMap[team] = { name: team, volume: 0, count: 0, sand: 0, cement: 0 };
+            if (!teamMap[team]) teamMap[team] = { name: team, volume: 0, count: 0, sand: 0, km: 0 };
             teamMap[team].volume += woVol;
             teamMap[team].count++;
+            teamMap[team].km += woKm;
             
             if (wo.materials_consumed && wo.materials_consumed.length > 0) {
                 wo.materials_consumed.forEach(m => {
                     const name = (m.name || '').toLowerCase();
-                    const qty = parseFloat(m.quantity) || 0;
-                    if (name.includes('nisip')) teamMap[team].sand += qty;
-                    if (name.includes('ciment')) teamMap[team].cement += qty;
+                    let qty = parseFloat(m.quantity) || 0;
+                    if (name.includes('nisip')) {
+                        const unit = (m.unit || '').toLowerCase();
+                        if (unit === 'kg' || qty > 200) qty = qty / 1000;
+                        teamMap[team].sand += qty;
+                    }
                 })
             }
         });
@@ -143,35 +142,57 @@ export default function ScreedsReports() {
         const byDay = Object.values(byDayMap).sort((a, b) => a.date.localeCompare(b.date)).map(d => ({
             ...d, 
             date: new Date(d.date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short' }),
-            volume: Math.round(d.volume)
+            volume: Math.round(d.volume),
+            km: Math.round(d.km)
         }));
 
-        const byTeam = Object.values(teamMap).sort((a, b) => b.volume - a.volume);
+        const byTeam = Object.values(teamMap).map(t => ({
+            ...t,
+            volume: Math.round(t.volume),
+            sand: Math.round(t.sand * 10) / 10,
+            km: Math.round(t.km * 10) / 10
+        })).sort((a, b) => b.volume - a.volume);
 
         // Calculate averages
         const avgVolPerOrder = validWos > 0 ? totalVolume / validWos : 0;
-        const avgSandPerOrder = validWos > 0 ? totalSand / validWos : 0;
 
         return {
             totalVolume: Math.round(totalVolume),
             totalSand: Math.round(totalSand * 10) / 10,
-            totalCement: Math.round(totalCement),
+            totalKm: Math.round(totalKm * 10) / 10,
             validWos,
             byDay,
             byTeam,
-            avgVolPerOrder: Math.round(avgVolPerOrder),
-            avgSandPerOrder: Math.round(avgSandPerOrder * 10) / 10
+            avgVolPerOrder: Math.round(avgVolPerOrder)
         }
     }
 
     const charts = computeMetrics();
 
+    // Custom Tooltip for Timeline Chart
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-slate-900 text-white text-xs p-3 rounded-lg shadow-xl border border-slate-700">
+                    <p className="font-bold mb-2 text-slate-300">{label}</p>
+                    {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }} className="font-bold flex justify-between gap-4">
+                            <span>{entry.name}:</span>
+                            <span>{entry.value} {entry.name === 'Volum' ? 'm²' : 'km'}</span>
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
+
     const teamColumns = [
-        { key: 'name', label: 'Echipă', sortable: true, render: r => <span className="font-bold text-slate-800 dark:text-white">{r.name}</span> },
-        { key: 'count', label: 'Lucrări', sortable: true, render: r => <span className="text-slate-600 dark:text-slate-400">{r.count}</span> },
-        { key: 'volume', label: 'Volum Turnat (m²)', sortable: true, render: r => <span className="font-bold text-blue-600 block text-right">{r.volume}</span> },
-        { key: 'sand', label: 'Nisip Consumat', sortable: true, render: r => <span className="font-bold text-amber-600 block text-right">{r.sand}T</span> },
-        { key: 'cement', label: 'Ciment Consumat', sortable: true, render: r => <span className="font-bold text-slate-600 dark:text-slate-400 block text-right">{r.cement} saci</span> },
+        { key: 'name', label: 'Echipă', sortable: true, render: r => <span className="font-extrabold text-slate-800 dark:text-white uppercase tracking-wide text-xs">{r.name}</span> },
+        { key: 'count', label: 'Lucrări', sortable: true, render: r => <span className="text-slate-600 dark:text-slate-400 font-bold">{r.count}</span> },
+        { key: 'volume', label: 'Volum (m²)', sortable: true, render: r => <span className="font-black text-blue-600 block">{r.volume}</span> },
+        { key: 'sand', label: 'Nisip Consumat', sortable: true, render: r => <span className="font-black text-amber-600 block">{r.sand} T</span> },
+        { key: 'km', label: 'Traseu Parcurs (KM)', sortable: true, render: r => <span className="font-black text-emerald-600 block">{r.km} km</span> },
     ]
 
     return (
@@ -180,9 +201,9 @@ export default function ScreedsReports() {
             <div className="mb-6">
                 <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <BarChart3 className="w-6 h-6 text-blue-600" />
-                    Rapoarte Șape
+                    Analiză Companie (Mega Smart)
                 </h1>
-                <p className="text-sm font-medium text-slate-500 mt-1">Analiză volume, echipe și consum de materiale</p>
+                <p className="text-sm font-medium text-slate-500 mt-1">Sinteză completă volume, rute și materiale consumate pe echipe</p>
             </div>
 
             {/* Filters Card */}
@@ -202,13 +223,14 @@ export default function ScreedsReports() {
                             }
                         ].map(f => (
                             <button key={f.label} onClick={f.fn}
-                                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0">
+                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 border border-transparent dark:border-slate-700">
                                 {f.label}
                             </button>
                         ))}
                     </div>
                     
                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <CalendarDays className="w-4 h-4 text-slate-400" />
                         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
                             className="w-full sm:w-36 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                         <span className="text-slate-400 font-bold">-</span>
@@ -221,92 +243,57 @@ export default function ScreedsReports() {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-24">
                     <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">Încărcare rapoarte...</h3>
+                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">Încărcare raport...</h3>
+                    <p className="text-sm text-slate-500">Se verifică și se arhivează automat zilele din urmă...</p>
                 </div>
             ) : charts.validWos === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
                     <LayoutGrid className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400">Nu există lucrări finalizate.</h3>
-                    <p className="text-sm text-slate-400">Alegeți altă perioadă.</p>
+                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400">Nu există lucrări finalizate în această perioadă.</h3>
+                    <p className="text-sm text-slate-400">Alegeți altă perioadă de timp din filtrele de mai sus.</p>
                 </div>
             ) : (
                 <>
-                    {/* KPI Summary (Mobile Optimized: grid-cols-2 or 3) */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                        <KPICard label="Volum Total" value={`${charts.totalVolume}`} sub="m² turnați" icon={LayoutGrid} colorTheme="blue" />
-                        <KPICard label="Nisip Consumat" value={`${charts.totalSand}`} sub="tone estimate" icon={Package} colorTheme="amber" />
-                        <KPICard label="Ciment" value={`${charts.totalCement}`} sub="saci/unități" icon={Truck} colorTheme="slate" />
-                        <KPICard label="Lucrări" value={`${charts.validWos}`} sub={`Medie ${charts.avgVolPerOrder} m²/lucrare`} icon={HardHat} colorTheme="green" />
+                    {/* KPI Summary */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <KPICard label="Comenzi Realizate" value={`${charts.validWos}`} sub={`Medie: ${charts.avgVolPerOrder} m²/comandă`} icon={HardHat} colorTheme="purple" />
+                        <KPICard label="Volum Total" value={`${charts.totalVolume}`} sub="m² șapă turnați" icon={LayoutGrid} colorTheme="blue" />
+                        <KPICard label="Nisip Consumat" value={`${charts.totalSand}`} sub="Tone extrase din calcule/aplicație" icon={Package} colorTheme="amber" />
+                        <KPICard label="Trasee (Total)" value={`${charts.totalKm}`} sub="Kilometri parcurși cumulat" icon={Navigation} colorTheme="green" />
                     </div>
 
-                    {/* Charts */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
-                        {/* Volume by Day */}
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
-                            <h3 className="text-sm font-extrabold text-slate-800 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
-                                <TrendingUp className="w-4 h-4 text-emerald-500" />
-                                Evoluție Volum (m²)
-                            </h3>
-                            <div className="w-full h-56 sm:h-64 overflow-hidden">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={charts.byDay} barSize={24} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                        <YAxis tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                        <Tooltip
-                                            cursor={{ fill: 'transparent' }}
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                            formatter={(val) => [`${val} m²`, 'Volum']}
-                                        />
-                                        <Bar dataKey="volume" fill="#3b82f6" radius={[6, 6, 0, 0]}>
-                                            <LabelList dataKey="volume" position="top" fill="#475569" fontSize={10} fontWeight="bold" />
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        {/* Top Teams */}
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
-                            <h3 className="text-sm font-extrabold text-slate-800 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
-                                <Users className="w-4 h-4 text-violet-500" />
-                                Performanță Echipe (m²)
-                            </h3>
-                            <div className="space-y-4">
-                                {charts.byTeam.slice(0, 5).map((team, i) => {
-                                    const maxVol = charts.byTeam[0]?.volume || 1;
-                                    const pct = Math.max((team.volume / maxVol) * 100, 2);
-                                    return (
-                                        <div key={team.name} className="flex flex-col gap-1.5">
-                                            <div className="flex items-center justify-between text-xs sm:text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-slate-200 text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'}`}>
-                                                        {i + 1}
-                                                    </span>
-                                                    <span className="font-bold text-slate-700 dark:text-slate-200">{team.name}</span>
-                                                </div>
-                                                <span className="font-black text-blue-600">{team.volume}</span>
-                                            </div>
-                                            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
-                                            </div>
-                                            <div className="flex justify-between text-[10px] text-slate-400 font-bold uppercase">
-                                                <span>{team.count} Lucrări</span>
-                                                <span>{team.sand}T Nisip / {team.cement} Saci</span>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                    {/* Timeline Chart (Volume & KM) */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm mb-6">
+                        <h3 className="text-sm font-extrabold text-slate-800 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-wide">
+                            <TrendingUp className="w-4 h-4 text-emerald-500" />
+                            Axa Timpului: Volum turnat vs Kilometri parcurși
+                        </h3>
+                        <div className="w-full h-72 sm:h-80 overflow-hidden">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={charts.byDay} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
+                                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
+                                    <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '10px' }} />
+                                    <Bar dataKey="volume" name="Volum" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                        <LabelList dataKey="volume" position="top" fill="#475569" fontSize={10} fontWeight="bold" />
+                                    </Bar>
+                                    <Bar dataKey="km" name="Kilometri" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                        <LabelList dataKey="km" position="top" fill="#475569" fontSize={10} fontWeight="bold" />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Team Details Table */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mb-8">
-                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                             <h3 className="text-sm font-extrabold text-slate-800 dark:text-white uppercase tracking-wide">
-                                Raport Detaliat pe Echipe
+                                Raport Agregat pe Echipe
                             </h3>
+                            <p className="text-xs text-slate-500 font-medium mt-1">Compară performanța echipelor în funcție de kilometraj, consum și volumul realizat.</p>
                         </div>
                         <DataTable 
                             columns={teamColumns} 

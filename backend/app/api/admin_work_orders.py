@@ -165,6 +165,10 @@ def _serialize(wo: WorkOrder) -> dict:
         "assigned_vehicle_id": wo.assigned_vehicle_id,
         "assigned_vehicle_name": wo.assigned_vehicle.name if wo.assigned_vehicle else None,
         "assigned_vehicle_plate": wo.assigned_vehicle.plate_number if wo.assigned_vehicle else None,
+        # Logistica si rutare
+        "route_distance_km": wo.route_distance_km,
+        "route_sand_kg": wo.route_sand_kg,
+        "route_segments": wo.route_segments,
         # Workflow acceptare
         "team_leader_accepted_at": wo.team_leader_accepted_at.isoformat() if wo.team_leader_accepted_at else None,
         "team_leader_confirmed_at": wo.team_leader_confirmed_at.isoformat() if wo.team_leader_confirmed_at else None,
@@ -200,6 +204,41 @@ def list_work_orders(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Lista tuturor comenzilor de lucru ale organizației."""
+    
+    # --- AUTO-ARCHIVE LOGISTICS (Smart/Lazy Mode) ---
+    if start_date and end_date:
+        try:
+            from app.api.admin_logistics import _calculate_daily_routes
+            from app.models import LogisticsDailyPlan
+            from datetime import timedelta
+            
+            start_d = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_d = datetime.strptime(end_date, "%Y-%m-%d").date()
+            today = date_today_import.today()
+            
+            # Prevent abuse, max 31 days check
+            if (end_d - start_d).days <= 31:
+                curr = start_d
+                while curr <= end_d and curr < today:
+                    existing = db.query(LogisticsDailyPlan).filter(
+                        LogisticsDailyPlan.organization_id == current_admin.organization_id,
+                        LogisticsDailyPlan.date == curr
+                    ).first()
+                    if not existing:
+                        data = _calculate_daily_routes(curr, db, current_admin)
+                        plan = LogisticsDailyPlan(
+                            organization_id=current_admin.organization_id,
+                            date=curr,
+                            snapshot_data=data,
+                            saved_by_id=current_admin.id
+                        )
+                        db.add(plan)
+                        db.commit()
+                    curr += timedelta(days=1)
+        except Exception as e:
+            print(f"Error auto-archiving logistics in list_work_orders: {e}")
+    # ------------------------------------------------
+    
     q = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id)
     q = q.options(
         joinedload(WorkOrder.site),

@@ -142,21 +142,6 @@ export default function LogisticsDashboard() {
             console.error("Error fetching daily routes:", error)
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handleArchive = async () => {
-        if (!window.confirm("Ești sigur că vrei să arhivezi (îngheți) traseele pentru această zi? Acest lucru va salva definitiv configurația rutelor și kilometrii în istoric.")) return;
-        try {
-            await api.post("/admin/logistics/archive-day", { target_date: targetDate });
-            fetchRoutes();
-            alert("Ziua a fost arhivată cu succes!");
-        } catch (error) {
-            console.error(error);
-            alert("Eroare la arhivare.");
-        }
-    }
-
     useEffect(() => {
         fetchRoutes()
     }, [targetDate])
@@ -217,19 +202,11 @@ export default function LogisticsDashboard() {
                         >
                             <ChevronRight className="w-5 h-5" />
                         </button>
-                    </div>
-
-                    {/* Archive Button */}
-                    {data && (
-                        data.is_archived ? (
-                            <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">
-                                <CheckCircle2 className="w-4 h-4" /> Arhivată
-                            </div>
-                        ) : (
-                            <button onClick={handleArchive} className="flex items-center gap-1.5 px-4 h-11 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 font-bold text-sm rounded-full shadow-sm transition-colors shrink-0">
-                                <Save className="w-4 h-4" /> Salvează Istoric
-                            </button>
-                        )
+                    {/* Archive Badge (Auto-Archived) */}
+                    {data?.is_archived && (
+                        <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">
+                            <CheckCircle2 className="w-4 h-4" /> Arhivată
+                        </div>
                     )}
                 </div>
             </div>
