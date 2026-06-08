@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight } from 'lucide-react'
 import api from '../../../lib/api'
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet-routing-machine'
 
 // Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -37,6 +38,45 @@ function MapBoundsFitter({ data, activeTeams }) {
             map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
         }
     }, [map, data, activeTeams]);
+    return null;
+}
+
+function RoutingMachine({ positions, color, weight, opacity }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (!map || positions.length < 2) return;
+
+        const waypoints = positions.map(pos => L.latLng(pos[0], pos[1]));
+
+        const routingControl = L.Routing.control({
+            waypoints,
+            lineOptions: {
+                styles: [{ color, weight, opacity }],
+                extendToWaypoints: false,
+                missingRouteTolerance: 0
+            },
+            show: false,          
+            addWaypoints: false,  
+            routeWhileDragging: false,
+            fitSelectedRoutes: false,
+            showAlternatives: false,
+            createMarker: () => null // Hide default green/red routing markers, we use our own
+        }).addTo(map);
+
+        // Hide the routing container div entirely to avoid visual bugs
+        const container = routingControl.getContainer();
+        if (container) {
+            container.style.display = 'none';
+        }
+
+        return () => {
+            if (map && routingControl) {
+                map.removeControl(routingControl);
+            }
+        };
+    }, [map, positions, color, weight, opacity]);
+
     return null;
 }
 
@@ -167,9 +207,11 @@ export default function LogisticsDashboard() {
                                 return (
                                     <React.Fragment key={`map-route-${route.team_id}`}>
                                         {positions.length > 1 && (
-                                            <Polyline 
+                                            <RoutingMachine 
                                                 positions={positions} 
-                                                pathOptions={{ color: route.team_color, weight: 4, opacity: 0.8 }} 
+                                                color={route.team_color} 
+                                                weight={4} 
+                                                opacity={0.8}
                                             />
                                         )}
                                         
