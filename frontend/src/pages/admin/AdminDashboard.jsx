@@ -494,12 +494,34 @@ export default function AdminDashboard() {
                                   <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white drop-shadow-sm p-0.5" />
                               )}
                               <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 max-md:text-white truncate max-w-[200px]">
-                                  {tenant?.name || 'Smart Timesheet'}
+                                  {(() => {
+                                      const p = location.pathname;
+                                      if (p.includes('/planning') || p === '/admin') return 'Planning';
+                                      if (p.includes('/logistica')) return 'Logistică';
+                                      if (p.includes('/work-orders')) return 'Comenzi';
+                                      if (p.includes('/reports')) return 'Rapoarte';
+                                      if (p.includes('/sites')) return 'Șantiere';
+                                      if (p.includes('/employees')) return 'Angajați';
+                                      if (p.includes('/teams')) return 'Echipe';
+                                      return 'Planning';
+                                  })()}
                               </span>
                          </div>
                          {/* Desktop Title & Date */}
                          <div className="hidden md:flex flex-col mt-0.5">
-                             <span className={`font-bold text-lg leading-tight tracking-tight text-slate-900 font-extrabold dark:text-white/90`}>{t('admin.admin_system')}</span>
+                             <span className={`font-bold text-lg leading-tight tracking-tight text-slate-900 font-extrabold dark:text-white/90 uppercase tracking-wider`}>
+                                 {(() => {
+                                      const p = location.pathname;
+                                      if (p.includes('/planning') || p === '/admin') return 'Planning';
+                                      if (p.includes('/logistica')) return 'Logistică';
+                                      if (p.includes('/work-orders')) return 'Comenzi';
+                                      if (p.includes('/reports')) return 'Rapoarte';
+                                      if (p.includes('/sites')) return 'Șantiere';
+                                      if (p.includes('/employees')) return 'Angajați';
+                                      if (p.includes('/teams')) return 'Echipe';
+                                      return 'Planning'; // Default instead of Admin System
+                                  })()}
+                             </span>
                              <span className="text-[10px] text-slate-500 font-medium leading-none tracking-wide mt-0.5">
                                  {now.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString('ro-RO')}
                              </span>
