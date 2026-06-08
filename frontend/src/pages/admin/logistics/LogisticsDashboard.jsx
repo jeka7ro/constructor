@@ -175,14 +175,14 @@ export default function LogisticsDashboard() {
                         </Link>
                     </div>
                     
-                    <div className="flex items-center bg-white rounded-full border border-slate-200 shadow-sm overflow-hidden h-11 shrink-0">
+                    <div className="flex items-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-11 shrink-0">
                         <button 
                             onClick={() => {
                                 const d = new Date(targetDate);
                                 d.setDate(d.getDate() - 1);
                                 setTargetDate(d.toISOString().split('T')[0]);
                             }}
-                            className="px-3 hover:bg-slate-50 h-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors border-r border-slate-100"
+                            className="px-3 hover:bg-slate-50 dark:hover:bg-slate-700 h-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors border-r border-slate-100 dark:border-slate-700"
                         >
                             <ChevronLeft className="w-5 h-5" />
                         </button>
@@ -192,7 +192,7 @@ export default function LogisticsDashboard() {
                                 type="date" 
                                 value={targetDate}
                                 onChange={e => setTargetDate(e.target.value)}
-                                className="pl-9 pr-2 h-full text-sm font-bold bg-transparent outline-none w-full text-slate-800"
+                                className="pl-9 pr-2 h-full text-sm font-bold bg-transparent outline-none w-full text-slate-800 dark:text-white dark:[color-scheme:dark]"
                             />
                         </div>
                         <button 
@@ -201,7 +201,7 @@ export default function LogisticsDashboard() {
                                 d.setDate(d.getDate() + 1);
                                 setTargetDate(d.toISOString().split('T')[0]);
                             }}
-                            className="px-3 hover:bg-slate-50 h-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors border-l border-slate-100"
+                            className="px-3 hover:bg-slate-50 dark:hover:bg-slate-700 h-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors border-l border-slate-100 dark:border-slate-700"
                         >
                             <ChevronRight className="w-5 h-5" />
                         </button>
