@@ -57,9 +57,22 @@ export default function ScreedsReports() {
     const fetchWorkOrders = async () => {
         try {
             setLoading(true)
-            // Fetch orders for the specific range (this triggers backend Auto-Archive)
+            // Fetch orders (triggers backend Auto-Archive for the range).
+            // The backend returns all orders so we don't miss edge cases, we filter locally.
             const res = await api.get(`/admin/work-orders?start_date=${dateFrom}&end_date=${dateTo}`)
-            setWorkOrders(res.data || [])
+            
+            const allWos = res.data || []
+            const startStr = dateFrom.replace(/-/g, '')
+            const endStr = dateTo.replace(/-/g, '')
+            
+            const filtered = allWos.filter(wo => {
+                const dateStr = wo.start_date || wo.deadline_date
+                if (!dateStr) return false
+                const d = dateStr.split('T')[0].replace(/-/g, '')
+                return d >= startStr && d <= endStr
+            })
+            
+            setWorkOrders(filtered)
         } catch (e) {
             console.error("Eroare incarcare rapoarte:", e)
         } finally {
@@ -201,7 +214,7 @@ export default function ScreedsReports() {
             <div className="mb-6">
                 <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <BarChart3 className="w-6 h-6 text-blue-600" />
-                    Analiză Companie (Mega Smart)
+                    Analiză Companie
                 </h1>
                 <p className="text-sm font-medium text-slate-500 mt-1">Sinteză completă volume, rute și materiale consumate pe echipe</p>
             </div>
