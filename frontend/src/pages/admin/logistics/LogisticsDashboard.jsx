@@ -89,6 +89,31 @@ const createCustomIcon = (text, isBase) => {
     });
 }
 
+const SAND_STATIONS = [
+    { name: 'BAZA GHENT', lat: 51.0538286, lng: 3.7250121 },
+    { name: 'BAZZA NINOVE', lat: 50.8340156, lng: 4.0150992 },
+    { name: 'NHM WIELSBEKE', lat: 50.9080277, lng: 3.3644265 },
+    { name: 'NHM BAZA OSTENDE', lat: 51.2263435, lng: 2.9152345 },
+    { name: 'BAZA DOUR (Rougraff)', lat: 50.3957242, lng: 3.7778393 },
+    { name: 'BAZA LUMMEN (Minera)', lat: 51.0107703, lng: 5.2366141 },
+    { name: 'BAZA ATH (Stock Ath)', lat: 50.630554, lng: 3.7788481 },
+    { name: 'Baza dranaco Antwerpen', lat: 51.2372207, lng: 4.4569835 },
+    { name: 'MINERA LUMEN', lat: 50.9255869, lng: 4.8354728 },
+    { name: 'BAZZA HALLE (Denayer)', lat: 50.7358744, lng: 4.2365449 },
+    { name: 'BAZA SODEMAF TOURNAI', lat: 50.6055532, lng: 3.3888362 },
+    { name: 'BAZA JOASSIN NAMUR', lat: 50.4665283, lng: 4.8661886 },
+    { name: 'BAZA ERPE-MERE', lat: 50.9238304, lng: 3.9664654 },
+    { name: 'BAZA SABLE ET GRANULATS LIEGE', lat: 50.6451384, lng: 5.5734203 },
+    { name: 'Baza Antoing TUORNAI', lat: 50.5623588, lng: 3.4379506 },
+    { name: 'BAZA AALST', lat: 50.9383224, lng: 4.0392149 },
+    { name: 'BAZA GENT', lat: 51.0538286, lng: 3.7250121 },
+    { name: 'BAZA BOOM', lat: 51.0875913, lng: 4.3577297 },
+    { name: 'BAZA TEMSE', lat: 51.1220674, lng: 4.2265680 },
+    { name: 'BAZA ANTWERP', lat: 51.2373003, lng: 4.4571109 },
+    { name: 'BAZA ECODREAM LIEGE', lat: 50.6451384, lng: 5.5734203 },
+    { name: 'BAZA INTRE MONS SI ATH', lat: 50.4549557, lng: 3.951958 }
+];
+
 export default function LogisticsDashboard() {
     const [targetDate, setTargetDate] = useState(() => {
         const d = new Date();
@@ -98,6 +123,7 @@ export default function LogisticsDashboard() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTeams, setActiveTeams] = useState([])
+    const [showSandStations, setShowSandStations] = useState(true)
 
     const fetchRoutes = async () => {
         try {
@@ -132,15 +158,18 @@ export default function LogisticsDashboard() {
                     <p className="text-slate-500 text-sm">Organizare zilnică, trasee și necesar de materiale.</p>
                 </div>
                 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200">
-                        <Link to="/admin/logistica/bases" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white text-sm font-bold text-slate-700 transition-colors">
-                            <MapPin className="w-4 h-4" /> Baze
-                        </Link>
-                        <Link to="/admin/logistica/sand-stations" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white text-sm font-bold text-slate-700 transition-colors">
-                            <Beaker className="w-4 h-4" /> Stații Nisip
-                        </Link>
-                    </div>
+                <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-slate-200 p-1">
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-100 text-slate-700 shadow-sm border border-slate-200">
+                                <MapPin className="w-4 h-4" /> Baze
+                            </button>
+                            <button 
+                                onClick={() => setShowSandStations(!showSandStations)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${showSandStations ? 'bg-red-50 text-red-600 border border-red-200 shadow-sm' : 'hover:bg-slate-50 text-slate-500 border border-transparent'}`}
+                            >
+                                <Beaker className="w-4 h-4" /> Stații Nisip
+                            </button>
+                        </div>
                     
                     <div className="flex items-center bg-white rounded-full border border-slate-200 shadow-sm overflow-hidden h-11 shrink-0">
                         <button 
@@ -229,6 +258,25 @@ export default function LogisticsDashboard() {
                                     </React.Fragment>
                                 )
                             })}
+
+                            {/* Sand Stations Rendering */}
+                            {showSandStations && SAND_STATIONS.map((station, idx) => (
+                                <Marker 
+                                    key={`sand-${idx}`} 
+                                    position={[station.lat, station.lng]}
+                                    icon={L.divIcon({
+                                        className: 'custom-div-icon',
+                                        html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 bg-red-500">S</div>`,
+                                        iconSize: [24, 24],
+                                        iconAnchor: [12, 12]
+                                    })}
+                                >
+                                    <Popup>
+                                        <strong className="text-sm">{station.name}</strong><br/>
+                                        <span className="text-xs text-slate-500">Stație Nisip</span>
+                                    </Popup>
+                                </Marker>
+                            ))}
                         </MapContainer>
                         
                         {/* Map Overlay Stats */}
@@ -242,6 +290,11 @@ export default function LogisticsDashboard() {
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                                         <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm"></div> Șantier / Lucrare
                                     </div>
+                                    {showSandStations && (
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> Stații Nisip
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                                         <div className="w-5 h-1 border-b-2 border-dashed border-slate-400"></div> Traseu auto
                                     </div>
