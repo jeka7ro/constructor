@@ -1,115 +1,52 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { GoogleMap, useJsApiLoader, Polyline, OverlayView } from '@react-google-maps/api'
 import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight } from 'lucide-react'
 import api from '../../../lib/api'
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-function fitMapBounds(map, data, activeTeams) {
-    if (!map || !data || !data.routes || data.routes.length === 0) return;
-    
-    let hasPoints = false;
-    const bounds = new window.google.maps.LatLngBounds();
-    
-    data.routes.forEach(route => {
-        if (activeTeams.includes(route.team_id)) {
-            route.waypoints.forEach(wp => {
-                if (wp.lat && wp.lng) {
-                    bounds.extend(new window.google.maps.LatLng(wp.lat, wp.lng));
-                    hasPoints = true;
-                }
-            })
-        }
-    })
-    
-    if (hasPoints) {
-        // Use an asymmetrical padding object so the legend on the right doesn't cover the waypoints
-        // and routes have enough space around the edges
-        map.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 200 });
-        
-        // Prevent map from zooming too close if bounds only contain a single point (e.g. only the depot)
-        const listener = window.google.maps.event.addListener(map, 'idle', () => {
-            if (map.getZoom() > 14) map.setZoom(14);
-            window.google.maps.event.removeListener(listener);
-        });
-    }
-}
+// Fix Leaflet default icon
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+})
 
-// Smart component that fetches real road geometry from Google Directions API
-const GoogleMapsRoute = ({ origin, destination, waypoints, color, weight, opacity, isDashed, offsetDegrees = 0 }) => {
-    const [path, setPath] = useState(null);
-
+function MapBoundsFitter({ data, activeTeams }) {
+    const map = useMap();
     useEffect(() => {
-        if (!window.google) return;
+        if (!data || !data.routes || data.routes.length === 0) return;
         
-        const directionsService = new window.google.maps.DirectionsService();
+        let hasPoints = false;
+        const bounds = L.latLngBounds();
         
-        const request = {
-            origin: new window.google.maps.LatLng(origin[0], origin[1]),
-            destination: new window.google.maps.LatLng(destination[0], destination[1]),
-            waypoints: waypoints ? waypoints.map(wp => ({
-                location: new window.google.maps.LatLng(wp[0], wp[1]),
-                stopover: true
-            })) : [],
-            travelMode: window.google.maps.TravelMode.DRIVING
-        };
-
-        directionsService.route(request, (result, status) => {
-            if (status === window.google.maps.DirectionsStatus.OK && result.routes[0]) {
-                // Extract coordinates from overview_path
-                let decoded = result.routes[0].overview_path.map(p => [p.lat(), p.lng()]);
-                
-                // Offset math exactly as we did before for the return trip to avoid overlapping
-                if (offsetDegrees !== 0) {
-                    const offsetLine = [];
-                    for (let i = 0; i < decoded.length - 1; i++) {
-                        const p1 = decoded[i];
-                        const p2 = decoded[i+1];
-                        const dx = p2[1] - p1[1];
-                        const dy = p2[0] - p1[0];
-                        const len = Math.sqrt(dx*dx + dy*dy);
-                        if (len === 0) { offsetLine.push(p1); continue; }
-                        const nx = -dy / len;
-                        const ny = dx / len;
-                        offsetLine.push([p1[0] + ny * offsetDegrees, p1[1] + nx * offsetDegrees]);
+        data.routes.forEach(route => {
+            if (activeTeams.includes(route.team_id)) {
+                route.waypoints.forEach(wp => {
+                    if (wp.lat && wp.lng) {
+                        bounds.extend([wp.lat, wp.lng]);
+                        hasPoints = true;
                     }
-                    if (decoded.length > 1) {
-                        const last = decoded[decoded.length - 1];
-                        const p1 = decoded[decoded.length - 2];
-                        const dx = last[1] - p1[1];
-                        const dy = last[0] - p1[0];
-                        const len = Math.sqrt(dx*dx + dy*dy);
-                        if (len > 0) {
-                            const nx = -dy / len;
-                            const ny = dx / len;
-                            offsetLine.push([last[0] + ny * offsetDegrees, last[1] + nx * offsetDegrees]);
-                        }
-                    }
-                    decoded = offsetLine;
-                }
-                
-                setPath(decoded.map(p => ({ lat: p[0], lng: p[1] })));
+                })
             }
         });
-    }, [origin, destination, waypoints, offsetDegrees]);
+        
+        if (hasPoints) {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        }
+    }, [map, data, activeTeams]);
+    return null;
+}
 
-    if (!path) return null;
-
-    return (
-        <Polyline 
-            path={path} 
-            options={{
-                strokeColor: color,
-                strokeOpacity: opacity,
-                strokeWeight: weight,
-                strokePosition: window.google.maps.StrokePosition.CENTER,
-                icons: isDashed ? [{
-                    icon: { path: 'M 0,-1 0,1', strokeOpacity: opacity, scale: weight },
-                    offset: '0',
-                    repeat: '20px'
-                }] : []
-            }} 
-        />
-    );
+const createCustomIcon = (text, isBase) => {
+    return L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 ${isBase ? 'bg-slate-800' : 'bg-blue-600'}">${text}</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
 }
 
 export default function LogisticsDashboard() {
@@ -121,26 +58,6 @@ export default function LogisticsDashboard() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTeams, setActiveTeams] = useState([])
-    const [mapInstance, setMapInstance] = useState(null)
-
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-    })
-
-    const onMapLoad = useCallback(function callback(map) {
-        setMapInstance(map)
-    }, [])
-
-    const onMapUnmount = useCallback(function callback(map) {
-        setMapInstance(null)
-    }, [])
-
-    useEffect(() => {
-        if (mapInstance && data) {
-            fitMapBounds(mapInstance, data, activeTeams)
-        }
-    }, [mapInstance, data, activeTeams])
 
     const fetchRoutes = async () => {
         try {
@@ -228,83 +145,49 @@ export default function LogisticsDashboard() {
             ) : (
                 <div className="flex-1 flex flex-col gap-6">
                     {/* Top Area: Interactive Map */}
-                    <div className="w-full h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0">
-                        {!isLoaded ? (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold bg-slate-50">
-                                Încărcare Google Maps...
-                            </div>
-                        ) : (
-                        <GoogleMap 
-                            mapContainerStyle={{ width: '100%', height: '100%' }} 
-                            center={{ lat: 50.8503, lng: 4.3517 }} 
-                            zoom={7}
-                            onLoad={onMapLoad}
-                            onUnmount={onMapUnmount}
-                            options={{
-                                mapTypeControl: false,
-                                streetViewControl: false,
-                                fullscreenControl: false,
-                                gestureHandling: 'cooperative'
-                            }}
+                    <div className="w-full h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0 z-0">
+                        <MapContainer 
+                            center={[50.8503, 4.3517]} 
+                            zoom={7} 
+                            scrollWheelZoom={true}
+                            style={{ width: '100%', height: '100%' }}
                         >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            <MapBoundsFitter data={data} activeTeams={activeTeams} />
+                            
                             {data.routes.filter(r => activeTeams.includes(r.team_id)).map(route => {
                                 const validWps = route.waypoints.filter(wp => wp.lat && wp.lng)
                                 if (validWps.length === 0) return null
                                 
                                 const positions = validWps.map(wp => [wp.lat, wp.lng])
-                                const forwardOrigin = positions[0];
-                                const forwardDest = positions[positions.length > 1 ? positions.length - 2 : 0];
-                                const forwardWps = positions.length > 2 ? positions.slice(1, positions.length - 2) : [];
-                                
-                                let returnOrigin = null;
-                                let returnDest = null;
-                                if (positions.length > 1) {
-                                    returnOrigin = positions[positions.length - 2];
-                                    returnDest = positions[positions.length - 1];
-                                }
                                 
                                 return (
                                     <React.Fragment key={`map-route-${route.team_id}`}>
                                         {positions.length > 1 && (
-                                            <GoogleMapsRoute 
-                                                origin={forwardOrigin} 
-                                                destination={forwardDest}
-                                                waypoints={forwardWps}
-                                                color={route.team_color} 
-                                                weight={5}
-                                                opacity={0.9}
-                                                isDashed={false}
-                                            />
-                                        )}
-                                        {returnOrigin && returnDest && (
-                                            <GoogleMapsRoute 
-                                                origin={returnOrigin} 
-                                                destination={returnDest}
-                                                color={route.team_color} 
-                                                weight={4}
-                                                opacity={0.8}
-                                                isDashed={true}
-                                                offsetDegrees={0.0003}
+                                            <Polyline 
+                                                positions={positions} 
+                                                pathOptions={{ color: route.team_color, weight: 4, opacity: 0.8 }} 
                                             />
                                         )}
                                         
                                         {validWps.map((wp, idx) => (
-                                            <OverlayView 
+                                            <Marker 
                                                 key={`wp-${idx}`} 
-                                                position={{ lat: wp.lat, lng: wp.lng }}
-                                                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                                                getPixelPositionOffset={(width, height) => ({ x: -(width / 2), y: -(height / 2) })}
+                                                position={[wp.lat, wp.lng]}
+                                                icon={createCustomIcon(wp.type.includes('base') ? 'B' : idx, wp.type.includes('base'))}
                                             >
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 ${wp.type.includes('base') ? 'bg-slate-800' : 'bg-blue-600'}`}>
-                                                    {wp.type.includes('base') ? 'B' : idx}
-                                                </div>
-                                            </OverlayView>
+                                                <Popup>
+                                                    <strong className="text-sm">{wp.name}</strong>
+                                                </Popup>
+                                            </Marker>
                                         ))}
                                     </React.Fragment>
                                 )
                             })}
-                        </GoogleMap>
-                        )}
+                        </MapContainer>
                         
                         {/* Map Overlay Stats */}
                         <div className="absolute top-4 right-4 z-[400] pointer-events-none">
