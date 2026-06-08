@@ -22,29 +22,29 @@ export default function BuienradarWidget() {
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <CloudRain className="w-4 h-4 text-blue-500" />
-                    <h2 className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide">
+                    <CloudRain className="w-5 h-5 text-white" />
+                    <h2 className="font-extrabold text-white text-sm uppercase tracking-wide">
                         Radar Ploaie (Belgia)
                     </h2>
                 </div>
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={handleManualRefresh}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-400 hover:text-blue-500"
+                        className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/80 hover:text-white"
                         title="Actualizează Radarul"
                     >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-500' : ''}`} />
+                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </button>
                     <a 
                         href="https://www.buienradar.be/" 
                         target="_blank" 
                         rel="noreferrer"
-                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-400 hover:text-blue-500"
+                        className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/80 hover:text-white"
                         title="Deschide Buienradar.be"
                     >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="w-4 h-4" />
                     </a>
                 </div>
             </div>

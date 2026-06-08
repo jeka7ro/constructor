@@ -407,10 +407,44 @@ class Team(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    base_id = Column(String(36), ForeignKey("logistic_bases.id", ondelete="SET NULL"), nullable=True)
     
     organization = relationship("Organization")
     team_leader = relationship("User", foreign_keys=[team_leader_id])
     site = relationship("Site")
+    base = relationship("LogisticBase", foreign_keys=[base_id])
+
+
+class LogisticBase(Base):
+    """Bases/Garages where trucks are parked"""
+    __tablename__ = "logistic_bases"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    address = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    organization = relationship("Organization")
+
+
+class LogisticSandStation(Base):
+    """Sand Stations / Furnizori Nisip"""
+    __tablename__ = "logistic_sand_stations"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    address = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    organization = relationship("Organization")
 
 
 class TeamMember(Base):
@@ -959,6 +993,10 @@ class WorkOrder(Base):
     # ── Alocare Echipa si Vehicul ─────────────────────────────────────────────
     assigned_team_id    = Column(String(36), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     assigned_vehicle_id = Column(String(36), ForeignKey("vehicles.id", ondelete="SET NULL"), nullable=True)
+
+    # ── Logistica (calculate automat) ─────────────────────────────────────────
+    route_distance_km   = Column(Float, default=0.0, nullable=True)
+    route_sand_kg       = Column(Float, default=0.0, nullable=True)
 
     # ── Cantitati / Specificatii lucrare ────────────────────────────────────
     # volumes: [{label, quantity, unit, price}] — specificatii estimate

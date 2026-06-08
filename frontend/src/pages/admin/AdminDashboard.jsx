@@ -72,7 +72,7 @@ export default function AdminDashboard() {
     const currentSubdomain = useTenantStore((state) => state.getCurrentSubdomain())
 
     useEffect(() => {
-        if (!currentSubdomain && (admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && location.pathname === '/admin/dashboard') {
+        if (!currentSubdomain && (admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && location.pathname === '/admin/planning') {
             navigate('/admin/organizations', { replace: true })
         }
     }, [currentSubdomain, admin, location.pathname, navigate])
@@ -177,7 +177,10 @@ export default function AdminDashboard() {
             id: 'general',
             label: 'General',
             items: [
-                { path: '/admin/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+                { path: '/admin/planning', icon: LayoutDashboard, label: 'Planning' },
+                { path: '/admin/logistica', icon: Truck, label: 'Logistica' },
+                { path: '/admin/work-orders', icon: ClipboardList, label: 'Comenzi' },
+                { path: '/admin/screed-analytics', icon: Activity, label: 'Tabel calcul' },
                 { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
                 { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
             ]
@@ -198,9 +201,7 @@ export default function AdminDashboard() {
             items: [
                 { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
                 { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
-                { path: '/admin/work-orders', icon: ClipboardList, label: 'Comenzi de Lucru' },
                 { path: '/calculator', icon: Calculator, label: 'Calculator Clienți (Public)' },
-                { path: '/admin/screed-analytics', icon: Activity, label: 'Tabel Calcul (Sape)' },
                 { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
                 { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
             ]
@@ -210,7 +211,6 @@ export default function AdminDashboard() {
             label: 'Logistică & Financiar',
             items: [
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
-                
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
                 { path: '/admin/transport', icon: Navigation, label: 'Foi de Parcurs' },
                 { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
@@ -256,7 +256,9 @@ export default function AdminDashboard() {
     const isFeatureEnabled = (path) => {
         if (['/admin/sites', '/admin/site-photos'].includes(path)) return hasLongTerm
         if (path === '/admin/work-orders') return hasShortTerm
+        if (path === '/admin/planning') return isScreeds
         if (path === '/admin/timesheets') return !tenantFeatures.includes('disable_timesheets')
+        if (path === '/admin/logistica') return isScreeds || tenantFeatures.includes('logistica')
         if (['/admin/fleet', '/admin/transport'].includes(path)) return tenantFeatures.includes('fleet')
         if (['/admin/warehouse', '/admin/material-requests'].includes(path)) return tenantFeatures.includes('warehouse') || tenant?.has_warehouse === true
         if (path === '/admin/accommodations') return tenantFeatures.includes('accommodations')
@@ -596,7 +598,7 @@ export default function AdminDashboard() {
 
                 {/* 3. Dashboard (Home) - Centered Shrink-0 */}
                 <div className="relative flex justify-center w-[96px] shrink-0">
-                    <button onClick={() => navigate('/admin/dashboard')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-[color:var(--mobile-bg)] shadow-[0_5px_15px_rgba(0,0,0,0.15)] ${location.pathname === '/admin/dashboard' ? 'ring-2 ring-[color:var(--mobile-bg)] scale-105' : ''}`} style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}>
+                    <button onClick={() => navigate('/admin/planning')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-[color:var(--mobile-bg)] shadow-[0_5px_15px_rgba(0,0,0,0.15)] ${location.pathname === '/admin/planning' ? 'ring-2 ring-[color:var(--mobile-bg)] scale-105' : ''}`} style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}>
                         {tenant?.favicon_url ? (
                             <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-sm rounded-lg" />
                         ) : tenant?.logo_url ? (

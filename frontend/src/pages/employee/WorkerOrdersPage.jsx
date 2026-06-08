@@ -281,9 +281,35 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SUB-COMPONENT: Lightbox
+// ─────────────────────────────────────────────────────────────────────────────
+function Lightbox({ url, onClose }) {
+    if (!url) return null;
+    return (
+        <div 
+            className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-colors"
+            >
+                <X className="w-8 h-8" />
+            </button>
+            <img 
+                src={url} 
+                alt="Fullscreen" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                onClick={e => e.stopPropagation()} 
+            />
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
-function TabInfo({ order, photos, documents, onAcknowledge, acknowledging }) {
+function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
 
     // Parse access_notes in bullet lines
@@ -442,12 +468,10 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging }) {
                 <Section label="Documente & Poze Instructiuni">
                     <div className="space-y-2">
                         {instPhotos.map(p => (
-                            <a
+                            <button
                                 key={p.id}
-                                href={p.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-3 hover:bg-slate-50 transition-colors"
+                                onClick={() => onPhotoClick(p.url)}
+                                className="w-full flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-3 hover:bg-slate-50 transition-colors text-left"
                             >
                                 <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                                     <FileImage className="w-5 h-5 text-slate-400" />
@@ -458,8 +482,8 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging }) {
                                     </p>
                                     <p className="text-xs text-slate-400">{fmtTime(p.uploaded_at)}</p>
                                 </div>
-                                <Download className="w-4 h-4 text-slate-400 shrink-0" />
-                            </a>
+                                <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
+                            </button>
                         ))}
                     </div>
                 </Section>
@@ -710,7 +734,7 @@ function TabMateriale({ order, onSaveConsumed }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: EXTRA (poze interne — sef echipa)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal }) {
+function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal, onPhotoClick }) {
     const internalPhotos = photos.filter(p => p.photo_type === 'internal')
     const fileRef = useRef(null)
 
@@ -730,13 +754,13 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                         {internalPhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {internalPhotos.map(p => (
-                                    <a key={p.id} href={p.url} target="_blank" rel="noreferrer">
+                                    <button key={p.id} onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
                                         <img
                                             src={p.url}
                                             alt={p.description || 'Poza interna'}
                                             className="w-full aspect-square object-cover rounded-xl border border-slate-200"
                                         />
-                                    </a>
+                                    </button>
                                 ))}
                             </div>
                         )}
@@ -775,7 +799,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: POZE
 // ─────────────────────────────────────────────────────────────────────────────
-function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto }) {
+function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto, onPhotoClick }) {
     const fileRef = useRef(null)
     const machineFileRef = useRef(null)
     const isCompleted = order.status === 'completed'
@@ -801,9 +825,9 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {completionPhotos.map(p => (
                             <div key={p.id} className="relative">
-                                <a href={p.url} target="_blank" rel="noreferrer">
+                                <button onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
                                     <img src={p.url} alt="Poza finalizare" className="w-full aspect-square object-cover rounded-xl border border-slate-200" />
-                                </a>
+                                </button>
                                 {!isCompleted && (
                                     <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
                                         <Trash2 className="w-4 h-4" />
@@ -825,9 +849,9 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {machinePhotos.map(p => (
                             <div key={p.id} className="relative">
-                                <a href={p.url} target="_blank" rel="noreferrer">
+                                <button onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
                                     <img src={p.url} alt="Poza Calculator Masina" className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm" />
-                                </a>
+                                </button>
                                 {!isCompleted && (
                                     <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
                                         <Trash2 className="w-4 h-4" />
@@ -991,6 +1015,7 @@ export default function WorkerOrdersPage() {
     const [uploadingInternal, setUploadingInternal]   = useState(false)
     const [uploadingMachine, setUploadingMachine]     = useState(false)
     const [closing, setClosing]                       = useState(false)
+    const [lightboxUrl, setLightboxUrl]               = useState(null)
 
     const isLeader = ['TEAM_LEADER', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN'].includes(user?.role?.code)
 
@@ -1329,6 +1354,7 @@ export default function WorkerOrdersPage() {
                         documents={documents}
                         onAcknowledge={handleAcknowledge}
                         acknowledging={acknowledging}
+                        onPhotoClick={setLightboxUrl}
                     />
                 )}
                 {activeTab === 'ore' && (
@@ -1354,6 +1380,7 @@ export default function WorkerOrdersPage() {
                         isLeader={isLeader}
                         onUploadInternal={f => handleUploadPhoto(f, 'internal')}
                         uploadingInternal={uploadingInternal}
+                        onPhotoClick={setLightboxUrl}
                     />
                 )}
                 {activeTab === 'poze' && (
@@ -1367,6 +1394,7 @@ export default function WorkerOrdersPage() {
                         uploadingMachine={uploadingMachine}
                         ocrData={ocrData}
                         onDeletePhoto={handleDeletePhoto}
+                        onPhotoClick={setLightboxUrl}
                     />
                 )}
                 {activeTab === 'trimite' && (
@@ -1430,6 +1458,8 @@ export default function WorkerOrdersPage() {
             <div className="shrink-0 z-20">
                 <TabBar active={activeTab} onChange={setActiveTab} onHomePress={() => navigate('/')} tenant={tenant} />
             </div>
+
+            <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
         </div>
     )
 }

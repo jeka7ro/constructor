@@ -4,7 +4,7 @@ import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
-    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink
+    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -72,13 +72,19 @@ export default function AdminOverview() {
     const [workOrdersStats, setWorkOrdersStats] = useState({ total: 0, active: 0, draft: 0 })
     const [allWorkOrders, setAllWorkOrders] = useState([])
     const [recentWorkOrders, setRecentWorkOrders] = useState([])
+    const [teams, setTeams] = useState([])
 
     // Feature flags
     const tenantFeatures = tenant?.features || []
     const isLongTerm = tenant?.has_long_term_sites !== false
     const isShortTerm = tenant?.has_short_term_interventions === true
-    const isScreeds = tenantFeatures.includes('screeds') === true || tenant?.name?.toLowerCase().includes('davide')
     const hasWarehouse = tenant?.features?.includes('warehouse') || tenant?.has_warehouse === true
+
+    const [isScreeds, setIsScreeds] = useState(() => {
+        const saved = localStorage.getItem('pontaj_is_screeds_mode')
+        if (saved !== null) return saved === 'true'
+        return true // Make Screeds default as requested
+    })
 
     const [weeklyOrdersCount, setWeeklyOrdersCount] = useState(0)
     const [todayOrdersCount, setTodayOrdersCount] = useState(0)
@@ -159,6 +165,7 @@ export default function AdminOverview() {
         fetchFleetAlerts()
         fetchSesizariNecesar()
         fetchComplaints()
+        fetchTeams()
         if (isShortTerm) fetchWorkOrdersStats()
 
         if (refreshTimer.current) clearInterval(refreshTimer.current)
@@ -169,6 +176,7 @@ export default function AdminOverview() {
             fetchFleetAlerts()
             fetchSesizariNecesar()
             fetchComplaints()
+            fetchTeams()
             if (isShortTerm) fetchWorkOrdersStats()
         }, 15000)
 
@@ -191,9 +199,16 @@ export default function AdminOverview() {
         finally { setStatsLoading(false) }
     }
 
+    const getDateParams = () => {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 28);
+        return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`;
+    }
+
     const fetchWorkOrdersStats = async () => {
         try {
-            const res = await api.get('/admin/work-orders')
+            const res = await api.get(`/admin/work-orders${getDateParams()}`)
             const all = res.data?.items || res.data || []
             const total = res.data?.total || all.length
             const active = Array.isArray(all) ? all.filter(w => w.status === 'in_progress' || w.status === 'sent' || w.status === 'confirmed').length : 0
@@ -204,6 +219,59 @@ export default function AdminOverview() {
                 setRecentWorkOrders(all.slice(0, 10))
             }
         } catch {}
+    }
+
+    const fetchTeams = async () => {
+        try {
+            const res = await api.get('/admin/teams/')
+            setTeams(res.data?.teams || res.data || [])
+        } catch (e) { console.error(e) }
+    }
+
+    const handleTeamDropOnOrder = async (workOrderId, teamId) => {
+        try {
+            const team = teams.find(t => t.id === teamId)
+            
+            // Optimistic UI Update
+            setAllWorkOrders(prev => prev.map(wo => {
+                if (wo.id === workOrderId) {
+                    return {
+                        ...wo,
+                        assigned_team_id: teamId,
+                        assigned_team_name: team?.name || wo.assigned_team_name,
+                        assigned_team_color: team?.color || wo.assigned_team_color
+                    }
+                }
+                return wo
+            }))
+
+            await api.put(`/admin/work-orders/${workOrderId}`, {
+                assigned_team_id: teamId
+            })
+            // Silent refresh
+            fetchWorkOrdersStats()
+        } catch (error) {
+            console.error("Error assigning team:", error)
+            alert("Eroare la asignarea echipei.")
+            fetchWorkOrdersStats()
+        }
+    }
+
+    const handleOrderRescheduled = async (woId, newDate, newTime, revert = false) => {
+        if (woId && newDate && newTime) {
+            setAllWorkOrders(prev => prev.map(wo => wo.id === String(woId) ? { ...wo, start_date: newDate, start_time: newTime } : wo));
+        }
+        if (revert || !woId) {
+            fetchWorkOrdersStats();
+        } else {
+            // Background update
+            api.get(`/admin/work-orders${getDateParams()}`).then(res => {
+                const all = res.data?.items || res.data || [];
+                if (Array.isArray(all)) {
+                    setAllWorkOrders(all);
+                }
+            }).catch(e => {})
+        }
     }
 
     const fetchChartData = async () => {
@@ -356,6 +424,16 @@ export default function AdminOverview() {
                         </span>
                     )}
                     <button
+                        onClick={() => {
+                            const newVal = !isScreeds;
+                            setIsScreeds(newVal);
+                            localStorage.setItem('pontaj_is_screeds_mode', newVal);
+                        }}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${isScreeds ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                    >
+                        Modul: {isScreeds ? 'Șape' : 'Șantiere'}
+                    </button>
+                    <button
                         onClick={() => { fetchStats(true); fetchChartData(); fetchActiveWorkers() }}
                         className="p-2 hover:bg-white rounded-full transition-colors border border-slate-200 bg-white shadow-sm"
                     >
@@ -397,10 +475,69 @@ export default function AdminOverview() {
             {isShortTerm && (
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
                     <div className="xl:col-span-3">
-                        <ShortWorksCalendar workOrders={allWorkOrders} onOrderRescheduled={fetchWorkOrdersStats} />
+                        <ShortWorksCalendar 
+                            workOrders={allWorkOrders} 
+                            onOrderRescheduled={handleOrderRescheduled} 
+                            onTeamDrop={handleTeamDropOnOrder}
+                        />
                     </div>
-                    <div className="xl:col-span-1 min-h-[300px]">
-                        <BuienradarWidget />
+                    <div className="xl:col-span-1 flex flex-col gap-6 h-[800px]">
+                        <div className="min-h-[300px]">
+                            <BuienradarWidget />
+                        </div>
+                        {/* Drag and Drop Teams Module */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
+                            <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 shrink-0">
+                                <h3 className="font-extrabold text-white flex items-center gap-2 mb-1 text-sm uppercase tracking-wide">
+                                    <Truck className="w-4 h-4 text-white" />
+                                    Camioane (Echipe)
+                                </h3>
+                                <p className="text-xs text-blue-100">
+                                    Trage un camion peste lucrare.
+                                </p>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
+                                {teams.map(team => (
+                                    <div 
+                                        key={team.id}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "team")
+                                            e.dataTransfer.setData("id", String(team.id))
+                                            e.currentTarget.classList.add('opacity-50', 'border-dashed', 'scale-95')
+                                        }}
+                                        onDragEnd={(e) => {
+                                            e.currentTarget.classList.remove('opacity-50', 'border-dashed', 'scale-95')
+                                        }}
+                                        className="p-1.5 rounded-lg border-2 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between border-transparent shadow-sm hover:shadow-md"
+                                        style={{ borderLeftColor: team.color || '#3b82f6', borderLeftWidth: '3px' }}
+                                    >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${team.color || '#3b82f6'}20` }}>
+                                                <Truck className="w-3 h-3" style={{ color: team.color || '#3b82f6' }} />
+                                            </div>
+                                            <div className="min-w-0 flex flex-col justify-center">
+                                                <div className="font-bold text-xs text-slate-800 dark:text-white truncate max-w-[120px] leading-tight">{team.name}</div>
+                                                {team.members?.length > 0 && (
+                                                    <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none mt-0.5">{team.members.length} membri</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex -space-x-2 shrink-0">
+                                            {team.members?.slice(0, 3).map((m, i) => (
+                                                <AvatarImg key={i} name={m.user_full_name || m.name || m.first_name || 'E'} size="w-5 h-5 border border-white dark:border-slate-800" textSize="text-[7px]" />
+                                            ))}
+                                            {(team.members?.length || 0) > 3 && (
+                                                <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 border border-white dark:border-slate-800 flex items-center justify-center text-[7px] font-bold text-slate-600 dark:text-slate-300 z-10 relative">
+                                                    +{team.members.length - 3}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -408,13 +545,13 @@ export default function AdminOverview() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
 {/* Recent Work Orders */}
             {isShortTerm && dashboardLayout.recent_work_orders?.visible && (
-                <div className={getLayoutClass("recent_work_orders", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5")}>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                            <ClipboardList className="w-4 h-4 text-violet-500" />
+                <div className={getLayoutClass("recent_work_orders", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden")}>
+                    <div className="flex items-center justify-between px-5 py-4 bg-blue-600 dark:bg-slate-800">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <ClipboardList className="w-4 h-4 text-white" />
                             Comenzi Recente
                         </h3>
-                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-600 hover:text-blue-700">Vezi toate →</button>
+                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded">Vezi toate →</button>
                     </div>
                     {recentWorkOrders.length === 0 ? (
                         <div className="text-center py-6 text-slate-400 text-sm">
@@ -481,16 +618,16 @@ export default function AdminOverview() {
             {/* Row 2: Weekly Comparison + Site Live Map */}
             
                 {/* Weekly Hours Chart — takes 2 cols */}
-                {dashboardLayout.hours_chart?.visible && (
-<div className={getLayoutClass("hours_chart", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5")}>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-blue-500" />
+                {isLongTerm && dashboardLayout.hours_chart?.visible && (
+<div className={getLayoutClass("hours_chart", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden")}>
+                    <div className="flex items-center justify-between px-5 py-4 bg-blue-600 dark:bg-slate-800">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-white" />
                             {t('dashboard.weekly_chart')}
                         </h3>
                         <div className="flex items-center gap-2">
-                            <span className={`text-xs font-semibold flex items-center gap-1 ${weekChange >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                {weekChange >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                            <span className={`text-xs font-semibold flex items-center gap-1 text-white bg-white/20 px-2 py-1 rounded shadow-sm`}>
+                                {weekChange >= 0 ? <ArrowUpRight className="w-3 h-3 text-green-300" /> : <ArrowDownRight className="w-3 h-3 text-red-300" />}
                                 {Math.abs(weekChange).toFixed(0)}% {t('dashboard.vs_last_week')}
                             </span>
                         </div>
@@ -529,13 +666,15 @@ export default function AdminOverview() {
                 </div>
 )}
 
-                {/* Live Site Map — same height as chart card */}
-                {dashboardLayout.live_sites?.visible && (
-<div className={getLayoutClass("live_sites", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col")} style={{height: '360px'}}>
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
-                        <MapPin className="w-4 h-4 text-emerald-500" />
-                        {t('dashboard.live_sites')}
-                    </h3>
+                {/* Live Site Map */}
+                {isLongTerm && dashboardLayout.live_sites?.visible && (
+<div className={getLayoutClass("live_sites", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden min-h-[400px]")}>
+                    <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 shrink-0">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-white" />
+                            {t('dashboard.live_sites')}
+                        </h3>
+                    </div>
                     {siteList.length === 0 ? (
                         <div className="flex items-center justify-center flex-1 text-slate-400 text-sm">
                             <div className="text-center">
@@ -585,7 +724,7 @@ export default function AdminOverview() {
             {/* Row 3: Hourly Chart + Top Performers + Late Arrivals/Production */}
             
                 {/* Hourly Activity */}
-                {dashboardLayout.hourly_activity?.visible && (
+                {isLongTerm && dashboardLayout.hourly_activity?.visible && (
 <div className={getLayoutClass("hourly_activity", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col")}>
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
                         <Activity className="w-4 h-4 text-green-500" />
@@ -615,7 +754,7 @@ export default function AdminOverview() {
 )}
 
                 {/* Top Performers & Late Arrivals */}
-                {dashboardLayout.top_performers?.visible && (
+                {isLongTerm && dashboardLayout.top_performers?.visible && (
 <div className={getLayoutClass("top_performers", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col max-h-[500px] overflow-y-auto custom-scrollbar")}>
                     <div className="flex-1">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2 shrink-0">
@@ -679,7 +818,7 @@ export default function AdminOverview() {
                 )}
 
                 {/* Alerts + Production — single card, two sections */}
-                {dashboardLayout.alerts_production?.visible && (
+                {isLongTerm && dashboardLayout.alerts_production?.visible && (
 <div className={getLayoutClass("alerts_production", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-5 flex flex-col gap-5 max-h-[500px] overflow-y-auto custom-scrollbar")}>
                     
                     {/* Fleet Expiry Alerts */}
@@ -812,7 +951,7 @@ export default function AdminOverview() {
             
                 
                 {/* Reclamații / Sesizări Reale */}
-                {dashboardLayout.worker_complaints?.visible && (
+                {isLongTerm && dashboardLayout.worker_complaints?.visible && (
 <div className={getLayoutClass("worker_complaints", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden")}>
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
@@ -854,7 +993,7 @@ export default function AdminOverview() {
 )}
 
                 {/* Cereri Magazie — cereri noi neaprobate */}
-                {dashboardLayout.warehouse_requests?.visible && hasWarehouse && (
+                {isLongTerm && dashboardLayout.warehouse_requests?.visible && hasWarehouse && (
                 <div className={getLayoutClass("warehouse_requests", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden")}>
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
@@ -897,7 +1036,7 @@ export default function AdminOverview() {
                 )}
 
                 {/* Necesar + Livrat — aprobat nelivrat + istoric */}
-                {dashboardLayout.warehouse_status?.visible && hasWarehouse && (
+                {isLongTerm && dashboardLayout.warehouse_status?.visible && hasWarehouse && (
                 <div className={getLayoutClass("warehouse_status", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden flex flex-col")}>
                     {/* Secțiunea: De Livrat */}
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
@@ -991,7 +1130,7 @@ export default function AdminOverview() {
 </div>
 
 {/* Live Workers Table */}
-            {dashboardLayout.live_workers?.visible && (() => {
+            {isLongTerm && dashboardLayout.live_workers?.visible && (() => {
                 const liveWorkers = activeWorkers.filter(w => w.status !== 'terminat')
                 const doneWorkers = activeWorkers.filter(w => w.status === 'terminat')
                 const columns = [
@@ -1134,12 +1273,14 @@ export default function AdminOverview() {
             })()}
 
             {/* Quick Actions */}
+            {isLongTerm && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <QuickAction icon={Clock} title={t('nav.timesheets')} desc={t('dashboard.view_timesheets')} color="bg-blue-500" onClick={() => navigate('/admin/timesheets')} />
                 <QuickAction icon={BarChart3} title={t('nav.reports')} desc={t('dashboard.generate_report')} color="bg-indigo-500" onClick={() => navigate('/admin/reports')} />
                 <QuickAction icon={Activity} title={t('nav.activities')} desc={t('dashboard.manage_catalog')} color="bg-violet-500" onClick={() => navigate('/admin/activities')} />
                 <QuickAction icon={Users} title={t('nav.users')} desc={`${stats.total_users} ${t('users.total_label')}`} color="bg-slate-600" onClick={() => navigate('/admin/users')} />
             </div>
+            )}
 
             {/* Worker Detail Drawer */}
             {selectedWorker && (

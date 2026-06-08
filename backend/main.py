@@ -19,7 +19,8 @@ from app.api import (
     admin_material_requests, user_material_requests, user_warehouse, user_notifications,
     alerts, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
     public_tenant, admin_work_orders, admin_organizations, admin_transport,
-    admin_leaves, calendar_sync, public_work_orders, worker_orders
+    admin_leaves, calendar_sync, public_work_orders, worker_orders,
+    admin_logistics
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.robaws_scraper import run_all_scrapers
@@ -314,6 +315,7 @@ app.include_router(admin_leaves.router, prefix="/api")
 app.include_router(calendar_sync.router, prefix="/api")
 app.include_router(public_work_orders.router, prefix="/api")
 app.include_router(worker_orders.router, prefix="/api")
+app.include_router(admin_logistics.router, prefix="/api")
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body

@@ -25,7 +25,7 @@ export default function PhotoTestPage() {
                 {/* Header */}
                 <div className="mb-6">
                     <button
-                        onClick={() => navigate('/admin/dashboard')}
+                        onClick={() => navigate('/admin/planning')}
                         className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
                     >
                         <ArrowLeft className="w-4 h-4" />

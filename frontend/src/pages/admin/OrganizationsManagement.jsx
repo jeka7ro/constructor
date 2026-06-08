@@ -15,7 +15,7 @@ export default function OrganizationsManagement() {
     
     useEffect(() => {
         if (admin && admin.role !== 'SUPER_ADMIN' && !admin.is_super_admin) {
-            navigate('/admin/dashboard')
+            navigate('/admin/planning')
         }
     }, [admin, navigate])
 
@@ -242,6 +242,7 @@ export default function OrganizationsManagement() {
         { id: 'accommodations', label: 'Cazări' },
         { id: 'expenses', label: 'Deconturi / Cheltuieli' },
         { id: 'reports', label: 'Rapoarte Avansate' },
+        { id: 'logistica', label: 'Logistica' },
     ]
 
     return (

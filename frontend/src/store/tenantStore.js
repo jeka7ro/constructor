@@ -12,30 +12,14 @@ const useTenantStore = create(
             
             // Helper to get domain/slug
             getCurrentSubdomain: () => {
-                const searchParams = new URLSearchParams(window.location.search)
-                if (searchParams.has('tenant')) {
-                    const t = searchParams.get('tenant')
-                    if (t === 'reset' || t === 'master') {
-                        localStorage.removeItem('pontaj_test_tenant')
-                        return null
-                    }
-                    localStorage.setItem('pontaj_test_tenant', t)
-                    return t
-                }
-                const savedTenant = localStorage.getItem('pontaj_test_tenant')
-                
                 const hostname = window.location.hostname
                 
-                // Allow fallback testing on netlify directly using URL params
-                if (hostname.endsWith('.netlify.app') || hostname.endsWith('.railway.app') || hostname === 'localhost' || hostname === '127.0.0.1') {
-                    if (savedTenant) return savedTenant
-                }
-                
+                // If it's pure localhost or IP, it's the master tenant (Platforma Centrala)
                 if (hostname === 'localhost' || hostname === '127.0.0.1') {
                     return null
                 }
                 
-                // Allow *.localhost for testing locally
+                // Allow *.localhost for testing locally without localStorage leaking!
                 if (hostname.endsWith('.localhost')) {
                     return hostname.split('.')[0]
                 }

@@ -5,7 +5,7 @@ import {
     ClipboardList, Plus, Send, Eye, Pencil, Trash2,
     CheckCircle2, Clock, CircleDot, XCircle, Copy,
     ExternalLink, ChevronDown, Filter, Pen, X, Timer, User, Package, Trash,
-    FileText, CheckCircle, Play, Ban, MapPin, Mail
+    FileText, CheckCircle, Play, Ban, MapPin, Mail, Truck, Activity
 } from 'lucide-react'
 import api from '../../lib/api'
 import KPICard from '../../components/KPICard'
@@ -15,7 +15,6 @@ const STATUS_CONFIG = {
     draft:       { label: 'Nouă',       color: 'bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', dot: 'bg-slate-400' },
     sent:        { label: 'Trimisă',     color: 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800', dot: 'bg-amber-500' },
     confirmed:   { label: 'Confirmată',  color: 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', dot: 'bg-emerald-500' },
-    in_progress: { label: 'În Execuție', color: 'bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', dot: 'bg-blue-500' },
     completed:   { label: 'Finalizată',  color: 'bg-violet-50 text-violet-600 border border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800', dot: 'bg-violet-500' },
     cancelled:   { label: 'Anulată',     color: 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', dot: 'bg-red-500' },
     isoflex:     { label: 'Isoflex',     color: 'bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800', dot: 'bg-indigo-500' },
@@ -28,6 +27,9 @@ export default function WorkOrders() {
     const [workOrders, setWorkOrders] = useState([])
     const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState('')
+    const [filterTeam, setFilterTeam] = useState('')
+    const [teams, setTeams] = useState([])
+    const [filterPeriod, setFilterPeriod] = useState('current_month')
     const [copiedId, setCopiedId] = useState(null)
     const [deletingId, setDeletingId] = useState(null)
     const [sendingId, setSendingId] = useState(null)
@@ -38,19 +40,94 @@ export default function WorkOrders() {
     const [sessionsLoading, setSessionsLoading] = useState(false)
     const [matModal, setMatModal] = useState(null)            // { woId, title, rows }
     const [matSaving, setMatSaving] = useState(false)
+    const [isSyncing, setIsSyncing] = useState(false)
+    const [deleteModal, setDeleteModal] = useState(null)      // { wo: object }
+
+    const getPeriodDates = (period) => {
+        const now = new Date()
+        let start, end
+        
+        // helper functions
+        const getMonday = (d) => {
+            const date = new Date(d)
+            const day = date.getDay(), diff = date.getDate() - day + (day === 0 ? -6 : 1)
+            return new Date(date.setDate(diff))
+        }
+        
+        switch (period) {
+            case 'today':
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                end = new Date(start)
+                break
+            case 'current_week':
+                start = getMonday(now)
+                start.setHours(0,0,0,0)
+                end = new Date(start)
+                end.setDate(end.getDate() + 6)
+                break
+            case 'last_week':
+                start = getMonday(now)
+                start.setDate(start.getDate() - 7)
+                start.setHours(0,0,0,0)
+                end = new Date(start)
+                end.setDate(end.getDate() + 6)
+                break
+            case 'current_month':
+                start = new Date(now.getFullYear(), now.getMonth(), 1)
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+                break
+            case 'last_month':
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+                end = new Date(now.getFullYear(), now.getMonth(), 0)
+                break
+            case 'current_year':
+                start = new Date(now.getFullYear(), 0, 1)
+                end = new Date(now.getFullYear(), 11, 31)
+                break
+            default:
+                return { start_date: '', end_date: '' }
+        }
+        
+        const pad = (n) => n.toString().padStart(2, '0')
+        return {
+            start_date: `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`,
+            end_date: `${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`
+        }
+    }
 
     const fetchOrders = async () => {
         setLoading(true)
         try {
-            const params = filterStatus ? `?status=${filterStatus}` : ''
-            const res = await api.get(`/admin/work-orders${params}`)
+            let params = []
+            if (filterStatus) params.push(`status=${filterStatus}`)
+            if (filterPeriod !== 'all') {
+                const dates = getPeriodDates(filterPeriod)
+                if (dates.start_date) params.push(`start_date=${dates.start_date}`)
+                if (dates.end_date) params.push(`end_date=${dates.end_date}`)
+            }
+            const q = params.length > 0 ? `?${params.join('&')}` : ''
+            const res = await api.get(`/admin/work-orders${q}`)
             const data = Array.isArray(res.data) ? res.data : (res.data?.items || [])
             setWorkOrders(data)
         } catch (e) { alert('API Error: ' + (e.response?.data?.detail || e.message)) }
         finally { setLoading(false) }
     }
 
-    useEffect(() => { fetchOrders() }, [filterStatus])
+    useEffect(() => { 
+        fetchOrders() 
+    }, [filterStatus, filterPeriod])
+
+    useEffect(() => {
+        const fetchTeams = async () => {
+            try {
+                const res = await api.get('/admin/teams/')
+                setTeams(res.data.teams || [])
+            } catch (e) {
+                console.error("Failed to fetch teams", e)
+            }
+        }
+        fetchTeams()
+    }, [])
 
     const handleSendClick = (wo, method) => {
         setSendModal({ wo, method })
@@ -90,12 +167,14 @@ export default function WorkOrders() {
         }
     }
 
-    const handleDelete = async (wo) => {
-        if (!confirm(`Ștergi comanda "${wo.title}"?`)) return
+    const handleDelete = async () => {
+        if (!deleteModal) return;
+        const { wo } = deleteModal;
         setDeletingId(wo.id)
         try {
             await api.delete(`/admin/work-orders/${wo.id}`)
             setWorkOrders(prev => prev.filter(w => w.id !== wo.id))
+            setDeleteModal(null)
         } catch (e) {
             alert(e.response?.data?.detail || 'Eroare la ștergere.')
         } finally {
@@ -191,16 +270,14 @@ export default function WorkOrders() {
                 >
                     <Pencil className="w-4 h-4" />
                 </button>
-                {['draft', 'cancelled'].includes(wo.status) && (
-                    <button
-                        onClick={() => handleDelete(wo)}
-                        disabled={deletingId === wo.id}
-                        title="Șterge"
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-slate-500 hover:text-red-500"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                )}
+                <button
+                    onClick={() => setDeleteModal({ wo })}
+                    disabled={deletingId === wo.id}
+                    title="Șterge"
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-slate-500 hover:text-red-500"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
             </div>
         )
     }
@@ -237,12 +314,12 @@ export default function WorkOrders() {
             )
         },
         {
-            key: 'date', label: 'Date Lucrare', sortable: true,
+            key: 'start_date', label: 'Date Lucrare', sortable: true,
             render: (wo) => (
                 <div>
                     {wo.start_date && (
                         <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            Start: {formatDate(wo.start_date)}
+                            {formatDate(wo.start_date)}
                         </div>
                     )}
                     {!wo.start_date && <div className="text-sm text-slate-400">—</div>}
@@ -251,29 +328,43 @@ export default function WorkOrders() {
         },
         {
             key: 'summary', label: 'Sumar', sortable: false,
-            render: (wo) => (
-                <div className="flex flex-col gap-1.5 max-w-[200px]">
-                    {wo.volumes && wo.volumes.length > 0 && (
-                        <div className="flex items-start gap-1">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 mt-0.5">Vol:</span>
-                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate" title={wo.volumes.map(v => `${v.label} (${v.quantity} ${v.unit})`).join(', ')}>
-                                {wo.volumes.map(v => `${v.label} ${v.quantity ? `(${v.quantity} ${v.unit})` : ''}`).join(', ')}
-                            </span>
-                        </div>
-                    )}
-                    {wo.materials && wo.materials.length > 0 && (
-                        <div className="flex items-start gap-1">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 mt-0.5">Mat:</span>
-                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate" title={wo.materials.map(m => `${m.name} (${m.quantity} ${m.unit})`).join(', ')}>
-                                {wo.materials.map(m => `${m.name} ${m.quantity ? `(${m.quantity} ${m.unit})` : ''}`).join(', ')}
-                            </span>
-                        </div>
-                    )}
-                    {(!wo.volumes?.length && !wo.materials?.length) && (
-                        <span className="text-xs text-slate-400">—</span>
-                    )}
-                </div>
-            )
+            render: (wo) => {
+                const surfaceVol = wo.volumes?.find(v => v.unit === 'm²' || v.label?.toLowerCase().includes('sapa'))
+                const sandMat = wo.materials?.find(m => m.name?.toLowerCase().includes('nisip'))
+                const thicknessReq = wo.requirements?.find(r => r.name?.toLowerCase().includes('grosime'))
+                
+                let surfaceText = surfaceVol?.quantity ? `${surfaceVol.quantity} m²` : null
+                let thicknessText = thicknessReq?.value ? `Gros: ${thicknessReq.value} ${thicknessReq.unit || 'cm'}` : null
+                
+                let sandText = null
+                if (sandMat?.quantity) {
+                    const isKg = sandMat.unit?.toLowerCase() === 'kg'
+                    const val = parseFloat(sandMat.quantity)
+                    const tons = isKg ? (val / 1000).toFixed(1) : val
+                    sandText = `Nisip: ${tons} t`
+                }
+
+                if (!surfaceText && !sandText && !thicknessText) {
+                    return <span className="text-xs text-slate-400">—</span>
+                }
+
+                return (
+                    <div className="flex flex-col gap-0.5 max-w-[200px]">
+                        {(surfaceText || thicknessText) && (
+                            <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700 dark:text-slate-300 truncate">
+                                {surfaceText && <span>{surfaceText}</span>}
+                                {surfaceText && thicknessText && <span className="text-slate-300 dark:text-slate-600">|</span>}
+                                {thicknessText && <span className="text-xs text-slate-500">{thicknessText}</span>}
+                            </div>
+                        )}
+                        {sandText && (
+                            <div className="text-xs font-semibold text-slate-500 truncate">
+                                {sandText}
+                            </div>
+                        )}
+                    </div>
+                )
+            }
         },
         {
             key: 'status', label: 'Status', sortable: true,
@@ -321,13 +412,49 @@ export default function WorkOrders() {
                         <p className="text-sm text-slate-500 dark:text-slate-400">Gestionare comenzi B2B cu clienții</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => navigate('/admin/work-orders/new')}
-                    className="flex items-center gap-2 px-5 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all hover:scale-105"
-                >
-                    <Plus className="w-4 h-4" />
-                    Comandă Nouă
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative">
+                        <select
+                            value={filterPeriod}
+                            onChange={(e) => setFilterPeriod(e.target.value)}
+                            className="appearance-none pl-4 pr-10 h-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer hover:border-blue-300 transition-colors"
+                        >
+                            <option value="today">Azi</option>
+                            <option value="current_week">Săptămâna Curentă</option>
+                            <option value="last_week">Săptămâna Trecută</option>
+                            <option value="current_month">Luna Curentă</option>
+                            <option value="last_month">Luna Trecută</option>
+                            <option value="current_year">Anul Curent</option>
+                            <option value="all">Toate Perioadele</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    <button
+                        onClick={async () => {
+                            setIsSyncing(true);
+                            try {
+                                await api.post('/admin/work-orders/sync-robaws');
+                                await fetchOrders();
+                            } catch (e) {
+                                alert('Eroare sincronizare API: ' + (e.response?.data?.detail || e.message));
+                            } finally {
+                                setIsSyncing(false);
+                            }
+                        }}
+                        disabled={isSyncing}
+                        className="flex items-center gap-2 px-5 h-10 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold rounded-full shadow-md shadow-indigo-500/20 transition-all hover:scale-105"
+                    >
+                        {isSyncing ? <Activity className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+                        {isSyncing ? 'Se importă...' : 'Importă API'}
+                    </button>
+                    <button
+                        onClick={() => navigate('/admin/work-orders/new')}
+                        className="flex items-center gap-2 px-5 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all hover:scale-105"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Comandă Nouă
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}
@@ -336,11 +463,11 @@ export default function WorkOrders() {
                     const count = workOrders.filter(w => w.status === key).length
                     const kpiThemes = {
                         draft: 'slate', sent: 'orange', confirmed: 'green',
-                        in_progress: 'blue', completed: 'purple', cancelled: 'slate'
+                        completed: 'purple', cancelled: 'slate', isoflex: 'indigo'
                     }
                     const kpiIcons = {
                         draft: FileText, sent: Send, confirmed: CheckCircle2,
-                        in_progress: Play, completed: CheckCircle, cancelled: Ban
+                        completed: CheckCircle, cancelled: Ban, isoflex: Activity
                     }
                     return (
                         <KPICard
@@ -376,13 +503,48 @@ export default function WorkOrders() {
                 </div>
             )}
 
+            {/* Teams Filters */}
+            {teams.filter(t => t.robaws_email).length > 0 && (
+                <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+                    <KPICard
+                        label="Toate Camioanele"
+                        value={workOrders.length}
+                        icon={Package}
+                        colorTheme="slate"
+                        onClick={() => setFilterTeam('')}
+                        active={!filterTeam}
+                    />
+                    {teams.filter(t => t.robaws_email).map(team => {
+                        const count = workOrders.filter(w => w.assigned_team_id === team.id).length
+                        return (
+                            <KPICard
+                                key={team.id}
+                                label={team.name}
+                                value={count}
+                                icon={Truck}
+                                colorTheme="blue"
+                                onClick={() => setFilterTeam(filterTeam === team.id ? '' : team.id)}
+                                active={filterTeam === team.id}
+                            />
+                        )
+                    })}
+                </div>
+            )}
+
             {/* Table */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
+                    <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4 text-white" /> Tabel Comenzi de Lucru
+                    </h2>
+                </div>
                 <DataTable
                     columns={columns}
-                    data={workOrders}
+                    data={workOrders.filter(w => filterTeam ? w.assigned_team_id === filterTeam : true)}
                     loading={loading}
                     searchable={true}
+                    defaultSortKey="start_date"
+                    defaultSortDir="desc"
                     searchPlaceholder="Caută comandă..."
                     emptyText={filterStatus ? `Nicio comandă cu statusul "${STATUS_CONFIG[filterStatus]?.label}"` : 'Nicio comandă de lucru'}
                     rowStyle={(wo) => wo.assigned_team_color ? {
@@ -417,7 +579,7 @@ export default function WorkOrders() {
                                         </div>
                                         {wo.start_date && (
                                             <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                                                Start: {formatDate(wo.start_date)}
+                                                {formatDate(wo.start_date)}
                                             </div>
                                         )}
                                         {!wo.start_date && (
@@ -439,6 +601,40 @@ export default function WorkOrders() {
                     }}
                 />
             </div>
+
+            {/* Delete Modal */}
+            {deleteModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !deletingId && setDeleteModal(null)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-6">
+                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white text-center mb-2">Ștergere comandă</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                                Ești sigur că vrei să ștergi comanda <span className="font-bold text-slate-700 dark:text-slate-300">"{deleteModal.wo?.title}"</span>? Această acțiune este ireversibilă.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeleteModal(null)}
+                                    disabled={deletingId}
+                                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    Anulează
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={deletingId}
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-colors flex justify-center items-center gap-2"
+                                >
+                                    {deletingId ? <Activity className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    {deletingId ? 'Se șterge...' : 'Șterge definitiv'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Materials Consumed Modal */}
             {matModal && (

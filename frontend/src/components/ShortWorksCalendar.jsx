@@ -143,10 +143,24 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
         setCurrentDate(prev => addDays(prev, dir * 7));
     };
 
+    const dynamicStartHour = useMemo(() => {
+        let earliest = 24;
+        weeklyOrders.forEach(wo => {
+            if (wo.start_time) {
+                const h = parseInt(wo.start_time.split(':')[0], 10);
+                if (!isNaN(h) && h < earliest) earliest = h;
+            }
+        });
+        if (earliest === 24) return 7; // Dacă nu există comenzi, afișăm de la 07:00
+        if (earliest < 6) return earliest; // Dacă are comenzi la 05:00, afișăm de la 05:00!
+        if (earliest > 8) return 8; // Dacă prima e târziu (ex. 10:00), pornim de la 08:00
+        return earliest;
+    }, [weeklyOrders]);
+
     const getGridRowFromTime = (timeStr) => {
-        if (!timeStr) return 3; // Default to 08:00 (row 3 when starting at 06:00)
+        if (!timeStr) return 3; // Default
         const [hours] = timeStr.split(':').map(Number);
-        const row = hours - 6 + 1; // 06:00 is row 1
+        const row = hours - dynamicStartHour + 1; // dynamically shift rows
         return Math.max(1, Math.min(13, row));
     };
 
@@ -198,18 +212,18 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
     }, [weeklyOrders, currentDate]);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px] relative">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[800px] relative">
             {/* Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
                 <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-5 h-5 text-blue-600" />
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-white capitalize">
+                    <CalendarIcon className="w-5 h-5 text-white/90" />
+                    <h2 className="text-lg font-bold text-white capitalize">
                         {format(currentDate, 'MMMM yyyy', { locale: ro })}
                     </h2>
                 </div>
                 <div className="flex items-center gap-3">
 
-                    <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-blue-500 dark:border-slate-700 shadow-sm">
                     <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
                         <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -240,10 +254,10 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
             >
                 {/* Time Gutter */}
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
-                    <div className="h-12 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
+                    <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: 13 }).map((_, i) => (
                         <div key={i} className="h-20 border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
-                            {(i + 6).toString().padStart(2, '0')}:00
+                            {(i + dynamicStartHour).toString().padStart(2, '0')}:00
                         </div>
                     ))}
                 </div>
@@ -307,7 +321,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                     onClick={() => {
                                         if (!isDragging) {
                                             const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
-                                            const targetTime = `${(hourIndex + 6).toString().padStart(2, '0')}:00`;
+                                            const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
                                             navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`);
                                         }
                                     }}
@@ -318,13 +332,11 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                     }}
                                     onDrop={async (e) => {
                                         e.preventDefault();
-                                        setIsDragging(false);
-                                        setDraggedOrder(null);
                                         const woId = e.dataTransfer.getData("text/plain");
                                         if (!woId) return;
 
                                         const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
-                                        const targetTime = `${(hourIndex + 6).toString().padStart(2, '0')}:00`;
+                                        const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
 
                                         const wo = workOrders.find(o => o.id === woId);
                                         if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
@@ -401,8 +413,8 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         onDragStart={(e) => {
                                             e.stopPropagation();
                                             e.dataTransfer.setData("text/plain", String(wo.id));
+                                            e.dataTransfer.setData("type", "workOrder");
                                             e.dataTransfer.effectAllowed = "move";
-                                            // Defer state update to avoid React unmounting/re-rendering canceling the drag
                                             setTimeout(() => {
                                                 setIsDragging(true);
                                                 setDraggedOrder(wo.id);
@@ -421,13 +433,71 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             backgroundColor: `${colorHex}30`,
                                             borderLeftColor: colorHex,
                                             borderColor: `${colorHex}50`,
-                                            zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0))
+                                            zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0)),
+                                            pointerEvents: isDragging ? 'auto' : 'auto' // ensure it can receive drops!
                                         }}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (!isDragging) {
                                                 if (onOrderClick) onOrderClick(wo);
                                                 else navigate(`/admin/work-orders/${wo.id}`);
+                                            }
+                                        }}
+                                        onDragEnter={(e) => e.preventDefault()}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            e.dataTransfer.dropEffect = "move";
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            
+                                            // Handle Team Drop
+                                            const type = e.dataTransfer.getData("type");
+                                            if (type === "team") {
+                                                const teamId = e.dataTransfer.getData("id");
+                                                if (teamId && onTeamDrop) {
+                                                    onTeamDrop(wo.id, teamId);
+                                                }
+                                                return;
+                                            }
+                                            
+                                            // Handle Work Order Swap
+                                            const draggedWoId = e.dataTransfer.getData("text/plain");
+                                            if (!draggedWoId || draggedWoId === String(wo.id)) return;
+                                            
+                                            const draggedWo = workOrders.find(o => String(o.id) === draggedWoId);
+                                            if (!draggedWo) return;
+
+                                            const targetDate = wo.start_date || wo.deadline_date;
+                                            const targetTime = wo.start_time || '07:00';
+                                            
+                                            const sourceDate = draggedWo.start_date || draggedWo.deadline_date;
+                                            const sourceTime = draggedWo.start_time || '07:00';
+
+                                            setSyncing(true);
+                                            try {
+                                                // Update dragged order
+                                                await api.put(`/admin/work-orders/${draggedWo.id}`, {
+                                                    start_date: targetDate,
+                                                    start_time: targetTime
+                                                });
+                                                // Update target order to dragged order's original time
+                                                await api.put(`/admin/work-orders/${wo.id}`, {
+                                                    start_date: sourceDate,
+                                                    start_time: sourceTime
+                                                });
+                                                
+                                                if (onOrderRescheduled) {
+                                                    onOrderRescheduled();
+                                                } else {
+                                                    window.location.reload();
+                                                }
+                                            } catch (error) {
+                                                console.error("Eroare la schimbul de comenzi:", error);
+                                            } finally {
+                                                setSyncing(false);
                                             }
                                         }}
                                         title={`${wo.title} — trageți pentru a muta`}

@@ -22,6 +22,8 @@ export default function DataTable({
     emptyText,
     searchable = false,
     searchPlaceholder = 'Caută...',
+    defaultSortKey = null,
+    defaultSortDir = 'asc',
     rowStyle,
     rowClassName,
     onRowClick,
@@ -30,8 +32,8 @@ export default function DataTable({
     const { t } = useTranslation()
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(defaultPageSize)
-    const [sortKey, setSortKey] = useState(null)
-    const [sortDir, setSortDir] = useState('asc') // 'asc' | 'desc'
+    const [sortKey, setSortKey] = useState(defaultSortKey)
+    const [sortDir, setSortDir] = useState(defaultSortDir) // 'asc' | 'desc'
     const [searchTerm, setSearchTerm] = useState('')
 
     // 1. Filter

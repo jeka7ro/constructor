@@ -14,6 +14,7 @@ import AdminOverview from './pages/admin/AdminOverview'
 import TimesheetApprovalPage from './pages/admin/TimesheetApprovalPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import EmployeesManagement from './pages/admin/EmployeesManagement'
+import LogisticsRouter from './pages/admin/logistics/LogisticsRouter'
 
 import SitesManagement from './pages/admin/SitesManagement'
 import ActivitiesManagement from './pages/admin/ActivitiesManagement'
@@ -251,8 +252,8 @@ function App() {
                     {/* Admin Routes - MUST BE FIRST to prevent employee wildcard from catching them */}
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>}>
-                        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                        <Route path="dashboard" element={<AdminOverview />} />
+                        <Route index element={<Navigate to="/admin/planning" replace />} />
+                        <Route path="planning" element={<AdminOverview />} />
                         <Route path="users" element={<UsersManagement />} />
                         <Route path="employees" element={<EmployeesManagement />} />
                         <Route path="employees/:id" element={<EmployeesManagement />} />
@@ -283,6 +284,7 @@ function App() {
                         <Route path="work-orders/new" element={<WorkOrderForm />} />
                         <Route path="work-orders/:id" element={<WorkOrderDetail />} />
                         <Route path="work-orders/:id/edit" element={<WorkOrderForm />} />
+                        <Route path="logistica/*" element={<LogisticsRouter />} />
                     </Route>
 
                     {/* Public Order Routes */}
@@ -335,10 +337,10 @@ function SmartRedirect() {
         return <WorkspaceRouter isAdmin={false} />
     }
 
-    // Default routing based on role
-    // Only redirect to admin if they are hitting the root OR an admin route
-    if (admin && (location === '/' || location.startsWith('/admin'))) {
-        return <Navigate to="/admin/dashboard" replace />
+    // If an admin tries to access a non-admin path (like root /), don't force them into admin
+    // This allows testing the worker flow locally without incognito
+    if (admin && location.startsWith('/admin')) {
+        return <Navigate to="/admin/planning" replace />
     }
     
     // If no subdomain, we are on root, redirect to workspace router
@@ -408,7 +410,7 @@ function PublicWorkerRoute({ children }) {
 function PublicAdminRoute({ children }) {
     const { admin } = useAdminStore()
     if (admin) {
-        return <Navigate to="/admin/dashboard" replace />
+        return <Navigate to="/admin/planning" replace />
     }
     return children
 }

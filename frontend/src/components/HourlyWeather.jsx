@@ -31,10 +31,13 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
                 const hourNum = parseInt(hourStr.split(':')[0], 10);
                 
                 if (datePart === targetDate && hourNum >= 6 && hourNum <= 19) {
+                    const prob = hourly.precipitation_probability 
+                                ? hourly.precipitation_probability[i] 
+                                : (hourly.precipitation && hourly.precipitation[i] > 0 ? 100 : 0);
                     filtered.push({
                         time: hourStr,
                         temp: Math.round(hourly.temperature_2m[i]),
-                        precipProb: hourly.precipitation_probability ? hourly.precipitation_probability[i] : 0,
+                        precipProb: prob,
                         code: hourly.weather_code[i]
                     });
                 }
@@ -62,8 +65,14 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
         }
 
         setLoading(true);
-        // We use forecast_days=14 and past_days=30 to ensure we catch the date regardless of whether it's slightly past or future.
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date=${targetDate}&end_date=${targetDate}`;
+        const dateObj = new Date(targetDate);
+        const today = new Date();
+        const diffDays = (today - dateObj) / (1000 * 60 * 60 * 24);
+        
+        let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date=${targetDate}&end_date=${targetDate}`;
+        if (diffDays > 80) {
+            url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${targetDate}&end_date=${targetDate}&hourly=temperature_2m,precipitation,weather_code&timezone=auto`;
+        }
         
         const promise = fetch(url)
             .then(res => res.json())
@@ -96,7 +105,12 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
     }
     
     if (error || !hourlyData) {
-        return null; // Don't show anything if weather is unavailable
+        return (
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 flex flex-col items-center justify-center text-center">
+                <CloudSun className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Date meteo indisponibile pentru {dateStr.split('T')[0]}</p>
+            </div>
+        );
     }
 
     const getIcon = (code, className="w-5 h-5") => {

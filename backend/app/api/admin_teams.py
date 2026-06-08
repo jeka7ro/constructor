@@ -76,7 +76,58 @@ def list_teams(
 ):
     """List all teams."""
     teams = db.query(Team).order_by(Team.created_at.desc()).all()
-    return {"teams": [team_to_dict(t, db) for t in teams]}
+    if not teams:
+        return {"teams": []}
+    
+    leader_ids = [t.team_leader_id for t in teams if t.team_leader_id]
+    leaders = {u.id: u for u in db.query(User).filter(User.id.in_(leader_ids)).all()}
+    
+    site_ids = [t.site_id for t in teams if t.site_id]
+    sites = {s.id: s for s in db.query(ConstructionSite).filter(ConstructionSite.id.in_(site_ids)).all()}
+    
+    team_ids = [t.id for t in teams]
+    members_db = db.query(TeamMember).filter(TeamMember.team_id.in_(team_ids)).all()
+    
+    user_ids = [tm.user_id for tm in members_db]
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()}
+    
+    roles = {r.id: r for r in db.query(Role).all()}
+    
+    team_members_map = {t.id: [] for t in teams}
+    for tm in members_db:
+        u = users.get(tm.user_id)
+        if u:
+            role = roles.get(u.role_id)
+            team_members_map[tm.team_id].append({
+                "user_id": u.id,
+                "full_name": u.full_name,
+                "employee_code": u.employee_code,
+                "role_name": role.name if role else "N/A",
+            })
+            
+    result = []
+    for team in teams:
+        leader = leaders.get(team.team_leader_id)
+        site = sites.get(team.site_id)
+        members = team_members_map.get(team.id, [])
+        
+        result.append({
+            "id": team.id,
+            "name": team.name,
+            "team_leader_id": team.team_leader_id,
+            "team_leader_name": leader.full_name if leader else "N/A",
+            "site_id": team.site_id,
+            "site_name": site.name if site else None,
+            "is_active": team.is_active,
+            "color": team.color,
+            "robaws_email": team.robaws_email,
+            "robaws_password": team.robaws_password,
+            "member_count": len(members) + (1 if leader else 0),
+            "members": members,
+            "created_at": team.created_at.isoformat() if team.created_at else None,
+        })
+        
+    return {"teams": result}
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -190,13 +241,15 @@ def get_available_users(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """Get all users that can be team leaders or members."""
-    users = db.query(User).join(Role).filter(
+    users_roles = db.query(User, Role).join(Role, User.role_id == Role.id).filter(
         User.is_active == True,
-        Role.name != 'Super Administrator'
+        User.organization_id == current_admin.organization_id,
+        ~Role.name.ilike('%admin%'),
+        ~Role.code.ilike('%admin%'),
+        ~Role.name.ilike('%master%')
     ).all()
     result = []
-    for u in users:
-        role = db.query(Role).filter(Role.id == u.role_id).first()
+    for u, role in users_roles:
         result.append({
             "id": u.id,
             "full_name": u.full_name,

@@ -130,6 +130,7 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                         box-shadow:0 2px 8px rgba(0,0,0,0.3);
                         display:flex;align-items:center;gap:6px;">
                         ${site.name.length > 20 ? site.name.substring(0, 18) + '…' : site.name}
+                        ${site.county ? `<span style="opacity:0.8;font-size:10px;margin-left:4px;">(${site.county})</span>` : ''}
                         ${activeOrInterventions > 0 ? `<span style="background:rgba(255,255,255,0.25);border-radius:999px;padding:1px 7px;font-size:11px;">${activeOrInterventions}</span>` : ''}
                     </div>`,
                 iconAnchor: [0, 0],

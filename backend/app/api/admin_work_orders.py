@@ -11,7 +11,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction
@@ -176,6 +176,15 @@ def _serialize(wo: WorkOrder) -> dict:
         "checkout_at": wo.checkout_at.isoformat() if wo.checkout_at else None,
         # Note acces
         "access_notes": wo.access_notes,
+        "documents": [
+            {
+                "id": str(d.id),
+                "filename": d.filename,
+                "file_path": d.file_path,
+                "content_type": d.content_type,
+                "file_size": d.file_size
+            } for d in wo.documents
+        ] if getattr(wo, "documents", None) else []
     }
 
 
@@ -185,13 +194,25 @@ def _serialize(wo: WorkOrder) -> dict:
 @router.get("/work-orders")
 def list_work_orders(
     status: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Lista tuturor comenzilor de lucru ale organizației."""
     q = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id)
+    q = q.options(
+        joinedload(WorkOrder.site),
+        joinedload(WorkOrder.client),
+        joinedload(WorkOrder.assigned_team),
+        joinedload(WorkOrder.assigned_vehicle)
+    )
     if status:
         q = q.filter(WorkOrder.status == status)
+    if start_date:
+        q = q.filter(WorkOrder.start_date >= start_date)
+    if end_date:
+        q = q.filter(WorkOrder.start_date <= end_date)
     wos = q.order_by(WorkOrder.start_date.desc().nulls_last(), WorkOrder.created_at.desc()).all()
     return [_serialize(wo) for wo in wos]
 
@@ -199,6 +220,19 @@ def list_work_orders(
 # ──────────────────────────────────────────────────────────────────────────────
 # CREATE
 # ──────────────────────────────────────────────────────────────────────────────
+@router.post("/work-orders/sync-robaws")
+def sync_work_orders_robaws(
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Sincronizează manual comenzile din API-ul Robaws."""
+    from app.services.robaws_scraper import run_all_scrapers
+    try:
+        run_all_scrapers()
+        return {"ok": True, "message": "Sincronizarea cu Robaws s-a finalizat cu succes!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare sincronizare: {str(e)}")
+
 @router.post("/work-orders")
 def create_work_order(
     payload: WorkOrderCreate,
@@ -389,8 +423,6 @@ def delete_work_order(
     ).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
-    if wo.status not in ("draft", "cancelled"):
-        raise HTTPException(status_code=400, detail="Pot fi șterse doar comenzile în draft sau anulate.")
         
     if wo.status == "draft":
         sync_work_order_reservations(db, current_admin.organization_id, wo.materials or [], [])

@@ -111,6 +111,11 @@ export default function WorkOrderCalculations() {
             </div>
 
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
+                    <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-white" /> Rezultate Analiză Șape
+                    </h2>
+                </div>
                 <DataTable 
                     columns={columns}
                     data={orders}

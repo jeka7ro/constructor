@@ -54,7 +54,7 @@ export default function AdminLogin() {
             }
 
             setAuth(admin, access_token)
-            navigate('/admin/dashboard')
+            navigate('/admin/planning')
         } catch (err) {
             setError(err.response?.data?.detail || 'Eroare la autentificare')
         } finally {

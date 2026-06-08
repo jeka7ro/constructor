@@ -1,16 +1,18 @@
 import os
-import asyncio
-from datetime import datetime
-from typing import List
-
-from sqlalchemy.orm import Session
-from playwright.async_api import async_playwright
-import uuid
 import requests
+import uuid
+import json
+from datetime import datetime
+from dotenv import load_dotenv
+from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import Team, WorkOrder, WorkOrderDocument
 from app.storage import upload_file, get_content_type
+
+load_dotenv()
+ROBAWS_API_KEY = os.getenv("ROBAWS_API_KEY")
+ROBAWS_API_SECRET = os.getenv("ROBAWS_API_SECRET")
 
 def geocode_address_for_scraper(address: str):
     if not address or not address.strip(): return None, None
@@ -19,7 +21,7 @@ def geocode_address_for_scraper(address: str):
         query += ", Belgium"
         
     import re
-    headers = {"User-Agent": "IsoflexAppScraper/1.0"}
+    headers = {"User-Agent": "IsoflexAppAPI/1.0"}
     
     try:
         res = requests.get(
@@ -53,206 +55,191 @@ def geocode_address_for_scraper(address: str):
 
     return None, None
 
-async def run_scraper_for_team(team: Team, db: Session):
-    if not team.robaws_email or not team.robaws_password:
-        print(f"[Robaws] Sărit {team.name}: Lipsesc credențiale.")
+def run_api_sync_for_team(team: Team, db: Session):
+    api_key = team.robaws_email or ROBAWS_API_KEY
+    api_secret = team.robaws_password or ROBAWS_API_SECRET
+    
+    if not api_key or not api_secret:
+        print(f"[Robaws API] Sărit {team.name}: Lipsesc cheile API pentru echipă și din .env.")
         return
 
-    print(f"[Robaws] Se începe extragerea pentru {team.name} ({team.robaws_email})")
+    print(f"[Robaws API] Se începe sincronizarea pentru echipa {team.name}")
     
+    page = 0
+    total_pages = 1
+    limit = 50
+    inserted_count = 0
+    updated_count = 0
+
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-            page = await context.new_page()
-
-            # We'll collect the session ID for API calls if needed
-            session_id = None
-            def on_request(req):
-                nonlocal session_id
-                if "_s=" in req.url and not session_id:
-                    session_id = req.url.split("_s=")[1].split("&")[0]
-            page.on("request", on_request)
-
-            await page.goto("https://app.robaws.com/", wait_until="networkidle")
-            
-            email_input = page.locator("input[name='username']")
-            if await email_input.count() > 0:
-                await email_input.first.fill(team.robaws_email)
-            else:
-                await browser.close()
-                return
-
-            pass_input = page.locator("input[name='password']")
-            if await pass_input.count() > 0:
-                await pass_input.first.fill(team.robaws_password)
-            else:
-                await browser.close()
-                return
-
-            await pass_input.first.press("Enter")
-            
-            try:
-                await page.wait_for_timeout(10000)
-            except:
-                pass 
-            
-            # Loop dynamically over the rows
-            inserted_count = 0
-            
-            while True:
-                # Always get fresh locators in the while loop
-                rows_loc = page.locator("tr[dynamicoverviewtablerow]")
-                count = await rows_loc.count()
+        while page < total_pages:
+            offset = page * limit
+            url = f"https://app.robaws.com/api/v2/work-orders?limit={limit}&offset={offset}&include=lineItems"
+            r = requests.get(url, auth=(api_key, api_secret), headers={"Accept": "application/json"}, timeout=15)
+            if r.status_code != 200:
+                print(f"[Robaws API] Eroare API: {r.status_code} - {r.text}")
+                break
                 
-                # We'll process one new order at a time, then break and restart the loop because DOM changes
-                found_new = False
-                for i in range(count):
-                    row = rows_loc.nth(i)
-                    tds = row.locator("td")
-                    if await tds.count() < 11:
-                        continue
-                        
-                    ext_id = await tds.nth(1).inner_text()
-                    ext_id = ext_id.strip()
-                    if not ext_id:
-                        continue
-                        
-                    existing = db.query(WorkOrder).filter(
-                        WorkOrder.external_id == ext_id,
-                        WorkOrder.organization_id == team.organization_id
-                    ).first()
+            data = r.json()
+            total_pages = data.get('totalPages', 1)
+            items = data.get('items', [])
+            
+            for item in items:
+                ext_id = str(item.get("id"))
+                if not ext_id: continue
+            
+                existing = db.query(WorkOrder).filter(
+                    WorkOrder.external_id == ext_id,
+                    WorkOrder.organization_id == team.organization_id
+                ).first()
+            
+                # Extract details
+                raw_date = item.get("date")
+                title = item.get("title") or ""
+            
+                # Client logic
+                client_obj = item.get("client") or {}
+                client_name = client_obj.get("name") if isinstance(client_obj, dict) else ""
+            
+                # Address logic
+                addr_obj = item.get("address") or {}
+                address_parts = []
+                if addr_obj.get("addressLine1"): address_parts.append(addr_obj["addressLine1"])
+                if addr_obj.get("postalCode"): address_parts.append(addr_obj["postalCode"])
+                if addr_obj.get("city"): address_parts.append(addr_obj["city"])
+                address = ", ".join(address_parts)
+            
+                lat = addr_obj.get("latitude")
+                lon = addr_obj.get("longitude")
+                if lat is None or lon is None:
+                    lat, lon = geocode_address_for_scraper(address)
+                
+                full_title = f"[{client_name}] {title}" if client_name else title
+            
+                # Extract Materials and Volumes from lineItems
+                line_items = item.get("lineItems", [])
+                total_volume = 0.0
+                found_fibre = False
+                found_duramit = False
+            
+                for line in line_items:
+                    qty = float(line.get("quantity") or 0)
+                    unit = (line.get("unitType") or "").lower()
+                    desc = (line.get("description") or "").lower()
+                
+                    # Check volumes
+                    if unit in ['m2', 'm²', 'm3', 'm³']:
+                        total_volume += qty
                     
-                    if not existing:
-                        # Found a new order! Process it
-                        raw_date = await tds.nth(2).inner_text()
-                        title = await tds.nth(3).inner_text()
-                        client = await tds.nth(7).inner_text()
-                        address = await tds.nth(10).inner_text()
-                        
-                        raw_date = raw_date.strip()
-                        title = title.strip()
-                        client = client.strip()
-                        address = address.strip()
-                        
-                        start_date = None
-                        try:
-                            if raw_date:
-                                d, m, y = raw_date.split('/')
-                                start_date = f"{y}-{m}-{d}"
-                        except:
-                            pass
+                    # Check materials in description
+                    if "vezel" in desc or "fibr" in desc:
+                        found_fibre = True
+                    if "duramit" in desc:
+                        found_duramit = True
+            
+                # Build JSON structures
+                volumes_json = []
+                if total_volume > 0:
+                    volumes_json.append({"label": "Suprafață", "quantity": str(total_volume), "unit": "m²", "price": "0"})
+                
+                is_isoflex = "isoflex" in (client_name or "").lower() or "isolteam" in (client_name or "").lower()
 
-                        full_title = f"[{client}] {title}" if client else title
-
-                        lat, lon = geocode_address_for_scraper(address)
-
-                        new_wo = WorkOrder(
-                            organization_id=team.organization_id,
-                            token=uuid.uuid4().hex,
-                            title=full_title[:255],
-                            client_id=None,
-                            client_name=client,
-                            site_address=address,
-                            site_latitude=lat,
-                            site_longitude=lon,
-                            start_date=start_date,
-                            start_time="08:00",
-                            assigned_team_id=team.id,
-                            status="isoflex",
-                            external_id=ext_id,
-                            source_system="robaws",
-                            created_by=None
-                        )
-                        db.add(new_wo)
-                        db.flush() # get id
-                        wo_db_id = new_wo.id
-                        
-                        print(f"[Robaws] Adăugare comandă nouă: {ext_id}")
-                        
-                        # Now click to get documents!
-                        docs_data = None
-                        async def intercept_docs(resp):
-                            nonlocal docs_data
-                            if "/documents" in resp.url and "api" in resp.url and resp.request.method == "GET":
-                                try:
-                                    docs_data = await resp.json()
-                                except:
-                                    pass
-                        
-                        page.on("response", intercept_docs)
-                        
-                        await tds.nth(1).click()
-                        await page.wait_for_timeout(4000)
-                        
-                        docs_tab = page.locator("a[href='#tabDocuments']")
-                        if await docs_tab.count() > 0:
-                            await docs_tab.click()
-                            await page.wait_for_timeout(3000)
-                            
-                        page.remove_listener("response", intercept_docs)
-                        
-                        # Process documents
-                        if docs_data and isinstance(docs_data, list):
+                materials_json = []
+                if not is_isoflex:
+                    if found_fibre:
+                        materials_json.append({"name": "Fibre", "quantity": str(round(total_volume, 2)), "unit": "buc"})
+                    if found_duramit:
+                        materials_json.append({"name": "Duramit", "quantity": str(round(total_volume, 2)), "unit": "buc"})
+            
+                # Save to DB
+                if not existing:
+                    new_wo = WorkOrder(
+                        organization_id=team.organization_id,
+                        token=uuid.uuid4().hex,
+                        title=full_title[:255],
+                        client_id=None,
+                        client_name=client_name,
+                        site_address=address,
+                        site_latitude=lat,
+                        site_longitude=lon,
+                        start_date=raw_date,
+                        start_time="08:00",
+                        assigned_team_id=team.id,
+                        status="isoflex",
+                        external_id=ext_id,
+                        source_system="robaws",
+                        created_by=None,
+                        volumes=volumes_json,
+                        materials=materials_json
+                    )
+                    db.add(new_wo)
+                    db.flush()
+                    wo_db_id = new_wo.id
+                    inserted_count += 1
+                    print(f"[Robaws API] Comandă nouă: {ext_id} (Fibre: {found_fibre}, Duramit: {found_duramit})")
+                
+                    # Fetch Documents
+                    try:
+                        docs_url = f"https://app.robaws.com/api/v2/work-orders/{ext_id}/documents"
+                        d_res = requests.get(docs_url, auth=(api_key, api_secret), headers={"Accept": "application/json"}, timeout=10)
+                        if d_res.status_code == 200:
+                            docs_data = d_res.json()
                             for doc in docs_data:
-                                doc_name = doc.get("fileName", "document.pdf")
-                                doc_url = doc.get("presignedUrl") or doc.get("presignedPreviewUrl")
+                                doc_name = doc.get("name", "document.pdf")
+                                doc_url = doc.get("url")
                                 if doc_url:
-                                    print(f"Descărcare document: {doc_name}")
-                                    try:
-                                        r = requests.get(doc_url)
-                                        if r.status_code == 200:
-                                            # Salvăm în storage-ul nostru
-                                            safe_filename = f"{uuid.uuid4().hex[:8]}_{doc_name}"
-                                            storage_path = f"work_orders/{wo_db_id}/documents/{safe_filename}"
-                                            content_type = get_content_type(safe_filename)
-                                            
-                                            file_url_internal = upload_file(r.content, storage_path, content_type)
-                                            
-                                            wo_doc = WorkOrderDocument(
-                                                work_order_id=wo_db_id,
-                                                filename=doc_name,
-                                                file_path=storage_path,
-                                                file_size=len(r.content),
-                                                content_type=content_type
-                                            )
-                                            db.add(wo_doc)
-                                    except Exception as e:
-                                        print(f"Eroare descărcare doc {doc_name}: {e}")
-                        
-                        db.commit()
-                        inserted_count += 1
-                        
-                        # Go back and restart the while loop to find more!
-                        await page.go_back()
-                        await page.wait_for_timeout(4000)
-                        found_new = True
-                        break # break the for loop, restart the while loop
-                
-                if not found_new:
-                    # No more new orders found in the list! We are done.
-                    break
+                                    file_req = requests.get(doc_url, auth=(api_key, api_secret), timeout=15)
+                                    if file_req.status_code == 200:
+                                        safe_filename = f"{uuid.uuid4().hex[:8]}_{doc_name}"
+                                        storage_path = f"work_orders/{wo_db_id}/documents/{safe_filename}"
+                                        content_type = get_content_type(safe_filename)
+                                    
+                                        file_url_internal = upload_file(file_req.content, storage_path, content_type)
+                                    
+                                        wo_doc = WorkOrderDocument(
+                                            work_order_id=wo_db_id,
+                                            filename=doc_name,
+                                            file_path=storage_path,
+                                            file_size=len(file_req.content),
+                                            content_type=content_type
+                                        )
+                                        db.add(wo_doc)
+                    except Exception as e:
+                        print(f"[Robaws API] Eroare descărcare doc pt {ext_id}: {e}")
                     
-            print(f"[Robaws] Extragere completă pentru {team.name}. Comenzi noi adăugate: {inserted_count}.")
+                else:
+                    # Update existing order with precise volumes and materials if empty
+                    updated = False
+                    if (not existing.volumes or existing.volumes == []) and total_volume > 0:
+                        existing.volumes = volumes_json
+                        updated = True
+                
+                    if (not existing.materials or existing.materials == []) and (found_fibre or found_duramit):
+                        existing.materials = materials_json
+                        updated = True
+                    
+                    if updated:
+                        updated_count += 1
+            db.commit()
+            
+            page += 1
+            
+        print(f"[Robaws API] Sincronizare gata pt {team.name}. Noi: {inserted_count}, Actualizate: {updated_count}")
 
-            await browser.close()
     except Exception as e:
-        print(f"[Robaws] Eroare neașteptată pentru {team.name}: {e}")
+        print(f"[Robaws API] Eroare neașteptată pt echipa {team.name}: {e}")
 
 def run_all_scrapers():
-    print(f"[Robaws] Rulăm planificatorul global la {datetime.now()}")
+    print(f"[Robaws API] Rulăm planificatorul global de sincronizare la {datetime.now()}")
     db = SessionLocal()
     try:
+        # Preluăm toate echipele active
         teams = db.query(Team).filter(
-            Team.robaws_email.isnot(None),
-            Team.robaws_email != "",
             Team.is_active == True
         ).all()
 
         for team in teams:
-            asyncio.run(run_scraper_for_team(team, db))
+            run_api_sync_for_team(team, db)
             
     finally:
         db.close()

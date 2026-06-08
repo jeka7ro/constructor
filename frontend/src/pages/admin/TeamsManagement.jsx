@@ -19,6 +19,7 @@ export default function TeamsManagement() {
     
     // Create / Edit form
     const [showModal, setShowModal] = useState(false)
+    const [showWorkersList, setShowWorkersList] = useState(false)
     const [editingTeamId, setEditingTeamId] = useState(null)
     const [newName, setNewName] = useState('')
     const [newLeader, setNewLeader] = useState('')
@@ -101,6 +102,7 @@ export default function TeamsManagement() {
             setNewRobawsEmail('')
             setNewRobawsPassword('')
             setNewMembers([])
+            setShowWorkersList(false)
             fetchTeams()
         } catch (e) {
             console.error(e)
@@ -123,7 +125,8 @@ export default function TeamsManagement() {
         setNewColor(team.color || '#94a3b8')
         setNewRobawsEmail(team.robaws_email || '')
         setNewRobawsPassword(team.robaws_password || '')
-        setNewMembers([])
+        setNewMembers(team.members?.map(m => m.user_id) || [])
+        setShowWorkersList(false)
         setShowModal(true)
     }
 
@@ -296,7 +299,7 @@ export default function TeamsManagement() {
                                 <input
                                     type="text" value={newName} onChange={e => setNewName(e.target.value)}
                                     placeholder={t('teams.placeholders.name')}
-                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                                    className="w-full px-5 py-3 border border-slate-200 rounded-full focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none"
                                 />
                             </div>
 
@@ -304,7 +307,7 @@ export default function TeamsManagement() {
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.team_leader_label')}</label>
                                 <select
                                     value={newLeader} onChange={e => setNewLeader(e.target.value)}
-                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                                    className="w-full px-5 py-3 border border-slate-200 rounded-full focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none bg-white"
                                 >
                                     <option value="">{t('teams.choose_leader')}</option>
                                     {leaders.map(u => (
@@ -317,7 +320,7 @@ export default function TeamsManagement() {
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">Șantier (Opțional)</label>
                                 <select
                                     value={newSite} onChange={e => setNewSite(e.target.value)}
-                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                                    className="w-full px-5 py-3 border border-slate-200 rounded-full focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none bg-white"
                                 >
                                     <option value="">Fără șantier alocat</option>
                                     {sites.map(s => (
@@ -331,74 +334,90 @@ export default function TeamsManagement() {
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="color" value={newColor} onChange={e => setNewColor(e.target.value)}
-                                        className="w-12 h-12 p-1 border border-slate-200 rounded-xl cursor-pointer bg-white"
+                                        className="w-12 h-12 p-1 border border-slate-200 rounded-full cursor-pointer bg-white"
                                     />
                                     <span className="text-sm text-slate-500 uppercase font-bold">{newColor}</span>
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-100">
-                                <h3 className="text-sm font-bold text-slate-800 mb-3">Integrare Wappy (Robaws)</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Email Logare</label>
-                                        <input
-                                            type="email" value={newRobawsEmail} onChange={e => setNewRobawsEmail(e.target.value)}
-                                            placeholder="ex: echipa1@wappy.com"
-                                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Parolă</label>
-                                        <input
-                                            type="text" value={newRobawsPassword} onChange={e => setNewRobawsPassword(e.target.value)}
-                                            placeholder="Parola contului"
-                                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm"
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-2">Dacă sunt completate, sistemul va putea prelua automat comenzile acestei echipe din aplicația Wappy.</p>
-                            </div>
+
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.members')} ({newMembers.length})</label>
-                                <div className="relative mb-2">
-                                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('teams.members')} ({newMembers.length})</label>
+                                
+                                {/* Selected members as chips */}
+                                {newMembers.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {newMembers.map(id => {
+                                            const u = users.find(user => user.id === id);
+                                            if (!u) return null;
+                                            return (
+                                                <div key={id} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold border border-blue-200">
+                                                    <span>{u.full_name}</span>
+                                                    <button onClick={() => setNewMembers(prev => prev.filter(mid => mid !== id))} className="text-blue-400 hover:text-blue-600 transition-colors">
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-3.5 w-4 h-4 text-slate-400" />
                                     <input
                                         type="text" placeholder={t('teams.search_worker')} value={searchQ}
-                                        onChange={e => setSearchQ(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-full text-sm focus:border-blue-400 outline-none"
+                                        onFocus={() => setShowWorkersList(true)}
+                                        onChange={e => { setSearchQ(e.target.value); setShowWorkersList(true); }}
+                                        className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-full text-sm focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none"
                                     />
-                                </div>
-                                <div className="border border-slate-200 rounded-xl max-h-60 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
-                                    {users.filter(u => u.id !== newLeader).map(u => {
-                                        if (searchQ && !u.full_name.toLowerCase().includes(searchQ.toLowerCase())) return null
-                                        const isSel = newMembers.includes(u.id)
-                                        return (
-                                            <label key={u.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-blue-50/50 transition-colors ${isSel ? 'bg-blue-50' : ''}`}>
-                                                <input type="checkbox" checked={isSel} onChange={e => {
-                                                    if (e.target.checked) setNewMembers(prev => [...prev, u.id])
-                                                    else setNewMembers(prev => prev.filter(id => id !== u.id))
-                                                }} className="hidden" />
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${isSel ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'}`}>
-                                                    {isSel && <Check className="w-3.5 h-3.5 text-white" />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-semibold text-slate-900">{u.full_name}</p>
-                                                    <p className="text-[11px] text-slate-500">{u.role_name} • {u.employee_code}</p>
-                                                </div>
-                                            </label>
-                                        )
-                                    })}
+                                    {showWorkersList ? (
+                                        <button onClick={() => setShowWorkersList(false)} className="absolute right-3 top-3 p-0.5 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
+                                            <X className="w-4 h-4 text-slate-500" />
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => setShowWorkersList(true)} className="absolute right-3 top-3 p-0.5 hover:bg-slate-100 rounded-full transition-colors">
+                                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                                        </button>
+                                    )}
+
+                                    {/* Dropdown list */}
+                                    {showWorkersList && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 z-50 border border-slate-200 rounded-2xl max-h-60 overflow-y-auto divide-y divide-slate-100 bg-white shadow-xl">
+                                            {users.filter(u => u.id !== newLeader).length === 0 ? (
+                                                <div className="p-4 text-center text-sm text-slate-500">Niciun muncitor disponibil.</div>
+                                            ) : (
+                                                users.filter(u => u.id !== newLeader).map(u => {
+                                                    if (searchQ && !u.full_name.toLowerCase().includes(searchQ.toLowerCase())) return null
+                                                    const isSel = newMembers.includes(u.id)
+                                                    return (
+                                                        <label key={u.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-50 transition-colors ${isSel ? 'bg-blue-50/50' : ''}`}>
+                                                            <input type="checkbox" checked={isSel} onChange={e => {
+                                                                if (e.target.checked) setNewMembers(prev => [...prev, u.id])
+                                                                else setNewMembers(prev => prev.filter(id => id !== u.id))
+                                                            }} className="hidden" />
+                                                            <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${isSel ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'}`}>
+                                                                {isSel && <Check className="w-3.5 h-3.5 text-white" />}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-slate-900">{u.full_name}</p>
+                                                                <p className="text-[11px] text-slate-500">{u.role_name} • {u.employee_code}</p>
+                                                            </div>
+                                                        </label>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-                            <button onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors">
+                        <div className="mt-8 flex justify-end gap-3 pt-5 border-t border-slate-100">
+                            <button onClick={() => setShowModal(false)} className="px-6 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-full transition-colors">
                                 {t('common.cancel')}
                             </button>
-                            <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+                            <button onClick={handleSave} disabled={saving} className="px-8 py-3 bg-blue-600 text-white font-extrabold tracking-wide rounded-full shadow-md hover:bg-blue-700 hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center min-w-[140px]">
                                 {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (editingTeamId ? 'Salvează' : t('teams.create'))}
                             </button>
                         </div>

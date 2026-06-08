@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"
     
+    # ROBAWS API
+    ROBAWS_API_KEY: str = ""
+    ROBAWS_API_SECRET: str = ""
+    
     # App
     APP_NAME: str = "Pontaj Digital"
     APP_VERSION: str = "1.0.0"

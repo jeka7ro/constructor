@@ -42,7 +42,7 @@ const EMPTY_FORM = {
     start_time: '07:00',
     deadline_date: '',
     // Cantitati
-    volumes: [{ label: '', quantity: '', unit: 'm²', thickness: '' }],
+    volumes: [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
     // Materiale
     materials: [{ name: '', quantity: '', unit: '' }],
     // Echipa + vehicul
@@ -58,9 +58,9 @@ const EMPTY_FORM = {
 function Section({ icon: Icon, title, children, zIndex }) {
     return (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800" style={{ zIndex, position: zIndex ? 'relative' : 'static' }}>
-            <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                <Icon className="w-4 h-4 text-blue-600" />
-                <h3 className="font-bold text-slate-900 dark:text-white text-sm">{title}</h3>
+            <div className="px-3 py-2.5 bg-blue-600 dark:bg-slate-800 rounded-t-xl flex items-center gap-2">
+                <Icon className="w-4 h-4 text-white" />
+                <h3 className="font-bold text-white text-sm">{title}</h3>
             </div>
             <div className="p-3 space-y-3">{children}</div>
         </div>
@@ -260,7 +260,7 @@ export default function WorkOrderForm() {
                         assigned_team_id: wo.assigned_team_id || '',
                         assigned_vehicle_id: wo.assigned_vehicle_id || '',
                         estimated_price: wo.estimated_price || '',
-                        volumes: wo.volumes?.length ? wo.volumes : [{ label: '', quantity: '', unit: 'm²', thickness: '' }],
+                        volumes: wo.volumes?.length ? wo.volumes : [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
                     }))
                     
