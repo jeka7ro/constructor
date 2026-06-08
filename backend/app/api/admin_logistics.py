@@ -202,12 +202,13 @@ def get_daily_routes(target_date: date, db: Session = Depends(get_db), admin=Dep
         # Sort works by start_time if possible
         works.sort(key=lambda x: x.start_time or "23:59")
         
-        # Resolve Base
-        base = None
-        if team.base_id:
-            base = next((b for b in all_bases if b.id == team.base_id), None)
-        if not base:
-            base = default_base
+        # Hardcoded Fixed Depot for ALL teams
+        base = type('obj', (object,), {
+            'id': 'fixed_depot',
+            'name': 'H&H Resources Brussels',
+            'latitude': 50.88243,
+            'longitude': 4.39343
+        })
 
         team_sand_kg = 0.0
         team_distance_km = 0.0
