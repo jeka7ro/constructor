@@ -124,7 +124,7 @@ export default function LogisticsDashboard() {
     const [activeTeams, setActiveTeams] = useState([])
     const [showSandStations, setShowSandStations] = useState(() => {
         const saved = localStorage.getItem('logistics_showSandStations')
-        return saved !== null ? JSON.parse(saved) : true
+        return saved !== null ? JSON.parse(saved) : false
     })
 
     useEffect(() => {

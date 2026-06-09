@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet-routing-machine'
 
 // Fix Leaflet default icon broken paths
 delete L.Icon.Default.prototype._getIconUrl
@@ -13,13 +14,14 @@ L.Icon.Default.mergeOptions({
 /**
  * MapView — hartă read-only.
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
- * Props: latitude, longitude, address, height, zoom, geofenceRadius, label
+ * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments }) => {
     const mapRef       = useRef(null)
     const mapInstance  = useRef(null)
     const markerRef    = useRef(null)
     const circleRef    = useRef(null)
+    const routingControlRef = useRef(null)
     const [geocoding, setGeocoding] = useState(false)
     const [geoError,  setGeoError]  = useState(false)
 
@@ -66,6 +68,55 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         }
 
         // Force resize după mount
+        
+        if (routingControlRef.current) {
+            mapInstance.current.removeControl(routingControlRef.current)
+            routingControlRef.current = null
+        }
+
+        if (routeSegments && routeSegments.length > 0) {
+            const startName = routeSegments[0].from;
+            const geocodeStart = async (query) => {
+                if (query.toLowerCase() === 'baza' || query.toLowerCase() === 'base') {
+                    return { lat: 51.2372207, lon: 4.4569835 }; // Default base
+                }
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                    const data = await res.json();
+                    if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                } catch (e) {}
+                return null;
+            };
+
+            geocodeStart(startName).then(startCoords => {
+                if (startCoords && mapInstance.current) {
+                    routingControlRef.current = L.Routing.control({
+                        waypoints: [
+                            L.latLng(startCoords.lat, startCoords.lon),
+                            L.latLng(lat, lon)
+                        ],
+                        lineOptions: {
+                            styles: [{ color: '#3b82f6', weight: 4, opacity: 0.8 }],
+                            extendToWaypoints: false,
+                            missingRouteTolerance: 0
+                        },
+                        show: false,
+                        addWaypoints: false,
+                        routeWhileDragging: false,
+                        fitSelectedRoutes: true,
+                        showAlternatives: false,
+                        createMarker: () => null
+                    }).addTo(mapInstance.current);
+                    
+                    // Hide routing container
+                    const container = routingControlRef.current.getContainer();
+                    if (container) container.style.display = 'none';
+
+                    L.marker([startCoords.lat, startCoords.lon]).bindPopup(`<strong style="font-size:13px">Start: ${startName}</strong>`).addTo(mapInstance.current);
+                }
+            });
+        }
+
         setTimeout(() => mapInstance.current?.invalidateSize(), 100)
     }
 
@@ -121,6 +172,10 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
 
         return () => {
             if (mapInstance.current) {
+                if (routingControlRef.current) {
+                    mapInstance.current.removeControl(routingControlRef.current)
+                    routingControlRef.current = null
+                }
                 mapInstance.current.remove()
                 mapInstance.current = null
                 markerRef.current  = null

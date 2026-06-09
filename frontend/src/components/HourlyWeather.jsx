@@ -30,7 +30,7 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
                 const datePart = t.split('T')[0];
                 const hourNum = parseInt(hourStr.split(':')[0], 10);
                 
-                if (datePart === targetDate && hourNum >= 6 && hourNum <= 19) {
+                if (datePart === targetDate && hourNum >= 6 && hourNum <= 18) {
                     const prob = hourly.precipitation_probability 
                                 ? hourly.precipitation_probability[i] 
                                 : (hourly.precipitation && hourly.precipitation[i] > 0 ? 100 : 0);
@@ -141,19 +141,19 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
                         const isHot = hour.temp > 28;
                         
                         return (
-                            <div key={idx} className="flex flex-col items-center bg-white dark:bg-slate-700 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-600 min-w-[70px] hover:-translate-y-1 transition-transform">
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{hour.time}</span>
+                            <div key={idx} className="flex flex-col items-center bg-white dark:bg-slate-700 rounded-lg p-2 shadow-sm border border-slate-100 dark:border-slate-600 min-w-[50px] hover:-translate-y-1 transition-transform">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">{hour.time}</span>
                                 
-                                <div className="mb-2">
-                                    {getIcon(hour.code, "w-7 h-7")}
+                                <div className="mb-1">
+                                    {getIcon(hour.code, "w-5 h-5")}
                                 </div>
                                 
-                                <span className={`text-base font-black ${isCold ? 'text-blue-600' : isHot ? 'text-orange-600' : 'text-slate-800 dark:text-slate-100'}`}>
+                                <span className={`text-xs font-black ${isCold ? 'text-blue-600' : isHot ? 'text-orange-600' : 'text-slate-800 dark:text-slate-100'}`}>
                                     {hour.temp}°
                                 </span>
                                 
-                                <div className={`flex items-center gap-1 mt-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${isRainy ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'text-slate-400'}`}>
-                                    <Droplets className="w-2.5 h-2.5" />
+                                <div className={`flex items-center gap-0.5 mt-1 text-[9px] font-bold px-1 py-0.5 rounded ${isRainy ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'text-slate-400'}`}>
+                                    <Droplets className="w-2 h-2" />
                                     <span>{hour.precipProb}%</span>
                                 </div>
                             </div>

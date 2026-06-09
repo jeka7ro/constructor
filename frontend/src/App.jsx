@@ -72,7 +72,7 @@ class GlobalErrorBoundary extends React.Component {
         this.state = { hasError: false }
     }
     static getDerivedStateFromError(error) {
-        return { hasError: true }
+        return { hasError: true, error }
     }
     componentDidCatch(error, errorInfo) {
         console.error('App routing error:', error)
@@ -87,6 +87,13 @@ class GlobalErrorBoundary extends React.Component {
                 <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
                     <h2 className="text-xl font-bold text-slate-800 mb-2">A apărut o eroare de navigare.</h2>
                     <p className="text-sm text-slate-500 mb-4">Te rugăm să reîncarci pagina.</p>
+                    {this.state.error && (
+                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg max-w-lg overflow-auto text-xs font-mono">
+                            {this.state.error.message}
+                            <br/><br/>
+                            {this.state.error.stack}
+                        </div>
+                    )}
                     <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md transition-colors">
                         Reîncarcă Pagina
                     </button>
