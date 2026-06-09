@@ -81,8 +81,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 if (firstSeg.from_lat && firstSeg.from_lng) {
                     return { lat: parseFloat(firstSeg.from_lat), lon: parseFloat(firstSeg.from_lng) };
                 }
-                if (query.toLowerCase() === 'baza' || query.toLowerCase() === 'base') {
-                    return { lat: 51.2372207, lon: 4.4569835 }; // Default fallback base
+                if (query.toLowerCase().includes('baza') || query.toLowerCase().includes('base') || query.toLowerCase().includes('h&h')) {
+                    return { lat: 50.88243, lon: 4.39343 }; // Baza H&H Resources Brussels
                 }
                 try {
                     const res = await fetch(
@@ -139,7 +139,15 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         }
                     });
 
-                    L.marker([startCoords.lat, startCoords.lon])
+                    const baseIcon = L.divIcon({
+                        className: 'custom-base-marker',
+                        html: '<div style="background-color: #000; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: sans-serif; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); font-size: 14px;">B</div>',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14],
+                        popupAnchor: [0, -14]
+                    });
+
+                    L.marker([startCoords.lat, startCoords.lon], { icon: baseIcon })
                         .bindPopup(`<strong style="font-size:13px">Baza: ${startName}</strong>`)
                         .addTo(mapInstance.current);
                 }

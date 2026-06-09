@@ -80,6 +80,8 @@ class WorkOrderCreate(BaseModel):
     # Locație
     site_id: Optional[str] = None
     site_address: Optional[str] = None
+    site_latitude: Optional[float] = None
+    site_longitude: Optional[float] = None
     # Client
     client_id: Optional[str] = None
     client_name: Optional[str] = None
@@ -395,9 +397,9 @@ def create_work_order(
         if not base:
             base = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).first()
 
-        base_lat = None
-        base_lng = None
-        base_name = "Baza Principala"
+        base_lat = 50.88243
+        base_lng = 4.39343
+        base_name = "H&H Resources Brussels"
 
         if base and base.latitude and base.longitude:
             base_name = base.name
@@ -503,7 +505,7 @@ def update_work_order(
 
     fields = [
         "title", "notes", "start_date", "start_time", "deadline_date",
-        "site_id", "site_address", "client_id", "client_name",
+        "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
         "client_email", "client_phone", "requirements", "materials", "volumes",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
         "estimated_price"
