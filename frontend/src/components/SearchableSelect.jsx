@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, ChevronDown, Check } from 'lucide-react'
 
-export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder = "Caută...", className = "" }) {
+export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder = "Caută...", className = "", buttonClassName = "" }) {
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState("")
     const wrapperRef = useRef(null)
@@ -34,7 +34,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
         <div ref={wrapperRef} className={`relative w-full ${className}`}>
             <div 
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer flex items-center justify-between min-h-[36px]"
+                className={`w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-200 text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer flex items-center justify-between min-h-[36px] ${buttonClassName || 'rounded-lg'}`}
             >
                 <span className={`truncate ${!selectedOption ? 'text-slate-400' : ''}`}>
                     {selectedOption ? selectedOption.label : placeholder}

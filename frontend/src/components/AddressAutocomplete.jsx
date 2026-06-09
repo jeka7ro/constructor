@@ -33,9 +33,14 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
         }
         setLoading(true);
         try {
+            // Using email param is REQUIRED by Nominatim Usage Policy to avoid 429/403 errors
             const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&limit=5`,
-                { headers: { 'Accept-Language': 'ro' } }
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&limit=5&email=contact@davidechape.com`,
+                { 
+                    headers: { 
+                        'Accept-Language': 'ro,en,fr,de'
+                    } 
+                }
             );
             const data = await res.json();
             setSuggestions(data || []);
@@ -56,7 +61,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
         debounceTimeout.current = setTimeout(() => {
             fetchSuggestions(val);
-        }, 500);
+        }, 800);
     };
 
     const handleSelect = (item) => {

@@ -28,6 +28,7 @@ class ClientBase(BaseModel):
     iban: Optional[str] = Field(None, max_length=50)
     swift: Optional[str] = Field(None, max_length=20)
     is_active: bool = True
+    is_favorite: Optional[bool] = False
 
 class ClientCreate(ClientBase):
     pass
@@ -48,6 +49,7 @@ class ClientUpdate(BaseModel):
     iban: Optional[str] = Field(None, max_length=50)
     swift: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
+    is_favorite: Optional[bool] = None
 
 class ClientResponse(ClientBase):
     id: str
@@ -65,7 +67,10 @@ def get_clients(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """List all clients for the organization"""
-    clients = db.query(Client).filter(Client.organization_id == current_admin.organization_id).all()
+    if current_admin.organization_id:
+        clients = db.query(Client).filter(Client.organization_id == current_admin.organization_id).all()
+    else:
+        clients = db.query(Client).all()
     return clients
 
 @router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)

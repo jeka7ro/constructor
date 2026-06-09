@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2, RotateCw } from 'lucide-react'
+import { Building, Plus, Search, MapPin, Phone, Mail, Edit2, Trash2, Check, X, FileText, Briefcase, Loader2, RotateCw, Star } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
@@ -226,6 +226,22 @@ export default function ClientsManagement() {
         }
     }
 
+    const handleToggleFavorite = async (client) => {
+        try {
+            // Optimistic UI Update
+            setClients(prev => prev.map(c => 
+                c.id === client.id ? { ...c, is_favorite: !c.is_favorite } : c
+            ))
+            
+            await api.put(`/admin/clients/${client.id}`, {
+                is_favorite: !client.is_favorite
+            })
+        } catch (error) {
+            console.error('Failed to toggle favorite', error)
+            fetchClients() // Revert on failure
+        }
+    }
+
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
             {/* Header */}
@@ -370,6 +386,17 @@ export default function ClientsManagement() {
                                             <div className="flex justify-end items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                                 {client.is_active && (
                                                     <>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleToggleFavorite(client); }}
+                                                            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors ${
+                                                                client.is_favorite 
+                                                                    ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-500' 
+                                                                    : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800'
+                                                            }`}
+                                                            title={client.is_favorite ? "Scoate de la favorite" : "Adaugă la favorite"}
+                                                        >
+                                                            <Star className="w-4 h-4" fill={client.is_favorite ? "currentColor" : "none"} />
+                                                        </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleOpenModal(client); }}
                                                             className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors"

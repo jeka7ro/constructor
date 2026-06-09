@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
+import { useTenantStore } from '../store/tenantStore';
 import api from '../lib/api';
 
 const weatherCache = {};
@@ -102,15 +103,28 @@ const calculateOrderSand = (wo) => {
     return totalKg / 1000;
 };
 
-export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled, onOrderClick }) {
+export default function ShortWorksCalendar({ 
+    workOrders = [], 
+    onOrderRescheduled, 
+    onTeamDrop, 
+    onClientDrop,
+    onTeamDropOnEmpty,
+    onClientDropOnEmpty,
+    onEmptyCellClick,
+    onOrderClick
+}) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
     const [showScrollHint, setShowScrollHint] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [draggedOrder, setDraggedOrder] = useState(null);
+    const [hoveredOrder, setHoveredOrder] = useState(null);
+    const [orderToDelete, setOrderToDelete] = useState(null);
+    const [animatingOrder, setAnimatingOrder] = useState(null);
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
+    const { tenant } = useTenantStore();
     const navigate = useNavigate();
 
     // Generate week days (Monday to Sunday)
@@ -158,10 +172,12 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
     }, [weeklyOrders]);
 
     const getGridRowFromTime = (timeStr) => {
-        if (!timeStr) return 3; // Default
+        if (!timeStr || typeof timeStr !== 'string') return 3; // Default
         const [hours] = timeStr.split(':').map(Number);
+        if (isNaN(hours)) return 3; // Prevent NaN infinite loop
         const row = hours - dynamicStartHour + 1; // dynamically shift rows
-        return Math.max(1, Math.min(13, row));
+        const finalRow = Math.max(1, Math.min(13, row));
+        return isNaN(finalRow) ? 3 : finalRow;
     };
 
     // Auto-scroll to earliest event
@@ -214,7 +230,7 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
     return (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[800px] relative">
             {/* Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                 <div className="flex items-center gap-2">
                     <CalendarIcon className="w-5 h-5 text-white/90" />
                     <h2 className="text-lg font-bold text-white capitalize">
@@ -317,12 +333,16 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                             return (
                                 <div 
                                     key={i} 
-                                    className={`border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
                                     onClick={() => {
                                         if (!isDragging) {
                                             const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
                                             const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
-                                            navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`);
+                                            if (onEmptyCellClick) {
+                                                onEmptyCellClick(targetDate, targetTime);
+                                            } else {
+                                                navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`);
+                                            }
                                         }
                                     }}
                                     onDragEnter={(e) => e.preventDefault()}
@@ -332,11 +352,29 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                     }}
                                     onDrop={async (e) => {
                                         e.preventDefault();
-                                        const woId = e.dataTransfer.getData("text/plain");
-                                        if (!woId) return;
-
+                                        const type = e.dataTransfer.getData("type");
                                         const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
                                         const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
+
+                                        if (type === "team") {
+                                            const teamId = e.dataTransfer.getData("id");
+                                            if (teamId && typeof onTeamDropOnEmpty === 'function') {
+                                                onTeamDropOnEmpty(targetDate, targetTime, teamId);
+                                            }
+                                            return;
+                                        }
+
+                                        if (type === "client") {
+                                            const clientId = e.dataTransfer.getData("id");
+                                            const clientName = e.dataTransfer.getData("name");
+                                            if (clientId && typeof onClientDropOnEmpty === 'function') {
+                                                onClientDropOnEmpty(targetDate, targetTime, clientId, clientName);
+                                            }
+                                            return;
+                                        }
+
+                                        const woId = e.dataTransfer.getData("text/plain");
+                                        if (!woId || type === "team") return;
 
                                         const wo = workOrders.find(o => o.id === woId);
                                         if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
@@ -358,7 +396,13 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             setSyncing(false);
                                         }
                                     }}
-                                />
+                                >
+                                    {!isDragging && (
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
+                                            <Plus className="w-5 h-5 text-white" strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </div>
                             );
                         })}
 
@@ -368,8 +412,8 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                             const dayOccupancy = {};
                             
                             const sortedOrders = [...weeklyOrders].sort((a, b) => {
-                                const tA = a.start_time || '07:00';
-                                const tB = b.start_time || '07:00';
+                                const tA = a.start_time ? String(a.start_time) : '07:00';
+                                const tB = b.start_time ? String(b.start_time) : '07:00';
                                 return tA.localeCompare(tB);
                             });
                             
@@ -424,15 +468,22 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             setIsDragging(false);
                                             setDraggedOrder(null);
                                         }}
-                                        className={`absolute p-1.5 overflow-hidden rounded-md border-l-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-move mx-1 ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} ${syncing ? 'opacity-70 pointer-events-none' : ''} ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}`}
+                                        onMouseEnter={() => setHoveredOrder(wo.id)}
+                                        onMouseLeave={() => setHoveredOrder(null)}
+                                        className={`absolute p-1.5 overflow-hidden rounded-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-move mx-1 
+                                            ${!wo.assigned_team_id ? 'bg-white dark:bg-slate-900 border-2 border-red-500 border-l-[6px] border-l-red-500' : 'border-l-4'}
+                                            ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
+                                            ${syncing ? 'opacity-70 pointer-events-none' : ''} 
+                                            ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
+                                            ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}`}
                                         style={{
                                             top: `${(wo.rowStart - 1) * 80 + 4}px`,
                                             height: '72px',
                                             left: `${leftPercent}%`,
                                             width: widthValue,
-                                            backgroundColor: `${colorHex}30`,
-                                            borderLeftColor: colorHex,
-                                            borderColor: `${colorHex}50`,
+                                            backgroundColor: wo.assigned_team_id ? `${colorHex}30` : undefined,
+                                            borderLeftColor: wo.assigned_team_id ? colorHex : undefined,
+                                            borderColor: wo.assigned_team_id ? `${colorHex}50` : undefined,
                                             zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0)),
                                             pointerEvents: isDragging ? 'auto' : 'auto' // ensure it can receive drops!
                                         }}
@@ -458,7 +509,20 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                             if (type === "team") {
                                                 const teamId = e.dataTransfer.getData("id");
                                                 if (teamId && onTeamDrop) {
+                                                    setAnimatingOrder(wo.id);
+                                                    setTimeout(() => setAnimatingOrder(null), 1000);
                                                     onTeamDrop(wo.id, teamId);
+                                                }
+                                                return;
+                                            }
+
+                                            // Handle Client Drop
+                                            if (type === "client") {
+                                                const clientId = e.dataTransfer.getData("id");
+                                                if (clientId && onClientDrop) {
+                                                    setAnimatingOrder(wo.id);
+                                                    setTimeout(() => setAnimatingOrder(null), 1000);
+                                                    onClientDrop(wo.id, clientId);
                                                 }
                                                 return;
                                             }
@@ -502,13 +566,32 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         }}
                                         title={`${wo.title} — trageți pentru a muta`}
                                     >
-                                        <div className="absolute top-1 right-1 z-10">
+                                        <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 ${hoveredOrder === wo.id && !isDragging ? 'opacity-0' : 'opacity-100'}`}>
                                             <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
                                         </div>
 
+                                        {hoveredOrder === wo.id && !isDragging && (
+                                            <div className="absolute top-1 right-1 flex items-center gap-1 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm p-0.5 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-150">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/work-orders/${wo.id}/edit`); }}
+                                                    className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
+                                                    title="Editează"
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setOrderToDelete(wo); }}
+                                                    className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
+                                                    title="Șterge"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
 
-                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8" title={wo.title}>
-                                            {wo.title}
+                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.title}>
+                                            {wo.status === 'draft' && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" title="Draft - Incomplet" />}
+                                            <span className="truncate">{wo.title}</span>
                                         </div>
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center justify-between gap-1">
                                             <div className="flex items-center gap-1 truncate pr-8">
@@ -548,9 +631,9 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                         const sorted = [...weeklyOrders].sort((a, b) => {
                             const dateA = a.start_date || a.deadline_date || '';
                             const dateB = b.start_date || b.deadline_date || '';
-                            if (dateA !== dateB) return dateA.localeCompare(dateB);
-                            const tA = a.start_time || '07:00';
-                            const tB = b.start_time || '07:00';
+                            if (dateA !== dateB) return String(dateA).localeCompare(String(dateB));
+                            const tA = a.start_time ? String(a.start_time) : '07:00';
+                            const tB = b.start_time ? String(b.start_time) : '07:00';
                             return tA.localeCompare(tB);
                         });
                         
@@ -582,8 +665,9 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                                         }}
                                     >
                                         <div className="flex items-start justify-between gap-2">
-                                            <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10">
-                                                {wo.title}
+                                            <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10 flex items-center gap-1.5">
+                                                {wo.status === 'draft' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" title="Draft - Incomplet" />}
+                                                <span>{wo.title}</span>
                                             </div>
                                             <div className="absolute top-2 right-2">
                                                 <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
@@ -617,6 +701,49 @@ export default function ShortWorksCalendar({ workOrders = [], onOrderRescheduled
                     })()
                 )}
             </div>
+
+            {/* Delete Confirmation Popup */}
+            {orderToDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-5">
+                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">Ștergere Comandă</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                                Ești sigur că vrei să ștergi lucrarea <span className="font-bold text-slate-700 dark:text-slate-300">"{orderToDelete.title}"</span>?
+                            </p>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setOrderToDelete(null)}
+                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
+                                >
+                                    Anulează
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        try {
+                                            setSyncing(true);
+                                            await api.delete(`/admin/work-orders/${orderToDelete.id}`);
+                                            if (onOrderRescheduled) onOrderRescheduled();
+                                            else window.location.reload();
+                                        } catch (e) {
+                                            console.error("Eroare la stergere:", e);
+                                        } finally {
+                                            setSyncing(false);
+                                            setOrderToDelete(null);
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Da, șterge'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

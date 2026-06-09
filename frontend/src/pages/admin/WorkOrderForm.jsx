@@ -320,8 +320,8 @@ export default function WorkOrderForm() {
                 // Reverse geocoding — populeaza adresa automat
                 try {
                     const res = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
-                        { headers: { 'Accept-Language': 'ro' } }
+                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&email=contact@davidechape.com`,
+                        { headers: { 'Accept-Language': 'ro,en,fr,de' } }
                     )
                     const data = await res.json()
                     if (data?.display_name) {
@@ -485,7 +485,8 @@ export default function WorkOrderForm() {
     form.volumes.forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
-        if (vol.label?.toLowerCase()?.includes('sapa') && surface > 0) {
+        const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (labelSafe.includes('sapa') && surface > 0) {
             isAutoRender = true;
             surfaceForAuto += surface;
             const extraThickness = Math.max(0, thickness - 5);
@@ -718,7 +719,7 @@ export default function WorkOrderForm() {
                                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Locație Lucrare</h3>
                             </div>
                             <div className="flex gap-2 mb-4">
-                                {[['existing', 'Santier Existent'], ['new', 'Adresa Manuala']].map(([m, label]) => (
+                                {[['existing', 'Lucrare Existentă'], ['new', 'Adresă Manuală']].map(([m, label]) => (
                                     <button key={m} onClick={() => set('site_mode', m)}
                                         className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.site_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
                                         {label}
@@ -728,7 +729,7 @@ export default function WorkOrderForm() {
 
                             {form.site_mode === 'existing' ? (
                                 <>
-                                    <Field label="Selecteaza Santier">
+                                    <Field label="Selectează Lucrare">
                                         <select value={form.site_id} onChange={e => {
                                             const s = sites.find(x => x.id === e.target.value)
                                             setForm(p => ({
@@ -739,7 +740,7 @@ export default function WorkOrderForm() {
                                                 site_longitude: s?.longitude || '',
                                             }))
                                         }} className={SELECT}>
-                                            <option value="">— Alege santier —</option>
+                                            <option value="">— Alege lucrarea —</option>
                                             {sites.map(s => <option key={s.id} value={s.id}>{s.name} {s.address ? `— ${s.address}` : ''}</option>)}
                                         </select>
                                     </Field>
@@ -813,7 +814,7 @@ export default function WorkOrderForm() {
                                             onLocationChange={async (lat, lon) => {
                                                 setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
                                                 try {
-                                                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`, { headers: { 'Accept-Language': 'ro' } })
+                                                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&email=contact@davidechape.com`, { headers: { 'Accept-Language': 'ro,en,fr,de' } })
                                                     const data = await res.json()
                                                     if (data?.display_name) {
                                                         const a = data.address || {}

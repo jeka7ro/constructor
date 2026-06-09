@@ -201,13 +201,9 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
         # Sort works by start_time if possible
         works.sort(key=lambda x: x.start_time or "23:59")
         
-        # Hardcoded Fixed Depot for ALL teams
-        base = type('obj', (object,), {
-            'id': 'fixed_depot',
-            'name': 'H&H Resources Brussels',
-            'latitude': 50.88243,
-            'longitude': 4.39343
-        })
+        # Resolve Team Base, fallback to default_base
+        base_id = team.base_id
+        base = next((b for b in all_bases if b.id == base_id), default_base)
 
         team_sand_kg = 0.0
         team_distance_km = 0.0
@@ -254,7 +250,9 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                         segment = {
                             "from": "Baza" if last_name == base.name else last_name,
                             "to": w_name,
-                            "km": round(dist_from_prev, 2)
+                            "km": round(dist_from_prev, 2),
+                            "from_lat": last_lat,
+                            "from_lng": last_lng
                         }
                     
                     w.route_distance_km = dist_from_prev
@@ -294,7 +292,9 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                     segments.append({
                         "from": last_name,
                         "to": "Baza",
-                        "km": round(dist, 2)
+                        "km": round(dist, 2),
+                        "from_lat": last_lat,
+                        "from_lng": last_lng
                     })
                     last_wo.route_segments = segments
                 
@@ -316,7 +316,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
         })
 
     return {
-        "date": target_date,
+        "date": target_date.isoformat(),
         "grand_total_sand_kg": grand_total_sand_kg,
         "grand_total_distance_km": grand_total_distance_km,
         "active_teams_count": len(routes),

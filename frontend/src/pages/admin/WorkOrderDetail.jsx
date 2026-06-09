@@ -368,19 +368,20 @@ export default function WorkOrderDetail() {
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label="Volum"         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label="Grosime"        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub="medie" color="rose" />
-                <KPI icon={Navigation} label="Traseu"       value={wo.route_distance_km ? `${wo.route_distance_km.toFixed(1)} km` : '—'} sub="parcurs" color="slate" />
+                <KPI icon={Navigation} label="Traseu"       value={wo.route_distance_km ? `${wo.route_distance_km.toFixed(1)} km` : '—'} sub="dus-întors" color="slate" />
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
-            {(lat || lon || address) && (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || 'Fără adresă specificată'}</div>
-                        </div>
-                        <NavButtons lat={lat} lon={lon} address={address} />
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || 'Fără adresă specificată'}</div>
                     </div>
+                    {(lat || lon || address) && <NavButtons lat={lat} lon={lon} address={address} />}
+                </div>
+                
+                {(lat || lon || address) && (
                     <div className="p-0">
                         <MapView
                             latitude={lat}
@@ -389,18 +390,21 @@ export default function WorkOrderDetail() {
                             height={220}
                             zoom={15}
                             geofenceRadius={geoR}
-                            label={wo.site_name || wo.title}
+                            label={`Locație: ${address}`}
                             routeSegments={wo.route_segments}
                         />
-                        {wo.access_notes && (
-                            <div className="m-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 Note Acces</p>
-                                <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
+                )}
+
+                {wo.access_notes && (
+                    <div className="px-4 pb-4 pt-3">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 Note Acces</p>
+                            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* ── Vreme Orară Detaliată ───────────────────────────────────────── */}
             <HourlyWeather 

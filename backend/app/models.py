@@ -314,6 +314,7 @@ class Client(Base):
     iban = Column(String(50), nullable=True)
     swift = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_favorite = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     

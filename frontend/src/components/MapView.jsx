@@ -17,13 +17,13 @@ L.Icon.Default.mergeOptions({
  * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments
  */
 const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments }) => {
-    const mapRef       = useRef(null)
-    const mapInstance  = useRef(null)
-    const markerRef    = useRef(null)
-    const circleRef    = useRef(null)
+    const mapRef = useRef(null)
+    const mapInstance = useRef(null)
+    const markerRef = useRef(null)
+    const circleRef = useRef(null)
     const routingControlRef = useRef(null)
     const [geocoding, setGeocoding] = useState(false)
-    const [geoError,  setGeoError]  = useState(false)
+    const [geoError, setGeoError] = useState(false)
 
     const initMap = (lat, lon, z, popupLabel) => {
         if (!mapRef.current) return
@@ -68,51 +68,55 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         }
 
         // Force resize după mount
-        
+
         if (routingControlRef.current) {
             mapInstance.current.removeControl(routingControlRef.current)
             routingControlRef.current = null
         }
 
         if (routeSegments && routeSegments.length > 0) {
-            const startName = routeSegments[0].from;
+            const firstSeg = routeSegments[0];
+            const startName = firstSeg.from;
             const geocodeStart = async (query) => {
+                if (firstSeg.from_lat && firstSeg.from_lng) {
+                    return { lat: parseFloat(firstSeg.from_lat), lon: parseFloat(firstSeg.from_lng) };
+                }
                 if (query.toLowerCase() === 'baza' || query.toLowerCase() === 'base') {
-                    return { lat: 51.2372207, lon: 4.4569835 }; // Default base
+                    return { lat: 51.2372207, lon: 4.4569835 }; // Default fallback base
                 }
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+                        { headers: { 'Accept-Language': 'ro', 'User-Agent': 'PontajDigital/1.0' } }
+                    );
                     const data = await res.json();
                     if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Geocoding failed for start node", e);
+                }
                 return null;
             };
 
             geocodeStart(startName).then(startCoords => {
                 if (startCoords && mapInstance.current) {
-                    routingControlRef.current = L.Routing.control({
-                        waypoints: [
-                            L.latLng(startCoords.lat, startCoords.lon),
-                            L.latLng(lat, lon)
-                        ],
-                        lineOptions: {
-                            styles: [{ color: '#3b82f6', weight: 4, opacity: 0.8 }],
-                            extendToWaypoints: false,
-                            missingRouteTolerance: 0
-                        },
-                        show: false,
-                        addWaypoints: false,
-                        routeWhileDragging: false,
-                        fitSelectedRoutes: true,
-                        showAlternatives: false,
-                        createMarker: () => null
+                    // Tragem o linie dreaptă (dashed) pentru a fi 100% siguri că apare pe hartă, 
+                    // evitând erorile de rate-limit sau distanță prea lungă de la serverul gratuit OSRM
+                    const line = L.polyline([
+                        [startCoords.lat, startCoords.lon],
+                        [lat, lon]
+                    ], {
+                        color: '#3b82f6',
+                        weight: 3,
+                        dashArray: '8, 8',
+                        opacity: 0.8
                     }).addTo(mapInstance.current);
-                    
-                    // Hide routing container
-                    const container = routingControlRef.current.getContainer();
-                    if (container) container.style.display = 'none';
 
-                    L.marker([startCoords.lat, startCoords.lon]).bindPopup(`<strong style="font-size:13px">Start: ${startName}</strong>`).addTo(mapInstance.current);
+                    L.marker([startCoords.lat, startCoords.lon])
+                        .bindPopup(`<strong style="font-size:13px">Baza: ${startName}</strong>`)
+                        .addTo(mapInstance.current);
+
+                    // Ajustăm zoom-ul ca să cuprindă ambele puncte
+                    mapInstance.current.fitBounds(line.getBounds(), { padding: [50, 50] });
                 }
             });
         }
@@ -178,8 +182,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 }
                 mapInstance.current.remove()
                 mapInstance.current = null
-                markerRef.current  = null
-                circleRef.current  = null
+                markerRef.current = null
+                circleRef.current = null
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

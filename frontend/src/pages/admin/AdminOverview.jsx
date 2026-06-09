@@ -4,7 +4,7 @@ import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
-    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck
+    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +17,8 @@ import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
 import BuienradarWidget from '../../components/BuienradarWidget'
+import AddressAutocomplete from '../../components/AddressAutocomplete'
+import SearchableSelect from '../../components/SearchableSelect'
 import { useTenantStore } from '../../store/tenantStore'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -127,6 +129,15 @@ export default function AdminOverview() {
     const [globalSiteFilter, setGlobalSiteFilter] = useState(null)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
 
+    const [quickCreateData, setQuickCreateData] = useState(null) // { teamId, clientId, clientName, date, time }
+    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '' })
+    const [quickCreateStep, setQuickCreateStep] = useState(1) // 1 = General, 2 = Resurse, 'new-client' = formular client nou
+    const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '' })
+    const [quickCreateSaving, setQuickCreateSaving] = useState(false)
+    const [detectingLocation, setDetectingLocation] = useState(false)
+
+    const [clients, setClients] = useState([])
+
     // Live clock — use ref to avoid re-rendering charts every second
     const nowRef = useRef(Date.now())
     const [clockTick, setClockTick] = useState(0)
@@ -163,9 +174,9 @@ export default function AdminOverview() {
         fetchChartData()
         fetchActiveWorkers()
         fetchFleetAlerts()
-        fetchSesizariNecesar()
         fetchComplaints()
         fetchTeams()
+        fetchClients()
         if (isShortTerm) fetchWorkOrdersStats()
 
         if (refreshTimer.current) clearInterval(refreshTimer.current)
@@ -173,10 +184,9 @@ export default function AdminOverview() {
             fetchStats(true)
             fetchActiveWorkers()
             fetchChartData()
-            fetchFleetAlerts()
-            fetchSesizariNecesar()
             fetchComplaints()
             fetchTeams()
+            fetchClients()
             if (isShortTerm) fetchWorkOrdersStats()
         }, 15000)
 
@@ -216,8 +226,10 @@ export default function AdminOverview() {
             setWorkOrdersStats({ total, active, draft })
             if (Array.isArray(all)) {
                 setAllWorkOrders(all)
-                setRecentWorkOrders(all.slice(0, 10))
             }
+            // Fetch the 50 most recent work orders independent of current month
+            const recentRes = await api.get('/admin/work-orders?limit=50')
+            setRecentWorkOrders(recentRes.data || [])
         } catch {}
     }
 
@@ -228,13 +240,20 @@ export default function AdminOverview() {
         } catch (e) { console.error(e) }
     }
 
+    const fetchClients = async () => {
+        try {
+            const res = await api.get('/admin/clients')
+            setClients(Array.isArray(res.data) ? res.data : res.data?.items || [])
+        } catch (e) { console.error(e) }
+    }
+
     const handleTeamDropOnOrder = async (workOrderId, teamId) => {
         try {
-            const team = teams.find(t => t.id === teamId)
+            const team = teams.find(t => String(t.id) === String(teamId))
             
             // Optimistic UI Update
             setAllWorkOrders(prev => prev.map(wo => {
-                if (wo.id === workOrderId) {
+                if (String(wo.id) === String(workOrderId)) {
                     return {
                         ...wo,
                         assigned_team_id: teamId,
@@ -254,6 +273,176 @@ export default function AdminOverview() {
             console.error("Error assigning team:", error)
             alert("Eroare la asignarea echipei.")
             fetchWorkOrdersStats()
+        }
+    }
+
+    const handleClientDropOnOrder = async (workOrderId, clientId) => {
+        try {
+            const client = clients.find(c => String(c.id) === String(clientId))
+            
+            // Optimistic UI Update
+            setAllWorkOrders(prev => prev.map(wo => {
+                if (String(wo.id) === String(workOrderId)) {
+                    return {
+                        ...wo,
+                        client_id: clientId,
+                        client_name: client?.name || wo.client_name
+                    }
+                }
+                return wo
+            }))
+
+            await api.put(`/admin/work-orders/${workOrderId}`, {
+                client_id: clientId
+            })
+            // Silent refresh
+            fetchWorkOrdersStats()
+        } catch (error) {
+            console.error("Error assigning client:", error)
+            alert("Eroare la asignarea clientului.")
+            fetchWorkOrdersStats()
+        }
+    }
+
+    const handleTeamDropOnEmpty = (date, time, teamId) => {
+        setQuickCreateData({ date, time, teamId })
+        setQuickCreateForm({ title: '', address: '', latitude: '', longitude: '' })
+    }
+
+    const handleDetectGPS = () => {
+        setDetectingLocation(true)
+        if (!navigator.geolocation) {
+            alert('Geolocația nu este suportată de browser.');
+            setDetectingLocation(false);
+            return;
+        }
+
+        const gpsTimeout = setTimeout(() => {
+            setDetectingLocation(false);
+            alert('Timpul a expirat. Verifică setările de permisiuni GPS.');
+        }, 8000);
+
+        navigator.geolocation.getCurrentPosition(
+            async pos => {
+                clearTimeout(gpsTimeout);
+                const lat = pos.coords.latitude.toFixed(6)
+                const lon = pos.coords.longitude.toFixed(6)
+                
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&email=contact@davidechape.com`,
+                        { headers: { 'Accept-Language': 'ro,en,fr,de' } }
+                    )
+                    const data = await res.json()
+                    if (data?.display_name) {
+                        const a = data.address || {}
+                        const parts = [
+                            a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
+                            a.city || a.town || a.village || a.municipality,
+                            a.county
+                        ].filter(Boolean)
+                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
+                        setQuickCreateForm(p => ({ ...p, address: addr, latitude: lat, longitude: lon }))
+                    }
+                } catch (e) {
+                    console.error('Eroare reverse geocoding:', e)
+                } finally {
+                    setDetectingLocation(false)
+                }
+            },
+            err => {
+                clearTimeout(gpsTimeout);
+                setDetectingLocation(false);
+                alert('Eroare la detectarea locației.');
+            },
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        );
+    }
+
+    const handleQuickCreateClient = async () => {
+        setQuickCreateSaving(true)
+        try {
+            const res = await api.post('/admin/clients', {
+                name: quickCreateClientForm.name,
+                type: quickCreateClientForm.type,
+                identifier: quickCreateClientForm.identifier,
+                phone: quickCreateClientForm.phone,
+                email: quickCreateClientForm.email,
+                is_favorite: true
+            })
+            // Fetch updated clients or just add to list
+            const newClient = res.data
+            setClients(prev => [...prev, newClient])
+            
+            // Auto select it and go back to step 1
+            setQuickCreateForm(p => ({
+                ...p,
+                clientId: newClient.id,
+                title: !p.title ? newClient.name : p.title
+            }))
+            setQuickCreateClientForm({ name: '', phone: '', email: '', type: 'fizica', identifier: '' })
+            setQuickCreateStep(1)
+        } catch (error) {
+            console.error("Error creating client:", error)
+            alert("Eroare la crearea clientului.")
+        } finally {
+            setQuickCreateSaving(false)
+        }
+    }
+
+    const handleQuickCreateSubmit = async (e, openDetails = false) => {
+        if (e) e.preventDefault()
+        setQuickCreateSaving(true)
+        try {
+            let estimatedAmount = 0;
+            let isAutoCalculated = false;
+            
+            const surface = parseFloat(quickCreateForm.surface) || 0;
+            const thickness = parseFloat(quickCreateForm.thickness) || 0;
+            
+            if (surface > 0) {
+                const extraThickness = Math.max(0, thickness - 5);
+                const autoBase = 12.5 * surface;
+                const autoExtra = extraThickness * 1.25 * surface;
+                const autoFoil = quickCreateForm.has_foil ? 1.2 * surface : 0;
+                const autoMesh = quickCreateForm.has_mesh ? 2.5 * surface : 0;
+                // Duramint added as checkbox, price pending if required
+                estimatedAmount = autoBase + autoExtra + autoFoil + autoMesh;
+                isAutoCalculated = true;
+            }
+
+            const res = await api.post('/admin/work-orders', {
+                title: quickCreateForm.title,
+                site_address: quickCreateForm.address,
+                site_latitude: quickCreateForm.latitude,
+                site_longitude: quickCreateForm.longitude,
+                start_date: quickCreateData.date,
+                start_time: quickCreateData.time,
+                assigned_team_id: quickCreateData.teamId || null,
+                client_id: quickCreateData.clientId || null,
+                status: 'draft',
+                volumes: (quickCreateForm.surface || quickCreateForm.thickness) ? [{
+                    label: 'Șapă',
+                    quantity: parseFloat(quickCreateForm.surface) || 0,
+                    unit: 'm²',
+                    thickness: parseFloat(quickCreateForm.thickness) || 0,
+                    has_foil: !!quickCreateForm.has_foil,
+                    has_mesh: !!quickCreateForm.has_mesh,
+                    has_duramint: !!quickCreateForm.has_duramint
+                }] : [],
+                estimated_amount: estimatedAmount > 0 ? estimatedAmount : null,
+                is_auto_calculated: isAutoCalculated
+            })
+            setQuickCreateData(null)
+            fetchWorkOrdersStats()
+            if (openDetails && res.data && res.data.id) {
+                navigate(`/admin/work-orders/${res.data.id}/edit`)
+            }
+        } catch (error) {
+            console.error("Error quick creating work order:", error)
+            alert("A apărut o eroare la crearea rapidă a comenzii.")
+        } finally {
+            setQuickCreateSaving(false)
         }
     }
 
@@ -451,20 +640,87 @@ export default function AdminOverview() {
                             workOrders={allWorkOrders} 
                             onOrderRescheduled={handleOrderRescheduled} 
                             onTeamDrop={handleTeamDropOnOrder}
+                            onClientDrop={handleClientDropOnOrder}
+                            onTeamDropOnEmpty={(date, time, teamId) => {
+                                setQuickCreateData({ date, time, teamId, clientId: null })
+                                setQuickCreateForm(p => ({ ...p, title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '' }))
+                                setQuickCreateStep(1)
+                            }}
+                            onClientDropOnEmpty={(date, time, clientId, clientName) => {
+                                const c = clients.find(cl => String(cl.id) === String(clientId))
+                                setQuickCreateData({ date, time, teamId: null, clientId })
+                                setQuickCreateForm(p => ({ 
+                                    ...p, 
+                                    title: clientName || '', 
+                                    address: c?.address || '', 
+                                    latitude: c?.latitude || '', 
+                                    longitude: c?.longitude || '', 
+                                    surface: '', 
+                                    thickness: '',
+                                    clientId: clientId || ''
+                                }))
+                                setQuickCreateStep(1)
+                            }}
+                            onEmptyCellClick={(date, time) => {
+                                setQuickCreateData({ date, time, teamId: null, clientId: null })
+                                setQuickCreateForm(p => ({ ...p, title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '' }))
+                                setQuickCreateStep(1)
+                            }}
                         />
                     </div>
-                    <div className="xl:col-span-1 flex flex-col gap-6 h-[800px]">
-                        <div className="min-h-[300px]">
-                            <BuienradarWidget />
+                    <div className="xl:col-span-1 flex flex-col gap-4 h-[800px]">
+                        {/* Drag and Drop Clients Module */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
+                            <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
+                                    <Building2 className="w-3.5 h-3.5 text-white" />
+                                    Clienți Frecvenți
+                                </h3>
+                                <p className="text-[10px] text-amber-100">
+                                    Trage clientul pe calendar.
+                                </p>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
+                                {clients.filter(c => c.is_favorite).map(client => (
+                                    <div 
+                                        key={`fav-${client.id}`}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "client")
+                                            e.dataTransfer.setData("id", String(client.id))
+                                            e.dataTransfer.setData("name", client.name)
+                                        }}
+                                        className="p-1.5 rounded-lg border transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-orange-100 dark:bg-orange-900/30 border-orange-500 shadow-sm flex items-center justify-between"
+                                    >
+                                        <div className="font-bold text-orange-600 dark:text-orange-400 text-xs truncate">⭐️ {client.name}</div>
+                                    </div>
+                                ))}
+                                {clients.filter(c => !c.name.toLowerCase().includes('isoflex')).slice(0, 15).map(client => (
+                                    <div 
+                                        key={client.id}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "client")
+                                            e.dataTransfer.setData("id", String(client.id))
+                                            e.dataTransfer.setData("name", client.name)
+                                        }}
+                                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between shadow-sm hover:border-amber-300"
+                                    >
+                                        <div className="font-medium text-slate-700 dark:text-slate-300 text-xs truncate">{client.name}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+
                         {/* Drag and Drop Teams Module */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
-                            <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 shrink-0">
-                                <h3 className="font-extrabold text-white flex items-center gap-2 mb-1 text-sm uppercase tracking-wide">
-                                    <Truck className="w-4 h-4 text-white" />
+                            <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
+                                    <Truck className="w-3.5 h-3.5 text-white" />
                                     Camioane (Echipe)
                                 </h3>
-                                <p className="text-xs text-blue-100">
+                                <p className="text-[10px] text-blue-100">
                                     Trage un camion peste lucrare.
                                 </p>
                             </div>
@@ -514,11 +770,11 @@ export default function AdminOverview() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
 {/* Recent Work Orders */}
-            {isShortTerm && dashboardLayout.recent_work_orders?.visible && (
-                <div className={getLayoutClass("recent_work_orders", "bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden")}>
-                    <div className="flex items-center justify-between px-5 py-4 bg-blue-600 dark:bg-slate-800">
+            {dashboardLayout.recent_work_orders?.visible && (
+                <div className={`${isShortTerm ? 'xl:col-span-3' : 'xl:col-span-4'} bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden`}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                         <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <ClipboardList className="w-4 h-4 text-white" />
                             Comenzi Recente
@@ -536,6 +792,8 @@ export default function AdminOverview() {
                                     <tr className="border-b border-slate-100 dark:border-slate-700">
                                         <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500">Titlu</th>
                                         <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500 hidden sm:table-cell">Client</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500 hidden sm:table-cell">Data Execuție</th>
+                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Dată Creare</th>
                                         <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500">Status</th>
                                         <th className="px-4 py-2 text-right text-[11px] font-extrabold uppercase tracking-widest text-slate-500">Acțiuni</th>
                                     </tr>
@@ -558,6 +816,12 @@ export default function AdminOverview() {
                                                     {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hidden sm:table-cell">{wo.client_name || '—'}</td>
+                                                <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hidden sm:table-cell">
+                                                    {wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO') : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 hidden lg:table-cell">
+                                                    {wo.created_at ? new Date(wo.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
                                                         <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -578,6 +842,16 @@ export default function AdminOverview() {
                     )}
                 </div>
             )}
+            
+            {/* Weather Module next to Recent Orders */}
+            {isShortTerm && (
+                <div className="xl:col-span-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[400px]">
+                    <BuienradarWidget />
+                </div>
+            )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
 
 
             {/* Live Site Map — afiseaza doar daca tenant are santiere clasice */}
@@ -1425,8 +1699,217 @@ export default function AdminOverview() {
                 </>
             )}
 
+            {/* Quick Create Modal */}
+            {quickCreateData && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
+                        <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <Package className="w-4 h-4" />
+                                Creare Rapidă
+                            </h3>
+                            <button onClick={() => setQuickCreateData(null)} className="text-blue-100 hover:text-white p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleQuickCreateSubmit} className="p-5 space-y-4">
+                            {quickCreateStep === 1 && (
+                                <>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Client (Opțional)</label>
+                                            <button type="button" onClick={() => setQuickCreateStep('new-client')} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors">
+                                                <Plus className="w-3 h-3" /> Client Nou
+                                            </button>
+                                        </div>
+                                        <SearchableSelect
+                                            value={quickCreateForm.clientId || ""}
+                                            onChange={val => {
+                                                const c = clients.find(cl => String(cl.id) === String(val))
+                                                setQuickCreateForm(p => ({
+                                                    ...p,
+                                                    clientId: val,
+                                                    title: c && !p.title ? c.name : p.title,
+                                                    address: c && !p.address ? c.address : p.address,
+                                                    latitude: c && !p.latitude ? c.latitude : p.latitude,
+                                                    longitude: c && !p.longitude ? c.longitude : p.longitude
+                                                }))
+                                            }}
+                                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                                            placeholder="-- Alege client --"
+                                            buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Titlu Lucrare *</label>
+                                        <input 
+                                            type="text"
+                                            autoFocus
+                                            required
+                                            value={quickCreateForm.title}
+                                            onChange={e => setQuickCreateForm({ ...quickCreateForm, title: e.target.value })}
+                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Ex: Șapă Rezi Ilfov..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Adresă / Localitate (Opțional)</label>
+                                            <button
+                                                type="button"
+                                                onClick={handleDetectGPS}
+                                                disabled={detectingLocation}
+                                                className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
+                                            >
+                                                {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                GPS Automat
+                                            </button>
+                                        </div>
+                                        <AddressAutocomplete 
+                                            value={quickCreateForm.address}
+                                            onChange={(addr, lat, lon) => {
+                                                setQuickCreateForm(p => ({ 
+                                                    ...p, 
+                                                    address: addr,
+                                                    ...(lat && lon ? { latitude: lat, longitude: lon } : {})
+                                                }))
+                                            }}
+                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Ex: București, Sector 1"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={quickCreateForm.surface}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, surface: e.target.value })}
+                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Ex: 150"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={quickCreateForm.thickness}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
+                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Ex: 6.5"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_foil}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_foil: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            Include Folie plastic (1,2 EUR/m²)
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_mesh}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_mesh: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            Include Plasă metalică (2,50 EUR/m²)
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_duramint}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_duramint: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            Include Duramint
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Echipă Alocată</label>
+                                        <SearchableSelect
+                                            value={quickCreateData.teamId || ''}
+                                            onChange={val => setQuickCreateData(p => ({...p, teamId: val}))}
+                                            options={[
+                                                { value: '', label: '-- Fără echipă (Draft) --' },
+                                                ...teams.map(t => ({ value: String(t.id), label: t.name }))
+                                            ]}
+                                            placeholder="-- Fără echipă (Draft) --"
+                                            buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2 pt-3">
+                                        <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                            Anulează
+                                        </button>
+                                        <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmă Comanda'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {quickCreateStep === 'new-client' && (
+                                <>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <button type="button" onClick={() => setQuickCreateStep(1)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
+                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Adaugă Client Nou</span>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tip Client</label>
+                                        <div className="flex gap-2">
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'fizica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> Fizică
+                                            </label>
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'juridica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> Juridică
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nume Client *</label>
+                                        <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Popescu Ion / Firma SRL" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? 'CNP (Opțional)' : 'CUI *'}</label>
+                                        <input type="text" required={quickCreateClientForm.type === 'juridica'} value={quickCreateClientForm.identifier} onChange={e => setQuickCreateClientForm(p => ({...p, identifier: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Telefon</label>
+                                            <input type="text" value={quickCreateClientForm.phone} onChange={e => setQuickCreateClientForm(p => ({...p, phone: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                                            <input type="email" value={quickCreateClientForm.email} onChange={e => setQuickCreateClientForm(p => ({...p, email: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 pt-3">
+                                        <button type="button" onClick={() => setQuickCreateStep(1)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                            Înapoi
+                                        </button>
+                                        <button type="button" onClick={handleQuickCreateClient} disabled={quickCreateSaving || !quickCreateClientForm.name} className="flex-1 h-11 font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvează Client'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+                @keyframes slideInUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
             `}</style>
         </div>
     )

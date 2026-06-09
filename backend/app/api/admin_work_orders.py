@@ -200,6 +200,7 @@ def list_work_orders(
     status: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    limit: Optional[int] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -210,7 +211,7 @@ def list_work_orders(
         try:
             from app.api.admin_logistics import _calculate_daily_routes
             from app.models import LogisticsDailyPlan
-            from datetime import timedelta
+            from datetime import timedelta, datetime
             
             start_d = datetime.strptime(start_date, "%Y-%m-%d").date()
             end_d = datetime.strptime(end_date, "%Y-%m-%d").date()
@@ -236,6 +237,7 @@ def list_work_orders(
                         db.commit()
                     curr += timedelta(days=1)
         except Exception as e:
+            db.rollback()
             print(f"Error auto-archiving logistics in list_work_orders: {e}")
     # ------------------------------------------------
     
@@ -263,7 +265,10 @@ def list_work_orders(
         except ValueError:
             q = q.filter(or_(WorkOrder.start_date <= end_date, WorkOrder.deadline_date <= end_date))
 
-    wos = q.order_by(WorkOrder.start_date.desc().nulls_last(), WorkOrder.created_at.desc()).all()
+    q = q.order_by(WorkOrder.start_date.desc().nulls_last(), WorkOrder.created_at.desc())
+    if limit:
+        q = q.limit(limit)
+    wos = q.all()
     return [_serialize(wo) for wo in wos]
 
 
@@ -296,6 +301,7 @@ def create_work_order(
     client_phone = payload.client_phone
 
     client_id = payload.client_id
+    cl = None
     if client_id:
         cl = db.query(Client).filter(
             Client.id == client_id,
@@ -327,14 +333,20 @@ def create_work_order(
                 bank_name=getattr(payload, 'client_company_bank', None),
                 iban=getattr(payload, 'client_company_iban', None),
                 swift=getattr(payload, 'client_company_swift', None),
-                # Note: 'swift' field exists on Client, let's also capture it if it was sent.
-                # However, we only added 'swift' to WorkOrderCreate recently or not?
-                # Actually, WorkOrderCreate does not have 'client_company_swift'. Let's ignore it for now.
             )
             db.add(cl)
             db.commit()
             db.refresh(cl)
         client_id = cl.id
+
+    site_address = payload.site_address
+    site_latitude = getattr(payload, 'site_latitude', None)
+    site_longitude = getattr(payload, 'site_longitude', None)
+    
+    if cl and not site_address:
+        site_address = cl.address
+        site_latitude = cl.latitude
+        site_longitude = cl.longitude
 
     wo = WorkOrder(
         organization_id=current_admin.organization_id,
@@ -345,7 +357,9 @@ def create_work_order(
         start_time=payload.start_time,
         deadline_date=payload.deadline_date,
         site_id=payload.site_id,
-        site_address=payload.site_address,
+        site_address=site_address,
+        site_latitude=site_latitude,
+        site_longitude=site_longitude,
         client_id=client_id,
         client_name=client_name,
         client_email=client_email,
@@ -366,6 +380,85 @@ def create_work_order(
     if payload.materials:
         sync_work_order_reservations(db, current_admin.organization_id, [], payload.materials)
         
+    # Recalculate Round Trip Route (fallback to Org base if no team)
+    if True:
+        import math
+        import requests
+        from app.models import LogisticBase
+        
+        team = None
+        if wo.assigned_team_id:
+            team = db.query(Team).filter(Team.id == wo.assigned_team_id).first()
+        base = None
+        if team and team.base_id:
+            base = db.query(LogisticBase).filter(LogisticBase.id == team.base_id).first()
+        if not base:
+            base = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).first()
+
+        base_lat = None
+        base_lng = None
+        base_name = "Baza Principala"
+
+        if base and base.latitude and base.longitude:
+            base_name = base.name
+            base_lat = base.latitude
+            base_lng = base.longitude
+
+        # Geocode if coordinates are missing but we have an address
+        if (not wo.site_latitude or not wo.site_longitude) and wo.site_address:
+            try:
+                import requests
+                res = requests.get(
+                    f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(wo.site_address)}&limit=1&email=contact@davidechape.com",
+                    headers={"Accept-Language": "ro", "User-Agent": "PontajDigitalApp/2.0"},
+                    timeout=5
+                )
+                data = res.json()
+                if data and len(data) > 0:
+                    wo.site_latitude = float(data[0]['lat'])
+                    wo.site_longitude = float(data[0]['lon'])
+            except Exception:
+                pass
+
+        if wo.site_latitude and wo.site_longitude and base_lat and base_lng:
+            def haversine(lat1, lon1, lat2, lon2):
+                R = 6371.0
+                phi1, phi2 = math.radians(lat1), math.radians(lat2)
+                dphi = math.radians(lat2 - lat1)
+                dlambda = math.radians(lon2 - lon1)
+                a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+                return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+            
+            dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
+            wo.route_distance_km = round(dist_one_way * 2, 2)
+            wo.route_segments = [
+                {
+                    "from": base_name,
+                    "to": wo.site_address or wo.title,
+                    "km": round(dist_one_way, 2),
+                    "from_lat": base_lat,
+                    "from_lng": base_lng
+                },
+                {
+                    "from": wo.site_address or wo.title,
+                    "to": base_name,
+                    "km": round(dist_one_way, 2),
+                    "from_lat": wo.site_latitude,
+                    "from_lng": wo.site_longitude
+                }
+            ]
+        elif base_lat and base_lng:
+            # Fallback so frontend MapView knows where the base is and can draw the route
+            wo.route_segments = [
+                {
+                    "from": base_name,
+                    "to": wo.site_address or wo.title,
+                    "km": 0,
+                    "from_lat": base_lat,
+                    "from_lng": base_lng
+                }
+            ]
+
     db.commit()
     db.refresh(wo)
     return _serialize(wo)
@@ -452,6 +545,70 @@ def update_work_order(
             db.commit()
             db.refresh(cl)
         wo.client_id = cl.id
+
+    # Recalculate Round Trip Route (fallback to Org base if no team)
+    if True:
+        import math
+        import requests
+        from app.models import LogisticBase
+        
+        team = None
+        if wo.assigned_team_id:
+            team = db.query(Team).filter(Team.id == wo.assigned_team_id).first()
+            
+        base = None
+        if team and team.base_id:
+            base = db.query(LogisticBase).filter(LogisticBase.id == team.base_id).first()
+        if not base:
+            base = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).first()
+
+        base_lat = None
+        base_lng = None
+        base_name = "Baza Principala"
+
+        if base and base.latitude and base.longitude:
+            base_name = base.name
+            base_lat = base.latitude
+            base_lng = base.longitude
+
+        # Geocode if coordinates are missing but we have an address
+        if (not wo.site_latitude or not wo.site_longitude) and wo.site_address:
+            try:
+                res = requests.get(
+                    f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(wo.site_address)}&limit=1&email=contact@davidechape.com",
+                    headers={"Accept-Language": "ro", "User-Agent": "PontajDigital/1.0"},
+                    timeout=5
+                )
+                data = res.json()
+                if data and len(data) > 0:
+                    wo.site_latitude = float(data[0]['lat'])
+                    wo.site_longitude = float(data[0]['lon'])
+            except Exception:
+                pass
+
+        if wo.site_latitude and wo.site_longitude:
+            def haversine(lat1, lon1, lat2, lon2):
+                R = 6371.0
+                phi1, phi2 = math.radians(lat1), math.radians(lat2)
+                dphi = math.radians(lat2 - lat1)
+                dlambda = math.radians(lon2 - lon1)
+                a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+                return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+            
+            dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
+            wo.route_distance_km = round(dist_one_way * 2, 2)
+            wo.route_segments = [
+                {
+                    "from": base_name,
+                    "to": wo.site_address or wo.title,
+                    "km": round(dist_one_way, 2)
+                },
+                {
+                    "from": wo.site_address or wo.title,
+                    "to": base_name,
+                    "km": round(dist_one_way, 2)
+                }
+            ]
 
     db.commit()
     db.refresh(wo)
