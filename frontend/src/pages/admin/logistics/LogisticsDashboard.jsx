@@ -80,10 +80,10 @@ function RoutingMachine({ positions, color, weight, opacity }) {
     return null;
 }
 
-const createCustomIcon = (text, isBase) => {
+const createCustomIcon = (text, isBase, teamColor) => {
     return L.divIcon({
         className: 'custom-div-icon',
-        html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 ${isBase ? 'bg-slate-800' : 'bg-blue-600'}">${text}</div>`,
+        html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 ${isBase ? 'bg-slate-800' : ''}" ${!isBase && teamColor ? `style="background-color: ${teamColor}"` : ''}>${text}</div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12]
     });
@@ -257,7 +257,7 @@ export default function LogisticsDashboard() {
                                             <Marker 
                                                 key={`wp-${idx}`} 
                                                 position={[wp.lat, wp.lng]}
-                                                icon={createCustomIcon(wp.type.includes('base') ? 'B' : idx, wp.type.includes('base'))}
+                                                icon={createCustomIcon(wp.type.includes('base') ? 'B' : idx, wp.type.includes('base'), route.team_color)}
                                             >
                                                 <Popup>
                                                     <strong className="text-sm">{wp.name}</strong>
@@ -380,7 +380,10 @@ export default function LogisticsDashboard() {
                                                     <div className="space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                                         {route.waypoints.map((wp, idx) => (
                                                             <div key={idx} className="flex gap-3 relative z-10 text-xs">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${wp.type.includes('base') ? 'bg-slate-800 dark:bg-slate-600' : 'bg-slate-500 dark:bg-slate-400'}`}>
+                                                                <div 
+                                                                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${wp.type.includes('base') ? 'bg-slate-800 dark:bg-slate-600' : ''}`}
+                                                                    style={wp.type.includes('base') ? {} : { backgroundColor: route.team_color }}
+                                                                >
                                                                     {wp.type.includes('base') ? 'B' : idx}
                                                                 </div>
                                                                 <div className="flex-1 pt-0.5">

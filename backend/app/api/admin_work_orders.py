@@ -249,10 +249,19 @@ def list_work_orders(
     if status:
         q = q.filter(WorkOrder.status == status)
     from sqlalchemy import or_
+    from datetime import datetime
     if start_date:
-        q = q.filter(or_(WorkOrder.start_date >= start_date, WorkOrder.deadline_date >= start_date))
+        try:
+            sd = datetime.strptime(start_date, "%Y-%m-%d").date()
+            q = q.filter(or_(WorkOrder.start_date >= sd, WorkOrder.deadline_date >= sd))
+        except ValueError:
+            q = q.filter(or_(WorkOrder.start_date >= start_date, WorkOrder.deadline_date >= start_date))
     if end_date:
-        q = q.filter(or_(WorkOrder.start_date <= end_date, WorkOrder.deadline_date <= end_date))
+        try:
+            ed = datetime.strptime(end_date, "%Y-%m-%d").date()
+            q = q.filter(or_(WorkOrder.start_date <= ed, WorkOrder.deadline_date <= ed))
+        except ValueError:
+            q = q.filter(or_(WorkOrder.start_date <= end_date, WorkOrder.deadline_date <= end_date))
 
     wos = q.order_by(WorkOrder.start_date.desc().nulls_last(), WorkOrder.created_at.desc()).all()
     return [_serialize(wo) for wo in wos]
