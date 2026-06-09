@@ -117,7 +117,6 @@ const SAND_STATIONS = [
 export default function LogisticsDashboard() {
     const [targetDate, setTargetDate] = useState(() => {
         const d = new Date();
-        d.setDate(d.getDate() + 1);
         return d.toISOString().split('T')[0];
     })
     const [data, setData] = useState(null)
