@@ -27,7 +27,8 @@ export default function DataTable({
     rowStyle,
     rowClassName,
     onRowClick,
-    mobileCard
+    mobileCard,
+    pageSizeOptions
 }) {
     const { t } = useTranslation()
     const [page, setPage] = useState(1)
@@ -214,12 +215,14 @@ export default function DataTable({
                         onChange={handlePageSize}
                         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                        {PAGE_SIZE_OPTIONS.map(s => (
-                            <option key={s} value={s}>{s}</option>
+                        {(pageSizeOptions || [10, 25, 50, 100]).map(s => (
+                            <option key={s} value={s}>{s === 99999 ? 'Toate' : s}</option>
                         ))}
                     </select>
                 </div>
                 <div className="flex items-center gap-4">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Total: {data.length}</span>
+                    <span className="w-px h-4 bg-slate-300 dark:bg-slate-600"></span>
                     <span>Pagina {safePage} din {totalPages || 1}</span>
                     <div className="flex gap-1">
                         <button

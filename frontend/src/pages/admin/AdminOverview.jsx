@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import api from '../../lib/api'
 import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
@@ -135,6 +135,39 @@ export default function AdminOverview() {
     const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '' })
     const [quickCreateSaving, setQuickCreateSaving] = useState(false)
     const [detectingLocation, setDetectingLocation] = useState(false)
+
+    const [quickRouteDist, setQuickRouteDist] = useState(null)
+    const [quickRouteLoading, setQuickRouteLoading] = useState(false)
+
+    const calculatedSand = useMemo(() => {
+        const s = parseFloat(quickCreateForm.surface) || 0
+        const t = parseFloat(quickCreateForm.thickness) || 0
+        return (s * t * 16) / 1000
+    }, [quickCreateForm.surface, quickCreateForm.thickness])
+
+    useEffect(() => {
+        if (quickCreateStep === 1 && quickCreateForm.latitude && quickCreateForm.longitude) {
+            setQuickRouteLoading(true)
+            const baseLat = 51.2372207
+            const baseLon = 4.4569835
+            const targetLat = parseFloat(quickCreateForm.latitude)
+            const targetLon = parseFloat(quickCreateForm.longitude)
+            
+            fetch(`https://router.project-osrm.org/route/v1/driving/${baseLon},${baseLat};${targetLon},${targetLat}?overview=false`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.routes && data.routes[0]) {
+                        setQuickRouteDist(data.routes[0].distance / 1000)
+                    } else {
+                        setQuickRouteDist(null)
+                    }
+                })
+                .catch(() => setQuickRouteDist(null))
+                .finally(() => setQuickRouteLoading(false))
+        } else {
+            setQuickRouteDist(null)
+        }
+    }, [quickCreateForm.latitude, quickCreateForm.longitude, quickCreateStep])
 
     const [clients, setClients] = useState([])
 
@@ -430,7 +463,7 @@ export default function AdminOverview() {
                     has_mesh: !!quickCreateForm.has_mesh,
                     has_duramint: !!quickCreateForm.has_duramint
                 }] : [],
-                estimated_amount: estimatedAmount > 0 ? estimatedAmount : null,
+                estimated_price: estimatedAmount > 0 ? String(estimatedAmount) : null,
                 is_auto_calculated: isAutoCalculated
             })
             setQuickCreateData(null)
@@ -592,16 +625,7 @@ export default function AdminOverview() {
                     <div className="h-full bg-blue-500 animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ width: '40%', animation: 'moveRight 1.5s linear infinite', background: 'linear-gradient(90deg, #3b82f6, #6366f1)' }} />
                 </div>
             )}
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                        Planning
-                    </h1>
-                </div>
-                <div className="flex items-center gap-2">
-                </div>
-            </div>
+            {/* Header removed as it duplicates the top navbar title */}
 
             {/* KPI Row */}
             <div className={`grid gap-3 mb-6 ${isScreeds ? 'grid-cols-3 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
@@ -691,7 +715,7 @@ export default function AdminOverview() {
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="p-1.5 rounded-lg border transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-orange-100 dark:bg-orange-900/30 border-orange-500 shadow-sm flex items-center justify-between"
+                                        className="p-1.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-orange-100 dark:bg-orange-900/30 border-orange-500 shadow-sm flex items-center justify-between"
                                     >
                                         <div className="font-bold text-orange-600 dark:text-orange-400 text-xs truncate">⭐️ {client.name}</div>
                                     </div>
@@ -705,7 +729,7 @@ export default function AdminOverview() {
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between shadow-sm hover:border-amber-300"
+                                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between shadow-sm hover:border-amber-300"
                                     >
                                         <div className="font-medium text-slate-700 dark:text-slate-300 text-xs truncate">{client.name}</div>
                                     </div>
@@ -738,7 +762,7 @@ export default function AdminOverview() {
                                         onDragEnd={(e) => {
                                             e.currentTarget.classList.remove('opacity-50', 'border-dashed', 'scale-95')
                                         }}
-                                        className="p-1.5 rounded-lg border-2 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between border-transparent shadow-sm hover:shadow-md"
+                                        className="p-1.5 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between border-transparent shadow-sm hover:shadow-md"
                                         style={{ borderLeftColor: team.color || '#3b82f6', borderLeftWidth: '3px' }}
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
@@ -786,58 +810,73 @@ export default function AdminOverview() {
                             Nicio comandă recentă.
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-slate-100 dark:border-slate-700">
-                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500">Titlu</th>
-                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500 hidden sm:table-cell">Client</th>
-                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500 hidden sm:table-cell">Data Execuție</th>
-                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Dată Creare</th>
-                                        <th className="px-4 py-2 text-left text-[11px] font-extrabold uppercase tracking-widest text-slate-500">Status</th>
-                                        <th className="px-4 py-2 text-right text-[11px] font-extrabold uppercase tracking-widest text-slate-500">Acțiuni</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {recentWorkOrders.map(wo => {
-                                        const cfg = {
-                                            draft:       { label: 'Draft',       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
-                                            sent:        { label: 'Trimisă',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
-                                            confirmed:   { label: 'Confirmată',  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
-                                            in_progress: { label: 'În Execuție', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
-                                            completed:   { label: 'Finalizată',  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
-                                            cancelled:   { label: 'Anulată',     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
-                                        }[wo.status] || { label: 'Draft', color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
-                                        
-                                        return (
-                                            <tr key={wo.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                <td className="px-4 py-3">
-                                                    <div className="font-bold text-slate-900 dark:text-white text-sm">{wo.title}</div>
-                                                    {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hidden sm:table-cell">{wo.client_name || '—'}</td>
-                                                <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hidden sm:table-cell">
-                                                    {wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO') : '—'}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 hidden lg:table-cell">
-                                                    {wo.created_at ? new Date(wo.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                                        {cfg.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors inline-block">
-                                                        <ExternalLink className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
+                        <div className="border-t border-slate-200 dark:border-slate-700">
+                            <DataTable 
+                                columns={[
+                                    {
+                                        key: 'title',
+                                        label: 'Titlu',
+                                        sortable: true,
+                                        render: (wo) => (
+                                            <div>
+                                                <div className="font-bold text-slate-900 dark:text-white text-sm">{wo.title}</div>
+                                                {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}
+                                            </div>
                                         )
-                                    })}
-                                </tbody>
-                            </table>
+                                    },
+                                    {
+                                        key: 'client_name',
+                                        label: 'Client',
+                                        sortable: true,
+                                        render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.client_name || '—'}</div>
+                                    },
+                                    {
+                                        key: 'start_date',
+                                        label: 'Data Execuție',
+                                        sortable: true,
+                                        render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO') : '—'}</div>
+                                    },
+                                    {
+                                        key: 'created_at',
+                                        label: 'Dată Creare',
+                                        sortable: true,
+                                        render: (wo) => <div className="text-xs text-slate-500 dark:text-slate-400">{wo.created_at ? new Date(wo.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</div>
+                                    },
+                                    {
+                                        key: 'status',
+                                        label: 'Status',
+                                        sortable: true,
+                                        render: (wo) => {
+                                            const cfg = {
+                                                draft:       { label: 'Draft',       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
+                                                sent:        { label: 'Trimisă',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
+                                                confirmed:   { label: 'Confirmată',  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
+                                                in_progress: { label: 'În Execuție', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
+                                                completed:   { label: 'Finalizată',  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
+                                                cancelled:   { label: 'Anulată',     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
+                                            }[wo.status] || { label: 'Draft', color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
+                                            return (
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
+                                            )
+                                        }
+                                    },
+                                    {
+                                        key: 'actions',
+                                        label: 'Acțiuni',
+                                        render: (wo) => (
+                                            <button onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors inline-block">
+                                                <ExternalLink className="w-4 h-4" />
+                                            </button>
+                                        )
+                                    }
+                                ]}
+                                data={recentWorkOrders}
+                                defaultPageSize={5}
+                                pageSizeOptions={[5, 10, 25, 150, 99999]}
+                            />
                         </div>
                     )}
                 </div>
@@ -1689,7 +1728,7 @@ export default function AdminOverview() {
                         </div>
                         <div className="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar">
                             {activityPopup.activities.map((a, i) => (
-                                <div key={i} className="flex justify-between items-center gap-4 bg-slate-800/50 rounded-lg p-2 border border-slate-700/50">
+                                <div key={i} className="flex justify-between items-center gap-4 bg-slate-800/50 rounded-xl p-2 border border-slate-700/50">
                                     <span className="font-medium text-slate-200 text-xs">{a.name}</span>
                                     <span className="font-bold text-purple-300 text-xs whitespace-nowrap">{a.quantity} <span className="text-[10px] text-slate-400 font-normal">{a.unit_type}</span></span>
                                 </div>
@@ -1749,7 +1788,6 @@ export default function AdminOverview() {
                                             value={quickCreateForm.title}
                                             onChange={e => setQuickCreateForm({ ...quickCreateForm, title: e.target.value })}
                                             className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Ex: Șapă Rezi Ilfov..."
                                         />
                                     </div>
                                     <div>
@@ -1775,8 +1813,16 @@ export default function AdminOverview() {
                                                 }))
                                             }}
                                             className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Ex: București, Sector 1"
                                         />
+                                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 pl-1">
+                                            Distanță Bază: {quickRouteDist ? (
+                                                <span className="text-amber-600 dark:text-amber-500">{Math.round(quickRouteDist)} km (Dus) • {Math.round(quickRouteDist * 2)} km (Total)</span>
+                                            ) : quickRouteLoading ? (
+                                                <span className="inline-flex items-center gap-1 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> se calculează...</span>
+                                            ) : (
+                                                <span className="opacity-60">- (Alegeți adresa)</span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
@@ -1788,7 +1834,6 @@ export default function AdminOverview() {
                                                 value={quickCreateForm.surface}
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, surface: e.target.value })}
                                                 className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Ex: 150"
                                             />
                                         </div>
                                         <div>
@@ -1800,9 +1845,15 @@ export default function AdminOverview() {
                                                 value={quickCreateForm.thickness}
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
                                                 className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Ex: 6.5"
                                             />
                                         </div>
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
+                                        Nisip estimat: {calculatedSand > 0 ? (
+                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} Tone</span>
+                                        ) : (
+                                            <span className="opacity-60">- (Introduceți m² și grosime)</span>
+                                        )}
                                     </div>
                                     <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                                         <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
@@ -1844,6 +1895,7 @@ export default function AdminOverview() {
                                             ]}
                                             placeholder="-- Fără echipă (Draft) --"
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                            menuPosition="top"
                                         />
                                     </div>
                                     <div className="flex gap-2 pt-3">
@@ -1924,17 +1976,17 @@ function AvatarImg({ path, name, size = 'w-8 h-8', textSize = 'text-xs' }) {
                 <img 
                     src={path.startsWith('http') ? path : `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${path}`} 
                     alt="" 
-                    className={`${size} rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[2.5] hover:shadow-2xl`} 
+                    className={`${size} rounded-xl object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[2.5] hover:shadow-2xl`} 
                     onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} 
                 />
-                <div className={`${size} rounded-lg bg-slate-100 dark:bg-slate-800 items-center justify-center font-bold ${textSize} text-slate-500 shrink-0 hidden`}>
+                <div className={`${size} rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center font-bold ${textSize} text-slate-500 shrink-0 hidden`}>
                     {name?.substring(0, 2).toUpperCase() || 'W'}
                 </div>
             </div>
         )
     }
     return (
-        <div className={`${size} rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold ${textSize} text-slate-500 shrink-0`}>
+        <div className={`${size} rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold ${textSize} text-slate-500 shrink-0`}>
             {name?.substring(0, 2).toUpperCase() || 'W'}
         </div>
     )

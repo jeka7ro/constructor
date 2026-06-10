@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, ChevronDown, Check } from 'lucide-react'
 
-export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder = "Caută...", className = "", buttonClassName = "" }) {
+export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder = "Caută...", className = "", buttonClassName = "", menuPosition = "bottom" }) {
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState("")
     const wrapperRef = useRef(null)
@@ -43,7 +43,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
             </div>
 
             {isOpen && (
-                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden left-0">
+                <div className={`absolute z-[100] w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden left-0 ${menuPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                     <div className="p-2 border-b border-slate-100 dark:border-slate-700">
                         <div className="relative">
                             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />

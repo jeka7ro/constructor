@@ -50,7 +50,7 @@ function KPI({ icon: Icon, label, value, sub, color = 'blue' }) {
     }
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 sm:p-2.5 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-2">
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br ${grad[color]} flex items-center justify-center shadow-sm shrink-0`}>
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br ${grad[color]} flex items-center justify-center shadow-sm shrink-0`}>
                 <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
             <div className="min-w-0">
@@ -520,7 +520,7 @@ export default function WorkOrderDetail() {
                                                         <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtFull(wo.team_leader_confirmed_at) || '—'}</span>
                                                     </div>
                                                     {wo.team_leader_confirmation_note && (
-                                                        <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg mt-2">
+                                                        <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
                                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Notă</p>
                                                             <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
                                                         </div>
@@ -541,14 +541,14 @@ export default function WorkOrderDetail() {
                                                             </div>
                                                             {hasSig && (
                                                                 <div className="mt-2 flex justify-end">
-                                                                    <div className="bg-white dark:bg-slate-900 rounded-lg border border-emerald-200 px-2 py-1 inline-flex items-center justify-center">
+                                                                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 px-2 py-1 inline-flex items-center justify-center">
                                                                         <img src={wo.client_signature} alt="Semnătură" className="h-8 object-contain" />
                                                                     </div>
                                                                 </div>
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <div className="flex items-center justify-center h-12 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
+                                                        <div className="flex items-center justify-center h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                                                             <p className="text-xs text-slate-400 font-medium">Neconfirmată de client.</p>
                                                         </div>
                                                     )}
@@ -567,7 +567,7 @@ export default function WorkOrderDetail() {
                                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lucrări / Volume</p>
                                                     <div className="space-y-1.5">
                                                         {wo.volumes.map((v, i) => (
-                                                            <div key={i} className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                            <div key={i} className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
                                                                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{v.label || '—'}</span>
                                                                 <span className="text-sm font-bold text-blue-700 dark:text-blue-400">{v.quantity} {v.unit}</span>
                                                             </div>
@@ -580,7 +580,7 @@ export default function WorkOrderDetail() {
                                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Materiale Necesare</p>
                                                     <div className="space-y-1.5">
                                                         {wo.materials.map((m, i) => (
-                                                            <div key={i} className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/40 rounded-lg">
+                                                            <div key={i} className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/40 rounded-xl">
                                                                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{m.name}</span>
                                                                 <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{m.quantity} {m.unit}</span>
                                                             </div>
@@ -603,7 +603,7 @@ export default function WorkOrderDetail() {
                                                 <>
                                                     <div className="space-y-1.5 mb-4">
                                                         {wo.materials_consumed.filter(m => m.name).map((m, i) => (
-                                                            <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/30">
+                                                            <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/30">
                                                                 <div>
                                                                     <span className="text-sm font-bold text-amber-800 dark:text-amber-300">{m.name}</span>
                                                                     {m.note && <p className="text-xs text-amber-600">{m.note}</p>}
@@ -721,7 +721,7 @@ export default function WorkOrderDetail() {
                                                                 rel="noreferrer"
                                                                 className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
                                                             >
-                                                                <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+                                                                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
                                                                     <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                                                 </div>
                                                                 <div className="min-w-0 flex-1">
@@ -813,7 +813,7 @@ export default function WorkOrderDetail() {
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:border-blue-400 hover:shadow-md transition-all"
                                                 onClick={() => setLightbox(src)}>
                                                 <img src={src} alt={`Finalizare ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                                                <span className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-lg shadow-sm">
+                                                <span className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-xl shadow-sm">
                                                     FINAL
                                                 </span>
                                             </div>
