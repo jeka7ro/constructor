@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-routing-machine'
+import { Maximize, Minimize, Layers } from 'lucide-react'
 
 // Fix Leaflet default icon broken paths
 delete L.Icon.Default.prototype._getIconUrl
@@ -11,12 +12,20 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
+const getSandStationIcon = (index) => new L.DivIcon({
+    html: `<div style="background-color: #ef4444; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">${index}</div>`,
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14]
+})
+
 /**
  * MapView — hartă read-only.
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
- * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments
+ * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments, navButtons, sandStations
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, navButtons }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, navButtons, sandStations = [] }) => {
     const mapRef = useRef(null)
     const mapInstance = useRef(null)
     const markerRef = useRef(null)
@@ -25,20 +34,26 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
     const detailMapRef = useRef(null)
     const detailMapInstance = useRef(null)
     const detailMarkerRef = useRef(null)
+    const sandStationsLayerRef = useRef(null)
+    
     const [geocoding, setGeocoding] = useState(false)
     const [geoError, setGeoError] = useState(false)
+    const [isFullScreen, setIsFullScreen] = useState(false)
+    const [showSandStations, setShowSandStations] = useState(false)
 
     const initMap = (lat, lon, z, popupLabel) => {
         if (!mapRef.current) return
 
         if (!mapInstance.current) {
             mapInstance.current = L.map(mapRef.current, {
-                zoomControl: true,
+                zoomControl: false, // Disabled default topleft zoom
                 scrollWheelZoom: false,
                 dragging: true,
                 doubleClickZoom: true,
                 attributionControl: true,
             }).setView([lat, lon], z)
+            
+            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.current)
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap',
@@ -225,8 +240,9 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         setGeoError(true)
                         // Fallback: hartă Romania
                         if (!mapInstance.current && mapRef.current) {
-                            mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false })
+                            mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false, zoomControl: false })
                                 .setView([50.8503, 4.3517], 7)
+                            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.current)
                             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                 attribution: '© OpenStreetMap', maxZoom: 19
                             }).addTo(mapInstance.current)
@@ -240,8 +256,9 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         } else {
             // Nicio informație GPS/adresă — hartă Romania generală
             if (!mapInstance.current && mapRef.current) {
-                mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false })
+                mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false, zoomControl: false })
                     .setView([50.8503, 4.3517], 7)
+                L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.current)
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap', maxZoom: 19
                 }).addTo(mapInstance.current)
@@ -265,15 +282,60 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 detailMarkerRef.current = null
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [latitude, longitude, address])
+    }, [latitude, longitude, address, zoom, geofenceRadius, routeSegments])
+
+    // ─── Render Sand Stations ────────────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!mapInstance.current) return
+        
+        // Curățăm layerul anterior
+        if (sandStationsLayerRef.current) {
+            mapInstance.current.removeLayer(sandStationsLayerRef.current)
+            sandStationsLayerRef.current = null
+        }
+
+        if (showSandStations && sandStations && sandStations.length > 0) {
+            sandStationsLayerRef.current = L.layerGroup()
+            
+            sandStations.forEach((s, idx) => {
+                if (s.latitude && s.longitude) {
+                    const marker = L.marker([s.latitude, s.longitude], {
+                        icon: getSandStationIcon(idx + 1)
+                    })
+                    marker.bindPopup(`
+                        <div style="text-align:center">
+                            <strong style="font-size:13px; color:#ef4444">${s.name}</strong><br/>
+                            <span style="font-size:11px; color:#64748b">${s.address || 'Fără adresă'}</span>
+                        </div>
+                    `)
+                    marker.addTo(sandStationsLayerRef.current)
+                }
+            })
+            
+            sandStationsLayerRef.current.addTo(mapInstance.current)
+        }
+    }, [showSandStations, sandStations])
+
+    // ─── Invalidate Size on FullScreen Toggle ────────────────────────────────────────────
+    useEffect(() => {
+        if (mapInstance.current) {
+            // Need a slight timeout to allow CSS transitions/resizes to apply
+            setTimeout(() => {
+                mapInstance.current.invalidateSize()
+                if (isFullScreen && latitude && longitude) {
+                    mapInstance.current.setView([latitude, longitude], zoom)
+                }
+            }, 100)
+        }
+    }, [isFullScreen, latitude, longitude, zoom])
+
 
     return (
         <div
-            className="flex flex-col md:flex-row gap-3 w-full"
-            style={{ height, zIndex: 1 }}
+            className={`flex flex-col md:flex-row gap-3 w-full ${isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-900/95 p-4 backdrop-blur-sm' : ''}`}
+            style={{ height: isFullScreen ? '100vh' : height, zIndex: isFullScreen ? 9999 : 1 }}
         >
-            <div className="hidden md:block w-full md:w-1/3 h-full relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+            <div className={`hidden md:block h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'w-1/4 border-2 border-slate-700' : 'w-1/3 border border-slate-200 dark:border-slate-700'}`}>
                 <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
                 <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                     DESTINAȚIE
@@ -285,9 +347,31 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 )}
             </div>
             
-            <div className="w-full md:w-2/3 h-full relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+            <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'w-full md:w-3/4 border-2 border-slate-700' : 'w-full md:w-2/3 border border-slate-200 dark:border-slate-700'}`}>
                 <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
                 
+                {/* Full Screen Toggle Button */}
+                <div className="absolute top-2 left-2 z-[400] flex flex-col gap-2">
+                    <button 
+                        onClick={() => setIsFullScreen(!isFullScreen)}
+                        className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+                        title={isFullScreen ? "Ieși din modul ecran complet" : "Mărește harta (Ecran complet)"}
+                    >
+                        {isFullScreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                    </button>
+                    
+                    {/* Sand Stations Toggle Button (only if sandStations are provided) */}
+                    {sandStations && sandStations.length > 0 && (
+                        <button 
+                            onClick={() => setShowSandStations(!showSandStations)}
+                            className={`p-2 rounded-xl shadow-sm border transition-colors flex items-center justify-center ${showSandStations ? 'bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-400' : 'bg-white/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800'}`}
+                            title="Afișează/Ascunde Stații de Nisip"
+                        >
+                            <Layers className="w-5 h-5" />
+                        </button>
+                    )}
+                </div>
+
                 {/* Mobile only Nav Buttons */}
                 {navButtons && (
                     <div className="absolute top-2 right-2 z-[400] flex gap-2 md:hidden">

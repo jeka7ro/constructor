@@ -143,7 +143,7 @@ export default function WorkOrderDetail() {
     const [photos, setPhotos]   = useState([])
     const [loading, setLoading] = useState(true)
     const [lightbox, setLightbox] = useState(null)
-    const [uploadingInvoice, setUploadingInvoice] = useState(false)
+    const [sandStations, setSandStations] = useState([])
 
     const handleInvoiceUpload = async (e) => {
         const file = e.target.files?.[0]
@@ -169,19 +169,22 @@ export default function WorkOrderDetail() {
     const load = useCallback(async () => {
         setLoading(true)
         try {
-            const [woRes, sessRes, photosRes] = await Promise.allSettled([
+            const [woRes, sessRes, photosRes, stationsRes] = await Promise.allSettled([
                 api.get(`/admin/work-orders/${id}`),
                 api.get(`/admin/work-orders/${id}/sessions`),
                 api.get(`/admin/work-orders/${id}/photos`),
+                api.get('/admin/logistics/sand-stations'),
             ])
             if (woRes.status === 'fulfilled')     setWo(woRes.value.data)
             if (sessRes.status === 'fulfilled')   setSessions(sessRes.value.data)
+            if (stationsRes.status === 'fulfilled') setSandStations(stationsRes.value.data)
             if (photosRes.status === 'fulfilled') {
                 const p = photosRes.value.data
                 setPhotos(Array.isArray(p) ? p : (p?.photos || []))
             }
-        } catch {}
-        setLoading(false)
+        } catch {} finally {
+            setLoading(false)
+        }
     }, [id])
 
     useEffect(() => { load() }, [load])
@@ -407,6 +410,7 @@ export default function WorkOrderDetail() {
                             label={`Locație: ${address}`}
                             routeSegments={wo.route_segments}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
+                            sandStations={sandStations}
                         />
                     </div>
                 )}
