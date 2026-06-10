@@ -16,12 +16,15 @@ L.Icon.Default.mergeOptions({
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
  * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, navButtons }) => {
     const mapRef = useRef(null)
     const mapInstance = useRef(null)
     const markerRef = useRef(null)
     const circleRef = useRef(null)
     const routingControlRef = useRef(null)
+    const detailMapRef = useRef(null)
+    const detailMapInstance = useRef(null)
+    const detailMarkerRef = useRef(null)
     const [geocoding, setGeocoding] = useState(false)
     const [geoError, setGeoError] = useState(false)
 
@@ -65,6 +68,41 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 weight: 2,
                 dashArray: '6 4',
             }).addTo(mapInstance.current)
+        }
+
+        // Initialize detail map
+        if (detailMapRef.current) {
+            if (!detailMapInstance.current) {
+                detailMapInstance.current = L.map(detailMapRef.current, {
+                    zoomControl: false,
+                    scrollWheelZoom: false,
+                    dragging: true,
+                    doubleClickZoom: true,
+                    attributionControl: false,
+                }).setView([lat, lon], 17)
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                }).addTo(detailMapInstance.current)
+            } else {
+                detailMapInstance.current.setView([lat, lon], 17)
+            }
+
+            if (detailMarkerRef.current) detailMarkerRef.current.remove()
+            
+            const destinationIcon = L.divIcon({
+                className: 'custom-destination-marker',
+                html: `<div style="background-color: #ef4444; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 2px solid white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+
+            detailMarkerRef.current = L.marker([lat, lon], { icon: destinationIcon })
+            if (popupLabel) {
+                detailMarkerRef.current.bindPopup(`<strong style="font-size:13px">Destinație: ${popupLabel}</strong>`)
+            }
+            detailMarkerRef.current.addTo(detailMapInstance.current)
         }
 
         // Force resize după mount
@@ -154,7 +192,10 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             });
         }
 
-        setTimeout(() => mapInstance.current?.invalidateSize(), 100)
+        setTimeout(() => {
+            mapInstance.current?.invalidateSize()
+            detailMapInstance.current?.invalidateSize()
+        }, 100)
     }
 
     useEffect(() => {
@@ -218,31 +259,57 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 markerRef.current = null
                 circleRef.current = null
             }
+            if (detailMapInstance.current) {
+                detailMapInstance.current.remove()
+                detailMapInstance.current = null
+                detailMarkerRef.current = null
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [latitude, longitude, address])
 
     return (
         <div
-            className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner relative"
+            className="flex flex-col md:flex-row gap-3 w-full"
             style={{ height, zIndex: 1 }}
         >
-            <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
-
-            {/* Overlay geocoding */}
-            {geocoding && (
-                <div className="absolute inset-0 bg-white/70 dark:bg-slate-800/70 flex flex-col items-center justify-center gap-2 z-[400] pointer-events-none">
-                    <div className="w-7 h-7 rounded-full border-3 border-blue-500 border-t-transparent animate-spin" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Se caută locația pe hartă...</span>
+            <div className="hidden md:block w-full md:w-1/3 h-full relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+                <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
+                <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                    DESTINAȚIE
                 </div>
-            )}
+                {navButtons && (
+                    <div className="absolute top-2 right-2 z-[400] flex gap-2">
+                        {navButtons}
+                    </div>
+                )}
+            </div>
+            
+            <div className="w-full md:w-2/3 h-full relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+                <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+                
+                {/* Mobile only Nav Buttons */}
+                {navButtons && (
+                    <div className="absolute top-2 right-2 z-[400] flex gap-2 md:hidden">
+                        {navButtons}
+                    </div>
+                )}
+                
+                {/* Overlay geocoding */}
+                {geocoding && (
+                    <div className="absolute inset-0 bg-white/70 dark:bg-slate-800/70 flex flex-col items-center justify-center gap-2 z-[400] pointer-events-none">
+                        <div className="w-7 h-7 rounded-full border-3 border-blue-500 border-t-transparent animate-spin" />
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Se caută locația pe hartă...</span>
+                    </div>
+                )}
 
-            {/* Mesaj eroare */}
-            {geoError && !geocoding && (
-                <div className="absolute bottom-2 left-2 right-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 z-[400] pointer-events-none">
-                    <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">⚠️ Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere.</p>
-                </div>
-            )}
+                {/* Mesaj eroare */}
+                {geoError && !geocoding && (
+                    <div className="absolute bottom-2 left-2 right-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 z-[400] pointer-events-none">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">⚠️ Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere.</p>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

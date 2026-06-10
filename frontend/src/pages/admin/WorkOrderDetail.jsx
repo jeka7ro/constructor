@@ -103,11 +103,11 @@ function NavButtons({ lat, lon, address }) {
     if (!googleUrl) return null
 
     return (
-        <div className="grid grid-cols-3 gap-2 mt-3">
+        <>
             {googleUrl && (
                 <a href={googleUrl} target="_blank" rel="noreferrer"
-                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-blue-600 text-white text-[11px] sm:text-xs font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 whitespace-nowrap">
-                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    className="flex justify-center items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-[11px] font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 whitespace-nowrap">
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                     </svg>
                     Google
@@ -115,8 +115,8 @@ function NavButtons({ lat, lon, address }) {
             )}
             {wazeUrl && (
                 <a href={wazeUrl} target="_blank" rel="noreferrer"
-                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-[#05C8F7] text-white text-[11px] sm:text-xs font-bold hover:bg-[#04b0d8] active:scale-95 transition-all shadow-sm shadow-cyan-400/20 whitespace-nowrap">
-                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    className="flex justify-center items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#05C8F7] text-white text-[11px] font-bold hover:bg-[#04b0d8] active:scale-95 transition-all shadow-sm shadow-cyan-400/20 whitespace-nowrap">
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20.54 6.63C19.08 4.05 16.73 2.19 14 1.54V1.5c0-.83-.67-1.5-1.5-1.5S11 .67 11 1.5v.04C8.27 2.19 5.92 4.05 4.46 6.63A8.959 8.959 0 003 11c0 4.97 4.03 9 9 9s9-4.03 9-9c0-1.62-.43-3.14-1.46-4.37zM8.5 13c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5S14.67 10 15.5 10s1.5.67 1.5 1.5S16.33 13 15.5 13zm-3.5 4c-1.66 0-3-1.34-3-3h6c0 1.66-1.34 3-3 3z"/>
                     </svg>
                     Waze
@@ -124,12 +124,12 @@ function NavButtons({ lat, lon, address }) {
             )}
             {appleUrl && (
                 <a href={appleUrl} target="_blank" rel="noreferrer"
-                    className="flex justify-center items-center gap-1.5 px-2 py-2.5 rounded-xl bg-slate-800 dark:bg-slate-600 text-white text-[11px] sm:text-xs font-bold hover:bg-slate-700 active:scale-95 transition-all shadow-sm whitespace-nowrap">
-                    <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    className="flex justify-center items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 dark:bg-slate-600 text-white text-[11px] font-bold hover:bg-slate-700 active:scale-95 transition-all shadow-sm whitespace-nowrap">
+                    <Navigation className="w-3 h-3 shrink-0" />
                     Apple
                 </a>
             )}
-        </div>
+        </>
     )
 }
 
@@ -227,6 +227,16 @@ export default function WorkOrderDetail() {
     let matValue = '—';
     let matSub = 'niciun material';
 
+    // Auto-calculate estimated sand from volumes if no materials are explicitly added
+    let autoSandKg = 0;
+    if (!hasStarted) {
+        (wo.volumes || []).forEach(vol => {
+            const surface = parseFloat(vol.quantity) || 0;
+            const thickness = parseFloat(vol.thickness) || 0;
+            autoSandKg += (surface * thickness * 16);
+        });
+    }
+
     if (activeMats.length === 1) {
         const m = activeMats[0];
         let q = parseFloat(m.quantity) || 0;
@@ -249,8 +259,7 @@ export default function WorkOrderDetail() {
         });
         
         if (totalT > 0) {
-            matValue = `${totalT} tone`;
-            // Limit names to avoid overflow
+            matValue = `${totalT.toFixed(1)} tone`;
             let namesStr = names.join(', ');
             if (namesStr.length > 20) namesStr = namesStr.substring(0, 17) + '...';
             matSub = namesStr;
@@ -258,6 +267,11 @@ export default function WorkOrderDetail() {
             matValue = activeMats.length;
             matSub = 'tipuri materiale';
         }
+    } else if (autoSandKg > 0) {
+        // Fallback: Show estimated sand from volumes if no explicit materials were added
+        const tons = autoSandKg / 1000;
+        matValue = `${tons.toFixed(1)} tone`;
+        matSub = 'Nisip (estimat)';
     }
 
     const matLabel = hasStarted ? "Mat. Consumate" : "Mat. Necesare";
@@ -372,13 +386,13 @@ export default function WorkOrderDetail() {
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="bg-transparent rounded-2xl border-0 overflow-hidden">
+                <div className="px-1 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || 'Fără adresă specificată'}</div>
                     </div>
-                    {(lat || lon || address) && <NavButtons lat={lat} lon={lon} address={address} />}
+                    {/* Mobile nav buttons rendered by MapView instead or we can just leave it to MapView */}
                 </div>
                 
                 {(lat || lon || address) && (
@@ -392,6 +406,7 @@ export default function WorkOrderDetail() {
                             geofenceRadius={geoR}
                             label={`Locație: ${address}`}
                             routeSegments={wo.route_segments}
+                            navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
                         />
                     </div>
                 )}
