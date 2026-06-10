@@ -5,6 +5,7 @@ import {
 import ImportInvoiceModal from './ImportInvoiceModal'
 import { useTenantStore } from '../../store/tenantStore'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 
 export default function ExpensesManagement() {
     const [expenses, setExpenses] = useState([])
@@ -12,6 +13,7 @@ export default function ExpensesManagement() {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const { tenant } = useTenantStore()
+    const { t } = useTranslation()
     const tenantFeatures = tenant?.features || []
     const hasSites = tenantFeatures.includes('sites') || tenant?.has_sites === true
     const currency = tenant?.currency || 'RON'
@@ -131,7 +133,7 @@ export default function ExpensesManagement() {
                     <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
                         <Wallet className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Cheltuieli & Deconturi</h1>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('expenses.title', 'Cheltuieli & Deconturi')}</h1>
                 </div>
                 <div className="flex items-center gap-3">
                     <input 
@@ -153,14 +155,14 @@ export default function ExpensesManagement() {
                         className="flex items-center gap-2 px-4 h-10 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-full transition-colors shadow-sm"
                     >
                         <FileText className="w-4 h-4 text-slate-500" />
-                        Import Factură
+                        {t('expenses.import_invoice', 'Import Factură')}
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 px-4 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
                     >
                         <Plus className="w-4 h-4" />
-                        Adaugă Cheltuială
+                        {t('expenses.add_expense', 'Adaugă Cheltuială')}
                     </button>
                 </div>
             </div>
@@ -169,9 +171,9 @@ export default function ExpensesManagement() {
             <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Cheltuieli</p>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('expenses.total_expenses', 'Total Cheltuieli')}</p>
                         <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                            {totalAmount.toLocaleString('ro-RO')} <span className="text-sm font-normal text-slate-500">RON</span>
+                            {totalAmount.toLocaleString('ro-RO')} <span className="text-sm font-normal text-slate-500">{currency}</span>
                         </h3>
                     </div>
                     <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
@@ -189,7 +191,7 @@ export default function ExpensesManagement() {
                         <div className="relative flex-1 sm:max-w-xs">
                             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <select className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none" value={selectedSite} onChange={(e) => setSelectedSite(e.target.value)}>
-                                <option value="">Toate Șantierele</option>
+                                <option value="">{t('expenses.all_sites', 'Toate Șantierele')}</option>
                                 {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
@@ -201,7 +203,7 @@ export default function ExpensesManagement() {
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
                             >
-                                <option value="">Toate Categoriile</option>
+                                <option value="">{t('expenses.all_categories', 'Toate Categoriile')}</option>
                                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
@@ -213,27 +215,27 @@ export default function ExpensesManagement() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-white dark:bg-slate-900 sticky top-0 z-10 shadow-sm border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             <tr>
-                                <th className="px-4 py-3 w-12 text-center font-bold">NR.</th>
-                                <th className="px-4 py-3 font-bold">Dată</th>
-                                <th className="px-4 py-3 font-bold">Categorie</th>
-                                <th className="px-4 py-3 font-bold">Detalii</th>
-                                {hasSites && <th className="px-4 py-3 font-bold">Șantier</th>}
-                                <th className="px-4 py-3 font-bold">Suma ({currency})</th>
-                                <th className="px-4 py-3 font-bold">Document</th>
-                                <th className="px-4 py-3 font-bold text-right">Acțiuni</th>
+                                <th className="px-4 py-3 w-12 text-center font-bold">{t('expenses.col_nr', 'NR.')}</th>
+                                <th className="px-4 py-3 font-bold">{t('expenses.col_date', 'Dată')}</th>
+                                <th className="px-4 py-3 font-bold">{t('expenses.col_category', 'Categorie')}</th>
+                                <th className="px-4 py-3 font-bold">{t('expenses.col_details', 'Detalii')}</th>
+                                {hasSites && <th className="px-4 py-3 font-bold">{t('expenses.col_site', 'Șantier')}</th>}
+                                <th className="px-4 py-3 font-bold">{t('expenses.col_amount', 'Suma')} ({currency})</th>
+                                <th className="px-4 py-3 font-bold">{t('expenses.col_document', 'Document')}</th>
+                                <th className="px-4 py-3 font-bold text-right">{t('expenses.col_actions', 'Acțiuni')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
-                                        Se încarcă...
+                                        {t('expenses.loading', 'Se încarcă...')}
                                     </td>
                                 </tr>
                             ) : expenses.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
-                                        Nicio cheltuială găsită.
+                                        {t('expenses.no_expenses', 'Nicio cheltuială găsită.')}
                                     </td>
                                 </tr>
                             ) : (
@@ -268,9 +270,9 @@ export default function ExpensesManagement() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             {exp.document_url ? (
-                                                <a href={exp.document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 px-2.5 py-1.5 rounded-md transition-colors" title="Vezi Document">
+                                                <a href={exp.document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 px-2.5 py-1.5 rounded-md transition-colors" title={t('expenses.view_document', 'Vezi Document')}>
                                                     <FileText className="w-3.5 h-3.5" />
-                                                    Vezi Document
+                                                    {t('expenses.view_document', 'Vezi Document')}
                                                 </a>
                                             ) : <span className="text-slate-400 text-xs">-</span>}
                                         </td>
@@ -296,7 +298,7 @@ export default function ExpensesManagement() {
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Banknote className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                Înregistrează Cheltuială
+                                {t('expenses.register_expense', 'Înregistrează Cheltuială')}
                             </h2>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                                 <X className="w-5 h-5" />
@@ -308,15 +310,15 @@ export default function ExpensesManagement() {
                                 <div className="grid grid-cols-2 gap-4">
                                     {hasSites && (
                                         <div>
-                                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Șantier *</label>
+                                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.col_site', 'Șantier')} *</label>
                                             <select required className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" value={formData.site_id} onChange={e => setFormData({...formData, site_id: e.target.value})}>
-                                                <option value="" disabled>✓ Alege șantier</option>
+                                                <option value="" disabled>{t('expenses.choose_site', '✓ Alege șantier')}</option>
                                                 {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                             </select>
                                         </div>
                                     )}
                                     <div className={!hasSites ? "col-span-2" : ""}>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Categorie *</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.col_category', 'Categorie')} *</label>
                                         <select required className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
                                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
@@ -325,14 +327,14 @@ export default function ExpensesManagement() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Sumă ({currency}) *</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.col_amount', 'Sumă')} ({currency}) *</label>
                                         <div className="relative">
                                             <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                             <input required type="number" step="0.01" min="0" className="w-full text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Dată *</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.col_date', 'Dată')} *</label>
                                         <div className="relative">
                                             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                             <input required type="date" className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none [color-scheme:light] dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
@@ -342,21 +344,21 @@ export default function ExpensesManagement() {
 
                                 {['Salarii', 'Diurnă'].includes(formData.category) && (
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Atribuie unui Angajat (Opțional)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.assign_employee', 'Atribuie unui Angajat (Opțional)')}</label>
                                         <select className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" value={formData.user_id} onChange={e => setFormData({...formData, user_id: e.target.value})}>
-                                            <option value="">-- Fără angajat specificat --</option>
+                                            <option value="">{t('expenses.no_employee', '-- Fără angajat specificat --')}</option>
                                             {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                                         </select>
                                     </div>
                                 )}
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Descriere / Observații</label>
-                                    <textarea className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none resize-none" rows="2" placeholder="Ex: Achiziție materiale Dedeman" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.description_label', 'Descriere / Observații')}</label>
+                                    <textarea className="w-full text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none resize-none" rows="2" placeholder={t('expenses.desc_placeholder', 'Ex: Achiziție materiale')} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Document Justificativ (Poză/PDF)</label>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('expenses.doc_label', 'Document Justificativ (Poză/PDF)')}</label>
                                     <div className="flex items-center justify-center w-full">
                                         <label className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer transition-all ${formData.document_url ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
                                             <div className="flex flex-col items-center justify-center text-center">
@@ -365,12 +367,12 @@ export default function ExpensesManagement() {
                                                 ) : formData.document_url ? (
                                                     <div className="flex items-center gap-2">
                                                         <CheckCircle className="w-5 h-5 text-blue-500" />
-                                                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Document Atașat</span>
+                                                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{t('expenses.doc_attached', 'Document Atașat')}</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-1">
                                                         <Upload className="w-5 h-5 text-slate-400" />
-                                                        <span className="text-xs text-slate-500"><span className="font-semibold text-blue-500">Click pentru a încărca</span></span>
+                                                        <span className="text-xs text-slate-500"><span className="font-semibold text-blue-500">{t('expenses.click_to_upload', 'Click pentru a încărca')}</span></span>
                                                     </div>
                                                 )}
                                             </div>
@@ -383,10 +385,10 @@ export default function ExpensesManagement() {
                         
                         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex gap-3">
                             <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm">
-                                Anulează
+                                {t('expenses.cancel', 'Anulează')}
                             </button>
                             <button type="submit" form="expense-form" disabled={isUploading} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 shadow-sm disabled:opacity-50 transition-colors text-sm">
-                                Salvează
+                                {t('expenses.save', 'Salvează')}
                             </button>
                         </div>
                     </div>

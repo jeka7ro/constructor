@@ -33,11 +33,11 @@ const FlagFR = () => (
         <rect x="20" width="10" height="20" fill="#ED2939"/>
     </svg>
 )
-const FlagHU = () => (
+const FlagNL = () => (
     <svg viewBox="0 0 30 20" width="18" height="12" style={{borderRadius:2,display:'block'}}>
-        <rect width="30" height="7" y="0" fill="#CE2939"/>
-        <rect width="30" height="6" y="7" fill="#fff"/>
-        <rect width="30" height="7" y="13" fill="#477050"/>
+        <rect width="30" height="7" y="0" fill="#AE1C28"/>
+        <rect width="30" height="6" y="7" fill="#FFFFFF"/>
+        <rect width="30" height="7" y="13" fill="#21468B"/>
     </svg>
 )
 
@@ -46,7 +46,7 @@ const LANGUAGES = [
     { code: 'en', label: 'EN', Flag: FlagEN },
     { code: 'de', label: 'DE', Flag: FlagDE },
     { code: 'fr', label: 'FR', Flag: FlagFR },
-    { code: 'hu', label: 'HU', Flag: FlagHU },
+    { code: 'nl', label: 'NL', Flag: FlagNL },
 ]
 
 export default function LanguageSelector({ variant = 'dark', className = '' }) {

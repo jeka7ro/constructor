@@ -23,6 +23,7 @@ const STATUS_CONFIG = {
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function WorkOrders() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [workOrders, setWorkOrders] = useState([])
     const [loading, setLoading] = useState(true)
@@ -284,7 +285,7 @@ export default function WorkOrders() {
 
     const columns = [
         {
-            key: 'title', label: 'Titlu', sortable: true,
+            key: 'title', label: t('work_orders.col_title', 'Titlu'), sortable: true,
             render: (wo) => (
                 <div>
                     <div className="font-bold text-slate-900 dark:text-white text-sm">
@@ -303,7 +304,7 @@ export default function WorkOrders() {
             )
         },
         {
-            key: 'client_name', label: 'Client', sortable: true,
+            key: 'client_name', label: t('work_orders.col_client', 'Client'), sortable: true,
             render: (wo) => (
                 <div>
                     <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{wo.client_name || '—'}</div>
@@ -314,7 +315,7 @@ export default function WorkOrders() {
             )
         },
         {
-            key: 'start_date', label: 'Date Lucrare', sortable: true,
+            key: 'start_date', label: t('work_orders.col_date', 'Date Lucrare'), sortable: true,
             render: (wo) => (
                 <div>
                     {wo.start_date && (
@@ -327,7 +328,7 @@ export default function WorkOrders() {
             )
         },
         {
-            key: 'summary', label: 'Sumar', sortable: false,
+            key: 'summary', label: t('work_orders.col_summary', 'Sumar'), sortable: false,
             render: (wo) => {
                 const surfaceVol = wo.volumes?.find(v => v.unit === 'm²' || v.label?.toLowerCase().includes('sapa'))
                 const sandMat = wo.materials?.find(m => m.name?.toLowerCase().includes('nisip'))
@@ -367,14 +368,14 @@ export default function WorkOrders() {
             }
         },
         {
-            key: 'status', label: 'Status', sortable: true,
+            key: 'status', label: t('work_orders.col_status', 'Status'), sortable: true,
             render: (wo) => {
                 const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
                 return (
                     <div className="flex flex-col items-start gap-1">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${cfg.color}`}>
                             <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                            {cfg.label}
+                            {t(`status.${wo.status}`, cfg.label)}
                         </span>
                         {wo.assigned_team_name && (
                             <span 
@@ -394,7 +395,7 @@ export default function WorkOrders() {
             }
         },
         {
-            key: 'actions', label: 'Acțiuni', sortable: false,
+            key: 'actions', label: t('work_orders.col_actions', 'Acțiuni'), sortable: false,
             render: renderActions
         }
     ]
@@ -408,8 +409,8 @@ export default function WorkOrders() {
                         <ClipboardList className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Comenzi de Lucru</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Gestionare comenzi B2B cu clienții</p>
+                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">{t('work_orders.page_title', 'Comenzi de Lucru')}</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('work_orders.page_subtitle', 'Gestionare comenzi B2B cu clienții')}</p>
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -419,13 +420,13 @@ export default function WorkOrders() {
                             onChange={(e) => setFilterPeriod(e.target.value)}
                             className="appearance-none pl-4 pr-10 h-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer hover:border-blue-300 transition-colors"
                         >
-                            <option value="today">Azi</option>
-                            <option value="current_week">Săptămâna Curentă</option>
-                            <option value="last_week">Săptămâna Trecută</option>
-                            <option value="current_month">Luna Curentă</option>
-                            <option value="last_month">Luna Trecută</option>
-                            <option value="current_year">Anul Curent</option>
-                            <option value="all">Toate Perioadele</option>
+                            <option value="today">{t('filters.today', 'Azi')}</option>
+                            <option value="current_week">{t('filters.current_week', 'Săptămâna Curentă')}</option>
+                            <option value="last_week">{t('filters.last_week', 'Săptămâna Trecută')}</option>
+                            <option value="current_month">{t('filters.current_month', 'Luna Curentă')}</option>
+                            <option value="last_month">{t('filters.last_month', 'Luna Trecută')}</option>
+                            <option value="current_year">{t('filters.current_year', 'Anul Curent')}</option>
+                            <option value="all">{t('filters.all', 'Toate Perioadele')}</option>
                         </select>
                         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -445,14 +446,14 @@ export default function WorkOrders() {
                         className="flex items-center gap-2 px-5 h-10 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold rounded-full shadow-md shadow-indigo-500/20 transition-all hover:scale-105"
                     >
                         {isSyncing ? <Activity className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
-                        {isSyncing ? 'Se importă...' : 'Importă API'}
+                        {isSyncing ? t('work_orders.syncing', 'Se importă...') : t('work_orders.sync', 'Importă API')}
                     </button>
                     <button
                         onClick={() => navigate('/admin/work-orders/new')}
                         className="flex items-center gap-2 px-5 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all hover:scale-105"
                     >
                         <Plus className="w-4 h-4" />
-                        Comandă Nouă
+                        {t('work_orders.new_order', 'Comandă Nouă')}
                     </button>
                 </div>
             </div>
@@ -472,7 +473,7 @@ export default function WorkOrders() {
                     return (
                         <KPICard
                             key={key}
-                            label={cfg.label}
+                            label={t(`status.${key}`, cfg.label)}
                             value={count}
                             icon={kpiIcons[key] || CircleDot}
                             colorTheme={kpiThemes[key] || 'blue'}
@@ -507,7 +508,7 @@ export default function WorkOrders() {
             {teams.filter(t => t.robaws_email).length > 0 && (
                 <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                     <KPICard
-                        label="Toate Camioanele"
+                        label={t('work_orders.all_trucks', 'Toate Camioanele')}
                         value={workOrders.length}
                         icon={Package}
                         colorTheme="slate"
@@ -535,7 +536,7 @@ export default function WorkOrders() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
                     <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                        <ClipboardList className="w-4 h-4 text-white" /> Tabel Comenzi de Lucru
+                        <ClipboardList className="w-4 h-4 text-white" /> {t('work_orders.table_title', 'Tabel Comenzi de Lucru')}
                     </h2>
                 </div>
                 <DataTable
@@ -545,8 +546,8 @@ export default function WorkOrders() {
                     searchable={true}
                     defaultSortKey="start_date"
                     defaultSortDir="desc"
-                    searchPlaceholder="Caută comandă..."
-                    emptyText={filterStatus ? `Nicio comandă cu statusul "${STATUS_CONFIG[filterStatus]?.label}"` : 'Nicio comandă de lucru'}
+                    searchPlaceholder={t('work_orders.search', 'Caută comandă...')}
+                    emptyText={filterStatus ? t('work_orders.no_orders_status', `Nicio comandă cu acest status`) : t('work_orders.no_orders', 'Nicio comandă de lucru')}
                     rowStyle={(wo) => wo.assigned_team_color ? {
                         backgroundColor: `${wo.assigned_team_color}08`,
                         boxShadow: `inset 4px 0 0 ${wo.assigned_team_color}`

@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
-import { ro } from 'date-fns/locale';
+import { ro, enUS, nl } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../store/uiStore';
 import { useTenantStore } from '../store/tenantStore';
 import api from '../lib/api';
@@ -111,7 +112,8 @@ export default function ShortWorksCalendar({
     onTeamDropOnEmpty,
     onClientDropOnEmpty,
     onEmptyCellClick,
-    onOrderClick
+    onOrderClick,
+    onOrderEdit
 }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
@@ -126,6 +128,14 @@ export default function ShortWorksCalendar({
     const { openDialog } = useUIStore();
     const { tenant } = useTenantStore();
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
+
+    const getLocale = () => {
+        if (i18n.language?.startsWith('ro')) return ro;
+        if (i18n.language?.startsWith('nl')) return nl;
+        return enUS;
+    };
+    const dateLocale = getLocale();
 
     // Generate week days (Monday to Sunday)
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -134,8 +144,8 @@ export default function ShortWorksCalendar({
     const isCurrentWeek = isSameWeek(currentDate, new Date(), { weekStartsOn: 1 });
     const weekEnd = addDays(weekStart, 6);
     const weekLabel = isCurrentWeek 
-        ? "Săpt. curentă" 
-        : `${format(weekStart, 'dd MMM', { locale: ro })} - ${format(weekEnd, 'dd MMM', { locale: ro })}`;
+        ? t('admin_overview.current_week_short', 'Săpt. curentă') 
+        : `${format(weekStart, 'dd MMM', { locale: dateLocale })} - ${format(weekEnd, 'dd MMM', { locale: dateLocale })}`;
 
     // Filter work orders that fall in this week
     const weeklyOrders = useMemo(() => {
@@ -234,7 +244,7 @@ export default function ShortWorksCalendar({
                 <div className="flex items-center gap-2">
                     <CalendarIcon className="w-5 h-5 text-white/90" />
                     <h2 className="text-lg font-bold text-white capitalize">
-                        {format(currentDate, 'MMMM yyyy', { locale: ro })}
+                        {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
                     </h2>
                 </div>
                 <div className="flex items-center gap-3">
@@ -256,7 +266,7 @@ export default function ShortWorksCalendar({
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden md:block">
                     <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
                         <Hand className="w-3.5 h-3.5" />
-                        Click pentru a derula
+                        {t('admin_overview.click_to_scroll', 'Click pentru a derula')}
                     </div>
                 </div>
             )}
@@ -303,13 +313,13 @@ export default function ShortWorksCalendar({
                             return (
                                 <div key={i} className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
                                     <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>
-                                        {format(day, 'EEE', { locale: ro })}
+                                        {format(day, 'EEE', { locale: dateLocale })}
                                     </span>
                                     <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>
                                         {format(day, 'd')}
                                     </span>
                                     {dailySand > 0 && (
-                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mt-0.5" title="Total nisip estimat pentru această zi">
+                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mt-0.5" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
                                             {sandDisplay}
                                         </span>
                                     )}
@@ -322,7 +332,7 @@ export default function ShortWorksCalendar({
                     <div className="relative grid grid-cols-7 grid-rows-[repeat(13,minmax(80px,80px))] bg-slate-50/30 dark:bg-slate-900/30">
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                                <span className="text-slate-400 text-sm">Nicio comandă în această săptămână</span>
+                                <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
                             </div>
                         )}
                         
@@ -573,16 +583,20 @@ export default function ShortWorksCalendar({
                                         {hoveredOrder === wo.id && !isDragging && (
                                             <div className="absolute top-1 right-1 flex items-center gap-1 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm p-0.5 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-150">
                                                 <button 
-                                                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/work-orders/${wo.id}/edit`); }}
+                                                    onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        if (onOrderEdit) onOrderEdit(wo);
+                                                        else navigate(`/admin/work-orders/${wo.id}/edit`); 
+                                                    }}
                                                     className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
-                                                    title="Editează"
+                                                    title={t('common.edit', 'Editează')}
                                                 >
                                                     <Edit2 className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); setOrderToDelete(wo); }}
                                                     className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
-                                                    title="Șterge"
+                                                    title={t('common.delete', 'Șterge')}
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -596,16 +610,16 @@ export default function ShortWorksCalendar({
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center justify-between gap-1">
                                             <div className="flex items-center gap-1 truncate pr-8">
                                                 <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || 'Fără locație'}</span>
+                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                             </div>
                                             {wo.status === 'completed' && (
                                                 <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm bg-emerald-100 text-emerald-700 uppercase tracking-wider shrink-0">
-                                                    Finalizată
+                                                    {t('common.completed', 'Finalizată')}
                                                 </span>
                                             )}
                                         </div>
                                         <div className="text-[10px] font-semibold mt-1 truncate flex items-center justify-between" style={{ color: colorHex }}>
-                                            <span>{wo.assigned_team_name || 'Neasignat'}</span>
+                                            <span>{wo.assigned_team_name || t('common.unassigned', 'Neasignat')}</span>
                                             {calculateOrderSand(wo) > 0 && (
                                                 <span className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
                                                     {calculateOrderSand(wo).toFixed(1)}T
@@ -624,7 +638,7 @@ export default function ShortWorksCalendar({
             <div className="flex-1 overflow-y-auto md:hidden p-4 flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-900/50">
                 {weeklyOrders.length === 0 ? (
                     <div className="flex items-center justify-center py-10">
-                        <span className="text-slate-400 text-sm font-semibold">Nicio comandă în această săptămână</span>
+                        <span className="text-slate-400 text-sm font-semibold">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
                     </div>
                 ) : (
                     (() => {
@@ -652,7 +666,7 @@ export default function ShortWorksCalendar({
                                     {isNewDay && parsedDate && (
                                         <div className="mt-2 mb-1">
                                             <span className="text-xs font-black uppercase text-slate-500 tracking-wider">
-                                                {format(parsedDate, 'EEEE, d MMM', { locale: ro })}
+                                                {format(parsedDate, 'EEEE, d MMM', { locale: dateLocale })}
                                             </span>
                                         </div>
                                     )}
@@ -683,16 +697,16 @@ export default function ShortWorksCalendar({
                                         <div className="flex items-center justify-between text-xs text-slate-500">
                                             <div className="flex items-center gap-1.5 truncate">
                                                 <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || 'Fără locație'}</span>
+                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                             </div>
                                             {wo.status === 'completed' && (
                                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 uppercase tracking-wider shrink-0 ml-2">
-                                                    Finalizată
+                                                    {t('common.completed', 'Finalizată')}
                                                 </span>
                                             )}
                                         </div>
                                         <div className="text-xs font-bold mt-1" style={{ color: colorHex }}>
-                                            {wo.assigned_team_name || 'Neasignat'}
+                                            {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
                                         </div>
                                     </div>
                                 </React.Fragment>
@@ -710,16 +724,16 @@ export default function ShortWorksCalendar({
                             <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 className="w-6 h-6 text-red-600 dark:text-red-500" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">Ștergere Comandă</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('admin_overview.delete_order', 'Ștergere Comandă')}</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                                Ești sigur că vrei să ștergi lucrarea <span className="font-bold text-slate-700 dark:text-slate-300">"{orderToDelete.title}"</span>?
+                                {t('admin_overview.delete_order_confirm', 'Ești sigur că vrei să ștergi lucrarea')} <span className="font-bold text-slate-700 dark:text-slate-300">"{orderToDelete.title}"</span>?
                             </p>
                             <div className="flex items-center gap-3">
                                 <button 
                                     onClick={() => setOrderToDelete(null)}
                                     className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
                                 >
-                                    Anulează
+                                    {t('common.cancel', 'Anulează')}
                                 </button>
                                 <button 
                                     onClick={async () => {

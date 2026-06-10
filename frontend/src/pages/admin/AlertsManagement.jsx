@@ -38,7 +38,7 @@ export default function AlertsManagement() {
             // Let's assume we will add `GET /alerts/all` in backend.
             try {
                 const alertsRes = await api.get('/alerts/all'); // Will add this to backend
-                setAlerts(alertsRes.data || []);
+                setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : []);
             } catch (e) {
                 setAlerts([]);
             }

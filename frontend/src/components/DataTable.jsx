@@ -209,21 +209,21 @@ export default function DataTable({
             {/* Pagination Footer */}
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                 <div className="flex items-center gap-2">
-                    <span className="uppercase tracking-wide">Afișează</span>
+                    <span className="uppercase tracking-wide">{t('datatable.show', 'Afișează')}</span>
                     <select
                         value={pageSize}
                         onChange={handlePageSize}
                         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                         {(pageSizeOptions || [10, 25, 50, 100]).map(s => (
-                            <option key={s} value={s}>{s === 99999 ? 'Toate' : s}</option>
+                            <option key={s} value={s}>{s === 99999 ? t('datatable.all', 'Toate') : s}</option>
                         ))}
                     </select>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Total: {data.length}</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{t('datatable.total', 'Total:')} {data.length}</span>
                     <span className="w-px h-4 bg-slate-300 dark:bg-slate-600"></span>
-                    <span>Pagina {safePage} din {totalPages || 1}</span>
+                    <span>{t('datatable.page', 'Pagina')} {safePage} {t('datatable.of', 'din')} {totalPages || 1}</span>
                     <div className="flex gap-1">
                         <button
                             onClick={() => setPage(p => Math.max(1, p - 1))}

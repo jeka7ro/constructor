@@ -25,7 +25,7 @@ export default function AdminDashboard() {
     const { tenant } = useTenantStore()
     const navigate = useNavigate()
     const location = useLocation()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [now, setNow] = useState(new Date())
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000)
@@ -180,62 +180,62 @@ export default function AdminDashboard() {
     const categories = [
         {
             id: 'general',
-            label: 'General',
+            label: t('nav.cat_general', 'General'),
             items: [
-                { path: '/admin/planning', icon: LayoutDashboard, label: 'Planning' },
-                { path: '/admin/logistica', icon: Truck, label: 'Logistica' },
-                { path: '/admin/work-orders', icon: ClipboardList, label: 'Comenzi' },
-                { path: '/admin/screed-analytics', icon: Activity, label: 'Tabel calcul' },
+                { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
+                { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistică') },
+                { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Comenzi') },
+                { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tabel calcul') },
                 { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
                 { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
             ]
         },
         {
             id: 'hr',
-            label: 'Resurse Umane',
+            label: t('nav.cat_hr', 'Resurse Umane'),
             items: [
-                { path: '/admin/employees', icon: HardHat, label: 'Angajați' },
+                { path: '/admin/employees', icon: HardHat, label: t('nav.employees', 'Angajați') },
                 { path: '/admin/teams', icon: Users, label: t('nav.teams') },
-                { path: '/admin/leaves', icon: CalendarDays, label: 'Concedii & Absențe', badge: pendingLeavesCount },
-                { path: '/admin/accommodations', icon: BedDouble, label: 'Cazări' },
+                { path: '/admin/leaves', icon: CalendarDays, label: t('nav.leaves', 'Concedii & Absențe'), badge: pendingLeavesCount },
+                { path: '/admin/accommodations', icon: BedDouble, label: t('nav.accommodations', 'Cazări') },
             ]
         },
         {
             id: 'operations',
-            label: 'Operațiuni',
+            label: t('nav.cat_operations', 'Operațiuni'),
             items: [
                 { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
                 { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
-                { path: '/calculator', icon: Calculator, label: 'Calculator Clienți (Public)' },
+                { path: '/calculator', icon: Calculator, label: t('nav.calculator', 'Calculator Clienți (Public)') },
                 { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
                 { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
             ]
         },
         {
             id: 'logistics',
-            label: 'Logistică & Financiar',
+            label: t('nav.cat_logistics', 'Logistică & Financiar'),
             items: [
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
-                { path: '/admin/transport', icon: Navigation, label: 'Foi de Parcurs' },
-                { path: '/admin/material-requests', icon: PackageSearch, label: 'Necesar Materiale' },
-                { path: '/admin/expenses', icon: Wallet, label: 'Deconturi / Cheltuieli' },
+                { path: '/admin/transport', icon: Navigation, label: t('nav.transport', 'Foi de Parcurs') },
+                { path: '/admin/material-requests', icon: PackageSearch, label: t('nav.material_requests', 'Necesar Materiale') },
+                { path: '/admin/expenses', icon: Wallet, label: t('nav.expenses', 'Deconturi / Cheltuieli') },
             ]
         },
         {
             id: 'support',
-            label: 'Suport & Alerte',
+            label: t('nav.cat_support', 'Suport & Alerte'),
             items: [
-                { path: '/admin/alerts', icon: Megaphone, label: 'Avizier (Alerte)' },
-                { path: '/admin/emergencies', icon: AlertTriangle, label: 'Urgențe' },
-                { path: '/admin/complaints', icon: MessageSquareWarning, label: 'Sesizări', badge: openComplaintsCount },
+                { path: '/admin/alerts', icon: Megaphone, label: t('nav.alerts', 'Avizier (Alerte)') },
+                { path: '/admin/emergencies', icon: AlertTriangle, label: t('nav.emergencies', 'Urgențe') },
+                { path: '/admin/complaints', icon: MessageSquareWarning, label: t('nav.complaints', 'Sesizări'), badge: openComplaintsCount },
             ]
         },
         {
             id: 'system',
-            label: 'Sistem',
+            label: t('nav.cat_system', 'Sistem'),
             items: [
-                { path: '/admin/users', icon: Shield, label: 'Utilizatori' },
+                { path: '/admin/users', icon: Shield, label: t('nav.users', 'Utilizatori') },
                 { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
                 { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
             ]
@@ -246,9 +246,9 @@ export default function AdminDashboard() {
     if (admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) {
         categories.push({
             id: 'saas',
-            label: 'Platformă SaaS',
+            label: t('nav.cat_saas', 'Platformă SaaS'),
             items: [
-                { path: '/admin/organizations', icon: Globe, label: 'Companii (Tenants)' }
+                { path: '/admin/organizations', icon: Globe, label: t('nav.organizations', 'Companii (Tenants)') }
             ]
         })
     }
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
             <aside className={`
                 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                ${darkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
+                ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
                 border-r transition-all duration-300 flex flex-col relative
             `}
             style={{ 
@@ -361,7 +361,7 @@ export default function AdminDashboard() {
             }}>
                 
                 {/* Logo Area matches Header height */}
-                <div className={`h-20 flex items-center border-b shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative ${darkMode ? 'border-slate-800' : 'border-[color:var(--tenant-border)]'}`}>
+                <div className={`h-20 flex items-center border-b shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
                     <div className={`flex items-center ${sidebarOpen ? 'gap-2 w-full pr-8' : 'justify-center'}`}>
                         {tenant ? (
                             <>
@@ -452,14 +452,14 @@ export default function AdminDashboard() {
 
                             {/* Separator when collapsed */}
                             {!sidebarOpen && index < filteredCategories.length - 1 && (
-                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-slate-800' : 'bg-[color:var(--tenant-border)]'}`} />
+                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-slate-700' : 'bg-[color:var(--tenant-border)]'}`} />
                             )}
                         </div>
                     ))}
                 </nav>
 
                 {/* Footer Brand */}
-                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${darkMode ? 'border-slate-800' : 'border-[color:var(--tenant-border)]'}`}>
+                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
                     <div 
                         className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
                         title="Smart Timesheet"
@@ -477,7 +477,7 @@ export default function AdminDashboard() {
             <div className="flex-1 flex flex-col min-w-0 relative">
                 {/* Header Bar */}
                 <header 
-                    className={`h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 px-6 flex items-center justify-between sticky top-0 z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white max-md:border-b-0`}
+                    className={`h-20 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between sticky top-0 z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white max-md:border-b-0`}
                     style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     <div className="flex items-center gap-4">
@@ -496,14 +496,33 @@ export default function AdminDashboard() {
                               <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 max-md:text-white truncate max-w-[200px]">
                                   {(() => {
                                       const p = location.pathname;
-                                      if (p.includes('/planning') || p === '/admin') return 'Planning';
-                                      if (p.includes('/logistica')) return 'Logistică';
-                                      if (p.includes('/work-orders')) return 'Comenzi';
-                                      if (p.includes('/reports')) return 'Rapoarte';
-                                      if (p.includes('/sites')) return 'Șantiere';
-                                      if (p.includes('/employees')) return 'Angajați';
-                                      if (p.includes('/teams')) return 'Echipe';
-                                      return 'Planning';
+                                      if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
+                                      if (p.includes('/logistica')) return t('nav.logistics', 'Logistică');
+                                      if (p.includes('/work-orders')) return t('nav.work_orders', 'Comenzi');
+                                      if (p.includes('/screed-analytics')) return t('nav.screed_analytics', 'Tabel calcul');
+                                      if (p.includes('/timesheets')) return t('nav.timesheets', 'Pontaje');
+                                      if (p.includes('/reports')) return t('nav.reports', 'Rapoarte');
+                                      if (p.includes('/sites')) return t('nav.sites', 'Șantiere');
+                                      if (p.includes('/clients')) return t('nav.clients', 'Clienți');
+                                      if (p.includes('/employees')) return t('nav.employees', 'Angajați');
+                                      if (p.includes('/teams')) return t('nav.teams', 'Echipe');
+                                      if (p.includes('/leaves')) return t('nav.leaves', 'Concedii');
+                                      if (p.includes('/accommodations')) return t('nav.accommodations', 'Cazări');
+                                      if (p.includes('/activities')) return t('nav.activities', 'Activități');
+                                      if (p.includes('/site-photos')) return t('nav.site_photos', 'Poze Șantier');
+                                      if (p.includes('/warehouse')) return t('nav.warehouse', 'Magazie');
+                                      if (p.includes('/fleet')) return t('nav.fleet', 'Parc Auto');
+                                      if (p.includes('/transport')) return t('nav.transport', 'Transport');
+                                      if (p.includes('/material-requests')) return t('nav.material_requests', 'Necesar Materiale');
+                                      if (p.includes('/expenses')) return t('nav.expenses', 'Deconturi / Cheltuieli');
+                                      if (p.includes('/alerts')) return t('nav.alerts', 'Avizier');
+                                      if (p.includes('/emergencies')) return t('nav.emergencies', 'Urgențe');
+                                      if (p.includes('/complaints')) return t('nav.complaints', 'Sesizări');
+                                      if (p.includes('/users')) return t('nav.users', 'Utilizatori');
+                                      if (p.includes('/settings')) return t('nav.settings', 'Setări');
+                                      if (p.includes('/notifications')) return t('nav.notifications', 'Notificări');
+                                      if (p.includes('/organizations')) return t('nav.organizations', 'Companii');
+                                      return t('nav.planning', 'Planning');
                                   })()}
                               </span>
                          </div>
@@ -512,18 +531,37 @@ export default function AdminDashboard() {
                              <span className={`font-bold text-lg leading-tight tracking-tight text-slate-900 font-extrabold dark:text-white/90 uppercase tracking-wider`}>
                                  {(() => {
                                       const p = location.pathname;
-                                      if (p.includes('/planning') || p === '/admin') return 'Planning';
-                                      if (p.includes('/logistica')) return 'Logistică';
-                                      if (p.includes('/work-orders')) return 'Comenzi';
-                                      if (p.includes('/reports')) return 'Rapoarte';
-                                      if (p.includes('/sites')) return 'Șantiere';
-                                      if (p.includes('/employees')) return 'Angajați';
-                                      if (p.includes('/teams')) return 'Echipe';
-                                      return 'Planning'; // Default instead of Admin System
+                                      if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
+                                      if (p.includes('/logistica')) return t('nav.logistics', 'Logistică');
+                                      if (p.includes('/work-orders')) return t('nav.work_orders', 'Comenzi');
+                                      if (p.includes('/screed-analytics')) return t('nav.screed_analytics', 'Tabel calcul');
+                                      if (p.includes('/timesheets')) return t('nav.timesheets', 'Pontaje');
+                                      if (p.includes('/reports')) return t('nav.reports', 'Rapoarte');
+                                      if (p.includes('/sites')) return t('nav.sites', 'Șantiere');
+                                      if (p.includes('/clients')) return t('nav.clients', 'Clienți');
+                                      if (p.includes('/employees')) return t('nav.employees', 'Angajați');
+                                      if (p.includes('/teams')) return t('nav.teams', 'Echipe');
+                                      if (p.includes('/leaves')) return t('nav.leaves', 'Concedii');
+                                      if (p.includes('/accommodations')) return t('nav.accommodations', 'Cazări');
+                                      if (p.includes('/activities')) return t('nav.activities', 'Activități');
+                                      if (p.includes('/site-photos')) return t('nav.site_photos', 'Poze Șantier');
+                                      if (p.includes('/warehouse')) return t('nav.warehouse', 'Magazie');
+                                      if (p.includes('/fleet')) return t('nav.fleet', 'Parc Auto');
+                                      if (p.includes('/transport')) return t('nav.transport', 'Transport');
+                                      if (p.includes('/material-requests')) return t('nav.material_requests', 'Necesar Materiale');
+                                      if (p.includes('/expenses')) return t('nav.expenses', 'Deconturi / Cheltuieli');
+                                      if (p.includes('/alerts')) return t('nav.alerts', 'Avizier');
+                                      if (p.includes('/emergencies')) return t('nav.emergencies', 'Urgențe');
+                                      if (p.includes('/complaints')) return t('nav.complaints', 'Sesizări');
+                                      if (p.includes('/users')) return t('nav.users', 'Utilizatori');
+                                      if (p.includes('/settings')) return t('nav.settings', 'Setări');
+                                      if (p.includes('/notifications')) return t('nav.notifications', 'Notificări');
+                                      if (p.includes('/organizations')) return t('nav.organizations', 'Companii');
+                                      return t('nav.planning', 'Planning');
                                   })()}
                              </span>
                              <span className="text-[10px] text-slate-500 font-medium leading-none tracking-wide mt-0.5">
-                                 {now.toLocaleDateString('ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString('ro-RO')}
+                                 {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
                              </span>
                          </div>
                     </div>
@@ -611,19 +649,19 @@ export default function AdminDashboard() {
                     {/* 1. Angajati */}
                     <NavLink to="/admin/employees" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-600 dark:text-blue-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                         <HardHat className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">Angajați</span>
+                        <span className="text-[10px] font-bold">{t('nav.employees', 'Angajați')}</span>
                     </NavLink>
 
                     {/* 2. Șantiere (sau Rapoarte daca nu are santiere lungi, specifice SAPE) */}
                     {hasLongTerm ? (
                         <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                             <Building2 className="w-6 h-6 mb-1.5" />
-                            <span className="text-[10px] font-bold">Șantiere</span>
+                            <span className="text-[10px] font-bold">{t('nav.sites', 'Șantiere')}</span>
                         </NavLink>
                     ) : (
                         <NavLink to="/admin/reports" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-violet-600 dark:text-violet-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                             <BarChart3 className="w-6 h-6 mb-1.5" />
-                            <span className="text-[10px] font-bold">Rapoarte</span>
+                            <span className="text-[10px] font-bold">{t('nav.reports', 'Rapoarte')}</span>
                         </NavLink>
                     )}
                 </div>
@@ -646,7 +684,7 @@ export default function AdminDashboard() {
                     {/* 4. Comenzi */}
                     <NavLink to="/admin/work-orders" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                         <ClipboardList className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">Comenzi</span>
+                        <span className="text-[10px] font-bold">{t('nav.work_orders', 'Comenzi')}</span>
                     </NavLink>
 
                     {/* 5. Menu */}
@@ -654,7 +692,7 @@ export default function AdminDashboard() {
                         <svg className="w-6 h-6 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
-                        <span className="text-[10px] font-bold">Meniu</span>
+                        <span className="text-[10px] font-bold">{t('nav.menu', 'Meniu')}</span>
                     </button>
                 </div>
             </nav>

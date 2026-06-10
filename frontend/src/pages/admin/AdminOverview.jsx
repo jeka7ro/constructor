@@ -4,7 +4,7 @@ import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
-    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus
+    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus, Edit2
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -130,7 +130,10 @@ export default function AdminOverview() {
     const [isInitialLoad, setIsInitialLoad] = useState(true)
 
     const [quickCreateData, setQuickCreateData] = useState(null) // { teamId, clientId, clientName, date, time }
-    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '' })
+    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', has_foil: false, has_mesh: false, has_duramint: false })
+    const [quickEditOrder, setQuickEditOrder] = useState(null) // wo object
+    const [quickEditForm, setQuickEditForm] = useState(null)
+    const [quickEditSaving, setQuickEditSaving] = useState(false)
     const [quickCreateStep, setQuickCreateStep] = useState(1) // 1 = General, 2 = Resurse, 'new-client' = formular client nou
     const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '' })
     const [quickCreateSaving, setQuickCreateSaving] = useState(false)
@@ -211,6 +214,19 @@ export default function AdminOverview() {
         fetchTeams()
         fetchClients()
         if (isShortTerm) fetchWorkOrdersStats()
+
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('quickCreate') === '1') {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const pad = (n) => String(n).padStart(2, '0');
+            const dateStr = tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth() + 1) + '-' + pad(tomorrow.getDate());
+            setQuickCreateData({ date: dateStr, time: '07:00', teamId: null })
+            setQuickCreateForm({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '' })
+            // Remove the param so it doesn't trigger again on reload
+            window.history.replaceState({}, '', '/admin')
+        }
 
         if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
@@ -479,6 +495,54 @@ export default function AdminOverview() {
         }
     }
 
+    const handleQuickEditSubmit = async (e) => {
+        e.preventDefault()
+        setQuickEditSaving(true)
+        try {
+            let estimatedAmount = 0;
+            let isAutoCalculated = false;
+            const surface = parseFloat(quickEditForm.surface) || 0;
+            const thickness = parseFloat(quickEditForm.thickness) || 0;
+
+            if (surface > 0) {
+                const extraThickness = Math.max(0, thickness - 5);
+                const autoBase = 12.5 * surface;
+                const autoExtra = extraThickness * 1.25 * surface;
+                const autoFoil = quickEditForm.has_foil ? 1.2 * surface : 0;
+                const autoMesh = quickEditForm.has_mesh ? 2.5 * surface : 0;
+                estimatedAmount = autoBase + autoExtra + autoFoil + autoMesh;
+                isAutoCalculated = true;
+            }
+
+            await api.patch(`/admin/work-orders/${quickEditOrder.id}`, {
+                title: quickEditForm.title,
+                site_address: quickEditForm.address,
+                site_latitude: quickEditForm.latitude,
+                site_longitude: quickEditForm.longitude,
+                assigned_team_id: quickEditForm.teamId || null,
+                client_id: quickEditForm.clientId || null,
+                volumes: (quickEditForm.surface || quickEditForm.thickness) ? [{
+                    label: 'Șapă',
+                    quantity: surface,
+                    unit: 'm²',
+                    thickness: thickness,
+                    has_foil: !!quickEditForm.has_foil,
+                    has_mesh: !!quickEditForm.has_mesh,
+                    has_duramint: !!quickEditForm.has_duramint
+                }] : [],
+                ...(estimatedAmount > 0 ? { estimated_price: String(estimatedAmount), is_auto_calculated: isAutoCalculated } : {})
+            })
+            setQuickEditOrder(null)
+            setQuickEditForm(null)
+            fetchWorkOrdersStats()
+        } catch (error) {
+            console.error("Error quick editing work order:", error)
+            alert("A apărut o eroare la salvarea modificărilor.")
+        } finally {
+            setQuickEditSaving(false)
+        }
+    }
+
     const handleOrderRescheduled = async (woId, newDate, newTime, revert = false) => {
         if (woId && newDate && newTime) {
             setAllWorkOrders(prev => prev.map(wo => wo.id === String(woId) ? { ...wo, start_date: newDate, start_time: newTime } : wo));
@@ -635,9 +699,9 @@ export default function AdminOverview() {
                     ))
                 ) : isScreeds ? (
                     <>
-                        <KPICard label="Lucrări Azi" value={todayOrdersCount} icon={Timer} colorTheme="blue" onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label="Săptămâna Curentă" value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label="Necesar Nisip" value={necesar.length} icon={Package} colorTheme="amber" onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={necesar.length} icon={Package} colorTheme="amber" onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
                     </>
                 ) : (
                     <>
@@ -646,7 +710,7 @@ export default function AdminOverview() {
                             <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} colorTheme="indigo" onClick={() => navigate('/admin/sites')} />
                         )}
                         {isShortTerm && (
-                            <KPICard label="Comenzi" value={workOrdersStats.total} icon={ClipboardList} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
+                            <KPICard label={t('admin_overview.orders', 'Comenzi')} value={workOrdersStats.total} icon={ClipboardList} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
                         )}
                         <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} colorTheme="green" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
                         <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} colorTheme="orange" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
@@ -665,6 +729,23 @@ export default function AdminOverview() {
                             onOrderRescheduled={handleOrderRescheduled} 
                             onTeamDrop={handleTeamDropOnOrder}
                             onClientDrop={handleClientDropOnOrder}
+                            onOrderEdit={(wo) => {
+                                setQuickEditOrder(wo);
+                                const v = wo.volumes?.[0] || {};
+                                setQuickEditForm({
+                                    title: wo.title || '',
+                                    clientId: wo.client_id ? String(wo.client_id) : '',
+                                    address: wo.site_address || '',
+                                    latitude: wo.site_latitude || '',
+                                    longitude: wo.site_longitude || '',
+                                    surface: v.quantity || '',
+                                    thickness: v.thickness || '',
+                                    has_foil: !!v.has_foil,
+                                    has_mesh: !!v.has_mesh,
+                                    has_duramint: !!v.has_duramint,
+                                    teamId: wo.assigned_team_id ? String(wo.assigned_team_id) : '',
+                                });
+                            }}
                             onTeamDropOnEmpty={(date, time, teamId) => {
                                 setQuickCreateData({ date, time, teamId, clientId: null })
                                 setQuickCreateForm(p => ({ ...p, title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '' }))
@@ -698,10 +779,10 @@ export default function AdminOverview() {
                             <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                                 <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
                                     <Building2 className="w-3.5 h-3.5 text-white" />
-                                    Clienți Frecvenți
+                                    {t('admin_overview.frequent_clients', 'Clienți Frecvenți')}
                                 </h3>
                                 <p className="text-[10px] text-amber-100">
-                                    Trage clientul pe calendar.
+                                    {t('admin_overview.drag_client_calendar', 'Trage clientul pe calendar.')}
                                 </p>
                             </div>
                             
@@ -742,10 +823,10 @@ export default function AdminOverview() {
                             <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                                 <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
                                     <Truck className="w-3.5 h-3.5 text-white" />
-                                    Camioane (Echipe)
+                                    {t('admin_overview.trucks_teams', 'Camioane (Echipe)')}
                                 </h3>
                                 <p className="text-[10px] text-blue-100">
-                                    Trage un camion peste lucrare.
+                                    {t('admin_overview.drag_truck_job', 'Trage un camion peste lucrare.')}
                                 </p>
                             </div>
                             
@@ -772,7 +853,7 @@ export default function AdminOverview() {
                                             <div className="min-w-0 flex flex-col justify-center">
                                                 <div className="font-bold text-xs text-slate-800 dark:text-white truncate max-w-[120px] leading-tight">{team.name}</div>
                                                 {team.members?.length > 0 && (
-                                                    <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none mt-0.5">{team.members.length} membri</div>
+                                                    <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none mt-0.5">{team.members.length} {t('common.members_short', 'membri')}</div>
                                                 )}
                                             </div>
                                         </div>
@@ -801,13 +882,13 @@ export default function AdminOverview() {
                     <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                         <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <ClipboardList className="w-4 h-4 text-white" />
-                            Comenzi Recente
+                            {t('admin_overview.recent_orders', 'Comenzi Recente')}
                         </h3>
-                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded">Vezi toate →</button>
+                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded">{t('admin_overview.view_all', 'Vezi toate')} →</button>
                     </div>
                     {recentWorkOrders.length === 0 ? (
                         <div className="text-center py-6 text-slate-400 text-sm">
-                            Nicio comandă recentă.
+                            {t('admin_overview.no_recent_orders', 'Nicio comandă recentă.')}
                         </div>
                     ) : (
                         <div className="border-t border-slate-200 dark:border-slate-700">
@@ -815,7 +896,7 @@ export default function AdminOverview() {
                                 columns={[
                                     {
                                         key: 'title',
-                                        label: 'Titlu',
+                                        label: t('common.title', 'Titlu'),
                                         sortable: true,
                                         render: (wo) => (
                                             <div>
@@ -826,35 +907,35 @@ export default function AdminOverview() {
                                     },
                                     {
                                         key: 'client_name',
-                                        label: 'Client',
+                                        label: t('common.client', 'Client'),
                                         sortable: true,
                                         render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.client_name || '—'}</div>
                                     },
                                     {
                                         key: 'start_date',
-                                        label: 'Data Execuție',
+                                        label: t('common.execution_date', 'Data Execuție'),
                                         sortable: true,
                                         render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO') : '—'}</div>
                                     },
                                     {
                                         key: 'created_at',
-                                        label: 'Dată Creare',
+                                        label: t('common.creation_date', 'Dată Creare'),
                                         sortable: true,
                                         render: (wo) => <div className="text-xs text-slate-500 dark:text-slate-400">{wo.created_at ? new Date(wo.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</div>
                                     },
                                     {
                                         key: 'status',
-                                        label: 'Status',
+                                        label: t('common.status', 'Status'),
                                         sortable: true,
                                         render: (wo) => {
                                             const cfg = {
-                                                draft:       { label: 'Draft',       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
-                                                sent:        { label: 'Trimisă',     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
-                                                confirmed:   { label: 'Confirmată',  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
-                                                in_progress: { label: 'În Execuție', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
-                                                completed:   { label: 'Finalizată',  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
-                                                cancelled:   { label: 'Anulată',     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
-                                            }[wo.status] || { label: 'Draft', color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
+                                                draft:       { label: t('common.status_draft', 'Draft'),       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
+                                                sent:        { label: t('common.status_sent', 'Trimisă'),     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
+                                                confirmed:   { label: t('common.status_confirmed', 'Confirmată'),  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
+                                                in_progress: { label: t('common.status_in_progress', 'În Execuție'), color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
+                                                completed:   { label: t('common.status_completed', 'Finalizată'),  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
+                                                cancelled:   { label: t('common.status_cancelled', 'Anulată'),     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
+                                            }[wo.status] || { label: t('common.status_draft', 'Draft'), color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
                                             return (
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
                                                     <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -865,9 +946,25 @@ export default function AdminOverview() {
                                     },
                                     {
                                         key: 'actions',
-                                        label: 'Acțiuni',
+                                        label: t('common.actions', 'Acțiuni'),
                                         render: (wo) => (
-                                            <button onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors inline-block">
+                                            <button onClick={() => {
+                                                setQuickEditOrder(wo);
+                                                const v = wo.volumes?.[0] || {};
+                                                setQuickEditForm({
+                                                    title: wo.title || '',
+                                                    clientId: wo.client_id ? String(wo.client_id) : '',
+                                                    address: wo.site_address || '',
+                                                    latitude: wo.site_latitude || '',
+                                                    longitude: wo.site_longitude || '',
+                                                    surface: v.quantity || '',
+                                                    thickness: v.thickness || '',
+                                                    has_foil: !!v.has_foil,
+                                                    has_mesh: !!v.has_mesh,
+                                                    has_duramint: !!v.has_duramint,
+                                                    teamId: wo.assigned_team_id ? String(wo.assigned_team_id) : '',
+                                                });
+                                            }} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors inline-block">
                                                 <ExternalLink className="w-4 h-4" />
                                             </button>
                                         )
@@ -1241,7 +1338,7 @@ export default function AdminOverview() {
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-red-500" />
-                            Sesizări Muncitori
+                            {t('admin_overview.worker_complaints', 'Sesizări Muncitori')}
                             {complaints.length > 0 && (
                                 <span className="ml-1 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                                     {complaints.length}
@@ -1249,13 +1346,13 @@ export default function AdminOverview() {
                             )}
                         </h3>
                         <button onClick={() => navigate('/admin/complaints')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
-                            <ChevronRight className="w-3 h-3" /> Toate
+                            <ChevronRight className="w-3 h-3" /> {t('common.all', 'Toate')}
                         </button>
                     </div>
                     {complaints.length === 0 ? (
                         <div className="px-5 py-8 text-center">
                             <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                            <p className="text-sm text-slate-500 font-medium">Nicio sesizare deschisă</p>
+                            <p className="text-sm text-slate-500 font-medium">{t('admin_overview.no_open_complaints', 'Nicio sesizare deschisă')}</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -1263,11 +1360,11 @@ export default function AdminOverview() {
                                 <div key={c.id} onClick={() => navigate('/admin/complaints')} className="px-5 py-3 hover:bg-red-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{c.user_name || 'Muncitor'}</p>
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{c.user_name || t('common.worker', 'Muncitor')}</p>
                                             <p className="text-xs text-slate-500 truncate mt-0.5">{c.title || c.content?.substring(0, 50)}</p>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">NOU</span>
+                                            <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{t('common.new_upper', 'NOU')}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1283,7 +1380,7 @@ export default function AdminOverview() {
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                             <Package className="w-4 h-4 text-amber-500" />
-                            Cereri Magazie (Noi)
+                            {t('admin_overview.warehouse_requests_new', 'Cereri Magazie (Noi)')}
                             {sesizari.length > 0 && (
                                 <span className="ml-1 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                                     {sesizari.length}
@@ -1291,13 +1388,13 @@ export default function AdminOverview() {
                             )}
                         </h3>
                         <button onClick={() => navigate('/admin/material-requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
-                            <ChevronRight className="w-3 h-3" /> Toate
+                            <ChevronRight className="w-3 h-3" /> {t('common.all', 'Toate')}
                         </button>
                     </div>
                     {sesizari.length === 0 ? (
                         <div className="px-5 py-8 text-center">
                             <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                            <p className="text-sm text-slate-500 font-medium">Nicio sesizare nouă</p>
+                            <p className="text-sm text-slate-500 font-medium">{t('admin_overview.no_new_requests', 'Nicio sesizare nouă')}</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -1305,11 +1402,11 @@ export default function AdminOverview() {
                                 <div key={req.id} onClick={() => navigate('/admin/material-requests')} className="px-5 py-3 hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || t('common.worker', 'Muncitor')}</p>
                                             <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 50)}</p>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">NOU</span>
+                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{t('common.new_upper', 'NOU')}</span>
                                             <p className="text-[10px] text-slate-400 mt-1">{req.site_name || '—'}</p>
                                         </div>
                                     </div>
@@ -1954,6 +2051,152 @@ export default function AdminOverview() {
                                     </div>
                                 </>
                             )}
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Quick Edit Modal */}
+            {quickEditOrder && quickEditForm && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
+                        <div className="px-5 py-4 bg-slate-100 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl border-b border-slate-200 dark:border-slate-700">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <Edit2 className="w-4 h-4 text-blue-600" />
+                                Editare Rapidă
+                            </h3>
+                            <button onClick={() => setQuickEditOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleQuickEditSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto hide-scrollbar">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Client</label>
+                                <SearchableSelect
+                                    value={quickEditForm.clientId || ""}
+                                    onChange={val => {
+                                        const c = clients.find(cl => String(cl.id) === String(val))
+                                        setQuickEditForm(p => ({
+                                            ...p,
+                                            clientId: val,
+                                            title: c && !p.title ? c.name : p.title,
+                                            address: c && !p.address ? c.address : p.address,
+                                            latitude: c && !p.latitude ? c.latitude : p.latitude,
+                                            longitude: c && !p.longitude ? c.longitude : p.longitude
+                                        }))
+                                    }}
+                                    options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                                    placeholder="-- Alege client --"
+                                    buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Titlu Lucrare *</label>
+                                <input 
+                                    type="text"
+                                    required
+                                    value={quickEditForm.title}
+                                    onChange={e => setQuickEditForm({ ...quickEditForm, title: e.target.value })}
+                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Adresă / Localitate</label>
+                                <AddressAutocomplete 
+                                    value={quickEditForm.address}
+                                    onChange={(addr, lat, lon) => {
+                                        setQuickEditForm(p => ({ 
+                                            ...p, 
+                                            address: addr,
+                                            ...(lat && lon ? { latitude: lat, longitude: lon } : {})
+                                        }))
+                                    }}
+                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        value={quickEditForm.surface}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, surface: e.target.value })}
+                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        value={quickEditForm.thickness}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, thickness: e.target.value })}
+                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!quickEditForm.has_foil}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_foil: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    Include Folie plastic
+                                </label>
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!quickEditForm.has_mesh}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_mesh: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    Include Plasă metalică
+                                </label>
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!quickEditForm.has_duramint}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_duramint: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    Include Duramint
+                                </label>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Echipă Alocată</label>
+                                <SearchableSelect
+                                    value={quickEditForm.teamId || ''}
+                                    onChange={val => setQuickEditForm(p => ({...p, teamId: val}))}
+                                    options={[
+                                        { value: '', label: '-- Neasignat --' },
+                                        ...teams.map(t => ({ value: String(t.id), label: t.name }))
+                                    ]}
+                                    placeholder="-- Neasignat --"
+                                    buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                    menuPosition="top"
+                                />
+                            </div>
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                                <button type="button" onClick={() => setQuickEditOrder(null)} className="h-10 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                                    Anulează
+                                </button>
+                                <button type="submit" disabled={quickEditSaving} className="flex-1 h-10 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvează'}
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => navigate(`/admin/work-orders/${quickEditOrder.id}/edit`)} 
+                                    className="flex-1 h-10 font-bold text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors rounded-xl flex items-center justify-center gap-2"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Detalii Avansate
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

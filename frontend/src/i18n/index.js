@@ -6,7 +6,6 @@ import ro from './ro.json'
 import en from './en.json'
 import de from './de.json'
 import fr from './fr.json'
-import hu from './hu.json'
 import nl from './nl.json'
 import ru from './ru.json'
 
@@ -19,7 +18,6 @@ i18n
             en: { translation: en },
             de: { translation: de },
             fr: { translation: fr },
-            hu: { translation: hu },
             nl: { translation: nl },
             ru: { translation: ru },
         },

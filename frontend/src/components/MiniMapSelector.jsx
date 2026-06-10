@@ -19,7 +19,7 @@ const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
         if (!mapRef.current) return
         
         if (!mapInstance.current) {
-            mapInstance.current = L.map(mapRef.current).setView([45.9432, 24.9668], 6)
+            mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false }).setView([45.9432, 24.9668], 6)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap',
                 maxZoom: 19

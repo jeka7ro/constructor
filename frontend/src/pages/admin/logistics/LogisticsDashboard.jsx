@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, Save, CheckCircle2 } from 'lucide-react'
 import api from '../../../lib/api'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
@@ -115,6 +116,7 @@ const SAND_STATIONS = [
 ];
 
 export default function LogisticsDashboard() {
+    const { t } = useTranslation()
     const [targetDate, setTargetDate] = useState(() => {
         const d = new Date();
         return d.toISOString().split('T')[0];
@@ -159,18 +161,18 @@ export default function LogisticsDashboard() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Truck className="w-7 h-7 text-blue-600" /> Logistică
+                        <Truck className="w-7 h-7 text-blue-600" /> {t('logistics.title', 'Logistică')}
                     </h1>
-                    <p className="text-slate-500 text-sm">Organizare zilnică, trasee și necesar de materiale.</p>
+                    <p className="text-slate-500 text-sm">{t('logistics.subtitle', 'Organizare zilnică, trasee și necesar de materiale.')}</p>
                 </div>
                 
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
                         <Link to="/admin/logistica/bases" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <MapPin className="w-4 h-4" /> Baze
+                            <MapPin className="w-4 h-4" /> {t('logistics.bases', 'Baze')}
                         </Link>
                         <Link to="/admin/logistica/sand-stations" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <Beaker className="w-4 h-4" /> Stații Nisip
+                            <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stații Nisip')}
                         </Link>
                     </div>
                     
@@ -298,7 +300,7 @@ export default function LogisticsDashboard() {
                                         />
                                         <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </div>
-                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stații Nisip</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Stații Nisip')}</span>
                                 </label>
                             </div>
                         </MapContainer>
@@ -306,21 +308,21 @@ export default function LogisticsDashboard() {
                         {/* Map Overlay Stats */}
                         <div className="absolute top-4 right-4 z-[400] pointer-events-none">
                             <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto">
-                                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Legenda Hartă</div>
+                                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> {t('logistics.map_legend', 'Legenda Hartă')}</div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        <div className="w-3 h-3 rounded-full bg-slate-800 dark:bg-slate-600 border-2 border-white dark:border-slate-700 shadow-sm"></div> Bază / Start
+                                        <div className="w-3 h-3 rounded-full bg-slate-800 dark:bg-slate-600 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.base_start', 'Bază / Start')}
                                     </div>
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> Șantier / Lucrare
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Șantier / Lucrare')}
                                     </div>
                                     {showSandStations && (
                                         <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> Stații Nisip
+                                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> {t('logistics.sand_stations', 'Stații Nisip')}
                                         </div>
                                     )}
                                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> Traseu auto
+                                        <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> {t('logistics.car_route', 'Traseu auto')}
                                     </div>
                                 </div>
                             </div>
@@ -331,11 +333,11 @@ export default function LogisticsDashboard() {
                     <div className="w-full flex flex-col gap-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Total Nisip</span>
-                                <div className="text-2xl font-black text-amber-600 dark:text-amber-500">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">tone</span></div>
+                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.total_sand', 'Total Nisip')}</span>
+                                <div className="text-2xl font-black text-amber-600 dark:text-amber-500">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('logistics.tons', 'tone')}</span></div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Distanță Est.</span>
+                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.est_distance', 'Distanță Est.')}</span>
                                 <div className="text-2xl font-black text-blue-600 dark:text-blue-500">{Math.round(data.grand_total_distance_km)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">km</span></div>
                             </div>
                         </div>
@@ -343,7 +345,7 @@ export default function LogisticsDashboard() {
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
                             <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                                 <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                    <Filter className="w-4 h-4 text-slate-500" /> Trasee Echipe
+                                    <Filter className="w-4 h-4 text-slate-500" /> {t('logistics.team_routes', 'Trasee Echipe')}
                                 </h3>
                                 <span className="text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-full">{data.routes.length} echipe</span>
                             </div>
@@ -367,11 +369,11 @@ export default function LogisticsDashboard() {
 
                                                 <div className="grid grid-cols-2 gap-2 mb-4">
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Necesar Nisip</div>
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">{t('logistics.sand_needed', 'Necesar Nisip')}</div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Distanță</div>
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">{t('logistics.distance', 'Distanță')}</div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{Math.round(route.total_distance_km)} km</div>
                                                     </div>
                                                 </div>
@@ -395,7 +397,7 @@ export default function LogisticsDashboard() {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5">Nisip: {(wp.sand_kg/1000).toFixed(1)} t</div>}
+                                                                    {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{t('logistics.sand', 'Nisip')}: {(wp.sand_kg/1000).toFixed(1)} t</div>}
                                                                 </div>
                                                             </div>
                                                         ))}

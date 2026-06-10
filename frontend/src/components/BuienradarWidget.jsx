@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CloudRain, ExternalLink, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function BuienradarWidget() {
+    const { t } = useTranslation();
     // We add a timestamp to the image URL to bypass browser caching and force refresh
     const [timestamp, setTimestamp] = useState(Date.now());
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -26,14 +28,14 @@ export default function BuienradarWidget() {
                 <div className="flex items-center gap-2">
                     <CloudRain className="w-5 h-5 text-white" />
                     <h2 className="font-extrabold text-white text-sm uppercase tracking-wide">
-                        Radar Ploaie (Belgia)
+                        {t('admin_overview.rain_radar', 'Radar Ploaie (Belgia)')}
                     </h2>
                 </div>
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={handleManualRefresh}
                         className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/80 hover:text-white"
-                        title="Actualizează Radarul"
+                        title={t('admin_overview.refresh_radar', 'Actualizează Radarul')}
                     >
                         <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </button>
@@ -42,7 +44,7 @@ export default function BuienradarWidget() {
                         target="_blank" 
                         rel="noreferrer"
                         className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/80 hover:text-white"
-                        title="Deschide Buienradar.be"
+                        title={t('admin_overview.open_buienradar', 'Deschide Buienradar.be')}
                     >
                         <ExternalLink className="w-4 h-4" />
                     </a>

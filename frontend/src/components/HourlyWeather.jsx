@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, Droplets } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, Droplets, Wind, Thermometer, X, MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const weatherCache = {};
 
-export default function HourlyWeather({ lat, lon, dateStr }) {
+export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, compact }) {
+    const { t } = useTranslation();
     const [hourlyData, setHourlyData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
@@ -16,6 +18,8 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
 
         const targetDate = dateStr.split('T')[0];
         const cacheKey = `hourly_${parseFloat(lat).toFixed(2)}_${parseFloat(lon).toFixed(2)}_${targetDate}`;
+
+        const targetHour = orderTime ? parseInt(orderTime.split(':')[0], 10) : 8;
 
         const processData = (hourly) => {
             if (!hourly || !hourly.time) {
@@ -30,7 +34,7 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
                 const datePart = t.split('T')[0];
                 const hourNum = parseInt(hourStr.split(':')[0], 10);
                 
-                if (datePart === targetDate && hourNum >= 6 && hourNum <= 18) {
+                if (datePart === targetDate && hourNum >= targetHour && hourNum < targetHour + 6) {
                     const prob = hourly.precipitation_probability 
                                 ? hourly.precipitation_probability[i] 
                                 : (hourly.precipitation && hourly.precipitation[i] > 0 ? 100 : 0);
@@ -38,7 +42,10 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
                         time: hourStr,
                         temp: Math.round(hourly.temperature_2m[i]),
                         precipProb: prob,
-                        code: hourly.weather_code[i]
+                        code: hourly.weather_code[i],
+                        humidity: hourly.relative_humidity_2m ? Math.round(hourly.relative_humidity_2m[i]) : null,
+                        wind: hourly.wind_speed_10m ? Math.round(hourly.wind_speed_10m[i]) : null,
+                        feelsLike: hourly.apparent_temperature ? Math.round(hourly.apparent_temperature[i]) : Math.round(hourly.temperature_2m[i])
                     });
                 }
             });
@@ -69,9 +76,9 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
         const today = new Date();
         const diffDays = (today - dateObj) / (1000 * 60 * 60 * 24);
         
-        let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&start_date=${targetDate}&end_date=${targetDate}`;
+        let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature&timezone=auto&start_date=${targetDate}&end_date=${targetDate}`;
         if (diffDays > 80) {
-            url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${targetDate}&end_date=${targetDate}&hourly=temperature_2m,precipitation,weather_code&timezone=auto`;
+            url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${targetDate}&end_date=${targetDate}&hourly=temperature_2m,precipitation,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature&timezone=auto`;
         }
         
         const promise = fetch(url)
@@ -108,7 +115,7 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
         return (
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 flex flex-col items-center justify-center text-center">
                 <CloudSun className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
-                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Date meteo indisponibile pentru {dateStr.split('T')[0]}</p>
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{t('weather.no_data', 'Date meteo indisponibile pentru')} {dateStr.split('T')[0]}</p>
             </div>
         );
     }
@@ -126,40 +133,63 @@ export default function HourlyWeather({ lat, lon, dateStr }) {
     };
 
     return (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 rounded-2xl border border-blue-100 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b border-blue-100/50 dark:border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <CloudSun className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <h2 className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide">Prognoză Meteo Detaliată ({dateStr.split('T')[0]})</h2>
+        <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col h-full overflow-hidden ${compact ? 'p-3' : 'p-5'}`}>
+            {/* Top part: Current / Order Hour */}
+            <div className={`flex justify-between items-start ${compact ? 'mb-2' : 'mb-4'}`}>
+                <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Thermometer className="w-3 h-3 text-orange-400"/> {t('weather.location', 'Vremea la locație')}
+                    </div>
+                    <div className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2 truncate max-w-[200px] flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-red-500 shrink-0"/>
+                        <span className="truncate">{address?.split(',')[0] || t('weather.no_location', 'Locație nespecificată')}</span>
+                    </div>
+                    <div className={`${compact ? 'text-4xl' : 'text-5xl'} font-extralight tracking-tighter text-slate-900 dark:text-white mt-1`}>
+                        {hourlyData[0]?.temp}°
+                    </div>
+                    <div className={`text-xs font-semibold text-blue-600 dark:text-blue-400 ${compact ? 'mt-1' : 'mt-2'} uppercase tracking-wide`}>
+                        {t('weather.start', 'Start')}: {orderTime ? orderTime.substring(0,5) : '08:00'}
+                    </div>
+                </div>
+                <div className="flex flex-col items-end">
+                    {getIcon(hourlyData[0]?.code, compact ? "w-10 h-10 mb-1" : "w-12 h-12 mb-2")}
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        {t('weather.feels_like', 'Se simt')} {hourlyData[0]?.feelsLike}°
+                    </div>
                 </div>
             </div>
-            <div className="p-4 overflow-x-auto no-scrollbar">
-                <div className="flex gap-3 min-w-max">
-                    {hourlyData.map((hour, idx) => {
-                        const isRainy = hour.precipProb >= 30;
-                        const isCold = hour.temp < 5;
-                        const isHot = hour.temp > 28;
-                        
-                        return (
-                            <div key={idx} className="flex flex-col items-center bg-white dark:bg-slate-700 rounded-lg p-2 shadow-sm border border-slate-100 dark:border-slate-600 min-w-[50px] hover:-translate-y-1 transition-transform">
-                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">{hour.time}</span>
-                                
-                                <div className="mb-1">
-                                    {getIcon(hour.code, "w-5 h-5")}
-                                </div>
-                                
-                                <span className={`text-xs font-black ${isCold ? 'text-blue-600' : isHot ? 'text-orange-600' : 'text-slate-800 dark:text-slate-100'}`}>
-                                    {hour.temp}°
-                                </span>
-                                
-                                <div className={`flex items-center gap-0.5 mt-1 text-[9px] font-bold px-1 py-0.5 rounded ${isRainy ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'text-slate-400'}`}>
-                                    <Droplets className="w-2 h-2" />
-                                    <span>{hour.precipProb}%</span>
-                                </div>
+
+            <div className={`text-[11px] font-medium text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700/50 flex justify-between ${compact ? 'mb-3 pb-2' : 'mb-5 pb-4'}`}>
+                <span>{t('weather.wind', 'Vânt')}: {hourlyData[0]?.wind} km/h</span>
+                <span>{t('weather.humidity', 'Umiditate')}: {hourlyData[0]?.humidity}%</span>
+            </div>
+
+            {/* Bottom part: Next 5-6 hours */}
+            <div className="flex justify-between items-center w-full mt-auto">
+                {hourlyData.map((hour, idx) => {
+                    const isCold = hour.temp < 5;
+                    const isHot = hour.temp > 28;
+                    return (
+                        <div key={idx} className="flex flex-col items-center gap-2 relative">
+                            <span className={`text-[10px] font-bold ${idx === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                {idx === 0 ? 'Start' : hour.time.split(':')[0]}
+                            </span>
+                            
+                            <div className="relative">
+                                {getIcon(hour.code, "w-6 h-6")}
+                                {hour.precipProb > 0 && (
+                                    <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-bold text-blue-500 whitespace-nowrap">
+                                        {hour.precipProb}%
+                                    </span>
+                                )}
                             </div>
-                        );
-                    })}
-                </div>
+                            
+                            <span className={`text-xs font-bold mt-2 ${isCold ? 'text-blue-600' : isHot ? 'text-orange-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                                {hour.temp}°
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

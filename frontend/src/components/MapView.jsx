@@ -25,7 +25,7 @@ const getSandStationIcon = (index) => new L.DivIcon({
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
  * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments, navButtons, sandStations
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, navButtons, sandStations = [] }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, navButtons, sandStations = [], leftPanelContent }) => {
     const mapRef = useRef(null)
     const mapInstance = useRef(null)
     const markerRef = useRef(null)
@@ -214,6 +214,16 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
     }
 
     useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isFullScreen) {
+                setIsFullScreen(false)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isFullScreen])
+
+    useEffect(() => {
         if (!mapRef.current) return
 
         const hasCoords = latitude && longitude &&
@@ -335,19 +345,27 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             className={`flex flex-col md:flex-row gap-3 w-full ${isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-900/95 p-4 backdrop-blur-sm' : ''}`}
             style={{ height: isFullScreen ? '100vh' : height, zIndex: isFullScreen ? 9999 : 1 }}
         >
-            <div className={`hidden md:block h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'w-1/4 border-2 border-slate-700' : 'w-1/3 border border-slate-200 dark:border-slate-700'}`}>
-                <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
-                <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                    DESTINAȚIE
+            <div className={`hidden md:flex flex-col gap-2 h-full relative ${isFullScreen ? 'w-[32%] max-w-[420px]' : 'w-1/3'}`}>
+                <div className={`relative rounded-xl overflow-hidden shadow-inner w-full shrink-0 ${isFullScreen && leftPanelContent ? 'h-[120px] min-h-[120px] border-2 border-slate-700' : 'h-full border border-slate-200 dark:border-slate-700'}`}>
+                    <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
+                    <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                        DESTINAȚIE
+                    </div>
+                    {navButtons && !isFullScreen && (
+                        <div className="absolute top-2 right-2 z-[400] flex gap-2">
+                            {navButtons}
+                        </div>
+                    )}
                 </div>
-                {navButtons && (
-                    <div className="absolute top-2 right-2 z-[400] flex gap-2">
-                        {navButtons}
+
+                {isFullScreen && leftPanelContent && (
+                    <div className="flex-1 w-full flex flex-col gap-2 overflow-y-auto pr-1 pb-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+                        {leftPanelContent}
                     </div>
                 )}
             </div>
             
-            <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'w-full md:w-3/4 border-2 border-slate-700' : 'w-full md:w-2/3 border border-slate-200 dark:border-slate-700'}`}>
+            <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'flex-1 border-2 border-slate-700' : 'w-full md:w-2/3 border border-slate-200 dark:border-slate-700'}`}>
                 <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
                 
                 {/* UI Controls */}

@@ -1,9 +1,11 @@
 import React from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Wrench, AlertTriangle, Calendar, ClipboardList } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useTenantStore } from '../../store/tenantStore'
 
 export default function EmployeeLayout() {
+    const { t } = useTranslation()
     const location = useLocation()
     const navigate = useNavigate()
     const isHome = location.pathname === '/'
@@ -54,7 +56,7 @@ export default function EmployeeLayout() {
                         className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-700 scale-110 drop-shadow-md' : (isHome ? 'text-blue-600/90' : 'text-slate-400')}`}
                     >
                         <Calendar className="w-7 h-7 mb-1.5" />
-                        <span className="text-xs font-bold">Istoric</span>
+                        <span className="text-xs font-bold">{t('nav.history', 'Istoric')}</span>
                     </NavLink>
                 ) : (
                     <div className="w-[80px]" />
@@ -67,7 +69,7 @@ export default function EmployeeLayout() {
                         className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-green-700 scale-110 drop-shadow-md' : (isHome ? 'text-green-600/90' : 'text-slate-400')}`}
                     >
                         <ClipboardList className="w-7 h-7 mb-1.5" />
-                        <span className="text-xs font-bold">Comenzi</span>
+                        <span className="text-xs font-bold">{t('nav.work_orders', 'Comenzi')}</span>
                     </NavLink>
                 ) : (
                     <div className="relative flex justify-center w-[96px]">
@@ -110,7 +112,7 @@ export default function EmployeeLayout() {
                         className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-green-700 scale-110 drop-shadow-md' : (isHome ? 'text-green-600/90' : 'text-slate-400')}`}
                     >
                         <ClipboardList className="w-7 h-7 mb-1.5" />
-                        <span className="text-[10px] font-bold text-center leading-tight">Comenzi<br/>de lucru</span>
+                        <span className="text-[10px] font-bold text-center leading-tight">{t('nav.work_orders_full', 'Comenzi de lucru')}</span>
                     </NavLink>
                 )}
 
@@ -121,7 +123,7 @@ export default function EmployeeLayout() {
                         className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 scale-110 drop-shadow-md' : (isHome ? 'text-emerald-600/90' : 'text-slate-400')}`}
                     >
                         <Wrench className="w-7 h-7 mb-1.5" />
-                        <span className="text-xs font-bold">Inventar</span>
+                        <span className="text-xs font-bold">{t('nav.inventory', 'Inventar')}</span>
                     </NavLink>
                 )}
 
@@ -132,7 +134,7 @@ export default function EmployeeLayout() {
                         className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-red-600 scale-110 drop-shadow-md' : (isHome ? 'text-red-500/90' : 'text-slate-400')}`}
                     >
                         <AlertTriangle className="w-7 h-7 mb-1.5" />
-                        <span className="text-xs font-bold">Sesizari</span>
+                        <span className="text-xs font-bold">{t('nav.complaints', 'Sesizări')}</span>
                     </NavLink>
                 )}
             </nav>
