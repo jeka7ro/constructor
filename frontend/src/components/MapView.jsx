@@ -350,28 +350,28 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'w-full md:w-3/4 border-2 border-slate-700' : 'w-full md:w-2/3 border border-slate-200 dark:border-slate-700'}`}>
                 <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
                 
-                {/* Full Screen Toggle Button */}
-                <div className="absolute top-2 left-2 z-[400] flex flex-col gap-2">
+                {/* UI Controls */}
+                <div className="absolute top-2 left-2 z-[400] flex flex-row items-center gap-2">
                     <button 
                         onClick={() => setIsFullScreen(!isFullScreen)}
-                        className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+                        className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center backdrop-blur-sm"
                         title={isFullScreen ? "Ieși din modul ecran complet" : "Mărește harta (Ecran complet)"}
                     >
                         {isFullScreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
                     </button>
                     {/* Sand Stations Toggle Button (only if sandStations are provided) */}
                     {sandStations && sandStations.length > 0 && (
-                        <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors pointer-events-auto">
-                            <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                        <label className="flex items-center gap-2 cursor-pointer bg-white/90 dark:bg-slate-800/90 px-2.5 py-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors pointer-events-auto backdrop-blur-sm h-full">
+                            <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
                                 <input 
                                     type="checkbox" 
                                     className="sr-only"
                                     checked={showSandStations}
                                     onChange={(e) => setShowSandStations(e.target.checked)}
                                 />
-                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                                <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
                             </div>
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stații Nisip</span>
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nisip</span>
                         </label>
                     )}
                 </div>

@@ -232,33 +232,32 @@ export default function WorkOrderDetail() {
 
     // Auto-calculate estimated sand from volumes if no materials are explicitly added
     let autoSandKg = 0;
-    if (!hasStarted) {
-        (wo.volumes || []).forEach(vol => {
+    if (wo.volumes && wo.volumes.length > 0) {
+        wo.volumes.forEach(vol => {
             const surface = parseFloat(vol.quantity) || 0;
             const thickness = parseFloat(vol.thickness) || 0;
             autoSandKg += (surface * thickness * 16);
         });
+    } else {
+        const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+        const fallbackThick = parseFloat(wo.thickness) || 0;
+        autoSandKg = fallbackSurface * fallbackThick * 16;
     }
 
     if (activeMats.length === 1) {
         const m = activeMats[0];
         let q = parseFloat(m.quantity) || 0;
-        let u = (m.unit || '').toLowerCase();
-        if (u === 'kg') {
-            q = q / 1000;
-            u = 'tone';
-        }
-        matValue = `${q} ${u}`;
+        if (m.unit === 'kg') q = q / 1000;
+        matValue = `${q.toFixed(1)} tone`;
         matSub = m.name;
     } else if (activeMats.length > 1) {
         let totalT = 0;
-        let names = [];
+        const names = [];
         activeMats.forEach(m => {
             let q = parseFloat(m.quantity) || 0;
-            let u = (m.unit || '').toLowerCase();
-            names.push(m.name);
-            if (u === 'kg') totalT += q / 1000;
-            else if (u === 't' || u === 'tone' || u === 'tonă') totalT += q;
+            if (m.unit === 'kg') q = q / 1000;
+            totalT += q;
+            if (m.name && !names.includes(m.name)) names.push(m.name);
         });
         
         if (totalT > 0) {
@@ -317,7 +316,9 @@ export default function WorkOrderDetail() {
         totalGross = autoNet + autoVat;
     }
 
-    const volumeTotal = (wo.volumes || []).reduce((a, v) => a + (parseFloat(v.quantity) || 0), 0)
+    const rawVolumeTotal = (wo.volumes || []).reduce((a, v) => a + (parseFloat(v.quantity) || 0), 0)
+    const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+    const volumeTotal = rawVolumeTotal > 0 ? rawVolumeTotal : fallbackSurface;
 
     // Charts
     const hoursPerUser = {}
@@ -329,8 +330,12 @@ export default function WorkOrderDetail() {
     const activeWorkersCount = Object.keys(hoursPerUser).length;
     const workersValue = activeWorkersCount > 0 ? activeWorkersCount : (wo.assigned_team_name || 'Echipă');
     const workersSub = activeWorkersCount > 0 ? "au pontat" : "alocată";
-    const maxThickness = (wo.volumes || []).reduce((a, v) => Math.max(a, parseFloat(v.thickness) || 0), 0);
-    const volUnit = (wo.volumes || [])[0]?.unit || 'unități';
+    
+    const rawMaxThickness = (wo.volumes || []).reduce((a, v) => Math.max(a, parseFloat(v.thickness) || 0), 0);
+    const fallbackThick = parseFloat(wo.thickness) || 0;
+    const maxThickness = rawMaxThickness > 0 ? rawMaxThickness : fallbackThick;
+    
+    const volUnit = (wo.volumes || [])[0]?.unit || 'm²';
     const volSub = volUnit;
     const hoursChartData = Object.entries(hoursPerUser).map(([name, hours]) => ({
         name: name.split(' ')[0],
