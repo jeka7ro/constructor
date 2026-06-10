@@ -359,16 +359,20 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     >
                         {isFullScreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
                     </button>
-                    
                     {/* Sand Stations Toggle Button (only if sandStations are provided) */}
                     {sandStations && sandStations.length > 0 && (
-                        <button 
-                            onClick={() => setShowSandStations(!showSandStations)}
-                            className={`p-2 rounded-xl shadow-sm border transition-colors flex items-center justify-center ${showSandStations ? 'bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-400' : 'bg-white/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800'}`}
-                            title="Afișează/Ascunde Stații de Nisip"
-                        >
-                            <Layers className="w-5 h-5" />
-                        </button>
+                        <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors pointer-events-auto">
+                            <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only"
+                                    checked={showSandStations}
+                                    onChange={(e) => setShowSandStations(e.target.checked)}
+                                />
+                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stații Nisip</span>
+                        </label>
                     )}
                 </div>
 
