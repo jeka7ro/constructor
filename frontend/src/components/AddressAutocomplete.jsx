@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function AddressAutocomplete({ value, onChange, placeholder, className }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState(value || '');
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -96,7 +98,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
                     value={query}
                     onChange={handleInputChange}
                     onFocus={() => { if (suggestions.length > 0) setIsOpen(true); }}
-                    placeholder={placeholder || 'Cauta o adresa...'}
+                    placeholder={placeholder || t('common.search_address', 'Caută o adresă...')}
                     className={className}
                     autoComplete="off"
                 />

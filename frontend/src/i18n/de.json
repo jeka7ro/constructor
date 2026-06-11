@@ -150,7 +150,8 @@
     "status_cancelled": "Storniert",
     "one_way": "Hinweg",
     "tons": "Tonnen",
-    "calculating": "wird berechnet..."
+    "calculating": "wird berechnet...",
+    "search_address": "Adresse suchen..."
   },
   "users": {
     "title": "Mitarbeiterverwaltung",

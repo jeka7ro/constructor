@@ -150,7 +150,8 @@
     "status_cancelled": "Отменено",
     "one_way": "В одну сторону",
     "tons": "Тонн",
-    "calculating": "вычисляется..."
+    "calculating": "вычисляется...",
+    "search_address": "Поиск адреса..."
   },
   "users": {
     "title": "Employee Management",

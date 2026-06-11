@@ -152,7 +152,8 @@
     "status_cancelled": "Cancelled",
     "one_way": "One way",
     "tons": "Tons",
-    "calculating": "calculating..."
+    "calculating": "calculating...",
+    "search_address": "Search for an address..."
   },
   "users": {
     "title": "Employee Management",

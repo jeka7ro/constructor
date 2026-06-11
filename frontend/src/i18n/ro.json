@@ -152,7 +152,8 @@
     "status_cancelled": "Anulată",
     "one_way": "Dus",
     "tons": "Tone",
-    "calculating": "se calculează..."
+    "calculating": "se calculează...",
+    "search_address": "Caută o adresă..."
   },
   "users": {
     "title": "Gestionare Angajați",

@@ -150,7 +150,8 @@
     "status_cancelled": "Annulé",
     "one_way": "Aller",
     "tons": "Tonnes",
-    "calculating": "calcul en cours..."
+    "calculating": "calcul en cours...",
+    "search_address": "Rechercher une adresse..."
   },
   "users": {
     "title": "Gestion des Employés",

@@ -152,7 +152,8 @@
     "status_cancelled": "Geannuleerd",
     "one_way": "Heen",
     "tons": "Ton",
-    "calculating": "berekenen..."
+    "calculating": "berekenen...",
+    "search_address": "Zoek een adres..."
   },
   "users": {
     "title": "Employee Management",
