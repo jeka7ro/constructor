@@ -428,6 +428,7 @@ export default function WorkOrderDetail() {
                             zoom={15}
                             geofenceRadius={geoR}
                             label={`${t('work_order_detail.location.loc_label', 'Locație: ')}${address}`}
+                            baseName={wo.assigned_team_name}
                             routeSegments={wo.route_segments}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
                             sandStations={sandStations}

@@ -751,7 +751,7 @@ export default function ShortWorksCalendar({
                                     }}
                                     className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
                                 >
-                                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Da, șterge'}
+                                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.yes_delete', 'Da, șterge')}
                                 </button>
                             </div>
                         </div>

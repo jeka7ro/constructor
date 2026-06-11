@@ -3,6 +3,8 @@ import { MessageSquareWarning, Search, X, ChevronLeft, ChevronRight, Loader2, Ch
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 
+import { useTranslation } from 'react-i18next'
+
 const STATUSES = [
     { id: 'all',       label: 'Toate',       color: 'slate' },
     { id: 'open',      label: 'Deschise',    color: 'blue' },
@@ -19,6 +21,7 @@ const STATUS_CONFIG = {
 }
 
 export default function ComplaintsManagement() {
+    const { t } = useTranslation()
     const { showToast } = useUIStore()
     const [complaints, setComplaints] = useState([])
     const [loading, setLoading] = useState(true)
@@ -369,7 +372,7 @@ export default function ComplaintsManagement() {
 
                         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                             <button onClick={() => setDetailComplaint(null)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                                Anulează
+                                {t('common.cancel', 'Anulează')}
                             </button>
                             <button onClick={handleRespond} disabled={submitting || !responseText.trim()}
                                 className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
@@ -393,11 +396,11 @@ export default function ComplaintsManagement() {
                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{confirmModal.message}</p>
                             <div className="flex gap-3 justify-center">
                                 <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                                    Anulează
+                                    {t('common.cancel', 'Anulează')}
                                 </button>
                                 <button onClick={() => { if (confirmModal.onConfirm) confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }}
                                     className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all">
-                                    Da, Șterge
+                                    {t('common.yes_delete', 'Da, Șterge')}
                                 </button>
                             </div>
                         </div>

@@ -25,7 +25,7 @@ const getSandStationIcon = (index) => new L.DivIcon({
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
  * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments, navButtons, sandStations
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, navButtons, sandStations = [], leftPanelContent }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent }) => {
     const mapRef = useRef(null)
     const mapInstance = useRef(null)
     const markerRef = useRef(null)
@@ -127,12 +127,23 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             routingControlRef.current = null
         }
 
+        let startName = null;
+        let startLat = null;
+        let startLng = null;
+
         if (routeSegments && routeSegments.length > 0) {
             const firstSeg = routeSegments[0];
-            const startName = firstSeg.from;
+            startName = firstSeg.from;
+            startLat = firstSeg.from_lat;
+            startLng = firstSeg.from_lng;
+        } else if (baseName) {
+            startName = baseName;
+        }
+
+        if (startName) {
             const geocodeStart = async (query) => {
-                if (firstSeg.from_lat && firstSeg.from_lng) {
-                    return { lat: parseFloat(firstSeg.from_lat), lon: parseFloat(firstSeg.from_lng) };
+                if (startLat && startLng) {
+                    return { lat: parseFloat(startLat), lon: parseFloat(startLng) };
                 }
                 if (query.toLowerCase().includes('baza') || query.toLowerCase().includes('base') || query.toLowerCase().includes('h&h')) {
                     return { lat: 50.88243, lon: 4.39343 }; // Baza H&H Resources Brussels
