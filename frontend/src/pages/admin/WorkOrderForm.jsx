@@ -6,6 +6,7 @@ import {
     Users, Truck, Image, X, Clock, Save, Send, Banknote, Info
 } from 'lucide-react'
 import api from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import SearchableSelect from '../../components/SearchableSelect'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
@@ -85,6 +86,7 @@ export default function WorkOrderForm() {
     const navigate = useNavigate()
     const { id } = useParams()
     const [searchParams] = useSearchParams()
+    const { t } = useTranslation()
     const isEdit = Boolean(id)
     const fileRef = useRef()
 
