@@ -863,10 +863,10 @@ export default function WorkOrderForm() {
                                     set('assigned_vehicle_id', '');
                                 }
                             }}
-                            options={teams.map(t => ({
-                                value: t.id,
-                                label: t.team_leader_name && t.team_leader_name !== 'N/A' ? t.team_leader_name : t.name,
-                                subLabel: t.team_leader_name && t.team_leader_name !== 'N/A' && t.name !== t.team_leader_name ? `${t('common.team', 'Echipa')}: ${t.name}` : undefined
+                            options={teams.map(team => ({
+                                value: team.id,
+                                label: team.team_leader_name && team.team_leader_name !== 'N/A' ? team.team_leader_name : team.name,
+                                subLabel: team.team_leader_name && team.team_leader_name !== 'N/A' && team.name !== team.team_leader_name ? `${t('common.team', 'Echipa')}: ${team.name}` : undefined
                             }))}
                             placeholder={`— ${t('work_order_form.no_assignment', 'Fără alocare')} —`}
                         />
