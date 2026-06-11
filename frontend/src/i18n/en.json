@@ -72,7 +72,7 @@
     "back": "Back",
     "export": "Export",
     "actions": "Actions",
-    "status": "Status",
+    "status": "Status:",
     "name": "Name",
     "date": "Date",
     "active": "Active",
@@ -157,7 +157,8 @@
     "col_nr": "NO.",
     "col_status": "STATUS",
     "col_actions": "ACTIONS",
-    "no_results": "No results"
+    "no_results": "No results",
+    "team": "Team"
   },
   "users": {
     "title": "Employee Management",
@@ -965,14 +966,14 @@
     "header_teams": {}
   },
   "work_order_form": {
-    "title_new": "New Order",
-    "title_edit": "Edit Order",
+    "title_new": "New Work Order",
+    "title_edit": "Edit Work Order",
     "subtitle": "Fill out the fields below",
     "save_btn": "Save Order",
     "save_send_btn": "Save & Send",
     "saving": "Saving...",
     "sending": "Sending...",
-    "general_details": "General Details, Client and Location",
+    "general_details": "General Details",
     "client": "Client",
     "client_existing": "Existing Client",
     "client_new": "New Client",
@@ -985,7 +986,7 @@
     "country": "Country",
     "vat_number": "VAT Number",
     "reg_number": "Reg. Number",
-    "add_bank_details": "Add bank details (Bank, IBAN, SWIFT)",
+    "add_bank_details": "Add banking details (Bank, IBAN, SWIFT)",
     "bank_name": "Bank Name",
     "contact_person": "Contact Person",
     "phone": "Phone",
@@ -1001,7 +1002,7 @@
     "latitude": "Latitude",
     "longitude": "Longitude",
     "geo_radius": "Geo Radius (m)",
-    "volumes_works": "Estimated Quantities / Works / Volumes",
+    "volumes_works": "Estimated Quantities",
     "work_type": "Work Type",
     "qty": "Qty",
     "unit": "Unit",
@@ -1042,7 +1043,7 @@
     "status_draft": "Draft",
     "status_scheduled": "Scheduled",
     "status_in_progress": "In Progress",
-    "status_completed": "Completed (Closed)",
+    "status_completed": "Completed",
     "status_cancelled": "Cancelled",
     "no_vehicle": "No vehicle",
     "choose_activity": "Choose activity...",
@@ -1059,7 +1060,13 @@
     "estimated_price_title": "Estimated Price (Proforma)",
     "estimated_value": "Estimated Value",
     "proforma_note": "Appears on the proforma sent to the client",
-    "cost_calculation_admin": "Cost Calculation (Visible to Admin only)"
+    "cost_calculation_admin": "Cost Calculation (Visible to Admin only)",
+    "subtitle_edit": "Edit the details of the selected order",
+    "subtitle_new": "Create an order and auto-generate a proforma",
+    "detect_auto": "Detect automatically",
+    "detecting": "Detecting...",
+    "planning_team": "Planning & Team",
+    "materials": "Materials"
   },
   "countries": {
     "ro": "Romania",

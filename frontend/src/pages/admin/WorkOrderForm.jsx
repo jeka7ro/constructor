@@ -21,7 +21,7 @@ const EMPTY_FORM = {
     client_name: '',
     client_email: '',
     client_phone: '',
-    client_language: 'ro',
+    client_language: 'fr',
     client_type: 'fizica',
     client_country: 'RO',
     client_contact_person: '',
@@ -512,23 +512,25 @@ export default function WorkOrderForm() {
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl">
             {/* Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-2">
                 <button
                     onClick={() => navigate('/admin/work-orders')}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                    className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
                 >
                     <ChevronLeft className="w-5 h-5 text-slate-500" />
                 </button>
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
+                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
                     <ClipboardList className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                        {isEdit ? t('work_order_form.title_edit', 'Editare Comandă de Lucru') : t('work_order_form.title_new', 'Comandă de Lucru Nouă')}
-                    </h1>
-                    <p className="text-sm text-slate-500">
-                        {isEdit ? t('work_order_form.subtitle_edit', 'Modifică detaliile pentru comanda selectată') : t('work_order_form.subtitle_new', 'Creează o comandă și generează automat proforma/ofertă')}
-                    </p>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight whitespace-nowrap">
+                            {isEdit ? t('work_order_form.title_edit', 'Editare Comandă') : t('work_order_form.title_new', 'Comandă Nouă')}
+                        </h1>
+                        <p className="text-sm text-slate-400 truncate">
+                            {isEdit ? t('work_order_form.subtitle_edit', 'Modifică detaliile comenzii') : t('work_order_form.subtitle_new', 'Creează o comandă nouă')}
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -780,7 +782,7 @@ export default function WorkOrderForm() {
                                                 className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
                                             >
                                                 {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                                {t('work_order_form.auto_detect', 'Detecteaza automat')}
+                                                {detecting ? t('work_order_form.detecting', 'Détection...') : t('work_order_form.detect_auto', 'Détecter automatiquement')}
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
@@ -835,7 +837,7 @@ export default function WorkOrderForm() {
                             onChange={e => set('start_time', e.target.value)}
                             className={INPUT} />
                     </Field>
-                    <Field label={t('work_order_form.deadline', 'Termen Limita')}>
+                    <Field label={t('work_order_form.deadline', 'Date Limite')}>
                         <input type="date" value={form.deadline_date}
                             onChange={e => set('deadline_date', e.target.value)}
                             className={INPUT} />
