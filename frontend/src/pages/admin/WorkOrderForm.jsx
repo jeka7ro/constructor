@@ -513,9 +513,9 @@ export default function WorkOrderForm() {
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-3xl mx-auto w-full">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl">
             {/* Header */}
-            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap max-w-4xl">
                 <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={() => navigate('/admin/work-orders')}
@@ -552,7 +552,7 @@ export default function WorkOrderForm() {
             </div>
 
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl text-sm font-semibold mb-4">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl text-sm font-semibold mb-4 max-w-4xl">
                     {error}
                 </div>
             )}
@@ -560,7 +560,7 @@ export default function WorkOrderForm() {
 
             {/* Stepper UI Removed */}
 
-            <div className="max-w-3xl mx-auto space-y-6">
+            <div className="max-w-4xl space-y-6">
 
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <Section icon={FileText} title={t('work_order_form.general_details', 'Detalii, Client și Locație')} zIndex={80}>
@@ -1161,7 +1161,7 @@ export default function WorkOrderForm() {
             </div>
 
             {/* Actions Bottom */}
-            <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800 max-w-4xl">
                 <button
                     onClick={() => navigate(-1)}
                     className="px-6 h-11 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
