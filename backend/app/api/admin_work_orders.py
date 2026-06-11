@@ -112,6 +112,7 @@ class WorkOrderCreate(BaseModel):
 
 class WorkOrderUpdate(WorkOrderCreate):
     title: Optional[str] = None
+    status: Optional[str] = None
 
 
 def _serialize(wo: WorkOrder) -> dict:
@@ -508,7 +509,7 @@ def update_work_order(
         "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
         "client_email", "client_phone", "requirements", "materials", "volumes",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
-        "estimated_price"
+        "estimated_price", "status"
     ]
     
     update_data = payload.dict(exclude_unset=True)
