@@ -510,10 +510,11 @@ def update_work_order(
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
         "estimated_price"
     ]
+    
+    update_data = payload.dict(exclude_unset=True)
     for f in fields:
-        v = getattr(payload, f, None)
-        if v is not None:
-            setattr(wo, f, v)
+        if f in update_data:
+            setattr(wo, f, update_data[f])
 
     new_materials = wo.materials or []
     if wo.status not in ("completed", "cancelled") and old_materials != new_materials:
@@ -603,12 +604,16 @@ def update_work_order(
                 {
                     "from": base_name,
                     "to": wo.site_address or wo.title,
-                    "km": round(dist_one_way, 2)
+                    "km": round(dist_one_way, 2),
+                    "from_lat": base_lat,
+                    "from_lng": base_lng
                 },
                 {
                     "from": wo.site_address or wo.title,
                     "to": base_name,
-                    "km": round(dist_one_way, 2)
+                    "km": round(dist_one_way, 2),
+                    "from_lat": wo.site_latitude,
+                    "from_lng": wo.site_longitude
                 }
             ]
 

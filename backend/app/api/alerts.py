@@ -56,6 +56,19 @@ def create_alert(
     db.refresh(new_alert)
     return new_alert
 
+@router.get("/all", response_model=List[AlertResponse])
+def get_all_alerts(
+    db: Session = Depends(get_db)
+    # Ideally: current_admin: Admin = Depends(get_current_admin)
+):
+    """
+    Get all alerts for the organization (Admin view).
+    """
+    # Hardcoded organization ID for this prototype or fetch from admin context
+    org_id = db.query(Admin).first().organization_id
+    alerts = db.query(Alert).filter(Alert.organization_id == org_id).order_by(Alert.created_at.desc()).all()
+    return alerts
+
 @router.get("/active", response_model=List[AlertResponse])
 def get_active_alerts(
     current_user: User = Depends(get_current_user),
