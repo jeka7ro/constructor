@@ -513,7 +513,7 @@ export default function WorkOrderForm() {
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-3xl mx-auto w-full">
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap">
                 <div className="flex items-center gap-3 min-w-0">
@@ -538,10 +538,10 @@ export default function WorkOrderForm() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-1 rounded-xl shadow-sm shrink-0">
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-1 rounded-full shadow-sm shrink-0">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-3 hidden sm:inline-block">{t('common.status', 'Status:')}</span>
                     <select value={form.status || 'scheduled'} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} 
-                        className="bg-slate-50 dark:bg-slate-800 border-none text-sm font-bold text-slate-800 dark:text-white rounded-lg focus:ring-0 cursor-pointer h-9 px-3 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        className="bg-slate-50 dark:bg-slate-800 border-none text-sm font-bold text-slate-800 dark:text-white rounded-full focus:ring-0 cursor-pointer h-9 px-3 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         <option value="draft">{t('work_order_form.status_draft', 'Ciornă')}</option>
                         <option value="scheduled">{t('work_order_form.status_scheduled', 'Planificată')}</option>
                         <option value="in_progress">{t('work_order_form.status_in_progress', 'În Lucru')}</option>
