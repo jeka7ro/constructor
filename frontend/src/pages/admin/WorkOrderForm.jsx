@@ -15,6 +15,7 @@ const VOLUME_UNITS = ['m²', 'm³', 'm liniar', 'buc', 'ore', 'kg', 'tone', 'sac
 
 const EMPTY_FORM = {
     title: '',
+    status: 'scheduled',
     // Client
     client_mode: 'existing',
     client_id: '',
@@ -243,6 +244,7 @@ export default function WorkOrderForm() {
                     setForm(prev => ({
                         ...prev,
                         title: wo.title || '',
+                        status: wo.status || 'scheduled',
                         access_notes: wo.access_notes || '',
                         start_date: wo.start_date || '',
                         start_time: wo.start_time || '07:00',
@@ -372,6 +374,7 @@ export default function WorkOrderForm() {
         }
         return {
             title: generatedTitle,
+            status: form.status || 'scheduled',
         access_notes: form.access_notes,
         start_date: form.start_date || null,
         start_time: form.start_time || null,
@@ -512,38 +515,40 @@ export default function WorkOrderForm() {
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-2">
-                <button
-                    onClick={() => navigate('/admin/work-orders')}
-                    className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-                >
-                    <ChevronLeft className="w-5 h-5 text-slate-500" />
-                </button>
-                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
-                    <ClipboardList className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight whitespace-nowrap">
-                            {isEdit ? t('work_order_form.title_edit', 'Editare Comandă') : t('work_order_form.title_new', 'Comandă Nouă')}
-                        </h1>
-                        <p className="text-sm text-slate-400 truncate">
-                            {isEdit ? t('work_order_form.subtitle_edit', 'Modifică detaliile comenzii') : t('work_order_form.subtitle_new', 'Creează o comandă nouă')}
-                        </p>
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-3 min-w-0">
+                    <button
+                        onClick={() => navigate('/admin/work-orders')}
+                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-slate-500" />
+                    </button>
+                    <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow shadow-blue-500/30 shrink-0">
+                        <ClipboardList className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-3 flex-wrap">
+                            <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight whitespace-nowrap">
+                                {isEdit ? t('work_order_form.title_edit', 'Editare Comandă') : t('work_order_form.title_new', 'Comandă Nouă')}
+                            </h1>
+                            <p className="text-sm text-slate-400 truncate hidden md:block">
+                                {isEdit ? t('work_order_form.subtitle_edit', 'Modifică detaliile comenzii') : t('work_order_form.subtitle_new', 'Creează o comandă nouă')}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-1 rounded-xl shadow-sm mb-4 w-fit">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-3 hidden sm:inline-block">{t('common.status', 'Status:')}</span>
-                <select value={form.status || 'scheduled'} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} 
-                    className="bg-slate-50 dark:bg-slate-800 border-none text-sm font-bold text-slate-800 dark:text-white rounded-lg focus:ring-0 cursor-pointer h-9 px-3 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <option value="draft">{t('work_order_form.status_draft', 'Ciornă')}</option>
-                    <option value="scheduled">{t('work_order_form.status_scheduled', 'Planificată')}</option>
-                    <option value="in_progress">{t('work_order_form.status_in_progress', 'În Lucru')}</option>
-                    <option value="completed">{t('work_order_form.status_completed', 'Finalizată (Închisă)')}</option>
-                    <option value="cancelled">{t('work_order_form.status_cancelled', 'Anulată')}</option>
-                </select>
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-1 rounded-xl shadow-sm shrink-0">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-3 hidden sm:inline-block">{t('common.status', 'Status:')}</span>
+                    <select value={form.status || 'scheduled'} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} 
+                        className="bg-slate-50 dark:bg-slate-800 border-none text-sm font-bold text-slate-800 dark:text-white rounded-lg focus:ring-0 cursor-pointer h-9 px-3 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <option value="draft">{t('work_order_form.status_draft', 'Ciornă')}</option>
+                        <option value="scheduled">{t('work_order_form.status_scheduled', 'Planificată')}</option>
+                        <option value="in_progress">{t('work_order_form.status_in_progress', 'În Lucru')}</option>
+                        <option value="completed">{t('work_order_form.status_completed', 'Finalizată (Închisă)')}</option>
+                        <option value="cancelled">{t('work_order_form.status_cancelled', 'Anulată')}</option>
+                    </select>
+                </div>
             </div>
 
             {error && (
