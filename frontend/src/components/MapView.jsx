@@ -325,8 +325,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     })
                     marker.bindPopup(`
                         <div style="text-align:center">
-                            <strong style="font-size:13px; color:#ef4444">${s.name}</strong><br/>
-                            <span style="font-size:11px; color:#64748b">${s.address || 'Fără adresă'}</span>
+                            <strong style="font-size:13px; color:#ef4444">${s.name}</strong>
+                            ${s.address ? `<br/><span style="font-size:11px; color:#64748b">${s.address}</span>` : ''}
                         </div>
                     `)
                     marker.addTo(sandStationsLayerRef.current)
