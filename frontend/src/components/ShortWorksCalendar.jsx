@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2 } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -459,6 +459,7 @@ export default function ShortWorksCalendar({
                                 const leftPercent = wo.dayIndex * baseWidthPercent;
                                 const widthValue = `calc(${baseWidthPercent}% - 8px)`;
                                 const isThisDragged = draggedOrder === wo.id;
+                                const isCompleted = wo.status === 'completed';
 
                                 return (
                                     <div 
@@ -491,9 +492,12 @@ export default function ShortWorksCalendar({
                                             height: '72px',
                                             left: `${leftPercent}%`,
                                             width: widthValue,
-                                            backgroundColor: wo.assigned_team_id ? `${colorHex}30` : undefined,
-                                            borderLeftColor: wo.assigned_team_id ? colorHex : undefined,
-                                            borderColor: wo.assigned_team_id ? `${colorHex}50` : undefined,
+                                            backgroundColor: !wo.assigned_team_id ? undefined : (isCompleted ? '#f0fdf4' : `${colorHex}30`),
+                                            borderLeftColor: !wo.assigned_team_id ? undefined : (isCompleted ? '#22c55e' : colorHex),
+                                            borderColor: !wo.assigned_team_id ? undefined : (isCompleted ? '#22c55e' : `${colorHex}50`),
+                                            borderWidth: isCompleted ? '2px' : undefined,
+                                            borderStyle: isCompleted ? 'dashed' : undefined,
+                                            opacity: 1,
                                             zIndex: isThisDragged ? 50 : (10 + (wo._layoutIndex || 0)),
                                             pointerEvents: isDragging ? 'auto' : 'auto' // ensure it can receive drops!
                                         }}
@@ -576,9 +580,11 @@ export default function ShortWorksCalendar({
                                         }}
                                         title={`${wo.title} — trageți pentru a muta`}
                                     >
-                                        <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 ${hoveredOrder === wo.id && !isDragging ? 'opacity-0' : 'opacity-100'}`}>
-                                            <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
-                                        </div>
+                                        {!isCompleted && (
+                                            <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 ${hoveredOrder === wo.id && !isDragging ? 'opacity-0' : 'opacity-100'}`}>
+                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
+                                            </div>
+                                        )}
 
                                         {hoveredOrder === wo.id && !isDragging && (
                                             <div className="absolute top-1 right-1 flex items-center gap-1 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm p-0.5 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-150">
@@ -605,6 +611,7 @@ export default function ShortWorksCalendar({
 
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.title}>
                                             {wo.status === 'draft' && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" title="Draft - Incomplet" />}
+                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
                                             <span className="truncate">{wo.title}</span>
                                         </div>
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center justify-between gap-1">
@@ -660,6 +667,7 @@ export default function ShortWorksCalendar({
                             
                             const colorHex = wo.team?.color || '#3b82f6';
                             const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
+                            const isCompleted = wo.status === 'completed';
                             
                             return (
                                 <React.Fragment key={wo.id}>
@@ -671,8 +679,8 @@ export default function ShortWorksCalendar({
                                         </div>
                                     )}
                                     <div 
-                                        className="relative bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform"
-                                        style={{ borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` }}
+                                        className={`relative p-3 rounded-xl border shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}
+                                        style={!isCompleted ? { borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` } : { borderLeft: `4px solid #22c55e` }}
                                         onClick={() => {
                                             if (onOrderClick) onOrderClick(wo);
                                             else navigate(`/admin/work-orders/${wo.id}`);
@@ -681,11 +689,14 @@ export default function ShortWorksCalendar({
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10 flex items-center gap-1.5">
                                                 {wo.status === 'draft' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" title="Draft - Incomplet" />}
+                                                {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" title="Finalizată" />}
                                                 <span>{wo.title}</span>
                                             </div>
-                                            <div className="absolute top-2 right-2">
-                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
-                                            </div>
+                                            {!isCompleted && (
+                                                <div className="absolute top-2 right-2">
+                                                    <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
+                                                </div>
+                                            )}
                                         </div>
                                         {calculateOrderSand(wo) > 0 && (
                                             <div className="flex items-center gap-2">

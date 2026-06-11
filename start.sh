@@ -10,8 +10,8 @@ echo "🚀 Pornesc Pontaj Digital..."
 echo ""
 
 # Backend
-echo "📦 Pornesc backend (port 6001)..."
-(cd "$ROOT/backend" && python3 -m uvicorn main:app --host 0.0.0.0 --port 6001 --reload) &
+echo "📦 Pornesc backend (port 8000)..."
+(cd "$ROOT/backend" && python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload) &
 BACKEND_PID=$!
 sleep 3
 
