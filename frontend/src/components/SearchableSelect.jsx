@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, ChevronDown, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
-export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder = "Caută...", className = "", buttonClassName = "", menuPosition = "bottom" }) {
+export default function SearchableSelect({ value, onChange, options, placeholder = "Selectează...", searchPlaceholder, className = "", buttonClassName = "", menuPosition = "bottom" }) {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState("")
     const wrapperRef = useRef(null)
@@ -52,7 +54,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                                 autoFocus={shouldAutoFocus}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder={searchPlaceholder}
+                                placeholder={searchPlaceholder || t('common.search', 'Caută...')}
                                 className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg text-xs outline-none focus:border-blue-500 dark:text-slate-200"
                             />
                         </div>
@@ -67,7 +69,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                             {value === "" && <Check className="w-3.5 h-3.5" />}
                         </button>
                         {filteredOptions.length === 0 ? (
-                            <div className="px-3 py-3 text-xs text-slate-400 text-center">Niciun rezultat</div>
+                            <div className="px-3 py-3 text-xs text-slate-400 text-center">{t('common.no_results', 'Niciun rezultat')}</div>
                         ) : (
                             filteredOptions.map(opt => (
                                 <button
