@@ -147,7 +147,10 @@
     "status_confirmed": "Bestätigt",
     "status_in_progress": "In Ausführung",
     "status_completed": "Abgeschlossen",
-    "status_cancelled": "Storniert"
+    "status_cancelled": "Storniert",
+    "one_way": "Hinweg",
+    "tons": "Tonnen",
+    "calculating": "wird berechnet..."
   },
   "users": {
     "title": "Mitarbeiterverwaltung",
@@ -509,7 +512,45 @@
     "total_workers": "Mitarbeiter gesamt",
     "assigned_vehicles": "Zugewiesene Fahrzeuge",
     "no_active_workers": "Derzeit keine aktiven Mitarbeiter",
-    "workers_appear_here": "Werden beim Check-in angezeigt"
+    "workers_appear_here": "Werden beim Check-in angezeigt",
+    "quick_create": {
+      "title": "Schnell erstellen",
+      "client_optional": "Kunde (Optional)",
+      "new_client": "Neuer Kunde",
+      "choose_client": "-- Kunde wählen --",
+      "work_title": "Auftragstitel *",
+      "address_optional": "Adresse / Ort (Optional)",
+      "gps_auto": "GPS Auto",
+      "base_dist": "Basisentfernung:",
+      "choose_address": "(Adresse wählen)",
+      "calculating": "wird berechnet...",
+      "surface": "Fläche (m²)",
+      "thickness": "Dicke (cm)",
+      "sand_estimated": "Geschätzter Sand:",
+      "tons": "Tonnen",
+      "enter_sqm": "(m² und Dicke eingeben)",
+      "include_foil": "Kunststofffolie einschließen (1,2 EUR/m²)",
+      "include_mesh": "Metallnetz einschließen (2,50 EUR/m²)",
+      "include_duramint": "Duramint einschließen",
+      "allocated_team": "Zugewiesenes Team",
+      "no_team": "-- Kein Team (Entwurf) --",
+      "confirm_order": "Auftrag bestätigen",
+      "add_new_client": "Neuen Kunden hinzufügen",
+      "client_type": "Kundentyp",
+      "individual": "Privatperson",
+      "legal_entity": "Unternehmen",
+      "client_name": "Kundenname *",
+      "client_name_placeholder": "Bsp: Max Müller / Firma GmbH",
+      "cnp": "Steuer-ID (Optional)",
+      "cui": "USt-IdNr. *",
+      "phone": "Telefon",
+      "email": "E-Mail",
+      "save_client": "Kunden speichern"
+    },
+    "quick_edit": {
+      "title": "Schnell bearbeiten",
+      "client": "Kunde"
+    }
   },
   "settings": {
     "title": "Einstellungen",

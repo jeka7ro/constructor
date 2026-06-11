@@ -147,7 +147,10 @@
     "status_confirmed": "Confirmé",
     "status_in_progress": "En cours",
     "status_completed": "Terminé",
-    "status_cancelled": "Annulé"
+    "status_cancelled": "Annulé",
+    "one_way": "Aller",
+    "tons": "Tonnes",
+    "calculating": "calcul en cours..."
   },
   "users": {
     "title": "Gestion des Employés",
@@ -509,7 +512,45 @@
     "total_workers": "Total travailleurs",
     "assigned_vehicles": "Véhicules assignés",
     "no_active_workers": "Aucun employé actif en ce moment",
-    "workers_appear_here": "Apparaîtront lors du pointage"
+    "workers_appear_here": "Apparaîtront lors du pointage",
+    "quick_create": {
+      "title": "Création Rapide",
+      "client_optional": "Client (Optionnel)",
+      "new_client": "Nouveau Client",
+      "choose_client": "-- Choisir un client --",
+      "work_title": "Titre du Chantier *",
+      "address_optional": "Adresse / Localité (Optionnel)",
+      "gps_auto": "GPS Auto",
+      "base_dist": "Distance Base:",
+      "choose_address": "(Choisir adresse)",
+      "calculating": "calcul en cours...",
+      "surface": "Surface (m²)",
+      "thickness": "Épaisseur (cm)",
+      "sand_estimated": "Sable estimé:",
+      "tons": "Tonnes",
+      "enter_sqm": "(Saisir m² et épaisseur)",
+      "include_foil": "Inclure film plastique (1,2 EUR/m²)",
+      "include_mesh": "Inclure treillis métallique (2,50 EUR/m²)",
+      "include_duramint": "Inclure Duramint",
+      "allocated_team": "Équipe Allouée",
+      "no_team": "-- Sans équipe (Brouillon) --",
+      "confirm_order": "Confirmer la Commande",
+      "add_new_client": "Ajouter Nouveau Client",
+      "client_type": "Type de Client",
+      "individual": "Particulier",
+      "legal_entity": "Entreprise",
+      "client_name": "Nom du Client *",
+      "client_name_placeholder": "Ex: Jean Dupont / Société SARL",
+      "cnp": "NIN (Optionnel)",
+      "cui": "TVA *",
+      "phone": "Téléphone",
+      "email": "Email",
+      "save_client": "Enregistrer le Client"
+    },
+    "quick_edit": {
+      "title": "Édition Rapide",
+      "client": "Client"
+    }
   },
   "settings": {
     "title": "Paramètres",

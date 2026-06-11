@@ -1842,7 +1842,7 @@ export default function AdminOverview() {
                         <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl">
                             <h3 className="font-bold text-white flex items-center gap-2">
                                 <Package className="w-4 h-4" />
-                                Creare Rapidă
+                                {t('dashboard.quick_create.title', 'Creare Rapidă')}
                             </h3>
                             <button onClick={() => setQuickCreateData(null)} className="text-blue-100 hover:text-white p-1">
                                 <X className="w-5 h-5" />
@@ -1853,9 +1853,9 @@ export default function AdminOverview() {
                                 <>
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Client (Opțional)</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.client_optional', 'Client (Opțional)')}</label>
                                             <button type="button" onClick={() => setQuickCreateStep('new-client')} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors">
-                                                <Plus className="w-3 h-3" /> Client Nou
+                                                <Plus className="w-3 h-3" /> {t('dashboard.quick_create.new_client', 'Client Nou')}
                                             </button>
                                         </div>
                                         <SearchableSelect
@@ -1872,12 +1872,12 @@ export default function AdminOverview() {
                                                 }))
                                             }}
                                             options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                                            placeholder="-- Alege client --"
+                                            placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Titlu Lucrare *</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
                                         <input 
                                             type="text"
                                             autoFocus
@@ -1889,7 +1889,7 @@ export default function AdminOverview() {
                                     </div>
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Adresă / Localitate (Opțional)</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate (Opțional)')}</label>
                                             <button
                                                 type="button"
                                                 onClick={handleDetectGPS}
@@ -1897,7 +1897,7 @@ export default function AdminOverview() {
                                                 className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
                                             >
                                                 {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                                GPS Automat
+                                                {t('dashboard.quick_create.gps_auto', 'GPS Automat')}
                                             </button>
                                         </div>
                                         <AddressAutocomplete 
@@ -1912,18 +1912,18 @@ export default function AdminOverview() {
                                             className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 pl-1">
-                                            Distanță Bază: {quickRouteDist ? (
-                                                <span className="text-amber-600 dark:text-amber-500">{Math.round(quickRouteDist)} km (Dus) • {Math.round(quickRouteDist * 2)} km (Total)</span>
+                                            {t('dashboard.quick_create.base_dist', 'Distanță Bază:')} {quickRouteDist ? (
+                                                <span className="text-amber-600 dark:text-amber-500">{Math.round(quickRouteDist)} km ({t('common.one_way', 'Dus')}) • {Math.round(quickRouteDist * 2)} km ({t('common.total', 'Total')})</span>
                                             ) : quickRouteLoading ? (
-                                                <span className="inline-flex items-center gap-1 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> se calculează...</span>
+                                                <span className="inline-flex items-center gap-1 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> {t('common.calculating', 'se calculează...')}</span>
                                             ) : (
-                                                <span className="opacity-60">- (Alegeți adresa)</span>
+                                                <span className="opacity-60">- {t('dashboard.quick_create.choose_address', '(Alegeți adresa)')}</span>
                                             )}
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Suprafață (m²)')}</label>
                                             <input 
                                                 type="number"
                                                 min="0"
@@ -1934,7 +1934,7 @@ export default function AdminOverview() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Grosime (cm)')}</label>
                                             <input 
                                                 type="number"
                                                 min="0"
@@ -1946,10 +1946,10 @@ export default function AdminOverview() {
                                         </div>
                                     </div>
                                     <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
-                                        Nisip estimat: {calculatedSand > 0 ? (
-                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} Tone</span>
+                                        {t('dashboard.quick_create.sand_estimated', 'Nisip estimat:')} {calculatedSand > 0 ? (
+                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tone')}</span>
                                         ) : (
-                                            <span className="opacity-60">- (Introduceți m² și grosime)</span>
+                                            <span className="opacity-60">- {t('dashboard.quick_create.enter_sqm', '(Introduceți m² și grosime)')}</span>
                                         )}
                                     </div>
                                     <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -1960,7 +1960,7 @@ export default function AdminOverview() {
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, has_foil: e.target.checked })}
                                                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                             />
-                                            Include Folie plastic (1,2 EUR/m²)
+                                            {t('dashboard.quick_create.include_foil', 'Include Folie plastic (1,2 EUR/m²)')}
                                         </label>
                                         <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                             <input 
@@ -1969,7 +1969,7 @@ export default function AdminOverview() {
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, has_mesh: e.target.checked })}
                                                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                             />
-                                            Include Plasă metalică (2,50 EUR/m²)
+                                            {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
                                         </label>
                                         <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                             <input 
@@ -1978,29 +1978,29 @@ export default function AdminOverview() {
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, has_duramint: e.target.checked })}
                                                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                             />
-                                            Include Duramint
+                                            {t('dashboard.quick_create.include_duramint', 'Include Duramint')}
                                         </label>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Echipă Alocată</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Echipă Alocată')}</label>
                                         <SearchableSelect
                                             value={quickCreateData.teamId || ''}
                                             onChange={val => setQuickCreateData(p => ({...p, teamId: val}))}
                                             options={[
-                                                { value: '', label: '-- Fără echipă (Draft) --' },
+                                                { value: '', label: t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --') },
                                                 ...teams.map(t => ({ value: String(t.id), label: t.name }))
                                             ]}
-                                            placeholder="-- Fără echipă (Draft) --"
+                                            placeholder={t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --')}
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                             menuPosition="top"
                                         />
                                     </div>
                                     <div className="flex gap-2 pt-3">
                                         <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                            Anulează
+                                            {t('common.cancel', 'Anulează')}
                                         </button>
                                         <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmă Comanda'}
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
                                         </button>
                                     </div>
                                 </>
@@ -2010,43 +2010,43 @@ export default function AdminOverview() {
                                 <>
                                     <div className="flex items-center gap-2 mb-2">
                                         <button type="button" onClick={() => setQuickCreateStep(1)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
-                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Adaugă Client Nou</span>
+                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('dashboard.quick_create.add_new_client', 'Adaugă Client Nou')}</span>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tip Client</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_type', 'Tip Client')}</label>
                                         <div className="flex gap-2">
                                             <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'fizica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> Fizică
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> {t('dashboard.quick_create.individual', 'Fizică')}
                                             </label>
                                             <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'juridica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> Juridică
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> {t('dashboard.quick_create.legal_entity', 'Juridică')}
                                             </label>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nume Client *</label>
-                                        <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Popescu Ion / Firma SRL" />
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_name', 'Nume Client *')}</label>
+                                        <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? 'CNP (Opțional)' : 'CUI *'}</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI *')}</label>
                                         <input type="text" required={quickCreateClientForm.type === 'juridica'} value={quickCreateClientForm.identifier} onChange={e => setQuickCreateClientForm(p => ({...p, identifier: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Telefon</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.phone', 'Telefon')}</label>
                                             <input type="text" value={quickCreateClientForm.phone} onChange={e => setQuickCreateClientForm(p => ({...p, phone: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.email', 'Email')}</label>
                                             <input type="email" value={quickCreateClientForm.email} onChange={e => setQuickCreateClientForm(p => ({...p, email: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
                                         </div>
                                     </div>
                                     <div className="flex gap-2 pt-3">
                                         <button type="button" onClick={() => setQuickCreateStep(1)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                            Înapoi
+                                            {t('common.back', 'Înapoi')}
                                         </button>
                                         <button type="button" onClick={handleQuickCreateClient} disabled={quickCreateSaving || !quickCreateClientForm.name} className="flex-1 h-11 font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvează Client'}
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.save_client', 'Salvează Client')}
                                         </button>
                                     </div>
                                 </>
@@ -2063,7 +2063,7 @@ export default function AdminOverview() {
                         <div className="px-5 py-4 bg-slate-100 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl border-b border-slate-200 dark:border-slate-700">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                 <Edit2 className="w-4 h-4 text-blue-600" />
-                                Editare Rapidă
+                                {t('dashboard.quick_edit.title', 'Editare Rapidă')}
                             </h3>
                             <button onClick={() => setQuickEditOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1">
                                 <X className="w-5 h-5" />
@@ -2071,7 +2071,7 @@ export default function AdminOverview() {
                         </div>
                         <form onSubmit={handleQuickEditSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto hide-scrollbar">
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Client</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_edit.client', 'Client')}</label>
                                 <SearchableSelect
                                     value={quickEditForm.clientId || ""}
                                     onChange={val => {
@@ -2086,12 +2086,12 @@ export default function AdminOverview() {
                                         }))
                                     }}
                                     options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                                    placeholder="-- Alege client --"
+                                    placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
                                     buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Titlu Lucrare *</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
                                 <input 
                                     type="text"
                                     required

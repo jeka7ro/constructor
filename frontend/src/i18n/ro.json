@@ -149,7 +149,10 @@
     "status_confirmed": "Confirmată",
     "status_in_progress": "În Execuție",
     "status_completed": "Finalizată",
-    "status_cancelled": "Anulată"
+    "status_cancelled": "Anulată",
+    "one_way": "Dus",
+    "tons": "Tone",
+    "calculating": "se calculează..."
   },
   "users": {
     "title": "Gestionare Angajați",
@@ -577,7 +580,45 @@
     "on_break_status": "Pauză",
     "done": "Terminat",
     "working": "Lucrează",
-    "workers_appear_here": "Vor apărea când fac check-in"
+    "workers_appear_here": "Vor apărea când fac check-in",
+    "quick_create": {
+      "title": "Creare Rapidă",
+      "client_optional": "Client (Opțional)",
+      "new_client": "Client Nou",
+      "choose_client": "-- Alege client --",
+      "work_title": "Titlu Lucrare *",
+      "address_optional": "Adresă / Localitate (Opțional)",
+      "gps_auto": "GPS Automat",
+      "base_dist": "Distanță Bază:",
+      "choose_address": "(Alegeți adresa)",
+      "calculating": "se calculează...",
+      "surface": "Suprafață (m²)",
+      "thickness": "Grosime (cm)",
+      "sand_estimated": "Nisip estimat:",
+      "tons": "Tone",
+      "enter_sqm": "(Introduceți m² și grosime)",
+      "include_foil": "Include Folie plastic (1,2 EUR/m²)",
+      "include_mesh": "Include Plasă metalică (2,50 EUR/m²)",
+      "include_duramint": "Include Duramint",
+      "allocated_team": "Echipă Alocată",
+      "no_team": "-- Fără echipă (Draft) --",
+      "confirm_order": "Confirmă Comanda",
+      "add_new_client": "Adaugă Client Nou",
+      "client_type": "Tip Client",
+      "individual": "Fizică",
+      "legal_entity": "Juridică",
+      "client_name": "Nume Client *",
+      "client_name_placeholder": "Ex: Popescu Ion / Firma SRL",
+      "cnp": "CNP (Opțional)",
+      "cui": "CUI *",
+      "phone": "Telefon",
+      "email": "Email",
+      "save_client": "Salvează Client"
+    },
+    "quick_edit": {
+      "title": "Editare Rapidă",
+      "client": "Client"
+    }
   },
   "settings": {
     "title": "Setări",

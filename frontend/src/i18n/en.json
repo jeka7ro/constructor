@@ -149,7 +149,10 @@
     "status_confirmed": "Confirmed",
     "status_in_progress": "In Progress",
     "status_completed": "Completed",
-    "status_cancelled": "Cancelled"
+    "status_cancelled": "Cancelled",
+    "one_way": "One way",
+    "tons": "Tons",
+    "calculating": "calculating..."
   },
   "users": {
     "title": "Employee Management",
@@ -511,7 +514,45 @@
     "total_workers": "Total Workers",
     "assigned_vehicles": "Assigned Vehicles",
     "no_active_workers": "No active workers right now",
-    "workers_appear_here": "They will appear when they check-in"
+    "workers_appear_here": "They will appear when they check-in",
+    "quick_create": {
+      "title": "Quick Create",
+      "client_optional": "Client (Optional)",
+      "new_client": "New Client",
+      "choose_client": "-- Choose client --",
+      "work_title": "Job Title *",
+      "address_optional": "Address / Location (Optional)",
+      "gps_auto": "Auto GPS",
+      "base_dist": "Base Distance:",
+      "choose_address": "(Choose address)",
+      "calculating": "calculating...",
+      "surface": "Surface (m²)",
+      "thickness": "Thickness (cm)",
+      "sand_estimated": "Estimated Sand:",
+      "tons": "Tons",
+      "enter_sqm": "(Enter m² and thickness)",
+      "include_foil": "Include Plastic Foil (1.2 EUR/m²)",
+      "include_mesh": "Include Metal Mesh (2.50 EUR/m²)",
+      "include_duramint": "Include Duramint",
+      "allocated_team": "Allocated Team",
+      "no_team": "-- No team (Draft) --",
+      "confirm_order": "Confirm Order",
+      "add_new_client": "Add New Client",
+      "client_type": "Client Type",
+      "individual": "Individual",
+      "legal_entity": "Company",
+      "client_name": "Client Name *",
+      "client_name_placeholder": "Ex: John Doe / Company LLC",
+      "cnp": "SSN (Optional)",
+      "cui": "VAT *",
+      "phone": "Phone",
+      "email": "Email",
+      "save_client": "Save Client"
+    },
+    "quick_edit": {
+      "title": "Quick Edit",
+      "client": "Client"
+    }
   },
   "settings": {
     "title": "Settings",
