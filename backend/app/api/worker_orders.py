@@ -146,8 +146,7 @@ def get_worker_sand_stations(
     """Returnează stațiile de nisip active pentru a putea fi sugerate pe ruta șoferului/muncitorului."""
     from app.models import LogisticSandStation
     stations = db.query(LogisticSandStation).filter(
-        LogisticSandStation.organization_id == current_user.organization_id,
-        LogisticSandStation.is_active == True
+        LogisticSandStation.organization_id == current_user.organization_id
     ).all()
     return [
         {"id": s.id, "name": s.name, "latitude": s.latitude, "longitude": s.longitude, "address": s.address} 
