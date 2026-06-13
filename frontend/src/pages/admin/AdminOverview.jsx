@@ -408,6 +408,37 @@ export default function AdminOverview() {
         );
     }
 
+    const [isSearchingVies, setIsSearchingVies] = useState(false);
+
+    const handleQuickViesSearch = async () => {
+        if (!quickCreateClientForm.identifier) return;
+        setIsSearchingVies(true);
+        try {
+            const vatClean = quickCreateClientForm.identifier.replace(/[^A-Za-z0-9]/g, '');
+            let country = 'BE'; 
+            let vatNum = vatClean;
+            
+            if (vatClean.length > 2 && isNaN(vatClean.charAt(0))) {
+                country = vatClean.substring(0, 2).toUpperCase();
+                vatNum = vatClean.substring(2);
+            }
+
+            const res = await api.get(`/admin/clients/vies/${country}/${vatNum}`);
+            if (res.data && res.data.valid) {
+                setQuickCreateClientForm(p => ({
+                    ...p,
+                    name: res.data.name || p.name,
+                    identifier: country + vatNum
+                }));
+            }
+        } catch (error) {
+            console.error('VIES Error:', error);
+            alert(t('clients.vies_error', 'Firma nu a fost găsită sau serviciul VIES este indisponibil. Verificați codul TVA.'));
+        } finally {
+            setIsSearchingVies(false);
+        }
+    }
+
     const handleQuickCreateClient = async () => {
         setQuickCreateSaving(true)
         try {
@@ -2028,8 +2059,32 @@ export default function AdminOverview() {
                                         <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI *')}</label>
-                                        <input type="text" required={quickCreateClientForm.type === 'juridica'} value={quickCreateClientForm.identifier} onChange={e => setQuickCreateClientForm(p => ({...p, identifier: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)')}</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="text" 
+                                                value={quickCreateClientForm.identifier} 
+                                                onChange={e => setQuickCreateClientForm(p => ({...p, identifier: e.target.value}))} 
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && quickCreateClientForm.type === 'juridica') {
+                                                        e.preventDefault();
+                                                        handleQuickViesSearch();
+                                                    }
+                                                }}
+                                                className="w-full h-11 pl-3 pr-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
+                                            />
+                                            {quickCreateClientForm.type === 'juridica' && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={handleQuickViesSearch}
+                                                    disabled={isSearchingVies || !quickCreateClientForm.identifier}
+                                                    className="absolute right-1 top-1 bottom-1 w-9 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                                    title="Caută firmă în VIES"
+                                                >
+                                                    {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
