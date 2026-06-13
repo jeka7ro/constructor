@@ -17,6 +17,38 @@ export default function ClientsManagement() {
     const [editingClient, setEditingClient] = useState(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [detecting, setDetecting] = useState(false)
+    const [isSearchingVies, setIsSearchingVies] = useState(false)
+
+    const handleViesSearch = async () => {
+        if (!formData.cui) return;
+        setIsSearchingVies(true);
+        try {
+            const vatClean = formData.cui.replace(/[^A-Za-z0-9]/g, '');
+            let country = formData.country;
+            let vatNum = vatClean;
+            
+            if (vatClean.length > 2 && isNaN(vatClean.charAt(0))) {
+                country = vatClean.substring(0, 2).toUpperCase();
+                vatNum = vatClean.substring(2);
+            }
+
+            const res = await api.get(`/admin/clients/vies/${country}/${vatNum}`);
+            if (res.data && res.data.valid) {
+                setFormData(p => ({
+                    ...p,
+                    name: res.data.name || p.name,
+                    address: res.data.address || p.address,
+                    cui: country + vatNum,
+                    country: country
+                }));
+            }
+        } catch (error) {
+            console.error('VIES Error:', error);
+            alert(t('clients.vies_error', 'Firma nu a fost găsită sau serviciul VIES este indisponibil. Verificați codul TVA.'));
+        } finally {
+            setIsSearchingVies(false);
+        }
+    }
     const [formData, setFormData] = useState({
         client_type: 'juridica',
         country: 'RO',
@@ -482,7 +514,29 @@ export default function ClientsManagement() {
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">
                                                     {formData.country === 'RO' ? 'CUI' : 'VAT Number (TVA)'}
                                                 </label>
-                                                <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.cui} onChange={e => setFormData({...formData, cui: e.target.value})} />
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        className="w-full pl-4 pr-10 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" 
+                                                        value={formData.cui} 
+                                                        onChange={e => setFormData({...formData, cui: e.target.value})}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleViesSearch();
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button 
+                                                        type="button"
+                                                        onClick={handleViesSearch}
+                                                        disabled={isSearchingVies || !formData.cui}
+                                                        className="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
+                                                        title="Caută firmă în VIES"
+                                                    >
+                                                        {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">

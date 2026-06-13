@@ -1,3 +1,4 @@
+import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -151,3 +152,23 @@ def delete_client(
     db.commit()
     
     return None
+
+@router.get("/vies/{country_code}/{vat_number}")
+def check_vies(country_code: str, vat_number: str, current_admin: Admin = Depends(get_current_admin)):
+    url = f"https://ec.europa.eu/taxation_customs/vies/rest-api/ms/{country_code}/vat/{vat_number}"
+    try:
+        resp = requests.get(url, timeout=10.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("isValid"):
+                return {
+                    "valid": True,
+                    "name": data.get("name", ""),
+                    "address": data.get("address", "")
+                }
+            else:
+                raise HTTPException(status_code=404, detail="VAT Number is not valid or not found")
+        else:
+            raise HTTPException(status_code=resp.status_code, detail="VIES API Service Unavailable")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error connecting to VIES: {str(e)}")
