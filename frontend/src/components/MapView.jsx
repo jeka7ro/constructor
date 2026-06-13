@@ -25,7 +25,7 @@ const getSandStationIcon = (index) => new L.DivIcon({
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
  * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments, navButtons, sandStations
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated }) => {
     const mapRef = useRef(null)
     const mapInstance = useRef(null)
     const markerRef = useRef(null)
@@ -190,6 +190,16 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     // Hide routing container
                     const container = routingControlRef.current.getContainer();
                     if (container) container.style.display = 'none';
+
+                    routingControlRef.current.on('routesfound', function(e) {
+                        const routes = e.routes;
+                        if (routes && routes.length > 0) {
+                            const summary = routes[0].summary;
+                            if (onRouteCalculated && summary && summary.totalDistance) {
+                                onRouteCalculated(summary.totalDistance / 1000);
+                            }
+                        }
+                    });
 
                     routingControlRef.current.on('routingerror', function() {
                         // Fallback la linie dreaptă dacă OSRM dă eroare de limită de distanță

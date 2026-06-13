@@ -178,6 +178,28 @@ export default function WorkOrderDetail() {
         }
     }
 
+    const handleRouteCalculated = async (km) => {
+        if (!wo || km <= 0) return;
+        if (wo.route_distance_km && Math.abs(wo.route_distance_km - km) < 0.1) return;
+        try {
+            const updatedSegments = [...(wo.route_segments || [])];
+            if (updatedSegments.length > 0) {
+                updatedSegments[0].km = parseFloat(km.toFixed(1));
+            }
+            setWo(prev => ({ 
+                ...prev, 
+                route_distance_km: km,
+                route_segments: updatedSegments 
+            }));
+            await api.patch(`/admin/work-orders/${id}`, {
+                route_distance_km: km,
+                route_segments: updatedSegments
+            });
+        } catch (err) {
+            console.error("Failed to save calculated route distance", err);
+        }
+    };
+
     const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
     const load = useCallback(async () => {
@@ -406,7 +428,7 @@ export default function WorkOrderDetail() {
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', "Volum")}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', "Grosime")}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', "medie")} color="rose" />
-                <KPI icon={Navigation} label={t('work_order_detail.kpi.route', "Traseu")}       value={wo.route_distance_km ? `${wo.route_distance_km.toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', "dus-întors")} color="slate" />
+                <KPI icon={Navigation} label={t('work_order_detail.kpi.route', "Traseu")}       value={wo.route_distance_km ? `${(wo.route_distance_km * 2).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', "dus-întors")} color="slate" />
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
@@ -430,6 +452,7 @@ export default function WorkOrderDetail() {
                             label={`${t('work_order_detail.location.loc_label', 'Locație: ')}${address}`}
                             baseName={wo.assigned_team_name}
                             routeSegments={wo.route_segments}
+                            onRouteCalculated={handleRouteCalculated}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
                             sandStations={sandStations}
                             leftPanelContent={
@@ -495,8 +518,8 @@ export default function WorkOrderDetail() {
                                                                 ))}
                                                             </div>
                                                             <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Total Parcurs:')}</span>
-                                                                <span className="text-sm font-black text-blue-600 dark:text-blue-400">{wo.route_distance_km ? wo.route_distance_km.toFixed(1) : '—'} km</span>
+                                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Total Parcurs:')} (Dus-Întors)</span>
+                                                                <span className="text-sm font-black text-blue-600 dark:text-blue-400">{wo.route_distance_km ? (wo.route_distance_km * 2).toFixed(1) : '—'} km</span>
                                                             </div>
                                                         </>
                                                     ) : (
@@ -589,8 +612,8 @@ export default function WorkOrderDetail() {
                                             ))}
                                         </div>
                                         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Total Parcurs:')}</span>
-                                            <span className="text-sm font-black text-slate-900 dark:text-white">{wo.route_distance_km?.toFixed(2) || 0} km</span>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Total Parcurs:')} (Dus-Întors)</span>
+                                            <span className="text-sm font-black text-slate-900 dark:text-white">{wo.route_distance_km ? (wo.route_distance_km * 2).toFixed(1) : 0} km</span>
                                         </div>
                                     </>
                                 ) : (
