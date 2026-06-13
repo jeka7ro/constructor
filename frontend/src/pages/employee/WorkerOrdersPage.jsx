@@ -729,10 +729,23 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
 // TAB: MATERIALE
 // ─────────────────────────────────────────────────────────────────────────────
 function TabMateriale({ order, onSaveConsumed }) {
+    let totalKg = 0;
+    (order.volumes || []).forEach(vol => {
+        const surface = parseFloat(vol.quantity) || 0;
+        const thickness = parseFloat(vol.thickness) || 0;
+        if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
+    });
+    const sandTons = totalKg / 1000;
+
+    const estMaterials = [...(order.materials || [])];
+    if (sandTons > 0 && !estMaterials.find(m => m.name.toLowerCase().includes('nisip'))) {
+        estMaterials.unshift({ name: 'Nisip (Necesar calculat)', quantity: sandTons.toFixed(1), unit: 'T' });
+    }
+
     const [rows, setRows] = useState(
         order.materials_consumed?.length > 0
             ? order.materials_consumed.map(m => ({ ...m }))
-            : [{ name: '', quantity: '', unit: '', note: '' }]
+            : (sandTons > 0 ? [{ name: 'Nisip', quantity: '', unit: 'T', note: '' }] : [{ name: '', quantity: '', unit: '', note: '' }])
     )
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
@@ -752,10 +765,10 @@ function TabMateriale({ order, onSaveConsumed }) {
         <div className="pb-28 px-4 pt-4 space-y-4">
 
             {/* Materiale estimate (admin) */}
-            {order.materials?.length > 0 && (
+            {estMaterials.length > 0 && (
                 <Section label="Materiale Estimate">
                     <div className="space-y-2">
-                        {order.materials.map((m, i) => (
+                        {estMaterials.map((m, i) => (
                             <div key={i} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2.5">
                                 <span className="text-sm font-medium text-slate-700">{m.name}</span>
                                 <span className="text-sm font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg">
