@@ -138,6 +138,22 @@ def get_my_orders(
 
     return [_serialize_order(wo, current_user.id, db) for wo in orders]
 
+@router.get("/sand-stations")
+def get_worker_sand_stations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Returnează stațiile de nisip active pentru a putea fi sugerate pe ruta șoferului/muncitorului."""
+    from app.models import LogisticSandStation
+    stations = db.query(LogisticSandStation).filter(
+        LogisticSandStation.organization_id == current_user.organization_id,
+        LogisticSandStation.is_active == True
+    ).all()
+    return [
+        {"id": s.id, "name": s.name, "latitude": s.latitude, "longitude": s.longitude, "address": s.address} 
+        for s in stations
+    ]
+
 
 @router.get("/{order_id}")
 def get_order_detail(

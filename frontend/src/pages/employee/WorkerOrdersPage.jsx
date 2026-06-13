@@ -309,7 +309,7 @@ function Lightbox({ url, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
-function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick }) {
+function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
 
     // Parse access_notes in bullet lines
@@ -386,13 +386,72 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                             });
                             const sandTons = totalKg / 1000;
                             if (sandTons > 0) {
+                                let bestStation = null;
+                                let minDistance = Infinity;
+                                const baseLat = 50.88243, baseLng = 4.39343; // Baza H&H Resources
+                                const siteLat = parseFloat(order.site_lat || order.site_latitude);
+                                const siteLng = parseFloat(order.site_lng || order.site_longitude);
+                                const directDist = haversine(baseLat, baseLng, siteLat, siteLng) / 1000;
+                                
+                                if (sandStations && sandStations.length > 0 && siteLat && siteLng && !isNaN(directDist)) {
+                                    sandStations.forEach(s => {
+                                        const sLat = parseFloat(s.latitude);
+                                        const sLng = parseFloat(s.longitude);
+                                        if (sLat && sLng) {
+                                            const dBase = haversine(baseLat, baseLng, sLat, sLng) / 1000;
+                                            const dSite = haversine(sLat, sLng, siteLat, siteLng) / 1000;
+                                            const totalDist = dBase + dSite;
+                                            if (totalDist < minDistance) {
+                                                minDistance = totalDist;
+                                                bestStation = s;
+                                            }
+                                        }
+                                    });
+                                }
+
                                 return (
-                                    <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
-                                        <span className="text-sm text-amber-700 font-bold">Necesar Nisip (estimat)</span>
-                                        <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                                            {sandTons.toFixed(1)} T
-                                        </span>
-                                    </div>
+                                    <>
+                                        <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                                            <span className="text-sm text-amber-700 font-bold">Necesar Nisip (estimat)</span>
+                                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                                {sandTons.toFixed(1)} T
+                                            </span>
+                                        </div>
+                                        {bestStation && (
+                                            <div className="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                    <MapPin className="w-3 h-3" /> Stație Nisip Recomandată
+                                                </p>
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-amber-900 dark:text-amber-400 leading-tight truncate">{bestStation.name}</p>
+                                                        {bestStation.address && <p className="text-[11px] font-medium text-amber-700 dark:text-amber-500/80 mt-0.5 line-clamp-2">{bestStation.address}</p>}
+                                                    </div>
+                                                    <span className="shrink-0 bg-white dark:bg-slate-800 shadow-sm border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded">
+                                                        +{Math.max(0, minDistance - directDist).toFixed(1)} km deviere
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-2.5">
+                                                    <a 
+                                                        href={`https://waze.com/ul?ll=${bestStation.latitude},${bestStation.longitude}&navigate=yes`} 
+                                                        target="_blank" 
+                                                        rel="noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-[#05C8F7] hover:bg-[#04b0d8] text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                                                    >
+                                                        Waze
+                                                    </a>
+                                                    <a 
+                                                        href={`https://www.google.com/maps/dir/?api=1&destination=${bestStation.latitude},${bestStation.longitude}&travelmode=driving`} 
+                                                        target="_blank" 
+                                                        rel="noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                                                    >
+                                                        Google
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 );
                             }
                             return null;
@@ -1051,6 +1110,7 @@ export default function WorkerOrdersPage() {
     const [actualSurface, setActualSurface] = useState('')
     const [actualSand, setActualSand] = useState('')
     const [ocrData, setOcrData]       = useState(null)
+    const [sandStations, setSandStations] = useState([])
 
     // Action states
     const [acknowledging, setAcknowledging]           = useState(false)
@@ -1075,8 +1135,16 @@ export default function WorkerOrdersPage() {
         return () => navigator.geolocation.clearWatch(id)
     }, [])
 
+    const fetchSandStations = async () => {
+        try {
+            const res = await api.get('/worker/orders/sand-stations')
+            setSandStations(res.data || [])
+        } catch {}
+    }
+
     useEffect(() => {
         fetchOrders()
+        fetchSandStations()
         const interval = setInterval(() => {
             if (!selected) {
                 fetchOrders(true)
@@ -1400,6 +1468,7 @@ export default function WorkerOrdersPage() {
                         onAcknowledge={handleAcknowledge}
                         acknowledging={acknowledging}
                         onPhotoClick={setLightboxUrl}
+                        sandStations={sandStations}
                     />
                 )}
                 {activeTab === 'ore' && (
