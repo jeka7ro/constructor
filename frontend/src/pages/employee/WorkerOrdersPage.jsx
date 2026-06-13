@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
-import MiniMapSelector from '../../components/MiniMapSelector'
+import MapView from '../../components/MapView'
 import { isToday, isFuture, format, startOfDay } from 'date-fns'
 import { ro } from 'date-fns/locale'
 
@@ -480,8 +480,16 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                         </p>
                     </div>
                     {(order.site_lat && (order.site_lon || order.site_lng)) ? (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative mb-2">
-                            <MiniMapSelector latitude={order.site_lat} longitude={order.site_lon || order.site_lng} />
+                        <div className="rounded-xl overflow-hidden border border-slate-200 h-64 relative mb-2">
+                            <MapView 
+                                latitude={order.site_lat} 
+                                longitude={order.site_lon || order.site_lng}
+                                address={order.site_address}
+                                baseName={order.assigned_team_name}
+                                routeSegments={order.route_segments}
+                                sandStations={sandStations}
+                                zoom={13}
+                            />
                         </div>
                     ) : (
                         <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative mb-2">
