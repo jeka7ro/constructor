@@ -698,13 +698,26 @@ export default function ShortWorksCalendar({
                                                 </div>
                                             )}
                                         </div>
-                                        {calculateOrderSand(wo) > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md shrink-0">
+                                        <div className="flex flex-wrap items-center gap-2 mt-1 mb-1">
+                                            {wo.volumes && wo.volumes.length > 0 && wo.volumes.map((v, idx) => {
+                                                const sq = parseFloat(v.quantity);
+                                                const th = parseFloat(v.thickness);
+                                                if (!sq && !th) return null;
+                                                return (
+                                                    <span key={idx} className="text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
+                                                        {v.label ? `${v.label}: ` : ''}
+                                                        {sq > 0 ? `${sq}m²` : ''}
+                                                        {sq > 0 && th > 0 ? ' × ' : ''}
+                                                        {th > 0 ? `${th}cm` : ''}
+                                                    </span>
+                                                );
+                                            })}
+                                            {calculateOrderSand(wo) > 0 && (
+                                                <span className="text-[11px] text-amber-700 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50 shrink-0">
                                                     {calculateOrderSand(wo).toFixed(1)}T Nisip
                                                 </span>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                         <div className="flex items-center justify-between text-xs text-slate-500">
                                             <div className="flex items-center gap-1.5 truncate">
                                                 <MapPin className="w-3.5 h-3.5 shrink-0" />

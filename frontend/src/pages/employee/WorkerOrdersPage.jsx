@@ -356,6 +356,51 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                 )}
             </div>
 
+            {/* Suprafata si Grosime + Nisip */}
+            {order.volumes && order.volumes.length > 0 && (
+                <Section label="Detalii Lucrare">
+                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 space-y-2">
+                        {order.volumes.map((v, idx) => {
+                            const sq = parseFloat(v.quantity);
+                            const th = parseFloat(v.thickness);
+                            if (!sq && !th) return null;
+                            return (
+                                <div key={idx} className="flex items-center justify-between">
+                                    <span className="text-sm text-slate-600 font-medium">{v.label || `Zonă ${idx + 1}`}</span>
+                                    <span className="text-sm font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                        {sq > 0 ? `${sq} m²` : ''}
+                                        {sq > 0 && th > 0 ? ' × ' : ''}
+                                        {th > 0 ? `${th} cm` : ''}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                        {(() => {
+                            let totalKg = 0;
+                            order.volumes.forEach(vol => {
+                                const surface = parseFloat(vol.quantity) || 0;
+                                const thickness = parseFloat(vol.thickness) || 0;
+                                if (surface > 0 && thickness > 0) {
+                                    totalKg += surface * thickness * 16;
+                                }
+                            });
+                            const sandTons = totalKg / 1000;
+                            if (sandTons > 0) {
+                                return (
+                                    <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                                        <span className="text-sm text-amber-700 font-bold">Necesar Nisip (estimat)</span>
+                                        <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                            {sandTons.toFixed(1)} T
+                                        </span>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
+                </Section>
+            )}
+
             {/* Planificat */}
             {order.start_date && (
                 <Section label="Planificat">
