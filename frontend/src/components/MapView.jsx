@@ -149,8 +149,14 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     return { lat: 50.88243, lon: 4.39343 }; // Baza H&H Resources Brussels
                 }
                 try {
+                    const normalizedQuery = query
+                        .replace(/,/g, ', ')
+                        .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+
                     const res = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(normalizedQuery)}&limit=1`,
                         { headers: { 'Accept-Language': 'ro', 'User-Agent': 'PontajDigital/1.0' } }
                     );
                     const data = await res.json();
@@ -245,10 +251,16 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             initMap(parseFloat(latitude), parseFloat(longitude), zoom, label || address)
         } else if (address && address.trim().length > 3) {
             // Geocodare automată după adresă via Nominatim (gratis, fără API key)
+            const normalizedAddress = address
+                .replace(/,/g, ', ')
+                .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
+                .replace(/\s+/g, ' ')
+                .trim()
+
             setGeocoding(true)
             setGeoError(false)
             fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(normalizedAddress)}&limit=1`,
                 { headers: { 'Accept-Language': 'ro', 'User-Agent': 'PontajDigital/1.0' } }
             )
                 .then(r => r.json())

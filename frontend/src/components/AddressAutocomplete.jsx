@@ -8,8 +8,14 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [unselectedSuggestion, setUnselectedSuggestion] = useState(null);
     const wrapperRef = useRef(null);
     const debounceTimeout = useRef(null);
+    const queryRef = useRef(query);
+    const suggestionsRef = useRef(suggestions);
+
+    queryRef.current = query;
+    suggestionsRef.current = suggestions;
 
     // Update local query if external value changes (e.g. from GPS detect)
     useEffect(() => {
@@ -22,6 +28,12 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                 setIsOpen(false);
+                if (suggestionsRef.current.length > 0) {
+                    const top = suggestionsRef.current[0];
+                    if (top?.display_name && (queryRef.current || '').toLowerCase() !== top.display_name.toLowerCase()) {
+                        setUnselectedSuggestion(top);
+                    }
+                }
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
@@ -35,9 +47,15 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
         }
         setLoading(true);
         try {
+            const normalizedQuery = searchQuery
+                .replace(/,/g, ', ')
+                .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
+                .replace(/\s+/g, ' ')
+                .trim();
+
             // Using email param is REQUIRED by Nominatim Usage Policy to avoid 429/403 errors
             const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&addressdetails=1&limit=5&email=contact@davidechape.com`,
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(normalizedQuery)}&format=json&addressdetails=1&limit=5&email=contact@davidechape.com`,
                 { 
                     headers: { 
                         'Accept-Language': 'ro,en,fr,de'
@@ -57,6 +75,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
     const handleInputChange = (e) => {
         const val = e.target.value;
         setQuery(val);
+        setUnselectedSuggestion(null);
         // Call the parent onChange with just the text so they can type freely
         if (onChange) onChange(val, null, null);
 
@@ -122,6 +141,37 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
                             </span>
                         </button>
                     ))}
+                </div>
+            )}
+
+            {unselectedSuggestion && !isOpen && (
+                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                            <strong>Sugestie adresă completă:</strong> <br/>
+                            {unselectedSuggestion.display_name}
+                        </p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <button 
+                            type="button"
+                            onClick={() => setUnselectedSuggestion(null)}
+                            className="px-3 h-8 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            Păstrează ce am scris
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                handleSelect(unselectedSuggestion);
+                                setUnselectedSuggestion(null);
+                            }}
+                            className="px-3 h-8 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+                        >
+                            Folosește sugestia
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
