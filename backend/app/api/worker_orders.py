@@ -113,6 +113,7 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "my_checkin_id": my_checkin.id if my_checkin else None,
         "my_checkin_at": my_checkin.checkin_at.isoformat() if my_checkin else None,
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
+        "route_segments": wo.route_segments or [],
     }
 
 
