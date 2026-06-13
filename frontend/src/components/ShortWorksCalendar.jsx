@@ -642,7 +642,7 @@ export default function ShortWorksCalendar({
             </div>
 
             {/* Calendar List View (Mobile) */}
-            <div className="flex-1 overflow-y-auto md:hidden p-4 flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="flex-1 overflow-y-auto md:hidden p-4 pb-32 flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-900/50">
                 {weeklyOrders.length === 0 ? (
                     <div className="flex items-center justify-center py-10">
                         <span className="text-slate-400 text-sm font-semibold">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -652,7 +652,7 @@ export default function ShortWorksCalendar({
                         const sorted = [...weeklyOrders].sort((a, b) => {
                             const dateA = a.start_date || a.deadline_date || '';
                             const dateB = b.start_date || b.deadline_date || '';
-                            if (dateA !== dateB) return String(dateA).localeCompare(String(dateB));
+                            if (dateA !== dateB) return String(dateB).localeCompare(String(dateA));
                             const tA = a.start_time ? String(a.start_time) : '07:00';
                             const tB = b.start_time ? String(b.start_time) : '07:00';
                             return tA.localeCompare(tB);
