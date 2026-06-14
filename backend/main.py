@@ -141,6 +141,11 @@ def _run_migrations(engine):
         "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS pending_return BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS pending_return_at TIMESTAMP;",
         "ALTER TABLE warehouse_items ADD COLUMN IF NOT EXISTS pending_return_by_id VARCHAR(36);",
+        # Live GPS tracking
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lat FLOAT;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lng FLOAT;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_speed FLOAT;",
     ]
     try:
         with engine.connect() as conn:
