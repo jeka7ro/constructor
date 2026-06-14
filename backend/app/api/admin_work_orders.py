@@ -389,8 +389,9 @@ def create_work_order(
     if payload.materials:
         sync_work_order_reservations(db, current_admin.organization_id, [], payload.materials)
         
-    # Recalculate Round Trip Route (fallback to Org base if no team)
-    if True:
+    # Recalculate Round Trip Route — wrapped in try/except so a geocode failure never blocks save
+    try:
+     if True:
         import math
         import requests
         from app.models import LogisticBase
@@ -420,7 +421,7 @@ def create_work_order(
                 res = requests.get(
                     f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(wo.site_address)}&limit=1&email=contact@davidechape.com",
                     headers={"Accept-Language": "ro", "User-Agent": "PontajDigitalApp/2.0"},
-                    timeout=5
+                    timeout=3
                 )
                 data = res.json()
                 if data and len(data) > 0:
@@ -467,6 +468,9 @@ def create_work_order(
                     "from_lng": base_lng
                 }
             ]
+
+    except Exception as _route_err:
+        print(f"Route calc warning (non-fatal): {_route_err}")
 
     db.commit()
     db.refresh(wo)
@@ -556,8 +560,9 @@ def update_work_order(
             db.refresh(cl)
         wo.client_id = cl.id
 
-    # Recalculate Round Trip Route (fallback to Org base if no team)
-    if True:
+    # Recalculate Round Trip Route — wrapped so geocode failure never blocks save
+    try:
+     if True:
         import math
         import requests
         from app.models import LogisticBase
@@ -587,7 +592,7 @@ def update_work_order(
                 res = requests.get(
                     f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(wo.site_address)}&limit=1&email=contact@davidechape.com",
                     headers={"Accept-Language": "ro", "User-Agent": "PontajDigital/1.0"},
-                    timeout=5
+                    timeout=3
                 )
                 data = res.json()
                 if data and len(data) > 0:
@@ -596,7 +601,7 @@ def update_work_order(
             except Exception:
                 pass
 
-        if wo.site_latitude and wo.site_longitude:
+        if wo.site_latitude and wo.site_longitude and base_lat and base_lng:
             def haversine(lat1, lon1, lat2, lon2):
                 R = 6371.0
                 phi1, phi2 = math.radians(lat1), math.radians(lat2)
@@ -623,6 +628,9 @@ def update_work_order(
                     "from_lng": wo.site_longitude
                 }
             ]
+
+    except Exception as _route_err:
+        print(f"Route calc warning (non-fatal): {_route_err}")
 
     db.commit()
     db.refresh(wo)
