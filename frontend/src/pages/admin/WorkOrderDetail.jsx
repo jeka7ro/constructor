@@ -795,14 +795,20 @@ export default function WorkOrderDetail() {
                                             <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1 space-y-2">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
-                                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.accepted', 'Acceptat')}</span>
-                                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtFull(wo.team_leader_accepted_at) || '—'}</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed', 'Confirmat')}</span>
-                                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtFull(wo.team_leader_confirmed_at) || '—'}</span>
-                                                    </div>
+                                                    {wo.team_leader_confirmed_at ? (
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmat')}</span>
+                                                            </div>
+                                                            <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
+                                                            <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'În așteptare confirmare')}</span>
+                                                        </div>
+                                                    )}
                                                     {wo.team_leader_confirmation_note && (
                                                         <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
                                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Notă')}</p>
