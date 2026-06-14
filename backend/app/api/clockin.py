@@ -921,12 +921,26 @@ def push_worker_location(
 ):
     """Worker trimite pozitia GPS curenta la fiecare 30s."""
     from sqlalchemy import text as sqlt
-    from datetime import datetime as _dt
     now = get_local_now()
-    db.execute(sqlt(
-        "UPDATE users SET last_lat=:lat, last_lng=:lng, last_seen_at=:ts, last_speed=:spd WHERE id=:uid"
-    ), {"lat": req.latitude, "lng": req.longitude, "ts": now, "spd": req.speed, "uid": current_user.id})
-    db.commit()
+
+    # Auto-migrate GPS columns if missing (Railway cold start)
+    try:
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
+        db.commit()
+    except Exception as _me:
+        db.rollback()
+
+    try:
+        db.execute(sqlt(
+            "UPDATE users SET last_lat=:lat, last_lng=:lng, last_seen_at=:ts, last_speed=:spd WHERE id=:uid"
+        ), {"lat": req.latitude, "lng": req.longitude, "ts": now, "spd": req.speed, "uid": current_user.id})
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"push_worker_location error: {e}")
     return {"ok": True}
 
 
@@ -937,35 +951,48 @@ def get_live_vehicles(
     """Admin citeste ultima pozitie GPS a tuturor userilor activi (vazuti in ultimele 10 min)."""
     from sqlalchemy import text as sqlt
     from datetime import timedelta
-    from app.database import get_db as _get_db
 
-    cutoff = get_local_now() - timedelta(minutes=10)
+    # Auto-migrate GPS columns if missing (Railway cold start)
+    try:
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
+        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
+        db.commit()
+    except Exception as _me:
+        db.rollback()
+        print(f"GPS migration note: {_me}")
 
-    rows = db.execute(sqlt("""
-        SELECT u.id, u.full_name, u.last_lat, u.last_lng, u.last_seen_at, u.last_speed,
-               t.name AS team_name, t.color AS team_color
-        FROM users u
-        LEFT JOIN team_members tm ON tm.user_id = u.id AND tm.is_active = true
-        LEFT JOIN teams t ON t.id = tm.team_id
-        WHERE u.last_lat IS NOT NULL
-          AND u.last_seen_at >= :cutoff
-        ORDER BY u.last_seen_at DESC
-    """), {"cutoff": cutoff}).fetchall()
+    try:
+        cutoff = get_local_now() - timedelta(minutes=10)
+        rows = db.execute(sqlt("""
+            SELECT u.id, u.full_name, u.last_lat, u.last_lng, u.last_seen_at, u.last_speed,
+                   t.name AS team_name, t.color AS team_color
+            FROM users u
+            LEFT JOIN team_members tm ON tm.user_id = u.id AND tm.is_active = true
+            LEFT JOIN teams t ON t.id = tm.team_id
+            WHERE u.last_lat IS NOT NULL
+              AND u.last_seen_at >= :cutoff
+            ORDER BY u.last_seen_at DESC
+        """), {"cutoff": cutoff}).fetchall()
 
-    result = []
-    seen = set()
-    for r in rows:
-        if r.id in seen:
-            continue
-        seen.add(r.id)
-        result.append({
-            "user_id":    r.id,
-            "name":       r.full_name,
-            "lat":        r.last_lat,
-            "lng":        r.last_lng,
-            "last_seen":  str(r.last_seen_at),
-            "speed":      r.last_speed,
-            "team_name":  r.team_name,
-            "team_color": r.team_color or "#64748b",
-        })
-    return result
+        result = []
+        seen = set()
+        for r in rows:
+            if r.id in seen:
+                continue
+            seen.add(r.id)
+            result.append({
+                "user_id":    r.id,
+                "name":       r.full_name,
+                "lat":        r.last_lat,
+                "lng":        r.last_lng,
+                "last_seen":  str(r.last_seen_at),
+                "speed":      r.last_speed,
+                "team_name":  r.team_name,
+                "team_color": r.team_color or "#64748b",
+            })
+        return result
+    except Exception as e:
+        print(f"live_vehicles error: {e}")
+        return []
