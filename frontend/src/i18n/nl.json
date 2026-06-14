@@ -179,7 +179,8 @@
     "col_status": "STATUS",
     "col_actions": "ACTIES",
     "no_results": "Geen resultaten",
-    "team": "Team"
+    "team": "Team",
+    "yes_delete": "Ja, verwijderen"
   },
   "users": {
     "title": "Employee Management",

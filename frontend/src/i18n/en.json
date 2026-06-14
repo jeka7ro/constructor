@@ -179,7 +179,8 @@
     "col_status": "STATUS",
     "col_actions": "ACTIONS",
     "no_results": "No results",
-    "team": "Team"
+    "team": "Team",
+    "yes_delete": "Yes, delete"
   },
   "users": {
     "title": "Employee Management",

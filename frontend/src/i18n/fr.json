@@ -181,7 +181,8 @@
     "team": "Équipe",
     "country": "Pays",
     "team_label": "Équipe",
-    "vehicle": "Véhicule"
+    "vehicle": "Véhicule",
+    "yes_delete": "Oui, supprimer"
   },
   "users": {
     "title": "Gestion des Employés",
@@ -336,7 +337,43 @@
     "delete_vehicle": "Supprimer Véhicule",
     "no_vehicles": "Aucun véhicule trouvé",
     "save_vehicle": "Enregistrer Véhicule",
-    "confirm_delete_vehicle": "Êtes-vous sûr de vouloir supprimer ce véhicule ?"
+    "confirm_delete_vehicle": "Êtes-vous sûr de vouloir supprimer ce véhicule ?",
+    "sites_desc": "Cochez les chantiers où ce véhicule ou engin est affecté",
+    "drivers_desc": "Cochez les employés (chauffeurs/opérateurs) autorisés à utiliser ce véhicule",
+    "plate_number": "Numéro d'immatriculation",
+    "placeholders": {
+      "name": "Ex: Dacia Duster",
+      "plate": "Ex: B 12 ABC",
+      "notes": "Détails optionnels..."
+    },
+    "type": "Type",
+    "drivers": "Chauffeurs",
+    "types": {
+      "car": "Voiture",
+      "van": "Camionnette",
+      "truck": "Camion",
+      "excavator": "Excavatrice",
+      "grader": "Niveleuse",
+      "compactor": "Compacteur",
+      "pile_driver": "Engin de forage/Pieux",
+      "concrete_mixer": "Toupie / Bétonnière",
+      "tractor_trailer": "Tracteur + Semi-remorque",
+      "forklift": "Chariot élévateur",
+      "telehandler": "Télescopique",
+      "cherry_picker": "Nacelle (PRB)",
+      "crane_truck": "Camion grue",
+      "crane": "Grue",
+      "pickup_4x4": "Pick-up / 4x4",
+      "mobile_workshop": "Atelier mobile",
+      "generator": "Générateur",
+      "other": "Autre"
+    },
+    "statuses": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "maintenance": "Maintenance",
+      "service": "En service"
+    }
   },
   "reports": {
     "title": "Rapports",
@@ -582,7 +619,37 @@
     "quick_edit": {
       "title": "Édition Rapide",
       "client": "Client"
-    }
+    },
+    "hourly_activity": "Activité Horaire — Aujourd'hui",
+    "top_performers_today": "Meilleurs aujourd'hui",
+    "late_arrivals": "Arrivées tardives",
+    "site_distribution": "Répartition par chantier",
+    "workers_per_day": "Ouvriers par jour",
+    "live_workers_title": "Ouvriers en temps réel",
+    "worker": "Ouvrier",
+    "site": "Chantier",
+    "check_in": "Pointage",
+    "break": "Pause",
+    "activities": "Activités",
+    "reported_activities": "Activités rapportées",
+    "reported_activities_today": "Activités rapportées aujourd'hui",
+    "will_appear_on_checkin": "Apparaîtra dès le pointage",
+    "finished_today": "Terminés aujourd'hui",
+    "all_ok": "Tout est en ordre",
+    "no_alerts": "Aucune alerte",
+    "production_today": "Production du jour",
+    "view_timesheets": "Voir les feuilles de temps",
+    "generate_report": "Générer rapport",
+    "manage_catalog": "Gérer le catalogue",
+    "manage_users": "Gérer les employés",
+    "todays_shift": "Shift du jour",
+    "total_days_worked": "Total jours travaillés",
+    "recent_timesheets": "Feuilles de temps récentes",
+    "outside_zone": "Hors zone",
+    "gps_lost": "GPS perdu",
+    "on_break_status": "En pause",
+    "done": "Terminé",
+    "working": "En cours"
   },
   "settings": {
     "title": "Paramètres",
@@ -617,6 +684,37 @@
     "units": {
       "buc": "pcs",
       "sqm": "m²"
+    },
+    "subtitle": "Gérez le catalogue des activités et les normes de travail",
+    "total_activities": "Total activités",
+    "active_count": "Actives",
+    "inactive_count": "Inactives",
+    "new_category": "Nouvelle catégorie",
+    "rules": "Norme / Règles",
+    "add_cat_activity": "Ajouter une activité à la catégorie",
+    "no_match": "Aucune activité trouvée",
+    "no_categories": "Aucune catégorie définie",
+    "no_categories_hint": "Définissez une catégorie pour grouper les activités",
+    "create_category": "Créer une catégorie",
+    "edit_category": "Modifier la catégorie",
+    "category_name": "Nom de la catégorie",
+    "color": "Couleur",
+    "edit_activity": "Modifier l'activité",
+    "delete": {
+      "category_title": "Supprimer la catégorie",
+      "category_message": "Êtes-vous sûr de vouloir supprimer cette catégorie ? Cette action supprimera aussi les activités associées.",
+      "activity_title": "Supprimer l'activité",
+      "activity_message": "Êtes-vous sûr de vouloir supprimer uniquement cette activité ?"
+    },
+    "deactivated": {
+      "title": "Activité inactive",
+      "message": "L'activité a été marquée comme inactive."
+    },
+    "errors": {
+      "save_category": "Erreur lors de l'enregistrement de la catégorie",
+      "delete_category": "Erreur lors de la suppression de la catégorie",
+      "save_activity": "Erreur lors de l'enregistrement de l'activité",
+      "delete_activity": "Erreur lors de la suppression de l'activité"
     }
   },
   "notifications": {
@@ -1092,7 +1190,19 @@
     "status_completed": "Terminée",
     "status_cancelled": "Annulée",
     "estimated_price_title": "Prix Estimé (Facture Proforma)",
-    "cost_calculation_admin": "Calcul du coût (Visible uniquement par l'admin)"
+    "cost_calculation_admin": "Calcul du coût (Visible uniquement par l'admin)",
+    "team_vehicle": "Équipe & Véhicule",
+    "internal_photos_note": "Photos internes (visibles uniquement par l'équipe)",
+    "client_physical": "Particulier",
+    "client_juridical": "Entreprise",
+    "auto_detect": "Détecter automatiquement",
+    "team_leader": "Chef d'équipe",
+    "vehicle_truck": "Camion / Véhicule",
+    "access_instructions_title": "Instructions d'accès",
+    "instruction_photos": "Photos d'instructions",
+    "photos_visibility_note": "Ces photos sont internes — visibles par l'équipe, pas par le client",
+    "estimated_value": "Valeur estimée",
+    "proforma_note": "Note pro-forma"
   },
   "admin_overview": {
     "jobs_today": "Travaux Aujourd'hui",

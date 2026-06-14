@@ -179,7 +179,8 @@
     "col_status": "STATUS",
     "col_actions": "ACȚIUNI",
     "no_results": "Niciun rezultat",
-    "team": "Echipă"
+    "team": "Echipă",
+    "yes_delete": "Da, șterge"
   },
   "users": {
     "title": "Gestionare Angajați",
