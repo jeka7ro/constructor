@@ -436,7 +436,7 @@ export default function LogisticsDashboard() {
                             {showSandStations && SAND_STATIONS.map((station, idx) => {
                                 // D = ale noastre (ours/common), I = concurenta (theirs)
                                 const _letter = station.type === 'theirs' ? 'I' : 'D'
-                                const _bg = station.type === 'theirs' ? '#7c3aed' : '#ef4444'
+                                const _bg = '#ef4444'
                                 return (
                                     <Marker
                                         key={`sand-${idx}`}
@@ -555,7 +555,7 @@ export default function LogisticsDashboard() {
                                             <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">D</div> Stații Nisip – Noi
                                         </div>
                                         <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                            <div className="w-4 h-4 rounded-full bg-violet-600 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">I</div> Stații Nisip – Concurență
+                                            <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">I</div> Stații Nisip – Concurență
                                         </div>
                                         </>
                                     )}
