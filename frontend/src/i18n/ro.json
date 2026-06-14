@@ -616,7 +616,8 @@
       "client_name": "Nume Client *",
       "client_name_placeholder": "Ex: Popescu Ion / Firma SRL",
       "cnp": "CNP (Opțional)",
-      "cui": "CUI *",
+      "cui": "CUI / TVA (Opțional)",
+      "country": "Țară",
       "phone": "Telefon",
       "email": "Email",
       "save_client": "Salvează Client"

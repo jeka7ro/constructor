@@ -135,7 +135,7 @@ export default function AdminOverview() {
     const [quickEditForm, setQuickEditForm] = useState(null)
     const [quickEditSaving, setQuickEditSaving] = useState(false)
     const [quickCreateStep, setQuickCreateStep] = useState(1) // 1 = General, 2 = Resurse, 'new-client' = formular client nou
-    const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '' })
+    const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE' })
     const [quickCreateSaving, setQuickCreateSaving] = useState(false)
     const [detectingLocation, setDetectingLocation] = useState(false)
 
@@ -415,7 +415,7 @@ export default function AdminOverview() {
         setIsSearchingVies(true);
         try {
             const vatClean = quickCreateClientForm.identifier.replace(/[^A-Za-z0-9]/g, '');
-            let country = 'BE'; 
+            let country = quickCreateClientForm.country || 'BE'; 
             let vatNum = vatClean;
             
             if (vatClean.length > 2 && isNaN(vatClean.charAt(0))) {
@@ -446,6 +446,7 @@ export default function AdminOverview() {
                 name: quickCreateClientForm.name,
                 type: quickCreateClientForm.type,
                 identifier: quickCreateClientForm.identifier,
+                country: quickCreateClientForm.country,
                 phone: quickCreateClientForm.phone,
                 email: quickCreateClientForm.email,
                 is_favorite: true
@@ -460,7 +461,7 @@ export default function AdminOverview() {
                 clientId: newClient.id,
                 title: !p.title ? newClient.name : p.title
             }))
-            setQuickCreateClientForm({ name: '', phone: '', email: '', type: 'fizica', identifier: '' })
+            setQuickCreateClientForm({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE' })
             setQuickCreateStep(1)
         } catch (error) {
             console.error("Error creating client:", error)
@@ -2060,7 +2061,25 @@ export default function AdminOverview() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)')}</label>
-                                        <div className="relative">
+                                        <div className="flex gap-2">
+                                            {quickCreateClientForm.type === 'juridica' && (
+                                                <select 
+                                                    value={quickCreateClientForm.country} 
+                                                    onChange={e => setQuickCreateClientForm(p => ({...p, country: e.target.value}))} 
+                                                    className="w-24 h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                    title={t('dashboard.quick_create.country', 'Țară')}
+                                                >
+                                                    <option value="BE">BE</option>
+                                                    <option value="RO">RO</option>
+                                                    <option value="FR">FR</option>
+                                                    <option value="NL">NL</option>
+                                                    <option value="DE">DE</option>
+                                                    <option value="IT">IT</option>
+                                                    <option value="ES">ES</option>
+                                                    <option value="GB">GB</option>
+                                                </select>
+                                            )}
+                                            <div className="relative flex-1">
                                             <input 
                                                 type="text" 
                                                 value={quickCreateClientForm.identifier} 

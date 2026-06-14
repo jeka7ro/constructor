@@ -550,7 +550,8 @@
       "client_name": "Kundenname *",
       "client_name_placeholder": "Bsp: Max Müller / Firma GmbH",
       "cnp": "Steuer-ID (Optional)",
-      "cui": "USt-IdNr. *",
+      "cui": "USt-IdNr. (Optional)",
+      "country": "Land",
       "phone": "Telefon",
       "email": "E-Mail",
       "save_client": "Kunden speichern"

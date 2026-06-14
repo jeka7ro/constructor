@@ -550,7 +550,8 @@
       "client_name": "Klantnaam *",
       "client_name_placeholder": "Bijv: Jan Janssen / Firma BV",
       "cnp": "BSN (Optioneel)",
-      "cui": "BTW *",
+      "cui": "BTW (Optioneel)",
+      "country": "Land",
       "phone": "Telefoon",
       "email": "Email",
       "save_client": "Klant opslaan"

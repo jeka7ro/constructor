@@ -552,7 +552,8 @@
       "client_name": "Nom du Client *",
       "client_name_placeholder": "Ex: Jean Dupont / Société SARL",
       "cnp": "NIN (Optionnel)",
-      "cui": "TVA *",
+      "cui": "Numéro de TVA (Optionnel)",
+      "country": "Pays",
       "phone": "Téléphone",
       "email": "Email",
       "save_client": "Enregistrer le Client"
