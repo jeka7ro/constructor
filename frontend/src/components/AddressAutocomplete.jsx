@@ -8,7 +8,6 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [unselectedSuggestion, setUnselectedSuggestion] = useState(null);
     const wrapperRef = useRef(null);
     const debounceTimeout = useRef(null);
     const queryRef = useRef(query);
@@ -28,12 +27,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                 setIsOpen(false);
-                if (suggestionsRef.current.length > 0) {
-                    const top = suggestionsRef.current[0];
-                    if (top?.display_name && (queryRef.current || '').toLowerCase() !== top.display_name.toLowerCase()) {
-                        setUnselectedSuggestion(top);
-                    }
-                }
+                // Close suggestions on outside click
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
@@ -146,41 +140,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
                 </div>
             )}
 
-            {unselectedSuggestion && !isOpen && (
-                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                        <p className="text-sm text-slate-700 dark:text-slate-300">
-                            <strong>Sugestie adresă completă:</strong> <br/>
-                            {unselectedSuggestion.display_name}
-                        </p>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setUnselectedSuggestion(null);
-                                setSuggestions([]);
-                                // Keep free-text address as-is (lat/lon will be empty — geocoded on backend)
-                                if (onChange) onChange(query, null, null);
-                            }}
-                            className="px-3 h-8 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            Păstrează ce am scris
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                handleSelect(unselectedSuggestion);
-                                setUnselectedSuggestion(null);
-                            }}
-                            className="px-3 h-8 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
-                        >
-                            Folosește sugestia
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* Banner sugestie eliminat — textul liber e acceptat direct */}
         </div>
     );
 }

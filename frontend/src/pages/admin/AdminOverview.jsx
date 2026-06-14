@@ -995,8 +995,8 @@ export default function AdminOverview() {
             {/* Quick Create Modal */}
             {quickCreateData && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
-                        <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]" style={{ animation: 'slideInUp 0.3s ease-out' }}>
+                        <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl flex-shrink-0">
                             <h3 className="font-bold text-white flex items-center gap-2">
                                 <Package className="w-4 h-4" />
                                 {t('dashboard.quick_create.title', 'Creare Rapidă')}
@@ -1005,7 +1005,8 @@ export default function AdminOverview() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={handleQuickCreateSubmit} className="p-5 space-y-4">
+                        <form onSubmit={handleQuickCreateSubmit} className="flex flex-col flex-1 min-h-0">
+                        <div className="p-5 space-y-4 overflow-y-auto flex-1">
                             {quickCreateStep === 1 && (
                                 <>
                                     <div>
@@ -1152,14 +1153,6 @@ export default function AdminOverview() {
                                             menuPosition="top"
                                         />
                                     </div>
-                                    <div className="flex gap-2 pt-3">
-                                        <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                            {t('common.cancel', 'Anulează')}
-                                        </button>
-                                        <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
-                                        </button>
-                                    </div>
                                 </>
                             )}
 
@@ -1277,6 +1270,16 @@ export default function AdminOverview() {
                                     </div>
                                 </>
                             )}
+                        </div>{/* end scrollable */}
+                        {/* Sticky footer — always visible */}
+                        <div className="flex gap-2 p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900 rounded-b-2xl">
+                            <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                {t('common.cancel', 'Anulează')}
+                            </button>
+                            <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                                {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
+                            </button>
+                        </div>
                         </form>
                     </div>
                 </div>
