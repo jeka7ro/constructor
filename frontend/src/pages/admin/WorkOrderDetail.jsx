@@ -549,7 +549,7 @@ export default function WorkOrderDetail() {
 
             {/* ── Main Grid ───────────────────────────────────────────────────── */}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div className="h-full">
                     <HourlyWeather 
                         lat={lat || 50.8503} 
@@ -562,62 +562,65 @@ export default function WorkOrderDetail() {
                 </div>
                 <div className="h-full">
                     <Section className="h-full" icon={Navigation} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1 space-y-3">
+                        <div className="flex flex-col md:flex-row gap-3">
+                            {/* Left: Schedule + Crew */}
+                            <div className="flex-shrink-0 md:w-44 space-y-2">
                                 <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
-                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.start_work', 'Start Lucrare')}</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                            {fmt(wo.start_date)} {wo.start_time ? `— ${wo.start_time.substring(0,5)}` : ''}
-                                        </span>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
+                                    <div className="flex items-baseline gap-1 text-xs">
+                                        <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(wo.start_date)}</span>
+                                        {wo.start_time && <span className="text-slate-400 font-medium">· {wo.start_time.substring(0,5)}</span>}
                                     </div>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.planning.crew', 'Echipaj Alocat')}</p>
-                                    <div className="flex flex-col gap-0.5 text-xs border-b border-slate-50 dark:border-slate-700/50 pb-1.5 mb-1.5">
-                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.manager', 'Responsabil')}</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{wo.assigned_team_name || '—'}</span>
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.vehicle', 'Vehicul')}</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                            {wo.assigned_vehicle_plate ? `${wo.assigned_vehicle_plate} — ${wo.assigned_vehicle_name || ''}` : wo.assigned_vehicle_name || '—'}
-                                        </span>
+                                <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.planning.crew', 'Echipaj')}</p>
+                                    <div className="space-y-1 text-xs">
+                                        <div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('work_order_detail.planning.manager', 'Responsabil')}</span>
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{wo.assigned_team_name || '—'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase block">{t('work_order_detail.planning.vehicle', 'Vehicul')}</span>
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                                {wo.assigned_vehicle_plate ? `${wo.assigned_vehicle_plate}${wo.assigned_vehicle_name ? ' · ' + wo.assigned_vehicle_name : ''}` : wo.assigned_vehicle_name || '—'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-px bg-slate-100 dark:bg-slate-700 hidden md:block"></div>
-                            <div className="flex-1 border-t md:border-t-0 border-slate-100 dark:border-slate-700 pt-3 md:pt-0">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Navigation className="w-3 h-3"/> {t('work_order_detail.planning.route_hops', 'Traseu (Hop-uri)')}</p>
+                            {/* Divider */}
+                            <div className="w-px bg-slate-100 dark:bg-slate-700 hidden md:block flex-shrink-0"></div>
+                            <div className="h-px bg-slate-100 dark:bg-slate-700 md:hidden"></div>
+                            {/* Right: Route */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                    <Navigation className="w-3 h-3"/>
+                                    {t('work_order_detail.planning.route_hops', 'Traseu (Etape)')}
+                                </p>
                                 {(wo.route_segments && wo.route_segments.length > 0) ? (
                                     <>
-                                        <div className="relative pl-6 space-y-2 before:absolute before:inset-y-2 before:left-[11px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                        <div className="relative pl-5 space-y-1.5 before:absolute before:inset-y-2 before:left-[9px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                             {wo.route_segments.map((seg, idx) => (
                                                 <div key={idx} className="relative">
-                                                    <div className="absolute -left-[29px] top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white dark:ring-slate-800 shadow-sm"></div>
-                                                    <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2 border border-slate-100 dark:border-slate-700/50 flex flex-col gap-1">
-                                                        <div className="flex items-center justify-between gap-2 min-w-0">
-                                                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 min-w-0">
-                                                                <span className="truncate flex-shrink">{seg.from}</span>
-                                                                <span className="text-slate-400 shrink-0">→</span>
-                                                                <span className="truncate flex-shrink">{seg.to}</span>
-                                                            </div>
-                                                            <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap">
-                                                                {seg.km} km
-                                                            </div>
-                                                        </div>
+                                                    <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-800 shadow-sm"></div>
+                                                    <div className="bg-slate-50 dark:bg-slate-700/40 rounded-lg px-2 py-1 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-1 min-w-0">
+                                                        <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight min-w-0 flex-1">
+                                                            <span className="block truncate">{seg.from}</span>
+                                                            <span className="text-slate-400">→ </span>
+                                                            <span className="block truncate">{seg.to}</span>
+                                                        </p>
+                                                        <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">{seg.km} km</span>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Total Parcurs:')} (Dus-Întors)</span>
+                                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distanță Totală (Dus-Întors)')}</span>
                                             <span className="text-sm font-black text-slate-900 dark:text-white">{wo.route_distance_km ? (wo.route_distance_km * 2).toFixed(1) : 0} km</span>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="flex items-center justify-center h-24 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center justify-center h-16 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
                                         <span className="text-xs text-slate-400 font-medium">{t('work_order_detail.planning.no_route', 'Fără traseu înregistrat')}</span>
                                     </div>
                                 )}
