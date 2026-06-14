@@ -431,6 +431,16 @@ export default function ClockInPage() {
                     }
                 }
             } catch (e) { /* silently fail */ }
+
+            // Live Tracking — trimite pozitia si pentru harta admin
+            try {
+                await api.post('/worker/location', {
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    speed: coords.speed ?? null,
+                    accuracy: coords.accuracy ?? null
+                })
+            } catch (e) { /* silently fail */ }
         }
 
         // Trimite primul ping dupa 5s (sa aiba timp GPS sa se fixeze), apoi din 30 in 30s

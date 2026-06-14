@@ -900,3 +900,72 @@ def cleanup_zombie_segments(
     
     db.commit()
     return {"deleted": deleted, "date": str(d)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LIVE LOCATION TRACKING
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LiveLocationRequest(BaseModel):
+    latitude: float
+    longitude: float
+    speed: Optional[float] = None
+    accuracy: Optional[float] = None
+
+
+@router.post("/worker/location")
+def push_worker_location(
+    req: LiveLocationRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Worker trimite pozitia GPS curenta la fiecare 30s."""
+    from sqlalchemy import text as sqlt
+    from datetime import datetime as _dt
+    now = get_local_now()
+    db.execute(sqlt(
+        "UPDATE users SET last_lat=:lat, last_lng=:lng, last_seen_at=:ts, last_speed=:spd WHERE id=:uid"
+    ), {"lat": req.latitude, "lng": req.longitude, "ts": now, "spd": req.speed, "uid": current_user.id})
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/admin/vehicles/live")
+def get_live_vehicles(
+    db: Session = Depends(get_db)
+):
+    """Admin citeste ultima pozitie GPS a tuturor userilor activi (vazuti in ultimele 10 min)."""
+    from sqlalchemy import text as sqlt
+    from datetime import timedelta
+    from app.database import get_db as _get_db
+
+    cutoff = get_local_now() - timedelta(minutes=10)
+
+    rows = db.execute(sqlt("""
+        SELECT u.id, u.full_name, u.last_lat, u.last_lng, u.last_seen_at, u.last_speed,
+               t.name AS team_name, t.color AS team_color
+        FROM users u
+        LEFT JOIN team_members tm ON tm.user_id = u.id AND tm.is_active = true
+        LEFT JOIN teams t ON t.id = tm.team_id
+        WHERE u.last_lat IS NOT NULL
+          AND u.last_seen_at >= :cutoff
+        ORDER BY u.last_seen_at DESC
+    """), {"cutoff": cutoff}).fetchall()
+
+    result = []
+    seen = set()
+    for r in rows:
+        if r.id in seen:
+            continue
+        seen.add(r.id)
+        result.append({
+            "user_id":    r.id,
+            "name":       r.full_name,
+            "lat":        r.last_lat,
+            "lng":        r.last_lng,
+            "last_seen":  str(r.last_seen_at),
+            "speed":      r.last_speed,
+            "team_name":  r.team_name,
+            "team_color": r.team_color or "#64748b",
+        })
+    return result

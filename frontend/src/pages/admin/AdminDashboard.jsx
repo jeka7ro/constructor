@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -218,6 +218,7 @@ export default function AdminDashboard() {
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
                 { path: '/admin/transport', icon: Navigation, label: t('nav.transport', 'Foi de Parcurs') },
+                { path: '/admin/tracking', icon: Radio, label: t('nav.tracking', 'Live Tracking') },
                 { path: '/admin/material-requests', icon: PackageSearch, label: t('nav.material_requests', 'Necesar Materiale') },
                 { path: '/admin/expenses', icon: Wallet, label: t('nav.expenses', 'Deconturi / Cheltuieli') },
             ]
@@ -264,7 +265,7 @@ export default function AdminDashboard() {
         if (path === '/admin/planning') return isScreeds
         if (path === '/admin/timesheets') return !tenantFeatures.includes('disable_timesheets')
         if (path === '/admin/logistica') return isScreeds || tenantFeatures.includes('logistica')
-        if (['/admin/fleet', '/admin/transport'].includes(path)) return tenantFeatures.includes('fleet')
+        if (['/admin/fleet', '/admin/transport', '/admin/tracking'].includes(path)) return tenantFeatures.includes('fleet')
         if (['/admin/warehouse', '/admin/material-requests'].includes(path)) return tenantFeatures.includes('warehouse') || tenant?.has_warehouse === true
         if (path === '/admin/accommodations') return tenantFeatures.includes('accommodations')
         if (['/admin/expenses', '/admin/import-factura'].includes(path)) return tenantFeatures.includes('expenses')
