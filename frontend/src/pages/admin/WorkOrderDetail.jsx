@@ -158,6 +158,8 @@ export default function WorkOrderDetail() {
     const [lightbox, setLightbox] = useState(null)
     const [sandStations, setSandStations] = useState([])
     const [uploadingInvoice, setUploadingInvoice] = useState(false)
+    const leftColRef = useRef(null)
+    const [leftColHeight, setLeftColHeight] = useState(undefined)
 
     const handleInvoiceUpload = async (e) => {
         const file = e.target.files?.[0]
@@ -222,6 +224,18 @@ export default function WorkOrderDetail() {
             setLoading(false)
         }
     }, [id])
+
+    // Track left column height to cap right column
+    useEffect(() => {
+        if (!leftColRef.current) return;
+        const ro = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                setLeftColHeight(entry.contentRect.height);
+            }
+        });
+        ro.observe(leftColRef.current);
+        return () => ro.disconnect();
+    }, [wo]);
 
     useEffect(() => { load() }, [load])
 
@@ -631,7 +645,7 @@ export default function WorkOrderDetail() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start mb-5">
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-5" ref={leftColRef} id="left-col-main">
 
                     <Section icon={FileText} title={t('work_order_detail.general_details.title', "Detalii Generale")}>
                                             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -738,7 +752,10 @@ export default function WorkOrderDetail() {
                                             )}
                                         </Section>
                 </div>
-                <div className="flex flex-col gap-5">
+                <div
+                    className="flex flex-col gap-5 overflow-hidden"
+                    style={leftColHeight ? { maxHeight: leftColHeight, overflowY: 'auto' } : undefined}
+                >
 
                     <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")}>
                                             <div className="flex flex-col xl:flex-row gap-6">
