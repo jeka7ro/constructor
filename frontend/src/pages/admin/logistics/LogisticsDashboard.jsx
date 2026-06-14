@@ -418,7 +418,7 @@ export default function LogisticsDashboard() {
                                                 <Marker
                                                     key={`wp-${idx}`}
                                                     position={[wp.lat, wp.lng]}
-                                                    icon={createCustomIcon(wp.type?.includes('base') ? 'B' : idx, wp.type?.includes('base'), route.team_color)}
+                                                    icon={createCustomIcon(wp.type?.includes('base') ? 'B' : (wp.type === 'return' ? 'I' : 'D'), wp.type?.includes('base'), route.team_color)}
                                                 >
                                                     <Popup>
                                                         <strong className="text-sm">{wp.name}</strong>
