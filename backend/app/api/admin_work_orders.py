@@ -109,6 +109,7 @@ class WorkOrderCreate(BaseModel):
     access_notes: Optional[str] = None
     # Preț Estimativ
     estimated_price: Optional[str] = None
+    is_auto_calculated: Optional[bool] = None
 
 class WorkOrderUpdate(WorkOrderCreate):
     title: Optional[str] = None
