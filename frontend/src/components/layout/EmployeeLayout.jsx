@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Wrench, AlertTriangle, Calendar, ClipboardList } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTenantStore } from '../../store/tenantStore'
+import api from '../../lib/api'
 
 export default function EmployeeLayout() {
     const { t } = useTranslation()
@@ -11,6 +12,45 @@ export default function EmployeeLayout() {
     const isHome = location.pathname === '/'
     const tenant = useTenantStore((state) => state.tenant)
     const hasLongTerm = tenant?.has_long_term_sites !== false
+
+    // ── Live Location Tracking (pasiv) ───────────────────────────────────────
+    // Trimite pozitia GPS la server din 60 in 60s, indiferent de modul de lucru
+    const locationRef = useRef(null)
+    useEffect(() => {
+        if (!navigator.geolocation) return
+
+        const watchId = navigator.geolocation.watchPosition(
+            (pos) => { locationRef.current = pos.coords },
+            () => {},
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        )
+        return () => navigator.geolocation.clearWatch(watchId)
+    }, [])
+
+    useEffect(() => {
+        const sendLocation = async () => {
+            if (document.visibilityState !== 'visible') return
+            const coords = locationRef.current
+            if (!coords) return
+            try {
+                await api.post('/worker/location', {
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    speed: coords.speed ?? null,
+                    accuracy: coords.accuracy ?? null
+                })
+            } catch (e) { /* silently fail */ }
+        }
+        sendLocation()
+        const interval = setInterval(sendLocation, 60000)
+        const onVisible = () => { if (document.visibilityState === 'visible') sendLocation() }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => {
+            clearInterval(interval)
+            document.removeEventListener('visibilitychange', onVisible)
+        }
+    }, [])
+    // ─────────────────────────────────────────────────────────────────────────
 
     const handleHomePress = async () => {
         if (isHome) {
