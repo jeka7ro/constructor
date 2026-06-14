@@ -706,7 +706,7 @@ export default function WorkOrderForm() {
                                             <div className="space-y-2">
                                                 <AddressAutocomplete
                                                     value={form.site_address}
-                                                    onChange={val => set('site_address', val)}
+                                                    onChange={(val, lat, lon) => setForm(p => ({ ...p, site_address: val, site_latitude: lat || p.site_latitude, site_longitude: lon || p.site_longitude }))}
                                                     onSelect={({ address, lat, lon }) => setForm(p => ({ ...p, site_address: address, site_latitude: lat, site_longitude: lon }))}
                                                     placeholder={t('work_order_form.address_placeholder', 'Chercher une adresse...')}
                                                     className={INPUT}

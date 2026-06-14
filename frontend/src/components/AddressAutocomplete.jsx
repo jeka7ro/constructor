@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export default function AddressAutocomplete({ value, onChange, placeholder, className }) {
+export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, className }) {
     const { t } = useTranslation();
     const [query, setQuery] = useState(value || '');
     const [suggestions, setSuggestions] = useState([]);
@@ -100,13 +100,15 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
             }
         }
 
+        const lat = parseFloat(item.lat).toFixed(6);
+        const lon = parseFloat(item.lon).toFixed(6);
         setQuery(addr);
         setIsOpen(false);
+        setUnselectedSuggestion(null);
         
         // Pass the formatted address and the exact coordinates to the parent
-        if (onChange) {
-            onChange(addr, parseFloat(item.lat).toFixed(6), parseFloat(item.lon).toFixed(6));
-        }
+        if (onChange) onChange(addr, lat, lon);
+        if (onSelect) onSelect({ address: addr, lat, lon });
     };
 
     return (
@@ -156,7 +158,12 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
                     <div className="flex justify-end gap-2">
                         <button 
                             type="button"
-                            onClick={() => setUnselectedSuggestion(null)}
+                            onClick={() => {
+                                setUnselectedSuggestion(null);
+                                setSuggestions([]);
+                                // Keep free-text address as-is (lat/lon will be empty — geocoded on backend)
+                                if (onChange) onChange(query, null, null);
+                            }}
                             className="px-3 h-8 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
                         >
                             Păstrează ce am scris
