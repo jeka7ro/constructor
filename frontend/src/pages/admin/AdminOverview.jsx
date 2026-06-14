@@ -135,7 +135,7 @@ export default function AdminOverview() {
     const [quickEditForm, setQuickEditForm] = useState(null)
     const [quickEditSaving, setQuickEditSaving] = useState(false)
     const [quickCreateStep, setQuickCreateStep] = useState(1) // 1 = General, 2 = Resurse, 'new-client' = formular client nou
-    const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE' })
+    const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE', address: '' })
     const [quickCreateSaving, setQuickCreateSaving] = useState(false)
     const [detectingLocation, setDetectingLocation] = useState(false)
 
@@ -428,6 +428,7 @@ export default function AdminOverview() {
                 setQuickCreateClientForm(p => ({
                     ...p,
                     name: res.data.name || p.name,
+                    address: res.data.address || p.address,
                     identifier: country + vatNum
                 }));
             }
@@ -444,11 +445,12 @@ export default function AdminOverview() {
         try {
             const res = await api.post('/admin/clients', {
                 name: quickCreateClientForm.name,
-                type: quickCreateClientForm.type,
-                identifier: quickCreateClientForm.identifier,
+                client_type: quickCreateClientForm.type,
+                cui: quickCreateClientForm.identifier,
                 country: quickCreateClientForm.country,
-                phone: quickCreateClientForm.phone,
-                email: quickCreateClientForm.email,
+                address: quickCreateClientForm.address || null,
+                phone: quickCreateClientForm.phone || null,
+                email: quickCreateClientForm.email || null,
                 is_favorite: true
             })
             // Fetch updated clients or just add to list
@@ -461,7 +463,7 @@ export default function AdminOverview() {
                 clientId: newClient.id,
                 title: !p.title ? newClient.name : p.title
             }))
-            setQuickCreateClientForm({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE' })
+            setQuickCreateClientForm({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE', address: '' })
             setQuickCreateStep(1)
         } catch (error) {
             console.error("Error creating client:", error)
@@ -2069,14 +2071,28 @@ export default function AdminOverview() {
                                                     className="w-24 h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
                                                     title={t('dashboard.quick_create.country', 'Țară')}
                                                 >
-                                                    <option value="BE">BE</option>
-                                                    <option value="RO">RO</option>
-                                                    <option value="FR">FR</option>
-                                                    <option value="NL">NL</option>
-                                                    <option value="DE">DE</option>
-                                                    <option value="IT">IT</option>
-                                                    <option value="ES">ES</option>
-                                                    <option value="GB">GB</option>
+                                                    <option value="BE">🇧🇪 BE</option>
+                                                    <option value="RO">🇷🇴 RO</option>
+                                                    <option value="FR">🇫🇷 FR</option>
+                                                    <option value="NL">🇳🇱 NL</option>
+                                                    <option value="DE">🇩🇪 DE</option>
+                                                    <option value="IT">🇮🇹 IT</option>
+                                                    <option value="ES">🇪🇸 ES</option>
+                                                    <option value="GB">🇬🇧 GB</option>
+                                                    <option value="LU">🇱🇺 LU</option>
+                                                    <option value="AT">🇦🇹 AT</option>
+                                                    <option value="PL">🇵🇱 PL</option>
+                                                    <option value="CZ">🇨🇿 CZ</option>
+                                                    <option value="SK">🇸🇰 SK</option>
+                                                    <option value="HU">🇭🇺 HU</option>
+                                                    <option value="BG">🇧🇬 BG</option>
+                                                    <option value="HR">🇭🇷 HR</option>
+                                                    <option value="DK">🇩🇰 DK</option>
+                                                    <option value="FI">🇫🇮 FI</option>
+                                                    <option value="SE">🇸🇪 SE</option>
+                                                    <option value="PT">🇵🇹 PT</option>
+                                                    <option value="IE">🇮🇪 IE</option>
+                                                    <option value="GR">🇬🇷 GR</option>
                                                 </select>
                                             )}
                                             <div className="relative flex-1">
@@ -2106,6 +2122,18 @@ export default function AdminOverview() {
                                             </div>
                                         </div>
                                     </div>
+                                    {quickCreateClientForm.type === 'juridica' && (
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresă Sediu')}</label>
+                                            <input 
+                                                type="text" 
+                                                value={quickCreateClientForm.address} 
+                                                onChange={e => setQuickCreateClientForm(p => ({...p, address: e.target.value}))} 
+                                                placeholder={t('clients.address_placeholder', 'Completează sau caută automat cu lupa →')}
+                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+                                            />
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.phone', 'Telefon')}</label>
