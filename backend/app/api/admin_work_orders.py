@@ -160,6 +160,11 @@ def _serialize(wo: WorkOrder) -> dict:
         "pdf_path": wo.pdf_path,
         "final_invoice_path": wo.final_invoice_path,
         "estimated_price": wo.estimated_price,
+        # Facturare
+        "is_invoiced": bool(wo.is_invoiced),
+        "invoiced_at": wo.invoiced_at.isoformat() if wo.invoiced_at else None,
+        "invoice_number": wo.invoice_number,
+        "invoice_notes": wo.invoice_notes,
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
         # Echipa si vehicul
@@ -840,8 +845,11 @@ async def upload_final_invoice(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Eroare upload: {str(e)}")
 
-    # Update WorkOrder
+    # Update WorkOrder — auto-mark as invoiced on PDF upload
     wo.final_invoice_path = storage_path
+    if not wo.is_invoiced:
+        wo.is_invoiced = True
+        wo.invoiced_at = datetime.utcnow()
     db.commit()
     db.refresh(wo)
 
@@ -849,8 +857,40 @@ async def upload_final_invoice(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# STATUS CHANGE
+# INVOICE STATUS — marcare manuală facturat/nefacturat
 # ──────────────────────────────────────────────────────────────────────────────
+class InvoiceStatusUpdate(BaseModel):
+    is_invoiced: bool
+    invoice_number: Optional[str] = None
+    invoice_notes: Optional[str] = None
+
+@router.patch("/work-orders/{wo_id}/invoice-status")
+def update_invoice_status(
+    wo_id: str,
+    payload: InvoiceStatusUpdate,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Marchează manual o comandă ca facturată sau nefacturată."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
+
+    wo.is_invoiced = payload.is_invoiced
+    wo.invoiced_at = datetime.utcnow() if payload.is_invoiced and not wo.invoiced_at else (None if not payload.is_invoiced else wo.invoiced_at)
+    if payload.invoice_number is not None:
+        wo.invoice_number = payload.invoice_number or None
+    if payload.invoice_notes is not None:
+        wo.invoice_notes = payload.invoice_notes or None
+
+    db.commit()
+    db.refresh(wo)
+    return _serialize(wo)
+
+
 @router.post("/work-orders/{wo_id}/status")
 def change_status(
     wo_id: str,

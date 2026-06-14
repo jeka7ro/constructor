@@ -1003,6 +1003,12 @@ class WorkOrder(Base):
     pdf_path            = Column(String(500), nullable=True)
     final_invoice_path  = Column(String(500), nullable=True) # PDF cu factura finală
 
+    # ── Status Facturare ───────────────────────────────────────────────────────
+    is_invoiced         = Column(Boolean, default=False, nullable=False)
+    invoiced_at         = Column(DateTime, nullable=True)
+    invoice_number      = Column(String(100), nullable=True)  # Ex: "2025-0042"
+    invoice_notes       = Column(Text, nullable=True)
+
     # ── Preț Estimativ ─────────────────────────────────────────────────────────
     estimated_price     = Column(String(100), nullable=True) # Ex: "1500 EUR"
 

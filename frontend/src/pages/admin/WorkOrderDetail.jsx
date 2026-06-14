@@ -160,6 +160,8 @@ export default function WorkOrderDetail() {
     const [uploadingInvoice, setUploadingInvoice] = useState(false)
     const leftColRef = useRef(null)
     const [leftColHeight, setLeftColHeight] = useState(undefined)
+    const [invoiceNumberDraft, setInvoiceNumberDraft] = useState(null)
+    const [savingInvoiceStatus, setSavingInvoiceStatus] = useState(false)
 
     const handleInvoiceUpload = async (e) => {
         const file = e.target.files?.[0]
@@ -168,15 +170,47 @@ export default function WorkOrderDetail() {
         const formData = new FormData()
         formData.append('file', file)
         try {
-            await api.post(`/admin/work-orders/${id}/final-invoice`, formData, {
+            const res = await api.post(`/admin/work-orders/${id}/final-invoice`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
-            alert('Factura finală a fost încărcată cu succes!')
-            load()
+            setWo(res.data)
+            setInvoiceNumberDraft(null)
         } catch (err) {
             alert(err.response?.data?.detail || 'Eroare la încărcare factură.')
         } finally {
             setUploadingInvoice(false)
+        }
+    }
+
+    const handleToggleInvoiced = async (newValue) => {
+        setSavingInvoiceStatus(true)
+        try {
+            const res = await api.patch(`/admin/work-orders/${id}/invoice-status`, {
+                is_invoiced: newValue,
+                invoice_number: invoiceNumberDraft ?? wo.invoice_number ?? null,
+            })
+            setWo(res.data)
+            setInvoiceNumberDraft(null)
+        } catch (err) {
+            alert(err.response?.data?.detail || 'Eroare la actualizare status factură.')
+        } finally {
+            setSavingInvoiceStatus(false)
+        }
+    }
+
+    const handleSaveInvoiceNumber = async () => {
+        setSavingInvoiceStatus(true)
+        try {
+            const res = await api.patch(`/admin/work-orders/${id}/invoice-status`, {
+                is_invoiced: wo.is_invoiced || false,
+                invoice_number: invoiceNumberDraft,
+            })
+            setWo(res.data)
+            setInvoiceNumberDraft(null)
+        } catch (err) {
+            alert(err.response?.data?.detail || 'Eroare la salvare număr factură.')
+        } finally {
+            setSavingInvoiceStatus(false)
         }
     }
 
@@ -920,38 +954,101 @@ export default function WorkOrderDetail() {
                                                 </div>
                                             )}
                                             
-                                            {/* Final Invoice Section for Completed Orders */}
-                                                {wo.status === 'completed' && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.invoicing.upload_invoice', 'Factură Finală (PDF)')}</p>
-                                                        {wo.final_invoice_path ? (
-                                                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                    <FileText className="w-5 h-5 text-blue-500 shrink-0" />
-                                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">Factură Finală Încarcată</span>
-                                                                </div>
-                                                                <a href={`${API_BASE}${wo.final_invoice_path}`} target="_blank" rel="noreferrer"
-                                                                    className="px-3 py-1.5 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-full text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-50 transition-colors">
-                                                                    {t('work_order_detail.invoicing.view_invoice', 'Vezi PDF')}
-                                                                </a>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-center">
-                                                                <FileText className="w-6 h-6 text-slate-400 mb-2" />
-                                                                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">Nu ai încărcat factura finală.</p>
-                                                                <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold transition-colors">
-                                                                    {uploadingInvoice ? t('work_order_detail.invoicing.uploading', 'Se încarcă...') : t('work_order_detail.invoicing.choose_pdf', 'Alege PDF Factură')}
-                                                                    <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleInvoiceUpload} disabled={uploadingInvoice} />
-                                                                </label>
-                                                            </div>
+                                            {/* ─── Facturare & Recepție ─────────────────────────────────────── */}
+                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.title', 'Facturare & Recepție')}</p>
+                                                    {wo.is_invoiced ? (
+                                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                                            {t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                                                            {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Nr. Factură + dată */}
+                                                <div className="space-y-2 mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder={t('work_order_detail.invoicing.invoice_number_placeholder', 'Nr. Factură (ex: 2025-0042)')}
+                                                            value={invoiceNumberDraft ?? (wo.invoice_number || '')}
+                                                            onChange={e => setInvoiceNumberDraft(e.target.value)}
+                                                            className="flex-1 h-9 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 placeholder:font-normal placeholder:text-slate-400"
+                                                        />
+                                                        {(invoiceNumberDraft !== null && invoiceNumberDraft !== (wo.invoice_number || '')) && (
+                                                            <button
+                                                                onClick={handleSaveInvoiceNumber}
+                                                                disabled={savingInvoiceStatus}
+                                                                className="px-3 h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                                                            >
+                                                                {savingInvoiceStatus ? '...' : t('common.save', 'Salvează')}
+                                                            </button>
                                                         )}
                                                     </div>
+                                                    {wo.invoiced_at && (
+                                                        <p className="text-[10px] text-slate-400 font-medium">
+                                                            {t('work_order_detail.invoicing.invoiced_at', 'Facturat pe')} {new Date(wo.invoiced_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {/* Upload PDF */}
+                                                {wo.final_invoice_path ? (
+                                                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-2">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">{t('work_order_detail.invoicing.pdf_uploaded', 'PDF Factură Încărcat')}</span>
+                                                        </div>
+                                                        <a href={`${API_BASE}${wo.final_invoice_path}`} target="_blank" rel="noreferrer"
+                                                            className="px-2.5 py-1 bg-white dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 rounded-lg text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 transition-colors shrink-0">
+                                                            {t('work_order_detail.invoicing.view_invoice', 'Vezi PDF')}
+                                                        </a>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex items-center justify-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all mb-2 group">
+                                                        <FileText className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                                                        <span className="text-xs font-semibold text-slate-500 group-hover:text-blue-600 dark:text-slate-400">
+                                                            {uploadingInvoice ? t('work_order_detail.invoicing.uploading', 'Se încarcă...') : t('work_order_detail.invoicing.upload_pdf', 'Upload PDF Factură → marchează automat')}
+                                                        </span>
+                                                        <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleInvoiceUpload} disabled={uploadingInvoice} />
+                                                    </label>
                                                 )}
-                                            
-                                            {!(wo.documents && wo.documents.length > 0) && wo.status !== 'completed' && (
-                                                <p className="text-sm text-slate-400 text-center py-4">Niciun document disponibil.</p>
+
+                                                {/* Butoane marcare manual */}
+                                                <div className="flex gap-2">
+                                                    {!wo.is_invoiced ? (
+                                                        <button
+                                                            onClick={() => handleToggleInvoiced(true)}
+                                                            disabled={savingInvoiceStatus}
+                                                            className="flex-1 flex items-center justify-center gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50"
+                                                        >
+                                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            {t('work_order_detail.invoicing.mark_invoiced', 'Marchează ca Facturat')}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleToggleInvoiced(false)}
+                                                            disabled={savingInvoiceStatus}
+                                                            className="flex-1 flex items-center justify-center gap-1.5 h-8 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50"
+                                                        >
+                                                            <Circle className="w-3.5 h-3.5" />
+                                                            {t('work_order_detail.invoicing.mark_not_invoiced', 'Marchează ca Nefacturat')}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {!(wo.documents && wo.documents.length > 0) && !wo.is_invoiced && (
+                                                <p className="text-xs text-slate-400 text-center py-2 mt-2">{t('work_order_detail.invoicing.no_docs', 'Niciun document disponibil.')}</p>
                                             )}
                                         </Section>
+
                 </div>
 
 {/* ── Fotografii ──────────────────────────────────────────────────── */}

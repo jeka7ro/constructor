@@ -390,6 +390,17 @@ export default function WorkOrders() {
                                 {wo.assigned_team_name}
                             </span>
                         )}
+                        {wo.is_invoiced ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
+                                <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block"></span>
+                                {wo.invoice_number ? `✓ ${wo.invoice_number}` : t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                            </span>
+                        ) : wo.status === 'completed' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider whitespace-nowrap animate-pulse">
+                                <span className="w-1 h-1 rounded-full bg-red-500 inline-block"></span>
+                                {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                            </span>
+                        ) : null}
                     </div>
                 )
             }
