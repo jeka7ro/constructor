@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-const getSandStationIcon = (index) => new L.DivIcon({
-    html: `<div style="background-color: #ef4444; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">${index}</div>`,
+const getSandStationIcon = (letter) => new L.DivIcon({
+    html: `<div style="background-color: #ef4444; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 13px;">${letter}</div>`,
     className: '',
     iconSize: [28, 28],
     iconAnchor: [14, 14],
@@ -218,17 +218,20 @@ export default function SandStationsPage() {
                             <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2"><MapPin className="w-4 h-4 text-red-500" /> Legendă Stații</h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                            {stations.map((s, idx) => (
+                            {stations.map((s) => {
+                                const letter = s.type === 'theirs' ? 'I' : 'D'
+                                return (
                                 <div key={s.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl cursor-default transition-colors">
                                     <div className="w-6 h-6 rounded-full bg-red-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm border-2 border-white dark:border-slate-900 mt-0.5">
-                                        {idx + 1}
+                                        {letter}
                                     </div>
                                     <div>
                                         <div className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight">{s.name}</div>
                                         {s.address && <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">{s.address}</div>}
                                     </div>
                                 </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     </div>
                     <div className="col-span-1 lg:col-span-3 bg-slate-100 dark:bg-slate-800 rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-hidden relative z-0 h-full">
@@ -239,8 +242,8 @@ export default function SandStationsPage() {
                             style={{ width: '100%', height: '100%' }}
                         >
                             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            {stations.filter(s => s.latitude && s.longitude).map((s, idx) => (
-                                <Marker key={s.id} position={[s.latitude, s.longitude]} icon={getSandStationIcon(idx + 1)}>
+                            {stations.filter(s => s.latitude && s.longitude).map((s) => (
+                                <Marker key={s.id} position={[s.latitude, s.longitude]} icon={getSandStationIcon(s.type === 'theirs' ? 'I' : 'D')}>
                                     <Popup>
                                         <div className="font-bold text-sm text-slate-900">{s.name}</div>
                                         <div className="text-xs text-slate-500 mt-1">{s.address}</div>
