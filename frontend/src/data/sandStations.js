@@ -1,0 +1,48 @@
+// Stații de nisip — sursă comună pentru toate paginile
+// type: 'common' = noi + concurenta | 'ours' = doar noi | 'theirs' = doar concurenta
+// Pe hartă: D = noi/common, I = theirs (concurenta)
+export const SAND_STATIONS = [
+    // ── COMUNE ───────────────────────────────────────────────────────────────
+    { type: 'common', name: 'Charleroi – EURO-SERVICES SA',        latitude: 50.4170193, longitude: 4.5534199, address: 'Rue du Port 20, 6250 Aiseau-Presles',           phone: '071 40 23 92' },
+    { type: 'common', name: 'Izegem – NHM Izegem',                 latitude: 50.9272618, longitude: 3.2018133, address: 'Noordkaai 10/2, 8870 Izegem',                    phone: '' },
+    { type: 'common', name: 'Brugge – NHM Brugge',                 latitude: 51.2665246, longitude: 3.2088231, address: 'Pathoekeweg 340, 8000 Brugge',                   phone: '' },
+    { type: 'common', name: 'Nieuwpoort – NHM Nieuwpoort',         latitude: 51.1354136, longitude: 2.7516455, address: 'Noorderhavenoever, 8620 Nieuwpoort',              phone: '' },
+    { type: 'common', name: 'Oostende – NHM Oostende',             latitude: 51.2275026, longitude: 2.9398425, address: 'Vismijnlaan 1, 8400 Oostende',                   phone: '' },
+    { type: 'common', name: 'Lummen – Minera',                     latitude: 51.0104855, longitude: 5.2371281, address: 'Industriestraat 16, 3560 Lummen',                phone: '' },
+    { type: 'common', name: 'Namur – Joassin',                     latitude: 50.456251,  longitude: 4.803254,  address: 'Rue Fernand Marchand 1, 5020 Flawinne (Namur)', phone: '' },
+    { type: 'common', name: 'Liège – Sable et Granulats',          latitude: 50.6771771, longitude: 5.6454791, address: 'Rue du Rivage 35, 4040 Herstal (Liège)',         phone: '' },
+    // ── EXCLUSIVE NOUĂ ───────────────────────────────────────────────────────
+    { type: 'ours',   name: 'Sint-Niklaas – Beernaerts Recycling', latitude: 51.1852172, longitude: 4.1951661, address: 'Anthonis De Jonghestraat 78, 9100 Sint-Niklaas', phone: '0497 80 15 55' },
+    { type: 'ours',   name: 'Ninove – Baza Ninove',                latitude: 50.8348922, longitude: 4.0198178, address: 'Kaardeloodstraat 97, 9400 Ninove',               phone: '' },
+    { type: 'ours',   name: 'Dour – Rougraff',                     latitude: 50.4089517, longitude: 3.7661104, address: 'Rue de Belle Vue 46, 7370 Dour',                 phone: '065 65 22 05' },
+    { type: 'ours',   name: 'Ath – Stock Ath',                     latitude: 50.6284713, longitude: 3.7475372, address: 'Chaussée de Tournai 196, 7801 Ath',              phone: '068 26 98 00' },
+    { type: 'ours',   name: 'Antwerpen – Dranaco NV',              latitude: 51.2277072, longitude: 4.4072291, address: 'Godefriduskaai 28, 2000 Antwerpen',              phone: '+32 3 231 08 54' },
+    { type: 'ours',   name: 'Halle – Denayer Bouwmaterialen',      latitude: 50.7286189, longitude: 4.2324534, address: 'Suikerkaai 38, 1500 Halle',                     phone: '02 361 11 20' },
+    { type: 'ours',   name: 'Tournai – SODEMAF',                   latitude: 50.5873153, longitude: 3.4316494, address: 'Rue du Canon 14, 7536 Vaulx (Tournai)',          phone: '' },
+    { type: 'ours',   name: 'Erpe-Mere – Baza Erpe-Mere',          latitude: 50.9400588, longitude: 3.9886644, address: 'Oudenaardsesteenweg, 9420 Erpe-Mere',            phone: '' },
+    { type: 'ours',   name: 'Roeselare – NHM Roeselare',           latitude: 50.9272618, longitude: 3.2018133, address: 'Noordkaai 10/2, 8870 Izegem',                    phone: '' },
+    { type: 'ours',   name: 'Gent – Ghent Aggregates',             latitude: 51.0872589, longitude: 3.7469089, address: 'Singel 27 – Haven 0945A, 9000 Gent-Zeehaven',   phone: '+32 9 224 40 04' },
+    // ── CONCURENȚĂ ───────────────────────────────────────────────────────────
+    { type: 'theirs', name: 'Vermat Brussel',                      latitude: 50.8833919, longitude: 4.380019,  address: 'Leon Monnoyerkaai 11, 1000 Brussel',             phone: '' },
+    { type: 'theirs', name: 'H&H Resources Brussels',              latitude: 50.8730,    longitude: 4.3560,    address: 'Vilvoordsealaan 294, 1000 Brussel',              phone: '' },
+    { type: 'theirs', name: 'Delahaye-Lauwers Beringen',           latitude: 51.0492507, longitude: 5.2135924, address: 'Terbekstraat 40, 3580 Beringen',                  phone: '' },
+    { type: 'theirs', name: 'Delahaye-Lauwers Boom',               latitude: 51.0899953, longitude: 4.3567157, address: 'Broekweg, 2850 Boom',                             phone: '' },
+    { type: 'theirs', name: 'Van Pelt Wijnegem',                   latitude: 51.2348132, longitude: 4.5097425, address: 'Oud Sluisstraat 9, 2110 Wijnegem',                phone: '' },
+    { type: 'theirs', name: 'Dranaco nv Grobbendonk',              latitude: 51.1791592, longitude: 4.73283,   address: 'Industrieweg 14, 2280 Grobbendonk',              phone: '' },
+    { type: 'theirs', name: 'Van Pelt Schoten',                    latitude: 51.2393448, longitude: 4.4897778, address: 'Kanaaldijk 25, 2900 Schoten',                     phone: '' },
+    { type: 'theirs', name: 'Mako-Beton Grobbendonk',              latitude: 51.1810317, longitude: 4.7430558, address: 'Oude Steenweg 35, 2280 Grobbendonk',              phone: '' },
+    { type: 'theirs', name: 'Delahaye-Lauwers Gent',               latitude: 51.0777196, longitude: 3.7419082, address: 'Zuiddokweg 50, 9000 Gent',                        phone: '' },
+    { type: 'theirs', name: 'Bert Containers Ronse',               latitude: 50.751019,  longitude: 3.6487897, address: 'Klein Frankrijkstraat 21, 9600 Ronse',             phone: '' },
+    { type: 'theirs', name: 'Van Nieuwpoort Viola Gent',           latitude: 51.0720,    longitude: 3.7350,    address: 'Hubdonk 1, 9000 Gent',                            phone: '' },
+    { type: 'theirs', name: 'Zandhandel Roeselare',                latitude: 50.9442993, longitude: 3.1563553, address: 'Graankaai 4, 8800 Roeselare',                     phone: '' },
+    { type: 'theirs', name: 'NHM Wielsbeke',                       latitude: 50.9048,    longitude: 3.3648,    address: 'Hooimeersstraat 3, 8710 Wielsbeke',                phone: '' },
+    { type: 'theirs', name: 'Gobert Stréphy',                      latitude: 50.4901717, longitude: 4.1218161, address: 'Route du Grand Peuplier 4c, 7110 Stréphy',       phone: '' },
+    { type: 'theirs', name: 'Gobert Soignies',                     latitude: 50.5886417, longitude: 4.0736223, address: 'Chemin de la Guelenne 29, 7060 Soignies',          phone: '' },
+    { type: 'theirs', name: 'Gobert Tubize',                       latitude: 50.6966616, longitude: 4.2124112, address: 'Rue de La Déportation 218, 1480 Tubize',           phone: '' },
+    { type: 'theirs', name: 'Nivelles Beton',                      latitude: 50.5925732, longitude: 4.3635333, address: 'Rue du Progrès 12, 1400 Nivelles',                 phone: '' },
+    { type: 'theirs', name: 'Holcim Carrière de Leffe',            latitude: 50.2697519, longitude: 4.9089846, address: 'Charreau de Leffe, 5500 Dinant',                  phone: '' },
+    { type: 'theirs', name: 'SGL Monsin Luik',                     latitude: 50.6541521, longitude: 5.6247559, address: "Rue de l'île Monsin 2, 4020 Liège",               phone: '' },
+    { type: 'theirs', name: 'SGL Hermalle',                        latitude: 50.5583793, longitude: 5.355951,  address: 'Rue des Tuiliers 14, 4480 Hermalle',               phone: '' },
+    { type: 'theirs', name: 'GNB Beton Arlon',                     latitude: 49.6866747, longitude: 5.7700251, address: 'Rte de Bouillon 222, 6700 Arlon',                  phone: '' },
+    { type: 'theirs', name: 'Famenne Betons',                      latitude: 50.2232529, longitude: 5.3331213, address: 'Rue du Parc Industriel 40, 6900 Marche-en-Famenne', phone: '' },
+]

@@ -196,8 +196,7 @@ export default function LogisticsDashboard() {
     const [selectedWork, setSelectedWork] = useState(null)
     const [isMapFull, setIsMapFull] = useState(false)
     const [showSandStations, setShowSandStations] = useState(() => {
-        const saved = localStorage.getItem('logistics_showSandStations')
-        return saved !== null ? JSON.parse(saved) : false
+        try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
     })
     const [focusedTeamId, setFocusedTeamId] = useState(null)
     const navigate = useNavigate()
@@ -228,7 +227,7 @@ export default function LogisticsDashboard() {
     }, [])
 
     useEffect(() => {
-        localStorage.setItem('logistics_showSandStations', JSON.stringify(showSandStations))
+        localStorage.setItem('nisip_toggle', JSON.stringify(showSandStations))
     }, [showSandStations])
 
     const fetchRoutes = async () => {

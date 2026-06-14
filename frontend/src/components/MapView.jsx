@@ -39,7 +39,14 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
     const [geocoding, setGeocoding] = useState(false)
     const [geoError, setGeoError] = useState(false)
     const [isFullScreen, setIsFullScreen] = useState(false)
-    const [showSandStations, setShowSandStations] = useState(false)
+    const [showSandStations, setShowSandStations] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
+    })
+
+    const toggleSandStations = (val) => {
+        setShowSandStations(val)
+        localStorage.setItem('nisip_toggle', JSON.stringify(val))
+    }
 
     const initMap = (lat, lon, z, popupLabel) => {
         if (!mapRef.current) return
@@ -440,7 +447,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                                     type="checkbox" 
                                     className="sr-only"
                                     checked={showSandStations}
-                                    onChange={(e) => setShowSandStations(e.target.checked)}
+                                    onChange={(e) => toggleSandStations(e.target.checked)}
                                 />
                                 <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
                             </div>

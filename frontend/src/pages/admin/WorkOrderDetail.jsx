@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { SAND_STATIONS } from '../../data/sandStations'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
@@ -175,7 +176,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [photos, setPhotos]   = useState([])
     const [loading, setLoading] = useState(true)
     const [lightbox, setLightbox] = useState(null)
-    const [sandStations, setSandStations] = useState([])
+    // Sand stations — folosim lista hardcodata completa (aceleasi ca in Logistica)
     const [uploadingInvoice, setUploadingInvoice] = useState(false)
     const leftColRef = useRef(null)
     const [leftColHeight, setLeftColHeight] = useState(undefined)
@@ -260,15 +261,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const load = useCallback(async () => {
         setLoading(true)
         try {
-            const [woRes, sessRes, photosRes, stationsRes] = await Promise.allSettled([
+            const [woRes, sessRes, photosRes] = await Promise.allSettled([
                 api.get(`/admin/work-orders/${id}`),
                 api.get(`/admin/work-orders/${id}/sessions`),
                 api.get(`/admin/work-orders/${id}/photos`),
-                api.get('/admin/logistics/sand-stations'),
             ])
             if (woRes.status === 'fulfilled')     setWo(woRes.value.data)
             if (sessRes.status === 'fulfilled')   setSessions(sessRes.value.data)
-            if (stationsRes.status === 'fulfilled') setSandStations(stationsRes.value.data)
             if (photosRes.status === 'fulfilled') {
                 const p = photosRes.value.data
                 setPhotos(Array.isArray(p) ? p : (p?.photos || []))
@@ -521,7 +520,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             routeSegments={wo.route_segments}
                             onRouteCalculated={handleRouteCalculated}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
-                            sandStations={sandStations}
+                            sandStations={SAND_STATIONS}
                             teamColor={wo.team_color || '#2563eb'}
                             leftPanelContent={
                                 <>
