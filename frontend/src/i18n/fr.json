@@ -38,7 +38,8 @@
     "menu": "Menu",
     "history": "Historique",
     "work_orders_full": "Ordres de Travail",
-    "inventory": "Inventaire"
+    "inventory": "Inventaire",
+    "tracking": "Suivi Live"
   },
   "logistics": {
     "title": "Logistique",
@@ -1221,5 +1222,18 @@
     "it": "Italie",
     "es": "Espagne",
     "gb": "Royaume-Uni"
+  },
+  "tracking": {
+    "title": "Suivi Live",
+    "subtitle": "Surveillance GPS en temps réel",
+    "active_vehicles": "Véhicules actifs",
+    "no_active": "Aucun véhicule actif ces 10 dernières minutes.",
+    "no_active_hint": "Les chauffeurs doivent avoir l'application ouverte.",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "last_seen": "Vu",
+    "speed": "Vitesse",
+    "auto_refresh": "Actualisation automatique 30s",
+    "loading": "Chargement de la carte..."
   }
 }

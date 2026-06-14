@@ -119,7 +119,7 @@ export default function LiveTracking() {
             connected ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700' : 'bg-red-900/50 text-red-400 border border-red-700'
           }`}>
             {connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            {connected ? 'Online' : 'Offline'}
+            {connected ? t("tracking.online") : t("tracking.offline")}
           </div>
           {/* Vehicle count */}
           <div className="flex items-center gap-1.5 text-xs font-medium bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
@@ -153,8 +153,8 @@ export default function LiveTracking() {
           {!loading && vehicles.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
               <Radio className="w-8 h-8 text-slate-700" />
-              <p className="text-slate-500 text-sm">Niciun vehicul activ în ultimele 10 minute.</p>
-              <p className="text-slate-600 text-xs">Șoferii trebuie să aibă aplicația deschisă.</p>
+              <p className="text-slate-500 text-sm">{t("tracking.no_active")}</p>
+              <p className="text-slate-600 text-xs">{t("tracking.no_active_hint")}</p>
             </div>
           )}
 
@@ -238,7 +238,7 @@ export default function LiveTracking() {
             <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
               <div className="flex flex-col items-center gap-3">
                 <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" />
-                <p className="text-slate-400 text-sm">Se încarcă harta...</p>
+                <p className="text-slate-400 text-sm">{t("tracking.loading")}</p>
               </div>
             </div>
           )}

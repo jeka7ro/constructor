@@ -38,7 +38,8 @@
     "menu": "Menu",
     "history": "History",
     "work_orders_full": "Work Orders",
-    "inventory": "Inventory"
+    "inventory": "Inventory",
+    "tracking": "Live Tracking"
   },
   "logistics": {
     "title": "Logistics",
@@ -1232,5 +1233,18 @@
     "gps_not_supported": "Geolocation is not supported by this browser.",
     "gps_timeout": "Timed out. Check if the browser has permission to access your location.",
     "gps_error": "GPS detection error: "
+  },
+  "tracking": {
+    "title": "Live Tracking",
+    "subtitle": "Real-time GPS monitoring",
+    "active_vehicles": "Active vehicles",
+    "no_active": "No active vehicles in the last 10 minutes.",
+    "no_active_hint": "Drivers must have the app open.",
+    "online": "Online",
+    "offline": "Offline",
+    "last_seen": "Last seen",
+    "speed": "Speed",
+    "auto_refresh": "Auto-refresh every 30s",
+    "loading": "Loading map..."
   }
 }

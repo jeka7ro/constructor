@@ -38,7 +38,8 @@
     "menu": "Menu",
     "history": "Geschiedenis",
     "work_orders_full": "Werkorders",
-    "inventory": "Inventaris"
+    "inventory": "Inventaris",
+    "tracking": "Live Tracking"
   },
   "logistics": {
     "title": "Logistiek",
@@ -1232,5 +1233,18 @@
     "gps_not_supported": "Geolocatie wordt niet ondersteund door deze browser.",
     "gps_timeout": "Time-out. Controleer of de browser toegang heeft tot uw locatie.",
     "gps_error": "GPS detectiefout: "
+  },
+  "tracking": {
+    "title": "Live Tracking",
+    "subtitle": "Realtime GPS-bewaking",
+    "active_vehicles": "Actieve voertuigen",
+    "no_active": "Geen actieve voertuigen in de afgelopen 10 minuten.",
+    "no_active_hint": "Chauffeurs moeten de app open hebben.",
+    "online": "Online",
+    "offline": "Offline",
+    "last_seen": "Gezien",
+    "speed": "Snelheid",
+    "auto_refresh": "Automatisch vernieuwen 30s",
+    "loading": "Kaart laden..."
   }
 }

@@ -29,6 +29,7 @@
     "clients": "Clienți",
     "warehouse": "Magazie",
     "transport": "Foi de Parcurs",
+    "tracking": "Live Tracking",
     "material_requests": "Necesar Materiale",
     "expenses": "Deconturi / Cheltuieli",
     "alerts": "Avizier (Alerte)",
@@ -1328,5 +1329,18 @@
     "gps_not_supported": "Geolocatia nu este suportata de browser.",
     "gps_timeout": "Timpul a expirat. Verifică dacă browser-ul are permisiunea de a accesa locația.",
     "gps_error": "Eroare detectare GPS: "
+  },
+  "tracking": {
+    "title": "Live Tracking",
+    "subtitle": "Monitorizare GPS în timp real",
+    "active_vehicles": "Vehicule active",
+    "no_active": "Niciun vehicul activ în ultimele 10 minute.",
+    "no_active_hint": "Șoferii trebuie să aibă aplicația deschisă.",
+    "online": "Online",
+    "offline": "Offline",
+    "last_seen": "Văzut",
+    "speed": "Viteză",
+    "auto_refresh": "Auto-refresh la 30s",
+    "loading": "Se încarcă harta..."
   }
 }
