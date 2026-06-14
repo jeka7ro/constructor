@@ -12,11 +12,11 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
 
-const getSandStationIcon = (index) => new L.DivIcon({
-    html: `<div style="background-color: #ef4444; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">${index}</div>`,
+const getSandStationIcon = (letter, isTheirs) => new L.DivIcon({
+    html: `<div style="width:26px;height:26px;border-radius:50%;background:${isTheirs ? '#7c3aed' : '#ef4444'};border:3px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);position:relative;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-weight:900;font-size:12px;font-family:Arial,sans-serif;line-height:1;">${letter}</span></div>`,
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
     popupAnchor: [0, -14]
 })
 
@@ -363,8 +363,10 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             
             sandStations.forEach((s, idx) => {
                 if (s.latitude && s.longitude) {
+                    const _isTheirs = s.type === 'theirs'
+                    const _letter = _isTheirs ? 'I' : 'D'
                     const marker = L.marker([s.latitude, s.longitude], {
-                        icon: getSandStationIcon(idx + 1)
+                        icon: getSandStationIcon(_letter, _isTheirs)
                     })
                     marker.bindPopup(`
                         <div style="text-align:center">
