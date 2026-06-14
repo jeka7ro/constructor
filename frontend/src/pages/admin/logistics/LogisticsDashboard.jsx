@@ -434,19 +434,18 @@ export default function LogisticsDashboard() {
 
                             {/* Sand Stations Rendering */}
                             {showSandStations && SAND_STATIONS.map((station, idx) => {
-                                // Toate stațiile au fundal roșu și contur alb. Noi/Comune au litera D, Concurența are I.
-                                const bgColor = '#ef4444'
-                                const borderColor = 'white'
-                                const iconLetter = station.type === 'theirs' ? 'I' : 'D'
+                                // D = ale noastre (ours/common), I = concurenta (theirs)
+                                const _letter = station.type === 'theirs' ? 'I' : 'D'
+                                const _bg = station.type === 'theirs' ? '#7c3aed' : '#ef4444'
                                 return (
                                     <Marker
                                         key={`sand-${idx}`}
                                         position={[station.lat, station.lng]}
                                         icon={L.divIcon({
-                                            className: 'custom-div-icon',
-                                            html: `<div style="width:24px;height:24px;border-radius:50%;background:${bgColor};display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:11px;border:2.5px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.35);">${iconLetter}</div>`,
-                                            iconSize: [24, 24],
-                                            iconAnchor: [12, 12]
+                                            className: '',
+                                            html: `<div style="width:26px;height:26px;border-radius:50%;background:${_bg};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-weight:900;font-size:12px;font-family:Arial,sans-serif;line-height:1;">${_letter}</span></div>`,
+                                            iconSize: [26, 26],
+                                            iconAnchor: [13, 13]
                                         })}
                                     >
                                         <Popup>
@@ -551,9 +550,14 @@ export default function LogisticsDashboard() {
                                         <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Șantier / Lucrare')}
                                     </div>
                                     {showSandStations && (
+                                        <>
                                         <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> {t('logistics.sand_stations', 'Stații Nisip')}
+                                            <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">D</div> Stații Nisip – Noi
                                         </div>
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
+                                            <div className="w-4 h-4 rounded-full bg-violet-600 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">I</div> Stații Nisip – Concurență
+                                        </div>
+                                        </>
                                     )}
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                         <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> {t('logistics.car_route', 'Traseu auto')}
