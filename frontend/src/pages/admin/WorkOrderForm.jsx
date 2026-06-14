@@ -428,7 +428,7 @@ export default function WorkOrderForm() {
                 if (!form.client_id) return setError('Selectați un client.')
             }
             if (form.site_mode === 'new') {
-                if (!form.site_address?.trim()) return setError('Introduceți adresa locației noi.')
+                // site_address is optional
             } else {
                 if (!form.site_id) return setError('Selectați o locație.')
             }
