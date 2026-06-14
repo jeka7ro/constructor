@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-routing-machine'
-import { Maximize, Minimize, Layers } from 'lucide-react'
+import { Maximize2, Minimize2, Layers } from 'lucide-react'
 
 // Fix Leaflet default icon broken paths
 delete L.Icon.Default.prototype._getIconUrl
@@ -429,7 +429,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center backdrop-blur-sm"
                         title={isFullScreen ? "Ieși din modul ecran complet" : "Mărește harta (Ecran complet)"}
                     >
-                        {isFullScreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                        {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                     </button>
                     {/* Sand Stations Toggle Button (only if sandStations are provided) */}
                     {sandStations && sandStations.length > 0 && (

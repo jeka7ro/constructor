@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
@@ -158,10 +158,18 @@ function NavButtons({ lat, lon, address }) {
 
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
-export default function WorkOrderDetail() {
+export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const { t } = useTranslation()
-    const { id } = useParams()
+    const params = useParams()
+    const id = orderId || params.id
     const navigate = useNavigate()
+    const location = useLocation()
+    const goBack = () => {
+        if (onBack) return onBack();
+        const from = location.state?.from;
+        if (from) navigate(from);
+        else navigate(-1);
+    };
     const [wo, setWo]           = useState(null)
     const [sessions, setSessions] = useState(null)
     const [photos, setPhotos]   = useState([])
@@ -297,7 +305,7 @@ export default function WorkOrderDetail() {
             <div className="text-center">
                 <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
                 <p className="text-slate-600 dark:text-slate-400 font-semibold">{t('work_order_detail.not_found', 'Comanda nu a fost găsită')}</p>
-                <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">
+                <button onClick={() => goBack()} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">
                     ← {t('work_order_detail.back', 'Înapoi')}
                 </button>
             </div>
@@ -445,13 +453,13 @@ export default function WorkOrderDetail() {
 
     const hasSig = wo.client_signature && (wo.status === 'confirmed' || wo.status === 'completed')
 
-    return (
+    const pageContent = (
         <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 pb-10">
 
             {/* ── Header ──────────────────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                    <button onClick={() => navigate(-1)}
+                    <button onClick={() => goBack()}
                         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
                         <ChevronLeft className="w-5 h-5 text-slate-500" />
                     </button>
@@ -710,18 +718,18 @@ export default function WorkOrderDetail() {
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.team_leader', 'Șef Echipă (Confirmare)')}</p>
                                                 {wo.team_leader_confirmed_at ? (
                                                     <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex flex-col">
-                                                        <span>✅ {t('work_order_detail.status.acknowledged_on', 'A luat la cunoștință pe')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
+                                                        <span>{t('work_order_detail.status.acknowledged_on', 'A luat la cunoștință pe')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
                                                         {wo.team_leader_confirmation_note && (
                                                             <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 italic">{t('work_order_detail.status.note', 'Notă:')} {wo.team_leader_confirmation_note}</span>
                                                         )}
                                                     </div>
                                                 ) : wo.team_leader_accepted_at ? (
                                                     <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                                        <span>👀 {t('work_order_detail.status.opened_on', 'A deschis comanda pe')} {new Date(wo.team_leader_accepted_at).toLocaleString('ro-RO')}</span>
+                                                        <span>{t('work_order_detail.status.opened_on', 'A deschis comanda pe')} {new Date(wo.team_leader_accepted_at).toLocaleString('ro-RO')}</span>
                                                     </div>
                                                 ) : (
                                                     <div className="text-sm font-semibold text-amber-600 dark:text-amber-500">
-                                                        <span>⏳ {t('work_order_detail.status.not_acknowledged', 'Nu a luat la cunoștință încă')}</span>
+                                                        <span>{t('work_order_detail.status.not_acknowledged', 'Nu a luat la cunoștință încă')}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1161,4 +1169,12 @@ export default function WorkOrderDetail() {
             )}
         </div>
     )
+    if (isEmbedded) {
+        return (
+            <div className="fixed inset-0 z-[99999] bg-slate-50 dark:bg-slate-950 overflow-y-auto w-full h-full">
+                {pageContent}
+            </div>
+        )
+    }
+    return pageContent;
 }

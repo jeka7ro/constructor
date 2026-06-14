@@ -891,13 +891,17 @@
     },
     "access_notes": "Toegangsnotities",
     "general_details": {
-      "title": "Algemene Details",
-      "id": "Order ID",
-      "status": "Status",
-      "client": "Klant",
+      "title": "ALGEMENE DETAILS",
+      "id": "ORDER ID",
+      "status": "STATUS",
+      "client": "KLANT",
       "start_date": "Startdatum",
       "deadline": "Deadline",
-      "notes": "Notities"
+      "notes": "Notities",
+      "team_leader": "TEAMLEIDER (BEVESTIGING)",
+      "estimated_price": "GESCHATTE PRIJS",
+      "team_leader_short": "TEAMLEIDER",
+      "client_beneficiary": "BEGUNSTIGDE"
     },
     "measurements": {
       "title": "Metingen & Volumes",
@@ -975,6 +979,17 @@
       "no_consumed_materials": "Geen verbruikt materiaal geregistreerd",
       "distribution": "Kwantitatieve verdeling",
       "no_quantities": "Geen hoeveelheid geregistreerd"
+    },
+    "status": {
+      "acknowledged_on": "Gelezen op",
+      "note": "Opmerking:",
+      "opened_on": "Order geopend op",
+      "not_acknowledged": "Nog niet gelezen",
+      "confirmed": "Bevestigd",
+      "awaiting_confirmation": "In afwachting",
+      "confirmed_by": "Bevestigd door",
+      "at_date": "op",
+      "not_confirmed_by_client": "Niet bevestigd door klant"
     }
   },
   "admin_dashboard": {

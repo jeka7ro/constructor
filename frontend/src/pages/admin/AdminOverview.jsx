@@ -16,6 +16,8 @@ import {
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
+import WorkOrderDetail from './WorkOrderDetail'
+import WorkOrderForm from './WorkOrderForm'
 import BuienradarWidget from '../../components/BuienradarWidget'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import SearchableSelect from '../../components/SearchableSelect'
@@ -129,9 +131,37 @@ export default function AdminOverview() {
     const [globalSiteFilter, setGlobalSiteFilter] = useState(null)
     const [isInitialLoad, setIsInitialLoad] = useState(true)
 
+    // Calendar Fullscreen
+    const calendarWrapperRef = useRef(null)
+    const [isCalendarFull, setIsCalendarFull] = useState(false)
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFull = !!document.fullscreenElement;
+            setIsCalendarFull(isFull);
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleCalendarFullscreen = async () => {
+        try {
+            if (!document.fullscreenElement && calendarWrapperRef.current) {
+                await calendarWrapperRef.current.requestFullscreen();
+            } else if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            }
+        } catch (err) {
+            console.error("Eroare la activarea fullscreen", err);
+        }
+    };
+
     const [quickCreateData, setQuickCreateData] = useState(null) // { teamId, clientId, clientName, date, time }
     const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', has_foil: false, has_mesh: false, has_duramint: false })
     const [quickEditOrder, setQuickEditOrder] = useState(null) // wo object
+    const [fullscreenOrderId, setFullscreenOrderId] = useState(null)
+    const [fullscreenNewOrder, setFullscreenNewOrder] = useState(null)
     const [quickEditForm, setQuickEditForm] = useState(null)
     const [quickEditSaving, setQuickEditSaving] = useState(false)
     const [quickCreateStep, setQuickCreateStep] = useState(1) // 1 = General, 2 = Resurse, 'new-client' = formular client nou
@@ -755,13 +785,30 @@ export default function AdminOverview() {
 
             {/* Calendar Timesheet and Radar - Visible only for short term interventions */}
             {isShortTerm && (
-                <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,160px)] gap-6 mb-6">
-                    <div>
+                <div 
+                    ref={calendarWrapperRef}
+                    className={isCalendarFull 
+                        ? "w-screen h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden gap-0 p-4 md:p-6" 
+                        : "grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,160px)] gap-6 mb-6"
+                    }
+                >
+                    <div className={isCalendarFull ? "flex-1 h-full min-w-0" : "min-w-0"}>
                         <ShortWorksCalendar 
+                            isCalendarFull={isCalendarFull}
+                            toggleCalendarFullscreen={toggleCalendarFullscreen}
                             workOrders={allWorkOrders} 
+                            teams={teams}
+                            clients={clients}
                             onOrderRescheduled={handleOrderRescheduled} 
                             onTeamDrop={handleTeamDropOnOrder}
                             onClientDrop={handleClientDropOnOrder}
+                            onOrderClick={(wo) => {
+                                if (isCalendarFull) {
+                                    setFullscreenOrderId(wo.id);
+                                } else {
+                                    navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
+                                }
+                            }}
                             onOrderEdit={(wo) => {
                                 setQuickEditOrder(wo);
                                 const v = wo.volumes?.[0] || {};
@@ -806,11 +853,12 @@ export default function AdminOverview() {
                             }}
                         />
                     </div>
-                    <div className="flex flex-col gap-4 h-[800px]">
-                        {/* Drag and Drop Clients Module */}
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
-                            <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-                                <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
+                    {!isCalendarFull && (
+                        <div className="flex flex-col gap-4 h-[800px]">
+                            {/* Drag and Drop Clients Module */}
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
+                                <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                    <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
                                     <Building2 className="w-3.5 h-3.5 text-white" />
                                     {t('admin_overview.frequent_clients', 'Clienți Frecvenți')}
                                 </h3>
@@ -829,9 +877,14 @@ export default function AdminOverview() {
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="p-1.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-orange-100 dark:bg-orange-900/30 border-orange-500 shadow-sm flex items-center justify-between"
+                                        className="p-1.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] shadow-sm flex items-center justify-between"
+                                        style={{
+                                            backgroundColor: `${tenant?.primary_color || '#2563eb'}18`,
+                                            borderColor: tenant?.primary_color || '#2563eb',
+                                            color: tenant?.primary_color || '#2563eb'
+                                        }}
                                     >
-                                        <div className="font-bold text-orange-600 dark:text-orange-400 text-xs truncate">⭐️ {client.name}</div>
+                                        <div className="font-bold text-xs truncate" style={{ color: tenant?.primary_color || '#2563eb' }}>⭐️ {client.name}</div>
                                     </div>
                                 ))}
                                 {clients.filter(c => !c.name.toLowerCase().includes('isoflex')).slice(0, 15).map(client => (
@@ -843,7 +896,7 @@ export default function AdminOverview() {
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between shadow-sm hover:border-amber-300"
+                                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between shadow-sm"
                                     >
                                         <div className="font-medium text-slate-700 dark:text-slate-300 text-xs truncate">{client.name}</div>
                                     </div>
@@ -904,8 +957,509 @@ export default function AdminOverview() {
                                 ))}
                             </div>
                         </div>
+                        </div>
+                    )}
+
+            {/* Activity Popup (Portal) */}
+            {activityPopup && (
+                <>
+                    <div className="fixed inset-0 z-[100]" onClick={() => setActivityPopup(null)} />
+                    <div
+                        className="fixed z-[110] bg-slate-900 text-white rounded-xl shadow-2xl p-3 min-w-[240px] max-w-[320px] animate-in fade-in zoom-in-95 duration-200"
+                        style={{
+                            top: Math.max(10, Math.min(activityPopup.anchorRect.top - 10, window.innerHeight - 200)),
+                            left: Math.max(10, Math.min(activityPopup.anchorRect.left, window.innerWidth - 260)),
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+                            <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Activity className="w-3.5 h-3.5 text-purple-400" />
+                                Activități Raportate
+                            </h4>
+                            <button onClick={() => setActivityPopup(null)} className="p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                        <div className="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar">
+                            {activityPopup.activities.map((a, i) => (
+                                <div key={i} className="flex justify-between items-center gap-4 bg-slate-800/50 rounded-xl p-2 border border-slate-700/50">
+                                    <span className="font-medium text-slate-200 text-xs">{a.name}</span>
+                                    <span className="font-bold text-purple-300 text-xs whitespace-nowrap">{a.quantity} <span className="text-[10px] text-slate-400 font-normal">{a.unit_type}</span></span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Quick Create Modal */}
+            {quickCreateData && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
+                        <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <Package className="w-4 h-4" />
+                                {t('dashboard.quick_create.title', 'Creare Rapidă')}
+                            </h3>
+                            <button onClick={() => setQuickCreateData(null)} className="text-blue-100 hover:text-white p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleQuickCreateSubmit} className="p-5 space-y-4">
+                            {quickCreateStep === 1 && (
+                                <>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.client_optional', 'Client (Opțional)')}</label>
+                                            <button type="button" onClick={() => setQuickCreateStep('new-client')} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors">
+                                                <Plus className="w-3 h-3" /> {t('dashboard.quick_create.new_client', 'Client Nou')}
+                                            </button>
+                                        </div>
+                                        <SearchableSelect
+                                            value={quickCreateForm.clientId || ""}
+                                            onChange={val => {
+                                                const c = clients.find(cl => String(cl.id) === String(val))
+                                                setQuickCreateForm(p => ({
+                                                    ...p,
+                                                    clientId: val,
+                                                    title: c && !p.title ? c.name : p.title,
+                                                    address: c && !p.address ? c.address : p.address,
+                                                    latitude: c && !p.latitude ? c.latitude : p.latitude,
+                                                    longitude: c && !p.longitude ? c.longitude : p.longitude
+                                                }))
+                                            }}
+                                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                                            placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
+                                            buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
+                                        <input 
+                                            type="text"
+                                            autoFocus
+                                            required
+                                            value={quickCreateForm.title}
+                                            onChange={e => setQuickCreateForm({ ...quickCreateForm, title: e.target.value })}
+                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate (Opțional)')}</label>
+                                            <button
+                                                type="button"
+                                                onClick={handleDetectGPS}
+                                                disabled={detectingLocation}
+                                                className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
+                                            >
+                                                {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                {t('dashboard.quick_create.gps_auto', 'GPS Automat')}
+                                            </button>
+                                        </div>
+                                        <AddressAutocomplete 
+                                            value={quickCreateForm.address}
+                                            onChange={(addr, lat, lon) => {
+                                                setQuickCreateForm(p => ({ 
+                                                    ...p, 
+                                                    address: addr,
+                                                    ...(lat && lon ? { latitude: lat, longitude: lon } : {})
+                                                }))
+                                            }}
+                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 pl-1">
+                                            {t('dashboard.quick_create.base_dist', 'Distanță Bază:')} {quickRouteDist ? (
+                                                <span className="text-amber-600 dark:text-amber-500">{Math.round(quickRouteDist)} km ({t('common.one_way', 'Dus')}) • {Math.round(quickRouteDist * 2)} km ({t('common.total', 'Total')})</span>
+                                            ) : quickRouteLoading ? (
+                                                <span className="inline-flex items-center gap-1 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> {t('common.calculating', 'se calculează...')}</span>
+                                            ) : (
+                                                <span className="opacity-60">- {t('dashboard.quick_create.choose_address', '(Alegeți adresa)')}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Suprafață (m²)')}</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={quickCreateForm.surface}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, surface: e.target.value })}
+                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Grosime (cm)')}</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={quickCreateForm.thickness}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
+                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
+                                        {t('dashboard.quick_create.sand_estimated', 'Nisip estimat:')} {calculatedSand > 0 ? (
+                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tone')}</span>
+                                        ) : (
+                                            <span className="opacity-60">- {t('dashboard.quick_create.enter_sqm', '(Introduceți m² și grosime)')}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_foil}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_foil: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            {t('dashboard.quick_create.include_foil', 'Include Folie plastic (1,2 EUR/m²)')}
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_mesh}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_mesh: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_duramint}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_duramint: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            {t('dashboard.quick_create.include_duramint', 'Include Duramint')}
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Echipă Alocată')}</label>
+                                        <SearchableSelect
+                                            value={quickCreateData.teamId || ''}
+                                            onChange={val => setQuickCreateData(p => ({...p, teamId: val}))}
+                                            options={[
+                                                { value: '', label: t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --') },
+                                                ...teams.map(t => ({ value: String(t.id), label: t.name }))
+                                            ]}
+                                            placeholder={t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --')}
+                                            buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                            menuPosition="top"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2 pt-3">
+                                        <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                            {t('common.cancel', 'Anulează')}
+                                        </button>
+                                        <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {quickCreateStep === 'new-client' && (
+                                <>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <button type="button" onClick={() => setQuickCreateStep(1)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
+                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('dashboard.quick_create.add_new_client', 'Adaugă Client Nou')}</span>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_type', 'Tip Client')}</label>
+                                        <div className="flex gap-2">
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'fizica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> {t('dashboard.quick_create.individual', 'Fizică')}
+                                            </label>
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'juridica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> {t('dashboard.quick_create.legal_entity', 'Juridică')}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_name', 'Nume Client *')}</label>
+                                        <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)')}</label>
+                                        <div className="flex gap-2">
+                                            {quickCreateClientForm.type === 'juridica' && (
+                                                <select 
+                                                    value={quickCreateClientForm.country} 
+                                                    onChange={e => setQuickCreateClientForm(p => ({...p, country: e.target.value}))} 
+                                                    className="w-24 h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                    title={t('dashboard.quick_create.country', 'Țară')}
+                                                >
+                                                    <option value="BE">🇧🇪 BE</option>
+                                                    <option value="RO">🇷🇴 RO</option>
+                                                    <option value="FR">🇫🇷 FR</option>
+                                                    <option value="NL">🇳🇱 NL</option>
+                                                    <option value="DE">🇩🇪 DE</option>
+                                                    <option value="IT">🇮🇹 IT</option>
+                                                    <option value="ES">🇪🇸 ES</option>
+                                                    <option value="GB">🇬🇧 GB</option>
+                                                    <option value="LU">🇱🇺 LU</option>
+                                                    <option value="AT">🇦🇹 AT</option>
+                                                    <option value="PL">🇵🇱 PL</option>
+                                                    <option value="CZ">🇨🇿 CZ</option>
+                                                    <option value="SK">🇸🇰 SK</option>
+                                                    <option value="HU">🇭🇺 HU</option>
+                                                    <option value="BG">🇧🇬 BG</option>
+                                                    <option value="HR">🇭🇷 HR</option>
+                                                    <option value="DK">🇩🇰 DK</option>
+                                                    <option value="FI">🇫🇮 FI</option>
+                                                    <option value="SE">🇸🇪 SE</option>
+                                                    <option value="PT">🇵🇹 PT</option>
+                                                    <option value="IE">🇮🇪 IE</option>
+                                                    <option value="GR">🇬🇷 GR</option>
+                                                </select>
+                                            )}
+                                            <div className="relative flex-1">
+                                            <input 
+                                                type="text" 
+                                                value={quickCreateClientForm.identifier} 
+                                                onChange={e => setQuickCreateClientForm(p => ({...p, identifier: e.target.value}))} 
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter' && quickCreateClientForm.type === 'juridica') {
+                                                        e.preventDefault();
+                                                        handleQuickViesSearch();
+                                                    }
+                                                }}
+                                                className="w-full h-11 pl-3 pr-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
+                                            />
+                                            {quickCreateClientForm.type === 'juridica' && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={handleQuickViesSearch}
+                                                    disabled={isSearchingVies || !quickCreateClientForm.identifier}
+                                                    className="absolute right-1 top-1 bottom-1 w-9 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                                    title="Caută firmă în VIES"
+                                                >
+                                                    {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {quickCreateClientForm.type === 'juridica' && (
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresă Sediu')}</label>
+                                            <input 
+                                                type="text" 
+                                                value={quickCreateClientForm.address} 
+                                                onChange={e => setQuickCreateClientForm(p => ({...p, address: e.target.value}))} 
+                                                placeholder={t('clients.address_placeholder', 'Completează sau caută automat cu lupa →')}
+                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.phone', 'Telefon')}</label>
+                                            <input type="text" value={quickCreateClientForm.phone} onChange={e => setQuickCreateClientForm(p => ({...p, phone: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.email', 'Email')}</label>
+                                            <input type="email" value={quickCreateClientForm.email} onChange={e => setQuickCreateClientForm(p => ({...p, email: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 pt-3">
+                                        <button type="button" onClick={() => setQuickCreateStep(1)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                            {t('common.back', 'Înapoi')}
+                                        </button>
+                                        <button type="button" onClick={handleQuickCreateClient} disabled={quickCreateSaving || !quickCreateClientForm.name} className="flex-1 h-11 font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.save_client', 'Salvează Client')}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </form>
                     </div>
                 </div>
+            )}
+
+            {/* Quick Edit Modal */}
+            {quickEditOrder && quickEditForm && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
+                        <div className="px-5 py-4 bg-slate-100 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl border-b border-slate-200 dark:border-slate-700">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <Edit2 className="w-4 h-4 text-blue-600" />
+                                {t('dashboard.quick_edit.title', 'Editare Rapidă')}
+                            </h3>
+                            <button onClick={() => setQuickEditOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleQuickEditSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto hide-scrollbar">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_edit.client', 'Client')}</label>
+                                <SearchableSelect
+                                    value={quickEditForm.clientId || ""}
+                                    onChange={val => {
+                                        const c = clients.find(cl => String(cl.id) === String(val))
+                                        setQuickEditForm(p => ({
+                                            ...p,
+                                            clientId: val,
+                                            title: c && !p.title ? c.name : p.title,
+                                            address: c && !p.address ? c.address : p.address,
+                                            latitude: c && !p.latitude ? c.latitude : p.latitude,
+                                            longitude: c && !p.longitude ? c.longitude : p.longitude
+                                        }))
+                                    }}
+                                    options={clients.map(c => ({ value: String(c.id), label: c.name }))}
+                                    placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
+                                    buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
+                                <input 
+                                    type="text"
+                                    required
+                                    value={quickEditForm.title}
+                                    onChange={e => setQuickEditForm({ ...quickEditForm, title: e.target.value })}
+                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Adresă / Localitate</label>
+                                <AddressAutocomplete 
+                                    value={quickEditForm.address}
+                                    onChange={(addr, lat, lon) => {
+                                        setQuickEditForm(p => ({ 
+                                            ...p, 
+                                            address: addr,
+                                            ...(lat && lon ? { latitude: lat, longitude: lon } : {})
+                                        }))
+                                    }}
+                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        value={quickEditForm.surface}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, surface: e.target.value })}
+                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        value={quickEditForm.thickness}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, thickness: e.target.value })}
+                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!quickEditForm.has_foil}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_foil: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    Include Folie plastic
+                                </label>
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!quickEditForm.has_mesh}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_mesh: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    Include Plasă metalică
+                                </label>
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!quickEditForm.has_duramint}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_duramint: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    Include Duramint
+                                </label>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Echipă Alocată</label>
+                                <SearchableSelect
+                                    value={quickEditForm.teamId || ''}
+                                    onChange={val => setQuickEditForm(p => ({...p, teamId: val}))}
+                                    options={[
+                                        { value: '', label: '-- Neasignat --' },
+                                        ...teams.map(t => ({ value: String(t.id), label: t.name }))
+                                    ]}
+                                    placeholder="-- Neasignat --"
+                                    buttonClassName="rounded-xl h-11 text-sm font-semibold"
+                                    menuPosition="top"
+                                />
+                            </div>
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                                <button type="button" onClick={() => setQuickEditOrder(null)} className="h-10 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                                    Anulează
+                                </button>
+                                <button type="submit" disabled={quickEditSaving} className="flex-1 h-10 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvează'}
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        if (isCalendarFull) {
+                                            setFullscreenOrderId(quickEditOrder.id);
+                                            setQuickEditOrder(null);
+                                        } else {
+                                            navigate(`/admin/work-orders/${quickEditOrder.id}/edit`);
+                                        }
+                                    }} 
+                                    className="flex-1 h-10 font-bold text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors rounded-xl flex items-center justify-center gap-2"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Detalii Avansate
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            
+            {/* Embedded Work Order Detail for Fullscreen Mode */}
+            {fullscreenOrderId && (
+                <WorkOrderDetail 
+                    orderId={fullscreenOrderId} 
+                    onBack={() => setFullscreenOrderId(null)} 
+                    isEmbedded={true} 
+                />
+            )}
+            
+            {/* Embedded Work Order Form for Fullscreen Mode */}
+            {fullscreenNewOrder && (
+                <WorkOrderForm 
+                    initialDate={fullscreenNewOrder.date}
+                    initialTime={fullscreenNewOrder.time}
+                    onBack={() => setFullscreenNewOrder(null)} 
+                    onSuccess={() => {
+                        setFullscreenNewOrder(null);
+                        fetchData();
+                    }}
+                    isEmbedded={true} 
+                />
+            )}
+
+                </div>
+
             )}
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
@@ -1817,474 +2371,6 @@ export default function AdminOverview() {
                         ) : (
                             <div className="flex items-center justify-center py-20 text-slate-400"><p>Eroare la încărcarea datelor</p></div>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {/* Activity Popup (Portal) */}
-            {activityPopup && (
-                <>
-                    <div className="fixed inset-0 z-[100]" onClick={() => setActivityPopup(null)} />
-                    <div
-                        className="fixed z-[110] bg-slate-900 text-white rounded-xl shadow-2xl p-3 min-w-[240px] max-w-[320px] animate-in fade-in zoom-in-95 duration-200"
-                        style={{
-                            top: Math.max(10, Math.min(activityPopup.anchorRect.top - 10, window.innerHeight - 200)),
-                            left: Math.max(10, Math.min(activityPopup.anchorRect.left, window.innerWidth - 260)),
-                        }}
-                    >
-                        <div className="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
-                            <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5 text-purple-400" />
-                                Activități Raportate
-                            </h4>
-                            <button onClick={() => setActivityPopup(null)} className="p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                        <div className="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar">
-                            {activityPopup.activities.map((a, i) => (
-                                <div key={i} className="flex justify-between items-center gap-4 bg-slate-800/50 rounded-xl p-2 border border-slate-700/50">
-                                    <span className="font-medium text-slate-200 text-xs">{a.name}</span>
-                                    <span className="font-bold text-purple-300 text-xs whitespace-nowrap">{a.quantity} <span className="text-[10px] text-slate-400 font-normal">{a.unit_type}</span></span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* Quick Create Modal */}
-            {quickCreateData && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
-                        <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl">
-                            <h3 className="font-bold text-white flex items-center gap-2">
-                                <Package className="w-4 h-4" />
-                                {t('dashboard.quick_create.title', 'Creare Rapidă')}
-                            </h3>
-                            <button onClick={() => setQuickCreateData(null)} className="text-blue-100 hover:text-white p-1">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleQuickCreateSubmit} className="p-5 space-y-4">
-                            {quickCreateStep === 1 && (
-                                <>
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.client_optional', 'Client (Opțional)')}</label>
-                                            <button type="button" onClick={() => setQuickCreateStep('new-client')} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors">
-                                                <Plus className="w-3 h-3" /> {t('dashboard.quick_create.new_client', 'Client Nou')}
-                                            </button>
-                                        </div>
-                                        <SearchableSelect
-                                            value={quickCreateForm.clientId || ""}
-                                            onChange={val => {
-                                                const c = clients.find(cl => String(cl.id) === String(val))
-                                                setQuickCreateForm(p => ({
-                                                    ...p,
-                                                    clientId: val,
-                                                    title: c && !p.title ? c.name : p.title,
-                                                    address: c && !p.address ? c.address : p.address,
-                                                    latitude: c && !p.latitude ? c.latitude : p.latitude,
-                                                    longitude: c && !p.longitude ? c.longitude : p.longitude
-                                                }))
-                                            }}
-                                            options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                                            placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
-                                            buttonClassName="rounded-xl h-11 text-sm font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
-                                        <input 
-                                            type="text"
-                                            autoFocus
-                                            required
-                                            value={quickCreateForm.title}
-                                            onChange={e => setQuickCreateForm({ ...quickCreateForm, title: e.target.value })}
-                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate (Opțional)')}</label>
-                                            <button
-                                                type="button"
-                                                onClick={handleDetectGPS}
-                                                disabled={detectingLocation}
-                                                className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
-                                            >
-                                                {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                                {t('dashboard.quick_create.gps_auto', 'GPS Automat')}
-                                            </button>
-                                        </div>
-                                        <AddressAutocomplete 
-                                            value={quickCreateForm.address}
-                                            onChange={(addr, lat, lon) => {
-                                                setQuickCreateForm(p => ({ 
-                                                    ...p, 
-                                                    address: addr,
-                                                    ...(lat && lon ? { latitude: lat, longitude: lon } : {})
-                                                }))
-                                            }}
-                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 pl-1">
-                                            {t('dashboard.quick_create.base_dist', 'Distanță Bază:')} {quickRouteDist ? (
-                                                <span className="text-amber-600 dark:text-amber-500">{Math.round(quickRouteDist)} km ({t('common.one_way', 'Dus')}) • {Math.round(quickRouteDist * 2)} km ({t('common.total', 'Total')})</span>
-                                            ) : quickRouteLoading ? (
-                                                <span className="inline-flex items-center gap-1 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> {t('common.calculating', 'se calculează...')}</span>
-                                            ) : (
-                                                <span className="opacity-60">- {t('dashboard.quick_create.choose_address', '(Alegeți adresa)')}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Suprafață (m²)')}</label>
-                                            <input 
-                                                type="number"
-                                                min="0"
-                                                step="any"
-                                                value={quickCreateForm.surface}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, surface: e.target.value })}
-                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Grosime (cm)')}</label>
-                                            <input 
-                                                type="number"
-                                                min="0"
-                                                step="any"
-                                                value={quickCreateForm.thickness}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
-                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
-                                        {t('dashboard.quick_create.sand_estimated', 'Nisip estimat:')} {calculatedSand > 0 ? (
-                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tone')}</span>
-                                        ) : (
-                                            <span className="opacity-60">- {t('dashboard.quick_create.enter_sqm', '(Introduceți m² și grosime)')}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_foil}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_foil: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_foil', 'Include Folie plastic (1,2 EUR/m²)')}
-                                        </label>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_mesh}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_mesh: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
-                                        </label>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!quickCreateForm.has_duramint}
-                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_duramint: e.target.checked })}
-                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                            />
-                                            {t('dashboard.quick_create.include_duramint', 'Include Duramint')}
-                                        </label>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Echipă Alocată')}</label>
-                                        <SearchableSelect
-                                            value={quickCreateData.teamId || ''}
-                                            onChange={val => setQuickCreateData(p => ({...p, teamId: val}))}
-                                            options={[
-                                                { value: '', label: t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --') },
-                                                ...teams.map(t => ({ value: String(t.id), label: t.name }))
-                                            ]}
-                                            placeholder={t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --')}
-                                            buttonClassName="rounded-xl h-11 text-sm font-semibold"
-                                            menuPosition="top"
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 pt-3">
-                                        <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                            {t('common.cancel', 'Anulează')}
-                                        </button>
-                                        <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-
-                            {quickCreateStep === 'new-client' && (
-                                <>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <button type="button" onClick={() => setQuickCreateStep(1)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
-                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('dashboard.quick_create.add_new_client', 'Adaugă Client Nou')}</span>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_type', 'Tip Client')}</label>
-                                        <div className="flex gap-2">
-                                            <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'fizica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> {t('dashboard.quick_create.individual', 'Fizică')}
-                                            </label>
-                                            <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'juridica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> {t('dashboard.quick_create.legal_entity', 'Juridică')}
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_name', 'Nume Client *')}</label>
-                                        <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)')}</label>
-                                        <div className="flex gap-2">
-                                            {quickCreateClientForm.type === 'juridica' && (
-                                                <select 
-                                                    value={quickCreateClientForm.country} 
-                                                    onChange={e => setQuickCreateClientForm(p => ({...p, country: e.target.value}))} 
-                                                    className="w-24 h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                                    title={t('dashboard.quick_create.country', 'Țară')}
-                                                >
-                                                    <option value="BE">🇧🇪 BE</option>
-                                                    <option value="RO">🇷🇴 RO</option>
-                                                    <option value="FR">🇫🇷 FR</option>
-                                                    <option value="NL">🇳🇱 NL</option>
-                                                    <option value="DE">🇩🇪 DE</option>
-                                                    <option value="IT">🇮🇹 IT</option>
-                                                    <option value="ES">🇪🇸 ES</option>
-                                                    <option value="GB">🇬🇧 GB</option>
-                                                    <option value="LU">🇱🇺 LU</option>
-                                                    <option value="AT">🇦🇹 AT</option>
-                                                    <option value="PL">🇵🇱 PL</option>
-                                                    <option value="CZ">🇨🇿 CZ</option>
-                                                    <option value="SK">🇸🇰 SK</option>
-                                                    <option value="HU">🇭🇺 HU</option>
-                                                    <option value="BG">🇧🇬 BG</option>
-                                                    <option value="HR">🇭🇷 HR</option>
-                                                    <option value="DK">🇩🇰 DK</option>
-                                                    <option value="FI">🇫🇮 FI</option>
-                                                    <option value="SE">🇸🇪 SE</option>
-                                                    <option value="PT">🇵🇹 PT</option>
-                                                    <option value="IE">🇮🇪 IE</option>
-                                                    <option value="GR">🇬🇷 GR</option>
-                                                </select>
-                                            )}
-                                            <div className="relative flex-1">
-                                            <input 
-                                                type="text" 
-                                                value={quickCreateClientForm.identifier} 
-                                                onChange={e => setQuickCreateClientForm(p => ({...p, identifier: e.target.value}))} 
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter' && quickCreateClientForm.type === 'juridica') {
-                                                        e.preventDefault();
-                                                        handleQuickViesSearch();
-                                                    }
-                                                }}
-                                                className="w-full h-11 pl-3 pr-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
-                                            />
-                                            {quickCreateClientForm.type === 'juridica' && (
-                                                <button 
-                                                    type="button"
-                                                    onClick={handleQuickViesSearch}
-                                                    disabled={isSearchingVies || !quickCreateClientForm.identifier}
-                                                    className="absolute right-1 top-1 bottom-1 w-9 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                                                    title="Caută firmă în VIES"
-                                                >
-                                                    {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                                </button>
-                                            )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {quickCreateClientForm.type === 'juridica' && (
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresă Sediu')}</label>
-                                            <input 
-                                                type="text" 
-                                                value={quickCreateClientForm.address} 
-                                                onChange={e => setQuickCreateClientForm(p => ({...p, address: e.target.value}))} 
-                                                placeholder={t('clients.address_placeholder', 'Completează sau caută automat cu lupa →')}
-                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" 
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.phone', 'Telefon')}</label>
-                                            <input type="text" value={quickCreateClientForm.phone} onChange={e => setQuickCreateClientForm(p => ({...p, phone: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.email', 'Email')}</label>
-                                            <input type="email" value={quickCreateClientForm.email} onChange={e => setQuickCreateClientForm(p => ({...p, email: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2 pt-3">
-                                        <button type="button" onClick={() => setQuickCreateStep(1)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                            {t('common.back', 'Înapoi')}
-                                        </button>
-                                        <button type="button" onClick={handleQuickCreateClient} disabled={quickCreateSaving || !quickCreateClientForm.name} className="flex-1 h-11 font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.save_client', 'Salvează Client')}
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Quick Edit Modal */}
-            {quickEditOrder && quickEditForm && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
-                        <div className="px-5 py-4 bg-slate-100 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl border-b border-slate-200 dark:border-slate-700">
-                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                <Edit2 className="w-4 h-4 text-blue-600" />
-                                {t('dashboard.quick_edit.title', 'Editare Rapidă')}
-                            </h3>
-                            <button onClick={() => setQuickEditOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleQuickEditSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto hide-scrollbar">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_edit.client', 'Client')}</label>
-                                <SearchableSelect
-                                    value={quickEditForm.clientId || ""}
-                                    onChange={val => {
-                                        const c = clients.find(cl => String(cl.id) === String(val))
-                                        setQuickEditForm(p => ({
-                                            ...p,
-                                            clientId: val,
-                                            title: c && !p.title ? c.name : p.title,
-                                            address: c && !p.address ? c.address : p.address,
-                                            latitude: c && !p.latitude ? c.latitude : p.latitude,
-                                            longitude: c && !p.longitude ? c.longitude : p.longitude
-                                        }))
-                                    }}
-                                    options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                                    placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
-                                    buttonClassName="rounded-xl h-11 text-sm font-semibold"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
-                                <input 
-                                    type="text"
-                                    required
-                                    value={quickEditForm.title}
-                                    onChange={e => setQuickEditForm({ ...quickEditForm, title: e.target.value })}
-                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Adresă / Localitate</label>
-                                <AddressAutocomplete 
-                                    value={quickEditForm.address}
-                                    onChange={(addr, lat, lon) => {
-                                        setQuickEditForm(p => ({ 
-                                            ...p, 
-                                            address: addr,
-                                            ...(lat && lon ? { latitude: lat, longitude: lon } : {})
-                                        }))
-                                    }}
-                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
-                                    <input 
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        value={quickEditForm.surface}
-                                        onChange={e => setQuickEditForm({ ...quickEditForm, surface: e.target.value })}
-                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
-                                    <input 
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        value={quickEditForm.thickness}
-                                        onChange={e => setQuickEditForm({ ...quickEditForm, thickness: e.target.value })}
-                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!quickEditForm.has_foil}
-                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_foil: e.target.checked })}
-                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                    />
-                                    Include Folie plastic
-                                </label>
-                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!quickEditForm.has_mesh}
-                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_mesh: e.target.checked })}
-                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                    />
-                                    Include Plasă metalică
-                                </label>
-                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!quickEditForm.has_duramint}
-                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_duramint: e.target.checked })}
-                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                    />
-                                    Include Duramint
-                                </label>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Echipă Alocată</label>
-                                <SearchableSelect
-                                    value={quickEditForm.teamId || ''}
-                                    onChange={val => setQuickEditForm(p => ({...p, teamId: val}))}
-                                    options={[
-                                        { value: '', label: '-- Neasignat --' },
-                                        ...teams.map(t => ({ value: String(t.id), label: t.name }))
-                                    ]}
-                                    placeholder="-- Neasignat --"
-                                    buttonClassName="rounded-xl h-11 text-sm font-semibold"
-                                    menuPosition="top"
-                                />
-                            </div>
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                                <button type="button" onClick={() => setQuickEditOrder(null)} className="h-10 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                                    Anulează
-                                </button>
-                                <button type="submit" disabled={quickEditSaving} className="flex-1 h-10 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvează'}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => navigate(`/admin/work-orders/${quickEditOrder.id}/edit`)} 
-                                    className="flex-1 h-10 font-bold text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors rounded-xl flex items-center justify-center gap-2"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                    Detalii Avansate
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             )}

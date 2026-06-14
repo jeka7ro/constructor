@@ -893,13 +893,17 @@
     },
     "access_notes": "Notes d'Accès",
     "general_details": {
-      "title": "Détails Généraux",
-      "id": "ID Commande",
-      "status": "Statut",
-      "client": "Client",
+      "title": "DÉTAILS GÉNÉRAUX",
+      "id": "ID COMMANDE",
+      "status": "STATUT",
+      "client": "CLIENT",
       "start_date": "Date de Début",
       "deadline": "Échéance",
-      "notes": "Remarques"
+      "notes": "Remarques",
+      "team_leader": "CHEF D'ÉQUIPE (CONFIRMATION)",
+      "estimated_price": "PRIX ESTIMÉ",
+      "team_leader_short": "CHEF D'ÉQUIPE",
+      "client_beneficiary": "BÉNÉFICIAIRE"
     },
     "measurements": {
       "title": "Mesures & Volumes",
@@ -977,6 +981,17 @@
       "no_consumed_materials": "Aucun matériau consommé enregistré",
       "distribution": "Distribution des quantités",
       "no_quantities": "Aucune quantité enregistrée"
+    },
+    "status": {
+      "acknowledged_on": "A pris connaissance le",
+      "note": "Note :",
+      "opened_on": "A ouvert la commande le",
+      "not_acknowledged": "N'a pas encore pris connaissance",
+      "confirmed": "Confirmé",
+      "awaiting_confirmation": "En attente",
+      "confirmed_by": "Confirmé par",
+      "at_date": "le",
+      "not_confirmed_by_client": "Non confirmé par le client"
     }
   },
   "admin_dashboard": {
@@ -1044,15 +1059,15 @@
     "add_item": "+ Ajouter",
     "remove": "Supprimer",
     "calc_cost_admin": "Calcul du coût (Admin uniquement)",
-    "base_screed": "Chape de base (≤5cm)",
-    "extra_thickness": "Épaisseur supplémentaire ({{cm}} cm)",
+    "base_screed": "Chape de base",
+    "extra_thickness": "Épaisseur supplémentaire",
     "plastic_foil": "Film plastique",
     "metal_mesh": "Treillis métallique",
     "fibers_duramit": "Fibres + Duramit",
-    "total_net": "Total Net:",
-    "vat_physical": "TVA (21% Particulier):",
+    "total_net": "Total Net",
+    "vat_physical": "TVA (21% Particulier)",
     "vat_juridical": "TVA: 0% (Entreprise)",
-    "total_gross": "MONTANT TOTAL:",
+    "total_gross": "MONTANT TOTAL",
     "include_foil": "Inclure film plastique (1,2 EUR/m²)",
     "include_mesh": "Inclure treillis métallique (2,50 EUR/m²)",
     "sand_estimate": "Sable estimé nécessaire: {{kg}} kg ({{tons}} tonnes)",
@@ -1074,7 +1089,9 @@
     "status_scheduled": "Planifiée",
     "status_in_progress": "En Cours",
     "status_completed": "Terminée",
-    "status_cancelled": "Annulée"
+    "status_cancelled": "Annulée",
+    "estimated_price_title": "Prix Estimé (Facture Proforma)",
+    "cost_calculation_admin": "Calcul du coût (Visible uniquement par l'admin)"
   },
   "admin_overview": {
     "jobs_today": "Travaux Aujourd'hui",

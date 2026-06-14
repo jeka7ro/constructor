@@ -891,13 +891,17 @@
     },
     "access_notes": "Access Notes",
     "general_details": {
-      "title": "General Details",
-      "id": "Order ID",
-      "status": "Status",
-      "client": "Client",
+      "title": "GENERAL DETAILS",
+      "id": "ORDER ID",
+      "status": "STATUS",
+      "client": "CLIENT",
       "start_date": "Start Date",
       "deadline": "Deadline",
-      "notes": "Notes and Requirements"
+      "notes": "Notes and Requirements",
+      "team_leader": "TEAM LEADER (CONFIRMATION)",
+      "estimated_price": "ESTIMATED PRICE",
+      "team_leader_short": "TEAM LEADER",
+      "client_beneficiary": "BENEFICIARY"
     },
     "measurements": {
       "title": "Measurements & Volumes",
@@ -975,6 +979,17 @@
       "no_consumed_materials": "No consumed material recorded",
       "distribution": "Quantity Distribution",
       "no_quantities": "No quantity recorded"
+    },
+    "status": {
+      "acknowledged_on": "Acknowledged on",
+      "note": "Note:",
+      "opened_on": "Opened order on",
+      "not_acknowledged": "Not acknowledged yet",
+      "confirmed": "Confirmed",
+      "awaiting_confirmation": "Awaiting",
+      "confirmed_by": "Confirmed by",
+      "at_date": "at",
+      "not_confirmed_by_client": "Not confirmed by client"
     }
   },
   "admin_dashboard": {

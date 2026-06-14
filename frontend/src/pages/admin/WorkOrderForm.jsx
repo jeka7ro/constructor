@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
     ChevronLeft, Plus, Trash2, ClipboardList, Check,
     User, MapPin, Calendar, FileText, Loader2,
-    Users, Truck, Image, X, Clock, Save, Send, Banknote, Info
+    Users, Truck, Image, X, Clock, Save, Send, Banknote, Info, Edit2
 } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
@@ -45,6 +45,7 @@ const EMPTY_FORM = {
     deadline_date: '',
     // Cantitati
     volumes: [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
+    prices: { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5 },
     // Materiale
     materials: [{ name: '', quantity: '', unit: '' }],
     // Echipa + vehicul
@@ -57,14 +58,10 @@ const EMPTY_FORM = {
     access_notes: '',
 }
 
-function Section({ icon: Icon, title, children, zIndex }) {
+function Section({ children, zIndex }) {
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800" style={{ zIndex, position: zIndex ? 'relative' : 'static' }}>
-            <div className="px-3 py-2.5 bg-blue-600 dark:bg-slate-800 rounded-t-xl flex items-center gap-2">
-                <Icon className="w-4 h-4 text-white" />
-                <h3 className="font-bold text-white text-sm">{title}</h3>
-            </div>
-            <div className="p-3 space-y-3">{children}</div>
+        <div style={{ zIndex, position: zIndex ? 'relative' : 'static' }} className="space-y-3">
+            {children}
         </div>
     )
 }
@@ -92,13 +89,17 @@ export default function WorkOrderForm() {
     const fileRef = useRef()
 
     const [form, setForm] = useState(() => {
+        let initial = EMPTY_FORM;
         if (!isEdit) {
             try {
                 const saved = localStorage.getItem('work_order_draft_new');
-                if (saved) return JSON.parse(saved);
+                if (saved) initial = JSON.parse(saved);
             } catch (e) {}
         }
-        return EMPTY_FORM;
+        if (!initial.prices) {
+            initial.prices = { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5 };
+        }
+        return initial;
     })
     const [clients, setClients] = useState([])
     const [sites, setSites] = useState([])
@@ -114,51 +115,19 @@ export default function WorkOrderForm() {
     const [currentStep, setCurrentStep] = useState(1)
     const [savedId, setSavedId] = useState(null)
     const [showBankDetails, setShowBankDetails] = useState(false)
+    const [showFullClient, setShowFullClient] = useState(!isEdit);
+    const [showFullSite, setShowFullSite] = useState(!isEdit);
+    const [showAccess, setShowAccess] = useState(false);
+
+    useEffect(() => {
+        if (!isEdit) {
+            setShowFullClient(true);
+            setShowFullSite(true);
+        }
+    }, [isEdit]);
 
     const set = (key, val) => setForm(p => ({ ...p, [key]: val }))
-
-
-    // Auto-calculate estimated_amount based on volumes and client type
-    useEffect(() => {
-        let isAutoCalculated = false;
-        let totalNet = 0;
-        
-        form.volumes.forEach(vol => {
-            const surface = parseFloat(vol.quantity) || 0;
-            const thickness = parseFloat(vol.thickness) || 0;
-            if (vol.label?.toLowerCase()?.includes('sapa') && surface > 0) {
-                isAutoCalculated = true;
-                const extraThickness = Math.max(0, thickness - 5);
-                const basePrice = 12.5 * surface;
-                const extraPrice = extraThickness * 1.25 * surface;
-                const foilPrice = vol.has_foil ? 1.2 * surface : 0;
-                const meshPrice = vol.has_mesh ? 2.5 * surface : 0;
-                
-                // Fibers + Duramit (Mandatory)
-                const fiberRate = surface <= 200 ? 2.5 : 2.0;
-                const fiberPrice = surface * fiberRate;
-                
-                totalNet += basePrice + extraPrice + foilPrice + meshPrice + fiberPrice;
-            }
-        });
-
-        if (isAutoCalculated) {
-            let totalGross = totalNet;
-            const client = clients.find(c => c.id === form.client_id);
-            if (client?.client_type === 'fizica') {
-                totalGross = totalNet * 1.21;
-            }
-            totalGross = Math.round(totalGross * 100) / 100;
-            
-            if (form.estimated_amount !== totalGross || form.is_auto_calculated !== true) {
-                setForm(p => ({ ...p, estimated_amount: totalGross, is_auto_calculated: true }));
-            }
-        } else {
-            if (form.is_auto_calculated) {
-                setForm(p => ({ ...p, is_auto_calculated: false }));
-            }
-        }
-    }, [form.volumes, form.client_id, clients, form.estimated_amount, form.is_auto_calculated]);
+    // Auto-calculate logic removed
 
     useEffect(() => {
         if (!isEdit) {
@@ -496,10 +465,10 @@ export default function WorkOrderForm() {
             surfaceForAuto += surface;
             const extraThickness = Math.max(0, thickness - 5);
             extraThickForAuto = extraThickness;
-            autoBase += 12.5 * surface;
-            autoExtra += extraThickness * 1.25 * surface;
-            autoFoil += vol.has_foil ? 1.2 * surface : 0;
-            autoMesh += vol.has_mesh ? 2.5 * surface : 0;
+            autoBase += (parseFloat(form.prices?.base || 12.5) * surface);
+            autoExtra += extraThickness * parseFloat(form.prices?.extra || 1.25) * surface;
+            autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || 1.2) * surface : 0;
+            autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || 2.5) * surface : 0;
         }
     });
 
@@ -515,7 +484,7 @@ export default function WorkOrderForm() {
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl">
             {/* Header */}
-            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap max-w-4xl">
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap w-full max-w-6xl xl:max-w-7xl">
                 <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={() => navigate('/admin/work-orders')}
@@ -552,7 +521,7 @@ export default function WorkOrderForm() {
             </div>
 
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl text-sm font-semibold mb-4 max-w-4xl">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl text-sm font-semibold mb-4 w-full max-w-6xl xl:max-w-7xl">
                     {error}
                 </div>
             )}
@@ -560,279 +529,223 @@ export default function WorkOrderForm() {
 
             {/* Stepper UI Removed */}
 
-            <div className="max-w-4xl space-y-6">
+            <div className="w-full max-w-6xl xl:max-w-7xl">
 
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Section icon={FileText} title={t('work_order_form.general_details', 'Detalii, Client și Locație')} zIndex={80}>
-                        {/* 2. Client */}
-                        <div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <User className="w-4 h-4 text-blue-500" />
-                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.client', 'Client')}</h3>
-                            </div>
-                            <div className="flex gap-2 mb-4">
-                                {[['existing', t('common.existing', 'Client Existent')], ['new', t('common.new', 'Client Nou')]].map(([m, label]) => (
-                                    <button key={m} onClick={() => set('client_mode', m)}
-                                        className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.client_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Section icon={FileText} title={t('work_order_form.general_details', 'Détails Généraux')} zIndex={80}>
+                        <div className="space-y-0">
 
-                            {form.client_mode === 'existing' ? (
-                                <>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                                        <div className="md:col-span-2">
-                                            <Field label={t('work_order_form.select_client', 'Selecteaza Client')}>
-                                                <select value={form.client_id} onChange={e => {
-                                                    const cl = clients.find(c => c.id === e.target.value)
-                                                    setForm(p => ({
-                                                        ...p,
-                                                        client_id: e.target.value,
-                                                        client_name: cl?.name || '',
-                                                        client_email: cl?.email || '',
-                                                        client_phone: cl?.phone || '',
-                                                        client_language: cl?.preferred_language || 'ro',
-                                                    }))
-                                                }} className={SELECT}>
-                                                    <option value="">— {t('work_order_form.select_client', 'Alege client')} —</option>
-                                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                                </select>
-                                            </Field>
+                            {/* ===== COMPACT INLINE VIEW / EDIT ===== */}
+                            {isEdit && !showFullClient && !showFullSite ? (
+                                /* VIEW MODE — two tight rows, click to edit */
+                                <div className="space-y-1">
+                                    {/* Row 1 — Client */}
+                                    <div
+                                        onClick={() => setShowFullClient(true)}
+                                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer group transition-colors"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                                            <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">{form.client_name ? form.client_name.charAt(0).toUpperCase() : '?'}</span>
                                         </div>
-                                        <div className="md:col-span-1">
-                                            <Field label={t('work_order_form.language', 'Limba')}>
-                                                <select 
-                                                    value={form.client_language} 
-                                                    onChange={e => set('client_language', e.target.value)}
-                                                    className={SELECT}
-                                                >
-                                                    <option value="ro">🇷🇴 Română</option>
-                                                    <option value="en">🇬🇧 Engleză</option>
-                                                    <option value="fr">🇫🇷 Franceză</option>
-                                                    <option value="de">🇩🇪 Germană</option>
-                                                    <option value="nl">🇳🇱 Olandeză</option>
-                                                    <option value="ru">🇷🇺 Rusă</option>
-                                                </select>
-                                            </Field>
+                                        <div className="flex items-center gap-3 flex-wrap flex-1 min-w-0">
+                                            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{form.client_name || <span className="text-slate-400 italic">— client —</span>}</span>
+                                            {form.client_phone && <span className="text-xs text-slate-500">📞 {form.client_phone}</span>}
+                                            {form.client_email && <span className="text-xs text-slate-500">✉️ {form.client_email}</span>}
+                                            {form.client_language && <span className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">{form.client_language === 'fr' ? '🇫🇷' : form.client_language === 'en' ? '🇬🇧' : form.client_language === 'nl' ? '🇳🇱' : form.client_language === 'de' ? '🇩🇪' : form.client_language === 'ru' ? '🇷🇺' : '🇷🇴'} {form.client_language?.toUpperCase()}</span>}
                                         </div>
+                                        <span className="text-xs text-slate-300 group-hover:text-blue-500 transition-colors shrink-0 flex items-center gap-1"><Edit2 className="w-3 h-3" /> {t('common.edit', 'Modifier')}</span>
                                     </div>
-                                    {selectedClient && (
-                                        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300 space-y-0.5">
-                                            {selectedClient.phone && <p>{selectedClient.phone}</p>}
-                                            {selectedClient.email && <p>{selectedClient.email}</p>}
+
+                                    {/* Divider */}
+                                    <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3" />
+
+                                    {/* Row 2 — Location */}
+                                    <div
+                                        onClick={() => setShowFullSite(true)}
+                                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer group transition-colors"
+                                    >
+                                        <MapPin className="w-5 h-5 text-emerald-500 shrink-0" />
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            {form.site_mode === 'existing' && selectedSite ? (
+                                                <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{selectedSite.address}</span>
+                                            ) : form.site_address ? (
+                                                <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{form.site_address}</span>
+                                            ) : (
+                                                <span className="text-sm text-slate-400 italic">— {t('work_order_form.no_location', 'adresse non définie')} —</span>
+                                            )}
+                                            {(form.site_latitude && form.site_longitude) && (
+                                                <span className="text-xs text-slate-400 shrink-0">📌 {parseFloat(form.site_latitude).toFixed(4)}, {parseFloat(form.site_longitude).toFixed(4)}</span>
+                                            )}
                                         </div>
-                                    )}
-                                </>
+                                        <span className="text-xs text-slate-300 group-hover:text-emerald-500 transition-colors shrink-0 flex items-center gap-1"><Edit2 className="w-3 h-3" /> {t('common.edit', 'Modifier')}</span>
+                                    </div>
+                                </div>
                             ) : (
-                                <div className="space-y-3">
-                                    <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit mb-2">
-                                        <button type="button" onClick={() => set('client_type', 'juridica')}
-                                            className={`px-4 h-7 rounded-md text-xs font-bold transition-all ${form.client_type === 'juridica' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                                            {t('work_order_form.company_type_juridical', 'Persoană Juridică')}
-                                        </button>
-                                        <button type="button" onClick={() => set('client_type', 'fizica')}
-                                            className={`px-4 h-7 rounded-md text-xs font-bold transition-all ${form.client_type === 'fizica' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                                            {t('work_order_form.company_type_physical', 'Persoană Fizică')}
-                                        </button>
-                                    </div>
+                                /* EDIT MODE — compact inline fields */
+                                <div className="space-y-3 p-1">
 
-                                    {form.client_type === 'juridica' ? (
-                                        <>
-                                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                                <div className="sm:col-span-2">
-                                                    <Field label={t('work_order_form.company_name', 'Nume Companie')} required>
-                                                        <input type="text" value={form.client_name} onChange={e => set('client_name', e.target.value)} className={INPUT} />
-                                                    </Field>
+                                    {/* === CLIENT EDIT === */}
+                                    <div className="space-y-2">
+                                        {/* Toggle row */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <User className="w-4 h-4 text-blue-500 shrink-0" />
+                                            <div className="flex gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full">
+                                                {[['existing', t('common.existing', 'Existant')], ['new', t('common.new', 'Nouveau')]].map(([m, label]) => (
+                                                    <button key={m} type="button" onClick={() => set('client_mode', m)}
+                                                        className={`px-3 h-6 rounded-full text-xs font-bold transition-all ${form.client_mode === m ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700'}`}>
+                                                        {label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {form.client_mode === 'new' && (
+                                                <div className="flex gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full">
+                                                    {[['fizica', t('work_order_form.company_type_physical', 'Particulier')], ['juridica', t('work_order_form.company_type_juridical', 'Entreprise')]].map(([m, label]) => (
+                                                        <button key={m} type="button" onClick={() => set('client_type', m)}
+                                                            className={`px-3 h-6 rounded-full text-xs font-bold transition-all ${form.client_type === m ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700'}`}>
+                                                            {label}
+                                                        </button>
+                                                    ))}
                                                 </div>
-                                                <Field label={t('common.country', 'Țară')}>
-                                                    <select value={form.client_country} onChange={e => set('client_country', e.target.value)} className={INPUT}>
-                                                        <option value="RO">{t('countries.ro', 'România')}</option>
-                                                        <option value="FR">{t('countries.fr', 'Franța')}</option>
-                                                        <option value="BE">{t('countries.be', 'Belgia')}</option>
-                                                        <option value="NL">{t('countries.nl', 'Olanda')}</option>
-                                                        <option value="DE">{t('countries.de', 'Germania')}</option>
-                                                        <option value="IT">{t('countries.it', 'Italia')}</option>
-                                                        <option value="ES">{t('countries.es', 'Spania')}</option>
-                                                        <option value="GB">{t('countries.gb', 'Marea Britanie')}</option>
+                                            )}
+                                            {isEdit && (
+                                                <button type="button" onClick={() => { setShowFullClient(false); setShowFullSite(false); }}
+                                                    className="ml-auto flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                                    <X className="w-3.5 h-3.5" /> {t('common.cancel', 'Fermer')}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Fields row */}
+                                        {form.client_mode === 'existing' ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                                                <div className="sm:col-span-3">
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('work_order_form.select_client', 'Client')}</label>
+                                                    <select value={form.client_id} onChange={e => {
+                                                        const cl = clients.find(c => c.id === e.target.value)
+                                                        setForm(p => ({
+                                                            ...p,
+                                                            client_id: e.target.value,
+                                                            client_name: cl?.name || '',
+                                                            client_email: cl?.email || '',
+                                                            client_phone: cl?.phone || '',
+                                                            client_language: cl?.preferred_language || 'ro',
+                                                        }))
+                                                    }} className={SELECT}>
+                                                        <option value="">— {t('work_order_form.select_client', 'Choisir client')} —</option>
+                                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                     </select>
-                                                </Field>
-                                                <Field label={form.client_country === 'RO' ? 'CUI' : 'VAT Number (TVA)'}>
-                                                    <input type="text" value={form.client_company_vat} onChange={e => set('client_company_vat', e.target.value)} className={INPUT} />
-                                                </Field>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                                <div className="sm:col-span-2">
-                                                    <Field label={t('work_order_form.contact_person', 'Persoană de Contact')}>
-                                                        <input type="text" value={form.client_contact_person} onChange={e => set('client_contact_person', e.target.value)} className={INPUT} />
-                                                    </Field>
                                                 </div>
-                                                <div className="sm:col-span-2">
-                                                    <Field label={form.client_country === 'RO' ? 'Nr. Reg. Comerțului' : 'Registration Number'}>
-                                                        <input type="text" value={form.client_company_reg_number} onChange={e => set('client_company_reg_number', e.target.value)} className={INPUT} />
-                                                    </Field>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('work_order_form.language', 'Langue')}</label>
+                                                    <select value={form.client_language} onChange={e => set('client_language', e.target.value)} className={SELECT}>
+                                                        <option value="ro">🇷🇴 RO</option>
+                                                        <option value="en">🇬🇧 EN</option>
+                                                        <option value="fr">🇫🇷 FR</option>
+                                                        <option value="de">🇩🇪 DE</option>
+                                                        <option value="nl">🇳🇱 NL</option>
+                                                        <option value="ru">🇷🇺 RU</option>
+                                                    </select>
                                                 </div>
-                                            </div>
-                                            <div>
-                                                <label className="flex items-center gap-2 cursor-pointer mb-2">
-                                                    <input type="checkbox" checked={showBankDetails} onChange={e => setShowBankDetails(e.target.checked)} className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('work_order_form.add_bank_details', 'Adaugă detalii bancare (Bancă, IBAN, SWIFT)')}</span>
-                                                </label>
-                                                {showBankDetails && (
-                                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                                        <div className="sm:col-span-2">
-                                                            <Field label={t('work_order_form.bank_name', 'Nume Bancă')}><input type="text" value={form.client_company_bank} onChange={e => set('client_company_bank', e.target.value)} className={INPUT} /></Field>
-                                                        </div>
-                                                        <Field label="IBAN"><input type="text" value={form.client_company_iban} onChange={e => set('client_company_iban', e.target.value)} className={INPUT} /></Field>
-                                                        <Field label="SWIFT"><input type="text" value={form.client_company_swift} onChange={e => set('client_company_swift', e.target.value)} className={INPUT} /></Field>
+                                                {selectedClient && (
+                                                    <div className="sm:col-span-4 flex gap-4 text-xs text-slate-500 px-1">
+                                                        {selectedClient.phone && <span>📞 {selectedClient.phone}</span>}
+                                                        {selectedClient.email && <span>✉️ {selectedClient.email}</span>}
                                                     </div>
                                                 )}
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="sm:w-1/2">
-                                            <Field label={t('work_order_form.full_name', 'Nume și Prenume')} required>
-                                                <input type="text" value={form.client_name} onChange={e => set('client_name', e.target.value)} className={INPUT} placeholder="Popescu Ion" />
-                                            </Field>
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+                                                <div className="sm:col-span-2">
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('work_order_form.full_name', 'Nom')} *</label>
+                                                    <input type="text" value={form.client_name} onChange={e => set('client_name', e.target.value)} className={INPUT} placeholder="Popescu Ion" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('common.phone', 'Tél')}</label>
+                                                    <input type="text" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} className={INPUT} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('common.email', 'Email')}</label>
+                                                    <input type="email" value={form.client_email} onChange={e => set('client_email', e.target.value)} className={INPUT} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('work_order_form.language', 'Langue')}</label>
+                                                    <select value={form.client_language} onChange={e => set('client_language', e.target.value)} className={SELECT}>
+                                                        <option value="ro">🇷🇴 RO</option>
+                                                        <option value="en">🇬🇧 EN</option>
+                                                        <option value="fr">🇫🇷 FR</option>
+                                                        <option value="de">🇩🇪 DE</option>
+                                                        <option value="nl">🇳🇱 NL</option>
+                                                        <option value="ru">🇷🇺 RU</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                        <Field label={t('common.phone', 'Telefon')}><input type="text" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} className={INPUT} /></Field>
-                                        <Field label={t('common.email', 'Email')}><input type="email" value={form.client_email} onChange={e => set('client_email', e.target.value)} className={INPUT} /></Field>
-                                        <Field label={t('work_order_form.language', 'Limba')}>
-                                            <select value={form.client_language} onChange={e => set('client_language', e.target.value)} className={SELECT}>
-                                                <option value="ro">🇷🇴 Română</option>
-                                                <option value="en">🇬🇧 Engleză</option>
-                                                <option value="fr">🇫🇷 Franceză</option>
-                                                <option value="de">🇩🇪 Germană</option>
-                                                <option value="nl">🇳🇱 Olandeză</option>
-                                                <option value="ru">🇷🇺 Rusă</option>
+                                    {/* === LOCATION EDIT === */}
+                                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_form.site_location', 'Lieu du Chantier')}</span>
+                                            <div className="flex gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full ml-2">
+                                                {[['existing', t('common.existing', 'Sauvegardé')], ['new', t('common.new', 'Nouvelle adresse')]].map(([m, label]) => (
+                                                    <button key={m} type="button" onClick={() => set('site_mode', m)}
+                                                        className={`px-3 h-6 rounded-full text-xs font-bold transition-all ${form.site_mode === m ? 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700'}`}>
+                                                        {label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {form.site_mode === 'existing' ? (
+                                            <select value={form.site_id} onChange={e => set('site_id', e.target.value)} className={SELECT}>
+                                                <option value="">— {t('work_order_form.select_location', 'Choisir chantier')} —</option>
+                                                {sites.map(s => <option key={s.id} value={s.id}>{s.address}</option>)}
                                             </select>
-                                        </Field>
-                                        <Field label={t('common.address', 'Adresă')}><input type="text" value={form.client_address} onChange={e => set('client_address', e.target.value)} className={INPUT} /></Field>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <AddressAutocomplete
+                                                    value={form.site_address}
+                                                    onChange={val => set('site_address', val)}
+                                                    onSelect={({ address, lat, lon }) => setForm(p => ({ ...p, site_address: address, site_latitude: lat, site_longitude: lon }))}
+                                                    placeholder={t('work_order_form.address_placeholder', 'Chercher une adresse...')}
+                                                    className={INPUT}
+                                                />
+                                                {form.site_latitude && form.site_longitude && (
+                                                    <div className="flex items-center gap-2 text-xs text-slate-400 px-1">
+                                                        <MapPin className="w-3 h-3 text-emerald-500" />
+                                                        <span>{parseFloat(form.site_latitude).toFixed(5)}, {parseFloat(form.site_longitude).toFixed(5)}</span>
+                                                        <button type="button" onClick={handleDetectGPS} disabled={detecting}
+                                                            className="ml-auto flex items-center gap-1 px-2 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full text-xs font-bold transition-colors disabled:opacity-60">
+                                                            {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                            {detecting ? t('work_order_form.detecting', 'Détection...') : t('work_order_form.detect_auto', 'GPS auto')}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {!form.site_latitude && (
+                                                    <button type="button" onClick={handleDetectGPS} disabled={detecting}
+                                                        className="flex items-center gap-1 px-3 h-7 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full text-xs font-bold transition-colors disabled:opacity-60">
+                                                        {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                        {detecting ? t('work_order_form.detecting', 'Détection...') : t('work_order_form.detect_auto', 'Détecter GPS auto')}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
+
                                 </div>
                             )}
-                        </div>
 
-                        <div className="h-px w-full bg-slate-100 dark:bg-slate-800 my-6"></div>
-
-                        {/* 3. Locatie + GPS */}
-                        <div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <MapPin className="w-4 h-4 text-emerald-500" />
-                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.site_location', 'Locație Lucrare')}</h3>
-                            </div>
-                            <div className="flex gap-2 mb-4">
-                                {[['existing', t('common.existing', 'Lucrare Existentă')], ['new', t('work_order_form.manual_address', 'Adresă Manuală')]].map(([m, label]) => (
-                                    <button key={m} onClick={() => set('site_mode', m)}
-                                        className={`px-4 h-8 rounded-full text-xs font-bold transition-all ${form.site_mode === m ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}>
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {form.site_mode === 'existing' ? (
-                                <>
-                                    <Field label={t('work_order_form.select_site', 'Selectează Lucrare')}>
-                                        <select value={form.site_id} onChange={e => {
-                                            const s = sites.find(x => x.id === e.target.value)
-                                            setForm(p => ({
-                                                ...p,
-                                                site_id: e.target.value,
-                                                site_address: s?.address || '',
-                                                site_latitude: s?.latitude || '',
-                                                site_longitude: s?.longitude || '',
-                                            }))
-                                        }} className={SELECT}>
-                                            <option value="">— {t('work_order_form.select_site', 'Alege lucrarea')} —</option>
-                                            {sites.map(s => <option key={s.id} value={s.id}>{s.name} {s.address ? `— ${s.address}` : ''}</option>)}
-                                        </select>
-                                    </Field>
-                                    {selectedSite && (
-                                        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-slate-700 dark:text-slate-300">
-                                            {selectedSite.address}
-                                            {selectedSite.latitude && (
-                                                <p className="text-xs text-slate-400 mt-0.5">GPS: {selectedSite.latitude}, {selectedSite.longitude}</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="space-y-4">
-                                    <Field label={t('work_order_form.site_address', 'Adresa Lucrarii')} required>
-                                        <AddressAutocomplete 
-                                            value={form.site_address}
-                                            onChange={(addr, lat, lon) => {
-                                                setForm(p => ({
-                                                    ...p,
-                                                    site_address: addr,
-                                                    ...(lat && lon ? { site_latitude: lat, site_longitude: lon } : {})
-                                                }))
-                                            }}
-                                            placeholder="Str. ..., Nr. ..., Oras, Judet"
-                                            className={INPUT} 
-                                        />
-                                    </Field>
-
-                                    {/* GPS */}
-                                    <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.gps_coords', 'Coordonate GPS')}</span>
-                                            <button
-                                                type="button"
-                                                onClick={handleDetectGPS}
-                                                disabled={detecting}
-                                                className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-60"
-                                            >
-                                                {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                                {detecting ? t('work_order_form.detecting', 'Détection...') : t('work_order_form.detect_auto', 'Détecter automatiquement')}
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-xs text-slate-400 mb-1 ml-1">{t('work_order_form.latitude', 'Latitudine')}</label>
-                                                <input type="number" step="any" value={form.site_latitude}
-                                                    onChange={e => set('site_latitude', e.target.value)}
-                                                    placeholder="44.4268"
-                                                    className={INPUT} />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs text-slate-400 mb-1 ml-1">{t('work_order_form.longitude', 'Longitudine')}</label>
-                                                <input type="number" step="any" value={form.site_longitude}
-                                                    onChange={e => set('site_longitude', e.target.value)}
-                                                    placeholder="26.1025"
-                                                    className={INPUT} />
-                                            </div>
-                                        </div>
-                                        <MiniMapSelector
-                                            latitude={form.site_latitude}
-                                            longitude={form.site_longitude}
-                                            onLocationChange={async (lat, lon) => {
-                                                setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
-                                                try {
-                                                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&email=contact@davidechape.com`, { headers: { 'Accept-Language': 'ro,en,fr,de' } })
-                                                    const data = await res.json()
-                                                    if (data?.display_name) {
-                                                        const a = data.address || {}
-                                                        const parts = [a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road, a.city || a.town || a.village || a.municipality, a.county].filter(Boolean)
-                                                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
-                                                        setForm(p => ({ ...p, site_address: addr }))
-                                                    }
-                                                } catch {}
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </Section>
 
-            {/* 4. Planificare + Pret */}
-            <Section icon={Calendar} title={t('work_order_form.planning', 'Planificare și Ofertare')} zIndex={50}>
-                <div className="grid grid-cols-3 gap-2 md:gap-4 items-end">
-                    <Field label={t('work_order_form.start_date', 'Data Incepere')} required>
+            {/* 4. Planificare + Echipa */}
+            <Section icon={Calendar} title={t('work_order_form.planning_and_team', 'Planificare & Echipă')} zIndex={50}>
+                <div className="flex flex-col xl:flex-row gap-6 md:gap-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-orange-500" /><h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.planning', 'Planificare')}</h3></div>
+                        <div className="grid grid-cols-2 gap-2 items-end">
+                            <Field label={t('work_order_form.start_date', 'Data Incepere')} required>
                         <input type="date" value={form.start_date}
                             onChange={e => set('start_date', e.target.value)}
                             className={INPUT} />
@@ -842,18 +755,14 @@ export default function WorkOrderForm() {
                             onChange={e => set('start_time', e.target.value)}
                             className={INPUT} />
                     </Field>
-                    <Field label={t('work_order_form.deadline', 'Date Limite')}>
-                        <input type="date" value={form.deadline_date}
-                            onChange={e => set('deadline_date', e.target.value)}
-                            className={INPUT} />
-                    </Field>
-                </div>
-            </Section>
 
-            {/* 6. Echipa + Vehicul */}
-            <Section icon={Users} title={t('work_order_form.team_vehicle', 'Echipa si Vehicul')} zIndex={40}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                    <Field label={t('work_order_form.team_leader', 'Șef de Echipă / Responsabil')}>
+                        </div>
+                    </div>
+                    <div className="md:hidden h-px w-full bg-slate-100 dark:bg-slate-800 my-2"></div>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-500" /><h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.team_vehicle', 'Echipa și Vehicul')}</h3></div>
+                        <div className="grid grid-cols-2 gap-2 items-end">
+                            <Field label={t('work_order_form.team_leader', 'Șef de Echipă / Responsabil')}>
                         <SearchableSelect
                             value={form.assigned_team_id}
                             onChange={teamId => {
@@ -890,6 +799,8 @@ export default function WorkOrderForm() {
                             placeholder={`— ${t('work_order_form.no_vehicle', 'Fără vehicul')} —`}
                         />
                     </Field>
+                        </div>
+                    </div>
                 </div>
             </Section>
 
@@ -1009,11 +920,11 @@ export default function WorkOrderForm() {
                             />
                             <input type="number" min="0" placeholder="Cant." value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
                                 className="w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
-                            <input type="text" placeholder="Unit. (kg, m)" value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
+                            <input type="text" placeholder="Unit." value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
                                 className="w-16 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                             {form.materials.length > 1 && (
                                 <button onClick={() => removeRow('materials', i)}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             )}
@@ -1021,115 +932,81 @@ export default function WorkOrderForm() {
                     ))}
                 </div>
             </Section>
-            {/* 7. Instructiuni Acces */}
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-            <Section icon={Image} title={t('work_order_form.access_instructions_title', 'Instructiuni Acces (vizibile echipei)')} zIndex={10}>
-                <Field label={t('work_order_form.access_notes', 'Note Acces')}>
-                    <textarea
-                        value={form.access_notes}
-                        onChange={e => set('access_notes', e.target.value)}
-                        placeholder="Cod intrare: 1234&#10;Etaj 3, apartament stanga&#10;Suna la interfon la Ionescu"
-                        rows={4}
-                        className="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none"
-                    />
-                </Field>
-
-                {/* Poze instructiuni */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                            {t('work_order_form.instruction_photos', 'Poze Instructiuni')} ({instructionPhotos.length})
+            {/* Instructions Accès — flat collapsible */}
+            <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                <button type="button" onClick={() => setShowAccess(v => !v)}
+                    className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-blue-600 transition-colors mb-2">
+                    <Image className="w-3.5 h-3.5" />
+                    Instructions d&apos;accès
+                    {(form.access_notes || instructionPhotos.length > 0) && (
+                        <span className="normal-case font-normal text-blue-500 ml-1">
+                            {[form.access_notes ? '✓ notes' : null, instructionPhotos.length > 0 ? `${instructionPhotos.length} 📷` : null].filter(Boolean).join('  ')}
                         </span>
-                        <button
-                            type="button"
-                            onClick={() => fileRef.current?.click()}
-                            className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"
-                        >
-                            <Plus className="w-3 h-3" /> {t('common.add_photo', 'Adauga Poza')}
-                        </button>
-                                <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoAdd} />
+                    )}
+                    <span className="ml-1">{showAccess ? '▲' : '▼'}</span>
+                </button>
+                {showAccess && (
+                    <div className="space-y-3">
+                        <textarea
+                            value={form.access_notes}
+                            onChange={e => set('access_notes', e.target.value)}
+                            placeholder="Code entrée: 1234&#10;Étage 3, appartement gauche&#10;Sonner à l'interphone"
+                            rows={3}
+                            className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all resize-none"
+                        />
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Photos ({instructionPhotos.length})</span>
+                            <button type="button" onClick={() => fileRef.current?.click()}
+                                className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                                <Plus className="w-3 h-3" /> Ajouter photo
+                            </button>
+                            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoAdd} />
+                        </div>
+                        {instructionPhotos.length > 0 && (
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                {instructionPhotos.map((p, i) => (
+                                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
+                                        <img src={p.preview} alt="" className="w-full h-full object-cover" />
+                                        <button onClick={() => removePhoto(i)}
+                                            className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                            {instructionPhotos.length > 0 && (
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    {instructionPhotos.map((p, i) => (
-                                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
-                                            <img src={p.preview} alt="" className="w-full h-full object-cover" />
-                                            <button
-                                                onClick={() => removePhoto(i)}
-                                                className="absolute top-1 right-1 w-6 h-6 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <p className="text-xs text-slate-400">{t('work_order_form.photos_visibility_note', 'Aceste poze sunt vizibile doar pentru echipa, nu apar la client.')}</p>
-                        </div>
-                    </Section>
+                        )}
+                    </div>
+                )}
+            </div>
 
-
-            {/* 7. Preț Estimativ (Proformă) */}
-            <Section icon={Banknote} title={t('work_order_form.estimated_price_title', 'Preț Estimativ (Proformă)')} zIndex={10}>
+            {/* 7. Prix Estimé */}
+            <Section icon={Banknote} title={t('work_order_form.estimated_price_title', 'Prix ​​Estimé (Facture Proforma)')} zIndex={10}>
                 <div className="flex flex-col gap-4">
-                    <Field label={t('work_order_form.estimated_value', 'Valoare estimată')}>
-                        <div className="flex w-full sm:w-1/2 shadow-sm rounded-xl">
-                            <input type="number" min="0"
-                                value={form.estimated_amount || ''}
-                                onChange={e => {
-                                    set('estimated_amount', e.target.value)
-                                    set('estimated_price', e.target.value ? `${e.target.value} ${form.estimated_currency || 'EUR'}` : '')
-                                }}
-                                placeholder="ex: 1500"
-                                disabled={form.is_auto_calculated}
-                                className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-l-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${form.is_auto_calculated ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400'}`}
-                            />
-                            <select
-                                value={form.estimated_currency || 'EUR'}
-                                onChange={e => {
-                                    set('estimated_currency', e.target.value)
-                                    if (form.estimated_amount) {
-                                        set('estimated_price', `${form.estimated_amount} ${e.target.value}`)
-                                    }
-                                }}
-                                className="w-24 px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-l-0 border-slate-200 dark:border-slate-700 rounded-r-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            >
-                                <option value="EUR">EUR</option>
-                                <option value="RON">RON</option>
-                                <option value="USD">USD</option>
-                            </select>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1.5 font-medium flex items-center gap-1.5">
-                            <Info className="w-3.5 h-3.5" />
-                            {t('work_order_form.proforma_note', 'Apare pe proforma trimisă clientului')}
-                        </p>
-                    </Field>
-                    
                     {isAutoRender && (
                         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 w-full mt-2">
-                            <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">{t('work_order_form.cost_calculation_admin', 'Calcul Cost (Vizibil doar Admin)')}</p>
+                            <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">{t('work_order_form.cost_calculation_admin', 'Calcul du coût (Visible uniquement par l\'admin)')}</p>
                             <div className="space-y-2.5 text-sm">
                                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                    <span className="font-medium">{t('work_order_form.base_screed', 'Șapă de bază')} (≤5cm)</span>
-                                    <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × 12.50 = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoBase.toFixed(2)} EUR</b></span>
+                                    <span className="font-medium">{t('work_order_form.base_screed', 'Chape de base')} (≤5cm)</span>
+                                    <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.base || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoBase.toFixed(2)} EUR</b></span>
                                 </div>
                                 {autoExtra > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                        <span className="font-medium">{t('work_order_form.extra_thickness', 'Grosime extra')} ({extraThickForAuto} cm)</span>
-                                        <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × {(extraThickForAuto * 1.25).toFixed(2)} = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoExtra.toFixed(2)} EUR</b></span>
+                                        <span className="font-medium">{t('work_order_form.extra_thickness', 'Épaisseur supplémentaire')} ({extraThickForAuto} cm)</span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × {extraThickForAuto} cm × <input type="number" step="0.1" value={form.prices?.extra || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoExtra.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 {autoFoil > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                        <span className="font-medium">{t('work_order_form.plastic_foil', 'Folie plastic')}</span>
-                                        <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × 1.20 = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFoil.toFixed(2)} EUR</b></span>
+                                        <span className="font-medium">{t('work_order_form.plastic_foil', 'Film plastique')}</span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.foil || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFoil.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 {autoMesh > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                        <span className="font-medium">{t('work_order_form.metal_mesh', 'Plasă metalică')}</span>
-                                        <span className="text-right whitespace-nowrap">{surfaceForAuto} m² × 2.50 = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoMesh.toFixed(2)} EUR</b></span>
+                                        <span className="font-medium">{t('work_order_form.metal_mesh', 'Treillis métallique')}</span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoMesh.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
@@ -1139,19 +1016,21 @@ export default function WorkOrderForm() {
                                 </div>
                                 {clientForRender?.client_type === 'fizica' ? (
                                     <div className="flex justify-between items-center font-bold text-amber-600 dark:text-amber-500 mt-1.5">
-                                        <span>{t('work_order_form.vat_physical', 'TVA (21% Persoană Fizică)')}:</span>
+                                        <span>{t('work_order_form.vat_physical', 'TVA (21% Particulier)')}:</span>
                                         <span>{autoVat.toFixed(2)} EUR</span>
                                     </div>
                                 ) : (
                                     <div className="flex justify-between items-center text-slate-500 text-xs mt-1.5">
-                                        <span>{t('work_order_form.vat_juridical', 'TVA: 0% (Persoană Juridică)')}</span>
+                                        <span>{t('work_order_form.vat_juridical', 'TVA: 0% (Entreprise)')}</span>
                                         <span>0.00 EUR</span>
                                     </div>
                                 )}
                                 <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
                                 <div className="flex justify-between items-center text-base font-black text-blue-600 dark:text-blue-400">
-                                    <span>{t('work_order_form.total_gross', 'TOTAL DE PLATĂ')}:</span>
-                                    <span>{totalGross.toFixed(2)} EUR</span>
+                                    <span>{t('work_order_form.total_gross', 'MONTANT TOTAL')}:</span>
+                                    <div className="flex items-center gap-3">
+                                        <span>{totalGross.toFixed(2)} EUR</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1161,7 +1040,7 @@ export default function WorkOrderForm() {
             </div>
 
             {/* Actions Bottom */}
-            <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800 max-w-4xl">
+            <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800 w-full max-w-6xl xl:max-w-7xl">
                 <button
                     onClick={() => navigate(-1)}
                     className="px-6 h-11 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
@@ -1179,7 +1058,6 @@ export default function WorkOrderForm() {
                         {t('common.save', 'Salvează')}
                     </button>
                 </div>
-            </div>
             </div>
         </div>
         </div>

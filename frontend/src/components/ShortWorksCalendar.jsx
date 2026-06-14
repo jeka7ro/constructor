@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2 } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -105,7 +105,11 @@ const calculateOrderSand = (wo) => {
 };
 
 export default function ShortWorksCalendar({ 
+    isCalendarFull,
+    toggleCalendarFullscreen,
     workOrders = [], 
+    teams = [],
+    clients = [],
     onOrderRescheduled, 
     onTeamDrop, 
     onClientDrop,
@@ -113,7 +117,8 @@ export default function ShortWorksCalendar({
     onClientDropOnEmpty,
     onEmptyCellClick,
     onOrderClick,
-    onOrderEdit
+    onOrderEdit,
+    onOrderComplete
 }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
@@ -123,6 +128,7 @@ export default function ShortWorksCalendar({
     const [isDragging, setIsDragging] = useState(false);
     const [draggedOrder, setDraggedOrder] = useState(null);
     const [hoveredOrder, setHoveredOrder] = useState(null);
+    const [hoveredDay, setHoveredDay] = useState(null);
     const [orderToDelete, setOrderToDelete] = useState(null);
     const [animatingOrder, setAnimatingOrder] = useState(null);
     const containerRef = useRef(null);
@@ -130,6 +136,81 @@ export default function ShortWorksCalendar({
     const { tenant } = useTenantStore();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
+    const [completing, setCompleting] = useState(null);
+
+    const handleComplete = async (wo, e) => {
+        e.stopPropagation();
+        if (completing) return;
+        setCompleting(wo.id);
+        try {
+            await api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' });
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare finalizare:', err);
+        } finally {
+            setCompleting(null);
+        }
+    };
+    const handleCompleteDay = async (day, e) => {
+        e.stopPropagation();
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayOrders = weeklyOrders.filter(wo => {
+            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            return ds === dayStr && wo.status !== 'completed';
+        });
+        if (!dayOrders.length) return;
+        setSyncing(true);
+        try {
+            await Promise.all(dayOrders.map(wo =>
+                api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' })
+            ));
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare finalizare zi:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleUncomplete = async (wo, e) => {
+        e.stopPropagation();
+        try {
+            await api.put(`/admin/work-orders/${wo.id}`, { status: 'confirmed' });
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare revenire status:', err);
+        }
+    };
+
+    const handleUnCompleteDay = async (day, e) => {
+        e.stopPropagation();
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayOrders = weeklyOrders.filter(wo => {
+            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            return ds === dayStr && wo.status === 'completed';
+        });
+        if (!dayOrders.length) return;
+        setSyncing(true);
+        try {
+            await Promise.all(dayOrders.map(wo =>
+                api.put(`/admin/work-orders/${wo.id}`, { status: 'confirmed' })
+            ));
+            if (onOrderComplete) onOrderComplete();
+            else if (onOrderRescheduled) onOrderRescheduled();
+            else window.location.reload();
+        } catch (err) {
+            console.error('Eroare revenire status zi:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
 
     const getLocale = () => {
         if (i18n.language?.startsWith('ro')) return ro;
@@ -223,13 +304,13 @@ export default function ShortWorksCalendar({
             
             if (hasEvents) {
                 const targetRow = Math.max(1, earliestRow - 1);
-                const newScrollTop = (targetRow - 1) * 80;
+                const newScrollTop = (targetRow - 1) * 70;
                 containerRef.current.scrollTop = newScrollTop;
                 hasAutoScrolled.current = true;
 
                 const clientH = containerRef.current.clientHeight || 480;
                 const visibleBottom = newScrollTop + clientH;
-                const eventsBottom = latestRow * 80;
+                const eventsBottom = latestRow * 70;
                 setShowScrollHint(eventsBottom > visibleBottom);
             } else {
                 setShowScrollHint(false);
@@ -238,27 +319,89 @@ export default function ShortWorksCalendar({
     }, [weeklyOrders, currentDate]);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[800px] relative">
+        <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}>
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-                <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-5 h-5 text-white/90" />
-                    <h2 className="text-lg font-bold text-white capitalize">
-                        {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
-                    </h2>
-                </div>
-                <div className="flex items-center gap-3">
-
-                    <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-blue-500 dark:border-slate-700 shadow-sm">
-                    <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <span className="px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[110px] text-center">{weekLabel}</span>
-                    <button onClick={() => navigateWeek(1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
+            <div className="flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <CalendarIcon className="w-5 h-5 text-white/90" />
+                        <h2 className="text-lg font-bold text-white capitalize">
+                            {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
+                        </h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {toggleCalendarFullscreen && (
+                            <button 
+                                onClick={toggleCalendarFullscreen} 
+                                className="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center"
+                                title={isCalendarFull ? 'Ieși din fullscreen (ESC)' : 'Calendar Fullscreen'}
+                            >
+                                {isCalendarFull
+                                    ? <Minimize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                    : <Maximize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                }
+                            </button>
+                        )}
+                        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-blue-500 dark:border-slate-700 shadow-sm">
+                        <button onClick={() => navigateWeek(-1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[110px] text-center">{weekLabel}</span>
+                        <button onClick={() => navigateWeek(1)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300">
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                        </div>
                     </div>
                 </div>
+
+                {isCalendarFull && (
+                    <div className="px-4 pb-3 flex items-center gap-6 overflow-x-auto custom-scrollbar">
+                        {/* Echipe */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Truck className="w-3.5 h-3.5"/> Echipe</span>
+                            <div className="flex gap-2 items-center">
+                                {teams?.map(team => (
+                                    <div 
+                                        key={team.id}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "team")
+                                            e.dataTransfer.setData("id", String(team.id))
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm border-l-[3px] text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
+                                        style={{ borderLeftColor: team.color || '#3b82f6', color: team.color || '#3b82f6' }}
+                                    >
+                                        {team.name.replace(/^echipa\s*/i, '')}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Divizor */}
+                        <div className="w-px h-6 bg-white/20 shrink-0"></div>
+
+                        {/* Clienti */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> Clienți</span>
+                            <div className="flex gap-2 items-center">
+                                {clients?.filter(c => c.is_favorite).map(client => (
+                                    <div 
+                                        key={`fav-${client.id}`}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData("type", "client")
+                                            e.dataTransfer.setData("id", String(client.id))
+                                            e.dataTransfer.setData("name", client.name)
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-500 shadow-sm text-xs font-bold text-orange-700 dark:text-orange-400 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap"
+                                    >
+                                        ⭐ {client.name}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Overlay Badge */}
@@ -280,7 +423,7 @@ export default function ShortWorksCalendar({
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
-                        <div key={i} className="h-20 border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
+                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
                             {(i + dynamicStartHour).toString().padStart(2, '0')}:00
                         </div>
                     ))}
@@ -309,7 +452,13 @@ export default function ShortWorksCalendar({
                             const sandDisplay = dailySand > 0 ? `${dailySand.toFixed(1)}T` : '';
 
                             return (
-                                <div key={i} className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
+                                <div
+                                    key={i}
+                                    className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}
+                                    onMouseEnter={() => setHoveredDay(i)}
+                                    onMouseLeave={() => setHoveredDay(null)}
+                                    onDoubleClick={(e) => handleUnCompleteDay(day, e)}
+                                >
                                     <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>
                                         {format(day, 'EEE', { locale: dateLocale })}
                                     </span>
@@ -321,13 +470,30 @@ export default function ShortWorksCalendar({
                                             {sandDisplay}
                                         </span>
                                     )}
+                                    {hoveredDay === i && (() => {
+                                        const dayStr = format(day, 'yyyy-MM-dd');
+                                        const dayOrders = weeklyOrders.filter(wo => {
+                                            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+                                            return ds === dayStr;
+                                        });
+                                        const allDone = dayOrders.length > 0 && dayOrders.every(wo => wo.status === 'completed');
+                                        return (
+                                            <button
+                                                onClick={(e) => allDone ? handleUnCompleteDay(day, e) : handleCompleteDay(day, e)}
+                                                className={`absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full text-white shadow-sm transition-colors ${allDone ? 'bg-emerald-600 hover:bg-slate-500' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                                                title={allDone ? 'Anulează finalizare zi' : 'Finalizează toate comenzile din această zi'}
+                                            >
+                                                <CheckCircle2 className="w-3 h-3" />
+                                            </button>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })}
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid grid-cols-7 bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(80px, 80px))` }}>
+                    <div className="relative grid grid-cols-7 bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(70px, 70px))` }}>
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -477,22 +643,20 @@ export default function ShortWorksCalendar({
                                             setIsDragging(false);
                                             setDraggedOrder(null);
                                         }}
-                                        onMouseEnter={() => setHoveredOrder(wo.id)}
-                                        onMouseLeave={() => setHoveredOrder(null)}
-                                        className={`absolute p-1.5 overflow-hidden rounded-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-move mx-1 
+                                        className={`group absolute p-1.5 overflow-hidden rounded-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-move mx-1 
                                             ${!wo.assigned_team_id ? 'bg-white dark:bg-slate-900 border-2 border-red-500 border-l-[6px] border-l-red-500' : 'border-l-4'}
                                             ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
                                             ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
                                             ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}`}
                                         style={{
-                                            top: `${(wo.rowStart - 1) * 80 + 4}px`,
-                                            height: '72px',
+                                            top: `${(wo.rowStart - 1) * 70 + 2}px`,
+                                            height: '64px',
                                             left: `${leftPercent}%`,
                                             width: widthValue,
-                                            backgroundColor: !wo.assigned_team_id ? undefined : (isCompleted ? '#f0fdf4' : `${colorHex}30`),
-                                            borderLeftColor: !wo.assigned_team_id ? undefined : (isCompleted ? '#22c55e' : colorHex),
-                                            borderColor: !wo.assigned_team_id ? undefined : (isCompleted ? '#22c55e' : `${colorHex}50`),
+                                            backgroundColor: !wo.assigned_team_id ? undefined : `${colorHex}25`,
+                                            borderLeftColor: !wo.assigned_team_id ? undefined : colorHex,
+                                            borderColor: isCompleted ? '#22c55e' : (!wo.assigned_team_id ? undefined : `${colorHex}50`),
                                             borderWidth: isCompleted ? '2px' : undefined,
                                             borderStyle: isCompleted ? 'dashed' : undefined,
                                             opacity: 1,
@@ -506,16 +670,28 @@ export default function ShortWorksCalendar({
                                                 else navigate(`/admin/work-orders/${wo.id}`);
                                             }
                                         }}
+                                        onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isCompleted) handleUncomplete(wo, e);
+                                        }}
                                         onDragEnter={(e) => e.preventDefault()}
                                         onDragOver={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            e.dataTransfer.dropEffect = "move";
+                                            e.dataTransfer.dropEffect = isCompleted ? 'none' : 'move';
                                         }}
                                         onDrop={async (e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            
+                                            if (isCompleted) {
+                                                openDialog({
+                                                    title: 'Lucrare finalizată',
+                                                    message: 'Această lucrare este marcată ca Finalizată. Schimbați statusul comenzii pentru a o putea modifica.',
+                                                    confirmLabel: 'OK',
+                                                    hideCancel: true,
+                                                });
+                                                return;
+                                            }
                                             // Handle Team Drop
                                             const type = e.dataTransfer.getData("type");
                                             if (type === "team") {
@@ -579,13 +755,22 @@ export default function ShortWorksCalendar({
                                         title={`${wo.title} — trageți pentru a muta`}
                                     >
                                         {!isCompleted && (
-                                            <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 ${hoveredOrder === wo.id && !isDragging ? 'opacity-0' : 'opacity-100'}`}>
+                                            <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 opacity-100 group-hover:opacity-0`}>
                                                 <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
                                             </div>
                                         )}
 
-                                        {hoveredOrder === wo.id && !isDragging && (
-                                            <div className="absolute top-1 right-1 flex items-center gap-1 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm p-0.5 border border-slate-200 dark:border-slate-700 animate-in fade-in duration-150">
+                                        <div className="absolute top-1 right-1 flex items-center gap-1 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm p-0.5 border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                                                <button
+                                                    onClick={(e) => isCompleted ? handleUncomplete(wo, e) : handleComplete(wo, e)}
+                                                    className={`p-1 rounded transition-colors ${isCompleted ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30' : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400'}`}
+                                                    title={isCompleted ? 'Anulează finalizare' : 'Marchează Finalizat'}
+                                                    disabled={completing === wo.id}
+                                                >
+                                                    {completing === wo.id
+                                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                                </button>
                                                 <button 
                                                     onClick={(e) => { 
                                                         e.stopPropagation(); 
@@ -604,24 +789,16 @@ export default function ShortWorksCalendar({
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
-                                            </div>
-                                        )}
+                                        </div>
 
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.title}>
                                             {wo.status === 'draft' && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
                                             <span className="truncate">{wo.title}</span>
                                         </div>
-                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center justify-between gap-1">
-                                            <div className="flex items-center gap-1 truncate pr-8">
-                                                <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
-                                            </div>
-                                            {wo.status === 'completed' && (
-                                                <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm bg-emerald-100 text-emerald-700 uppercase tracking-wider shrink-0">
-                                                    {t('common.completed', 'Finalizată')}
-                                                </span>
-                                            )}
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1">
+                                            <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                            <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
                                         <div className="text-[10px] font-semibold mt-1 truncate flex items-center justify-between" style={{ color: colorHex }}>
                                             <span>{(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}</span>
@@ -716,16 +893,9 @@ export default function ShortWorksCalendar({
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center justify-between text-xs text-slate-500">
-                                            <div className="flex items-center gap-1.5 truncate">
-                                                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                                <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
-                                            </div>
-                                            {wo.status === 'completed' && (
-                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 uppercase tracking-wider shrink-0 ml-2">
-                                                    {t('common.completed', 'Finalizată')}
-                                                </span>
-                                            )}
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
+                                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
                                         <div className="text-xs font-bold mt-1" style={{ color: colorHex }}>
                                             {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
