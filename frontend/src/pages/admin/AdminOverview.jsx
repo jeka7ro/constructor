@@ -2103,6 +2103,7 @@ export default function AdminOverview() {
                                                     {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                                 </button>
                                             )}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
