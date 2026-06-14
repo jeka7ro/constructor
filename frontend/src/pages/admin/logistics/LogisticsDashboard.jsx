@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, Save, CheckCircle2 } from 'lucide-react'
+import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, Save, CheckCircle2, BarChart3, RefreshCw, X, ExternalLink, Package, Ruler, Maximize2, Minimize2, CloudRain } from 'lucide-react'
 import api from '../../../lib/api'
+
+function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="1" />
+            <path d="M16 8h4l3 5v4h-7V8z" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+        </svg>
+    )
+}
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -15,6 +26,19 @@ L.Icon.Default.mergeOptions({
     iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 })
+
+// Componentă pentru resize la fullscreen
+function MapResizer({ isMapFull }) {
+    const map = useMap();
+    useEffect(() => {
+        // Oferim un mic delay pentru ca DOM-ul să se randeze și să aibă noile dimensiuni fullscreen
+        const timer = setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [map, isMapFull]);
+    return null;
+}
 
 function MapBoundsFitter({ data, activeTeams }) {
     const map = useMap();
@@ -81,39 +105,84 @@ function RoutingMachine({ positions, color, weight, opacity }) {
     return null;
 }
 
+const TRUCK_SVG = (color) => `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="3" width="15" height="13" rx="1"/>
+        <path d="M16 8h4l3 5v4h-7V8z"/>
+        <circle cx="5.5" cy="18.5" r="2.5"/>
+        <circle cx="18.5" cy="18.5" r="2.5"/>
+    </svg>`
+
 const createCustomIcon = (text, isBase, teamColor) => {
+    if (isBase) {
+        return L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color:#1e293b;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:11px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);">B</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        })
+    }
+    const color = teamColor || '#3b82f6'
+    // Truck + badge iPhone-style (number top-right, same team color, slightly darker)
     return L.divIcon({
         className: 'custom-div-icon',
-        html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 ${isBase ? 'bg-slate-800' : ''}" ${!isBase && teamColor ? `style="background-color: ${teamColor}"` : ''}>${text}</div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
-    });
+        html: `<div style="position:relative;width:40px;height:40px;">
+            <div style="position:absolute;top:4px;left:4px;background-color:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);">${TRUCK_SVG(color)}</div>
+            <div style="position:absolute;top:0;right:0;background-color:${color};filter:brightness(0.75);border:2.5px solid white;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 1px 5px rgba(0,0,0,0.45);">
+                <span style="color:white;font-size:10px;font-weight:900;font-family:sans-serif;line-height:1;letter-spacing:-0.5px;">${text}</span>
+            </div>
+        </div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    })
 }
 
+// type: 'ours' = roșu (exclusiv noi) | 'common' = mov (ambii) | 'theirs' = verde (ei au, noi nu)
 const SAND_STATIONS = [
-    { name: 'BAZA GHENT', lat: 51.0538286, lng: 3.7250121, address: 'Mammelokker, 17, Botermarkt' },
-    { name: 'BAZZA NINOVE', lat: 50.8340156, lng: 4.0150992, address: '173, Centrumlaan, Ninove' },
-    { name: 'NHM WIELSBEKE', lat: 50.9080277, lng: 3.3644265, address: '91, Molenstraat, Wielsbeke' },
-    { name: 'NHM BAZA OSTENDE', lat: 51.2263435, lng: 2.9152345, address: '22;24;24A, Alfons Pieterslaan, Vlaams Plein' },
-    { name: 'BAZA DOUR (Rougraff)', lat: 50.3957242, lng: 3.7778393, address: '3, Rue Émile Estiévenart, Cité des Cocars' },
-    { name: 'BAZA LUMMEN (Minera)', lat: 51.0107703, lng: 5.2366141, address: 'Industriestraat, Genenbos, Lummen' },
-    { name: 'BAZA ATH (Stock Ath)', lat: 50.630554, lng: 3.7788481, address: '7, Marché au Lin, Ath' },
-    { name: 'Baza dranaco Antwerpen', lat: 51.2372207, lng: 4.4569835, address: '1A, Belcrownlaan, Kruininge-Bremweide (Deurne)' },
-    { name: 'MINERA LUMEN', lat: 50.9255869, lng: 4.8354728, address: 'Peerse, Sint-Pieters-Rode, Holsbeek' },
-    { name: 'BAZZA HALLE (Denayer)', lat: 50.7358744, lng: 4.2365449, address: '13, Maandagmarkt, Nederhem' },
-    { name: 'BAZA SODEMAF TOURNAI', lat: 50.6055532, lng: 3.3888362, address: '21, Rue de la Wallonie, Centre historique' },
-    { name: 'BAZA JOASSIN NAMUR', lat: 50.4665283, lng: 4.8661886, address: 'Hôtel de Ville de Namur, 1, Venelle des Capucins' },
-    { name: 'BAZA ERPE-MERE', lat: 50.9238304, lng: 3.9664654, address: '38, Bosstraat, Mere' },
-    { name: 'BAZA SABLE ET GRANULATS LIEGE', lat: 50.6451384, lng: 5.5734203, address: 'JD Sports, 27, Place Saint-Lambert' },
-    { name: 'Baza Antoing TUORNAI', lat: 50.5623588, lng: 3.4379506, address: 'Chemin de Halage, Bruyelle, Antoing' },
-    { name: 'BAZA AALST', lat: 50.9383224, lng: 4.0392149, address: '2;2A, Grote Markt, Aalst' },
-    { name: 'BAZA GENT', lat: 51.0538286, lng: 3.7250121, address: 'Mammelokker, 17, Botermarkt' },
-    { name: 'BAZA BOOM', lat: 51.0875913, lng: 4.3577297, address: 'Broekweg, Noeveren, Boom' },
-    { name: 'BAZA TEMSE', lat: 51.1220674, lng: 4.2265680, address: 'Hondenspeeltuin Meulenbroek, Fonteinstraat, Uil' },
-    { name: 'BAZA ANTWERP', lat: 51.2373003, lng: 4.4571109, address: 'Vaartdijk, Kruininge-Bremweide (Deurne)' },
-    { name: 'BAZA ECODREAM LIEGE', lat: 50.6451384, lng: 5.5734203, address: 'JD Sports, 27, Place Saint-Lambert' },
-    { name: 'BAZA INTRE MONS SI ATH', lat: 50.4549557, lng: 3.951958, address: 'Ancienne Chapelle Saint-Georges, 22, Grand-Place' }
-];
+    // ── COMUNE (mov) ─────────────────────────────────────────────────────────
+    { type: 'common', name: 'Charleroi – EURO-SERVICES SA',        lat: 50.4170193, lng: 4.5534199, address: 'Rue du Port 20, 6250 Aiseau-Presles',           phone: '071 40 23 92' },
+    { type: 'common', name: 'Izegem – NHM Izegem',                 lat: 50.9272618, lng: 3.2018133, address: 'Noordkaai 10/2, 8870 Izegem',                    phone: '' },
+    { type: 'common', name: 'Brugge – NHM Brugge',                 lat: 51.2665246, lng: 3.2088231, address: 'Pathoekeweg 340, 8000 Brugge',                   phone: '' },
+    { type: 'common', name: 'Nieuwpoort – NHM Nieuwpoort',         lat: 51.1354136, lng: 2.7516455, address: 'Noorderhavenoever, 8620 Nieuwpoort',              phone: '' },
+    { type: 'common', name: 'Oostende – NHM Oostende',             lat: 51.2275026, lng: 2.9398425, address: 'Vismijnlaan 1, 8400 Oostende',                   phone: '' },
+    { type: 'common', name: 'Lummen – Minera',                     lat: 51.0104855, lng: 5.2371281, address: 'Industriestraat 16, 3560 Lummen',                phone: '' },
+    { type: 'common', name: 'Namur – Joassin',                     lat: 50.456251,  lng: 4.803254,  address: 'Rue Fernand Marchand 1, 5020 Flawinne (Namur)', phone: '' },
+    { type: 'common', name: 'Liège – Sable et Granulats',          lat: 50.6771771, lng: 5.6454791, address: 'Rue du Rivage 35, 4040 Herstal (Liège)',         phone: '' },
+    // ── EXCLUSIVE NOUĂ (roșu) ──────────────────────────────────────────────
+    { type: 'ours',   name: 'Sint-Niklaas – Beernaerts Recycling', lat: 51.1852172, lng: 4.1951661, address: 'Anthonis De Jonghestraat 78, 9100 Sint-Niklaas', phone: '0497 80 15 55' },
+    { type: 'ours',   name: 'Ninove – Baza Ninove',                lat: 50.8348922, lng: 4.0198178, address: 'Kaardeloodstraat 97, 9400 Ninove',               phone: '' },
+    { type: 'ours',   name: 'Dour – Rougraff',                     lat: 50.4089517, lng: 3.7661104, address: 'Rue de Belle Vue 46, 7370 Dour',                 phone: '065 65 22 05' },
+    { type: 'ours',   name: 'Ath – Stock Ath',                     lat: 50.6284713, lng: 3.7475372, address: 'Chaussée de Tournai 196, 7801 Ath',              phone: '068 26 98 00' },
+    { type: 'ours',   name: 'Antwerpen – Dranaco NV',              lat: 51.2277072, lng: 4.4072291, address: 'Godefriduskaai 28, 2000 Antwerpen',              phone: '+32 3 231 08 54' },
+    { type: 'ours',   name: 'Halle – Denayer Bouwmaterialen',      lat: 50.7286189, lng: 4.2324534, address: 'Suikerkaai 38, 1500 Halle',                     phone: '02 361 11 20' },
+    { type: 'ours',   name: 'Tournai – SODEMAF',                   lat: 50.5873153, lng: 3.4316494, address: 'Rue du Canon 14, 7536 Vaulx (Tournai)',          phone: '' },
+    { type: 'ours',   name: 'Erpe-Mere – Baza Erpe-Mere',          lat: 50.9400588, lng: 3.9886644, address: 'Oudenaardsesteenweg, 9420 Erpe-Mere',            phone: '' },
+    { type: 'ours',   name: 'Roeselare – NHM Roeselare',           lat: 50.9272618, lng: 3.2018133, address: 'Noordkaai 10/2, 8870 Izegem',                    phone: '' },
+    { type: 'ours',   name: 'Gent – Ghent Aggregates',             lat: 51.0872589, lng: 3.7469089, address: 'Singel 27 – Haven 0945A, 9000 Gent-Zeehaven',   phone: '+32 9 224 40 04' },
+    // ── EI AU, NOI NU (verde) ─────────────────────────────────────────────────
+    { type: 'theirs', name: 'Vermat Brussel',                       lat: 50.8833919, lng: 4.380019,  address: 'Leon Monnoyerkaai 11, 1000 Brussel',             phone: '' },
+    { type: 'theirs', name: 'H&H Resources Brussels',               lat: 50.8730,    lng: 4.3560,    address: 'Vilvoordsealaan 294, 1000 Brussel',              phone: '' },
+    { type: 'theirs', name: 'Delahaye-Lauwers Beringen',            lat: 51.0492507, lng: 5.2135924, address: 'Terbekstraat 40, 3580 Beringen',                  phone: '' },
+    { type: 'theirs', name: 'Delahaye-Lauwers Boom',                lat: 51.0899953, lng: 4.3567157, address: 'Broekweg, 2850 Boom',                             phone: '' },
+    { type: 'theirs', name: 'Van Pelt Wijnegem',                    lat: 51.2348132, lng: 4.5097425, address: 'Oud Sluisstraat 9, 2110 Wijnegem',                phone: '' },
+    { type: 'theirs', name: 'Dranaco nv Grobbendonk',               lat: 51.1791592, lng: 4.73283,   address: 'Industrieweg 14, 2280 Grobbendonk',              phone: '' },
+    { type: 'theirs', name: 'Van Pelt Schoten',                     lat: 51.2393448, lng: 4.4897778, address: 'Kanaaldijk 25, 2900 Schoten',                     phone: '' },
+    { type: 'theirs', name: 'Mako-Beton Grobbendonk',               lat: 51.1810317, lng: 4.7430558, address: 'Oude Steenweg 35, 2280 Grobbendonk',              phone: '' },
+    { type: 'theirs', name: 'Delahaye-Lauwers Gent',                lat: 51.0777196, lng: 3.7419082, address: 'Zuiddokweg 50, 9000 Gent',                        phone: '' },
+    { type: 'theirs', name: 'Bert Containers Ronse',                lat: 50.751019,  lng: 3.6487897, address: 'Klein Frankrijkstraat 21, 9600 Ronse',             phone: '' },
+    { type: 'theirs', name: 'Van Nieuwpoort Viola Gent',            lat: 51.0720,    lng: 3.7350,    address: 'Hubdonk 1, 9000 Gent',                            phone: '' },
+    { type: 'theirs', name: 'Zandhandel Roeselare',                 lat: 50.9442993, lng: 3.1563553, address: 'Graankaai 4, 8800 Roeselare',                     phone: '' },
+    { type: 'theirs', name: 'NHM Wielsbeke',                        lat: 50.9048,    lng: 3.3648,    address: 'Hooimeersstraat 3, 8710 Wielsbeke',                phone: '' },
+    { type: 'theirs', name: 'Gobert Stréphy',                       lat: 50.4901717, lng: 4.1218161, address: 'Route du Grand Peuplier 4c, 7110 Stréphy',       phone: '' },
+    { type: 'theirs', name: 'Gobert Soignies',                      lat: 50.5886417, lng: 4.0736223, address: 'Chemin de la Guelenne 29, 7060 Soignies',          phone: '' },
+    { type: 'theirs', name: 'Gobert Tubize',                        lat: 50.6966616, lng: 4.2124112, address: 'Rue de La Déportation 218, 1480 Tubize',           phone: '' },
+    { type: 'theirs', name: 'Nivelles Beton',                       lat: 50.5925732, lng: 4.3635333, address: 'Rue du Progrès 12, 1400 Nivelles',                 phone: '' },
+    { type: 'theirs', name: 'Holcim Carrière de Leffe',             lat: 50.2697519, lng: 4.9089846, address: 'Charreau de Leffe, 5500 Dinant',                  phone: '' },
+    { type: 'theirs', name: 'SGL Monsin Luik',                      lat: 50.6541521, lng: 5.6247559, address: 'Rue de l’île Monsin 2, 4020 Liège',               phone: '' },
+    { type: 'theirs', name: 'SGL Hermalle',                         lat: 50.5583793, lng: 5.355951,  address: 'Rue des Tuiliers 14, 4480 Hermalle',               phone: '' },
+    { type: 'theirs', name: 'GNB Beton Arlon',                      lat: 49.6866747, lng: 5.7700251, address: 'Rte de Bouillon 222, 6700 Arlon',                  phone: '' },
+    { type: 'theirs', name: 'Famenne Betons',                       lat: 50.2232529, lng: 5.3331213, address: 'Rue du Parc Industriel 40, 6900 Marche-en-Famenne', phone: '' },
+]
 
 export default function LogisticsDashboard() {
     const { t } = useTranslation()
@@ -124,10 +193,39 @@ export default function LogisticsDashboard() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTeams, setActiveTeams] = useState([])
+    const [selectedWork, setSelectedWork] = useState(null)
+    const [isMapFull, setIsMapFull] = useState(false)
     const [showSandStations, setShowSandStations] = useState(() => {
         const saved = localStorage.getItem('logistics_showSandStations')
         return saved !== null ? JSON.parse(saved) : false
     })
+    const [focusedTeamId, setFocusedTeamId] = useState(null)
+    const navigate = useNavigate()
+
+    // Resetează focusul când se schimbă data sau echipele active din lista principală
+    useEffect(() => {
+        setFocusedTeamId(null)
+    }, [targetDate, activeTeams])
+
+    // Sincronizare cu API-ul nativ de fullscreen și ESC
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFull = !!document.fullscreenElement;
+            setIsMapFull(isFull);
+            // Declanșăm un eveniment de resize global pentru ca Leaflet să își recalculeze sigur dimensiunile
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        };
+        
+        const handler = (e) => { if (e.key === 'Escape') setIsMapFull(false) }
+        
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        window.addEventListener('keydown', handler)
+        
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            window.removeEventListener('keydown', handler)
+        }
+    }, [])
 
     useEffect(() => {
         localStorage.setItem('logistics_showSandStations', JSON.stringify(showSandStations))
@@ -146,6 +244,17 @@ export default function LogisticsDashboard() {
         }
     }
 
+    const recalculate = async () => {
+        try {
+            setLoading(true)
+            await api.post('/admin/logistics/archive-day', { target_date: targetDate })
+            await fetchRoutes()
+        } catch (error) {
+            console.error("Recalculate error:", error)
+            setLoading(false)
+        }
+    }
+
     useEffect(() => {
         fetchRoutes()
     }, [targetDate])
@@ -155,6 +264,13 @@ export default function LogisticsDashboard() {
             prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
         )
     }
+
+    // Calculăm o șansă de ploaie fictivă (0-70%) dar constantă pentru o anumită dată
+    const rainChance = useMemo(() => {
+        let hash = 0;
+        for (let i = 0; i < targetDate.length; i++) hash = targetDate.charCodeAt(i) + ((hash << 5) - hash);
+        return Math.abs(hash) % 70;
+    }, [targetDate]);
 
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 min-h-[calc(100vh-64px)] flex flex-col">
@@ -173,6 +289,9 @@ export default function LogisticsDashboard() {
                         </Link>
                         <Link to="/admin/logistica/sand-stations" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                             <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stații Nisip')}
+                        </Link>
+                        <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
+                            <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Raport')}
                         </Link>
                     </div>
                     
@@ -209,8 +328,18 @@ export default function LogisticsDashboard() {
                     </div>
                     {/* Archive Badge (Auto-Archived) */}
                     {data?.is_archived && (
-                        <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800 shrink-0">
-                            <CheckCircle2 className="w-4 h-4" /> Arhivată
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800">
+                                <CheckCircle2 className="w-4 h-4" /> Arhivată
+                            </div>
+                            <button
+                                onClick={recalculate}
+                                disabled={loading}
+                                className="flex items-center gap-1.5 px-3 h-11 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-sm rounded-full border border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors disabled:opacity-50"
+                                title="Recalculează traseele pentru această zi (util dacă datele sunt incomplete)"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Recalculează
+                            </button>
                         </div>
                     )}
                 </div>
@@ -224,9 +353,12 @@ export default function LogisticsDashboard() {
                 <div className="flex-1 flex items-center justify-center text-slate-500">Nu s-au putut încărca datele.</div>
             ) : (
                 <div className="flex-1 flex flex-col gap-6">
-                    {/* Top Area: Interactive Map */}
-                    <div className="w-full h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0 z-0">
-                        <MapContainer 
+                     {/* Top Area: Interactive Map */}
+                    <div id="logistics-map-container" className={isMapFull
+                        ? 'fixed inset-0 z-[9999] bg-black w-screen h-screen'
+                        : 'w-full h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0'
+                    } style={{ isolation: 'isolate' }}>
+                        <MapContainer
                             center={[50.8503, 4.3517]} 
                             zoom={7} 
                             scrollWheelZoom={false}
@@ -236,96 +368,270 @@ export default function LogisticsDashboard() {
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                            <MapBoundsFitter data={data} activeTeams={activeTeams} />
+                            <MapBoundsFitter data={data} activeTeams={focusedTeamId ? [focusedTeamId] : activeTeams} />
+                            <MapResizer isMapFull={isMapFull} />
+
                             
-                            {data.routes.filter(r => activeTeams.includes(r.team_id)).map(route => {
+                            {data.routes.filter(r => activeTeams.includes(r.team_id) && (!focusedTeamId || r.team_id === focusedTeamId)).map(route => {
                                 const validWps = route.waypoints.filter(wp => wp.lat && wp.lng)
-                                if (validWps.length === 0) return null
-                                
+
+                                // Dacă nu există niciun waypoint cu GPS → cauta baza si pune un marker special
+                                if (validWps.length === 0) {
+                                    // Fara GPS deloc — nu putem afisa nimic
+                                    return null
+                                }
+
                                 const positions = validWps.map(wp => [wp.lat, wp.lng])
-                                
+
+                                // Echipe cu GPS doar pe baza (fara locatii santiere) — afisam bazele cu marker de echipa
+                                const workWps = validWps.filter(wp => !wp.type?.includes('base'))
+                                const hasOnlyBase = workWps.length === 0
+
                                 return (
                                     <React.Fragment key={`map-route-${route.team_id}`}>
-                                        {positions.length > 1 && (
-                                            <RoutingMachine 
-                                                positions={positions} 
-                                                color={route.team_color} 
-                                                weight={4} 
+                                        {/* Linia de traseu — doar daca exista minim 2 puncte si nu e doar baza */}
+                                        {positions.length > 1 && !hasOnlyBase && (
+                                            <RoutingMachine
+                                                positions={positions}
+                                                color={route.team_color}
+                                                weight={4}
                                                 opacity={0.8}
                                             />
                                         )}
-                                        
-                                        {validWps.map((wp, idx) => (
-                                            <Marker 
-                                                key={`wp-${idx}`} 
-                                                position={[wp.lat, wp.lng]}
-                                                icon={createCustomIcon(wp.type.includes('base') ? 'B' : idx, wp.type.includes('base'), route.team_color)}
-                                            >
-                                                <Popup>
-                                                    <strong className="text-sm">{wp.name}</strong>
-                                                </Popup>
-                                            </Marker>
-                                        ))}
+
+                                        {validWps.map((wp, idx) => {
+                                            // Daca echipa nu are GPS pe santiere, afisam baza cu camion normal
+                                            if (hasOnlyBase && wp.type?.includes('base')) {
+                                                return (
+                                                    <Marker key={`wp-nomap-${idx}`} position={[wp.lat, wp.lng]}
+                                                        icon={createCustomIcon('!', false, route.team_color)}>
+                                                        <Popup>
+                                                            <strong>{route.team_name}</strong>
+                                                            <br /><span style={{color:'#f59e0b', fontSize:'11px'}}>⚠️ Comenzile nu au coordonate GPS</span>
+                                                            <br /><span style={{fontSize:'11px', color:'#64748b'}}>{wp.name}</span>
+                                                        </Popup>
+                                                    </Marker>
+                                                )
+                                            }
+
+                                            return (
+                                                <Marker
+                                                    key={`wp-${idx}`}
+                                                    position={[wp.lat, wp.lng]}
+                                                    icon={createCustomIcon(wp.type?.includes('base') ? 'B' : idx, wp.type?.includes('base'), route.team_color)}
+                                                >
+                                                    <Popup>
+                                                        <strong className="text-sm">{wp.name}</strong>
+                                                    </Popup>
+                                                </Marker>
+                                            )
+                                        })}
+
                                     </React.Fragment>
                                 )
                             })}
 
+
                             {/* Sand Stations Rendering */}
-                            {showSandStations && SAND_STATIONS.map((station, idx) => (
-                                <Marker 
-                                    key={`sand-${idx}`} 
-                                    position={[station.lat, station.lng]}
-                                    icon={L.divIcon({
-                                        className: 'custom-div-icon',
-                                        html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-md border-2 border-white transform transition-transform hover:scale-110 bg-red-500">S</div>`,
-                                        iconSize: [24, 24],
-                                        iconAnchor: [12, 12]
-                                    })}
+                            {showSandStations && SAND_STATIONS.map((station, idx) => {
+                                // Toate stațiile au fundal roșu și contur alb. Noi/Comune au litera D, Concurența are I.
+                                const bgColor = '#ef4444'
+                                const borderColor = 'white'
+                                const iconLetter = station.type === 'theirs' ? 'I' : 'D'
+                                return (
+                                    <Marker
+                                        key={`sand-${idx}`}
+                                        position={[station.lat, station.lng]}
+                                        icon={L.divIcon({
+                                            className: 'custom-div-icon',
+                                            html: `<div style="width:24px;height:24px;border-radius:50%;background:${bgColor};display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:11px;border:2.5px solid ${borderColor};box-shadow:0 2px 6px rgba(0,0,0,0.35);">${iconLetter}</div>`,
+                                            iconSize: [24, 24],
+                                            iconAnchor: [12, 12]
+                                        })}
+                                    >
+                                        <Popup>
+                                            <strong className="text-sm">{station.name}</strong><br/>
+                                            <span className="text-xs text-slate-500">{station.address}</span>
+                                            {station.phone && <><br/><span className="text-xs font-semibold">{station.phone}</span></>}
+                                            <br/>
+                                            <div className="mt-1">
+                                                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background: bgColor, border: `2px solid ${borderColor}`, color:'white'}}>
+                                                    {station.type === 'common' ? '● Noi + Ei (Comună)' : station.type === 'theirs' ? '● Doar Ei (Concurență)' : '● Doar Noi (Exclusivă)'}
+                                                </span>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                )
+                            })}
+                            {/* Sand Stations + Fullscreen — top controls row */}
+                            <div className="absolute top-4 left-14 z-[1000] flex items-center gap-2 pointer-events-auto">
+                                {/* Fullscreen button */}
+                                <button
+                                    onClick={() => {
+                                        const elem = document.getElementById('logistics-map-container');
+                                        if (!document.fullscreenElement && elem?.requestFullscreen) {
+                                            elem.requestFullscreen().catch(() => setIsMapFull(f => !f));
+                                        } else if (document.fullscreenElement && document.exitFullscreen) {
+                                            document.exitFullscreen();
+                                        } else {
+                                            // Fallback for browsers that don't support it well
+                                            setIsMapFull(f => !f);
+                                        }
+                                    }}
+                                    className="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center"
+                                    title={isMapFull ? 'Ieși fullscreen (ESC)' : 'Fullscreen hartă'}
                                 >
-                                    <Popup>
-                                        <strong className="text-sm">{station.name}</strong><br/>
-                                        <span className="text-xs text-slate-500">Stație Nisip</span>
-                                    </Popup>
-                                </Marker>
-                            ))}
-                            {/* Sand Stations Map Control */}
-                            <div className="absolute top-4 left-14 z-[400] pointer-events-auto">
+                                    {isMapFull
+                                        ? <Minimize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                        : <Maximize2 className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                                    }
+                                </button>
+                                {/* Sand Stations toggle */}
                                 <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                     <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             className="sr-only"
                                             checked={showSandStations}
                                             onChange={(e) => setShowSandStations(e.target.checked)}
                                         />
                                         <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
                                     </div>
-                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Stații Nisip')}</span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Staţii Nisip')}</span>
                                 </label>
                             </div>
                         </MapContainer>
-                        
-                        {/* Map Overlay Stats */}
-                        <div className="absolute top-4 right-4 z-[400] pointer-events-none">
-                            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto">
-                                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> {t('logistics.map_legend', 'Legenda Hartă')}</div>
+
+                        {/* Map Overlay Stats & Teams */}
+                        <div className="absolute top-4 right-4 z-[400] pointer-events-none flex flex-col gap-3 max-h-[calc(100%-2rem)] overflow-y-auto no-scrollbar pb-4">
+                            
+                            {/* Date Selector - Vizibil doar in Fullscreen pentru a evita dublarea */}
+                            {isMapFull && (
+                                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden h-11 shrink-0 w-64 flex items-center pointer-events-auto">
+                                    <button 
+                                        onClick={() => {
+                                            const d = new Date(targetDate);
+                                            d.setDate(d.getDate() - 1);
+                                            setTargetDate(d.toISOString().split('T')[0]);
+                                        }}
+                                        className="px-3 hover:bg-slate-50 dark:hover:bg-slate-700 h-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors border-r border-slate-100 dark:border-slate-700"
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <div className="relative flex-1 min-w-0">
+                                        <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                        <input 
+                                            type="date" 
+                                            value={targetDate}
+                                            onChange={e => setTargetDate(e.target.value)}
+                                            className="pl-9 pr-2 h-full text-sm font-bold bg-transparent outline-none w-full text-slate-800 dark:text-white dark:[color-scheme:dark]"
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            const d = new Date(targetDate);
+                                            d.setDate(d.getDate() + 1);
+                                            setTargetDate(d.toISOString().split('T')[0]);
+                                        }}
+                                        className="px-3 hover:bg-slate-50 dark:hover:bg-slate-700 h-full flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors border-l border-slate-100 dark:border-slate-700"
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Legend */}
+                            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto shrink-0 w-64">
+                                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> {t('logistics.map_legend', 'Legenda Hartă')}</div>
                                 <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                         <div className="w-3 h-3 rounded-full bg-slate-800 dark:bg-slate-600 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.base_start', 'Bază / Start')}
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                         <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Șantier / Lucrare')}
                                     </div>
                                     {showSandStations && (
-                                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                             <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-slate-700 shadow-sm flex items-center justify-center text-[8px] text-white font-bold">S</div> {t('logistics.sand_stations', 'Stații Nisip')}
                                         </div>
                                     )}
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                         <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> {t('logistics.car_route', 'Traseu auto')}
                                     </div>
                                 </div>
                             </div>
+                            
+                            {/* Active Teams Panel */}
+                            {data?.routes?.length > 0 && activeTeams.length > 0 && (
+                                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto shrink-0 w-64 flex flex-col gap-3">
+                                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white flex items-center justify-between gap-1.5">
+                                        <div className="flex items-center gap-1.5"><Truck className="w-3 h-3" /> Echipe Pe Traseu ({activeTeams.length})</div>
+                                        <div className="flex items-center gap-1 text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full" title="Șanse estimative de precipitații">
+                                            <CloudRain className="w-3 h-3" /> {rainChance}%
+                                        </div>
+                                    </div>
+                                    {data.routes.filter(r => activeTeams.includes(r.team_id)).map(route => {
+                                        const workWps = route.waypoints.filter(wp => wp.type === 'work');
+                                        const totalTons = (route.total_sand_kg || 0) / 1000;
+                                        const isFocused = focusedTeamId === route.team_id;
+                                        const isDimmed = focusedTeamId && !isFocused;
+                                        
+                                        return (
+                                            <div 
+                                                key={route.team_id} 
+                                                onClick={() => setFocusedTeamId(prev => prev === route.team_id ? null : route.team_id)}
+                                                className={`flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-700/50 pt-2 first:border-0 first:pt-0 cursor-pointer transition-opacity duration-200 hover:opacity-100 ${isDimmed ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}
+                                            >
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <div className="w-3 h-3 rounded-full shadow-sm shrink-0 border border-white/50" style={{ backgroundColor: route.team_color }}></div>
+                                                        <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate" title={route.team_name}>{route.team_name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className="text-[10px] font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                                                            {Math.round(route.total_distance_km || 0)}km
+                                                        </span>
+                                                        {totalTons > 0 && (
+                                                            <span className="text-[10px] font-bold text-slate-900 dark:text-white shrink-0 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                                                                {totalTons.toFixed(1)}t
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {workWps.length > 0 ? (
+                                                    <div className="flex flex-col gap-1 pl-5">
+                                                        {workWps.map((wp, i) => {
+                                                            const wpTons = (wp.sand_kg || 0) / 1000;
+                                                            return (
+                                                                <div key={i} className="flex justify-between items-center gap-2">
+                                                                    <div className="text-[10px] font-medium text-slate-900 dark:text-white truncate flex items-center gap-1.5" title={wp.name}>
+                                                                        <div className="w-1 h-1 rounded-full bg-slate-900 dark:bg-white shrink-0"></div>
+                                                                        <span className="truncate">{wp.name}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                                        {wp.distance_from_prev_km > 0 && (
+                                                                            <span className="text-[9px] font-bold text-slate-900 dark:text-white shrink-0 bg-slate-100 dark:bg-slate-800 px-1 rounded">
+                                                                                +{Math.round(wp.distance_from_prev_km)}km
+                                                                            </span>
+                                                                        )}
+                                                                        {wpTons > 0 && (
+                                                                            <span className="text-[9px] font-bold text-slate-900 dark:text-white shrink-0 bg-slate-100 dark:bg-slate-800 px-1 rounded">
+                                                                                {wpTons.toFixed(1)}t
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 italic pl-5">Fără comenzi.</div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -373,7 +679,10 @@ export default function LogisticsDashboard() {
                                                         <div className="font-bold text-slate-900 dark:text-white">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">{t('logistics.distance', 'Distanță')}</div>
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                            <TruckSVG color={route.team_color || '#64748b'} className="w-3.5 h-3.5" />
+                                                            {t('logistics.distance', 'Distanţă')}
+                                                        </div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{Math.round(route.total_distance_km)} km</div>
                                                     </div>
                                                 </div>
@@ -381,7 +690,14 @@ export default function LogisticsDashboard() {
                                                 {isActive && route.waypoints.length > 0 && (
                                                     <div className="space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                                         {route.waypoints.map((wp, idx) => (
-                                                            <div key={idx} className="flex gap-3 relative z-10 text-xs">
+                                                            <div
+                                                                key={idx}
+                                                                className={`flex gap-3 relative z-10 text-xs ${!wp.type.includes('base') ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg px-1 -mx-1 transition-colors' : ''}`}
+                                                                onClick={e => {
+                                                                    e.stopPropagation()
+                                                                    if (!wp.type.includes('base')) setSelectedWork({ wp, route })
+                                                                }}
+                                                            >
                                                                 <div 
                                                                     className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${wp.type.includes('base') ? 'bg-slate-800 dark:bg-slate-600' : ''}`}
                                                                     style={wp.type.includes('base') ? {} : { backgroundColor: route.team_color }}
@@ -413,6 +729,71 @@ export default function LogisticsDashboard() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Work Order Info Drawer */}
+            {selectedWork && (
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+                        onClick={() => setSelectedWork(null)}
+                    />
+                    {/* Drawer */}
+                    <div className="fixed bottom-0 left-0 right-0 z-50 md:left-auto md:right-6 md:bottom-6 md:w-96 bg-white dark:bg-slate-800 rounded-t-2xl md:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+                        {/* Header in team color */}
+                        <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: selectedWork.route.team_color }}>
+                            <div className="flex items-center gap-2">
+                                <TruckSVG color={selectedWork.route.team_color} className="w-5 h-5 opacity-80" />
+                                <span className="font-bold text-white text-sm tracking-wide">{selectedWork.route.team_name}</span>
+                            </div>
+                            <button onClick={() => setSelectedWork(null)} className="text-white/80 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <h3 className="font-bold text-slate-900 dark:text-white text-base leading-tight">{selectedWork.wp.name}</h3>
+                                {selectedWork.wp.address && (
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                        {selectedWork.wp.address}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                {selectedWork.wp.sand_kg > 0 && (
+                                    <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800">
+                                        <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Nisip</div>
+                                        <div className="text-lg font-black text-amber-700 dark:text-amber-300 mt-0.5">
+                                            {(selectedWork.wp.sand_kg / 1000).toFixed(2)} <span className="text-sm font-normal text-amber-500">t</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedWork.wp.distance_from_prev_km > 0 && (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
+                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Distanță</div>
+                                        <div className="text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5">
+                                            +{Math.round(selectedWork.wp.distance_from_prev_km)} <span className="text-sm font-normal text-blue-500">km</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => { setSelectedWork(null); navigate(`/admin/work-orders/${selectedWork.wp.id}`) }}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110 active:scale-95"
+                                style={{ backgroundColor: selectedWork.route.team_color }}
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                                Detalii comandă
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     )

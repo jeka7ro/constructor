@@ -25,7 +25,7 @@ const getSandStationIcon = (index) => new L.DivIcon({
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
  * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments, navButtons, sandStations
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb' }) => {
     const mapRef = useRef(null)
     const mapInstance = useRef(null)
     const markerRef = useRef(null)
@@ -63,9 +63,23 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             mapInstance.current.setView([lat, lon], z)
         }
 
-        // Marker
+        // Marker destinatie (camion in culoarea echipei)
         if (markerRef.current) markerRef.current.remove()
-        markerRef.current = L.marker([lat, lon])
+        const mainTruckIcon = L.divIcon({
+            className: 'custom-truck-marker',
+            html: `<div style="background-color: ${teamColor}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.35);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="3" width="15" height="13" rx="1"/>
+                    <path d="M16 8h4l3 5v4h-7V8z"/>
+                    <circle cx="5.5" cy="18.5" r="2.5"/>
+                    <circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+            </div>`,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            popupAnchor: [0, -20]
+        })
+        markerRef.current = L.marker([lat, lon], { icon: mainTruckIcon })
         if (popupLabel) {
             markerRef.current.bindPopup(`<strong style="font-size:13px">${popupLabel}</strong>`)
             markerRef.current.openPopup()
@@ -107,10 +121,17 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             
             const destinationIcon = L.divIcon({
                 className: 'custom-destination-marker',
-                html: `<div style="background-color: #ef4444; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 2px solid white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 32],
-                popupAnchor: [0, -32]
+                html: `<div style="background-color: ${teamColor}; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.35); border: 2px solid white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="3" width="15" height="13" rx="1"/>
+                        <path d="M16 8h4l3 5v4h-7V8z"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/>
+                        <circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                </div>`,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -20]
             });
 
             detailMarkerRef.current = L.marker([lat, lon], { icon: destinationIcon })

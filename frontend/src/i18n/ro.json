@@ -55,7 +55,27 @@
     "sand_needed": "Necesar Nisip",
     "distance": "Distanță",
     "sand": "Nisip",
-    "tons": "tone"
+    "tons": "tone",
+    "report": "Raport",
+    "map": "Hartă",
+    "report_title": "Raport Logistică",
+    "report_subtitle": "Trasee, volume și materiale pe perioadă",
+    "report_orders": "Comenzi",
+    "report_surface": "Suprafață",
+    "group_by": "Grupare",
+    "by_day": "Zi",
+    "by_team": "Echipă",
+    "no_group": "Niciunul",
+    "no_data_period": "Nicio comandă în această perioadă",
+    "col_date": "Data",
+    "col_team": "Echipă",
+    "col_truck": "Camion",
+    "col_work": "Lucrare",
+    "col_surface": "Suprafață",
+    "col_thickness": "Grosime",
+    "col_sand": "Nisip",
+    "col_km": "Km",
+    "col_status": "Status"
   },
   "common": {
     "save": "Salvează",
@@ -1199,13 +1219,15 @@
     "refresh_radar": "Actualizează Radarul",
     "open_buienradar": "Deschide Buienradar.be",
     "worker_complaints": "Sesizări Muncitori",
-    "no_open_complaints": "Nicio sesizare deschisă"
+    "no_open_complaints": "Nicio sesizare deschisă",
+    "this_week": "Săptămâna în curs",
+    "pending_requests": "Cereri în așteptare"
   },
   "filters": {
     "today": "Azi",
-    "current_week": "Săptămâna Curentă",
+    "current_week": "Săptămâna curentă",
     "last_week": "Săptămâna Trecută",
-    "current_month": "Luna Curentă",
+    "current_month": "Luna curentă",
     "last_month": "Luna Trecută",
     "current_year": "Anul Curent",
     "all": "Toate Perioadele"

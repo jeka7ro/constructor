@@ -5,10 +5,64 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import date
 import math
+import requests
+import time
 
 from app.database import get_db
 from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite, LogisticsDailyPlan
 from app.api.admin_auth import get_current_admin
+
+# ── Geocoding cache (in-memory per process) ────────────────────────────────
+_geocode_cache = {}
+
+def _normalize_address(address: str) -> str:
+    import unicodedata, re
+    # Remove diacritics (ă→a, î→i, etc.)
+    nfkd = unicodedata.normalize('NFD', address)
+    without_dia = ''.join(c for c in nfkd if unicodedata.category(c) != 'Mn')
+    # Add space between letter and digit (Voorstehoeve64 → Voorstehoeve 64)
+    spaced = re.sub(r'([a-zA-Z])(\d)', r'\1 \2', without_dia)
+    # Normalize commas to ", "
+    normalized = re.sub(r',\s*', ', ', spaced)
+    return normalized.strip()
+
+def _nominatim_query(q: str):
+    import requests
+    try:
+        resp = requests.get(
+            'https://nominatim.openstreetmap.org/search',
+            params={'q': q, 'format': 'json', 'limit': 1, 'countrycodes': 'be,nl,fr,de,lu'},
+            headers={'User-Agent': 'DaveChape-Logistics/1.0', 'Accept-Language': 'fr'},
+            timeout=6
+        )
+        results = resp.json()
+        if results:
+            return float(results[0]['lat']), float(results[0]['lon'])
+    except Exception:
+        pass
+    return None
+
+def geocode_address(address: str):
+    """Geocode an address using Nominatim. Returns (lat, lng) or None."""
+    if not address or len(address.strip()) < 5:
+        return None
+    key = address.strip().lower()
+    if key in _geocode_cache:
+        return _geocode_cache[key]
+
+    normalized = _normalize_address(address)
+
+    # Attempt 1: full normalized address
+    result = _nominatim_query(normalized)
+
+    # Attempt 2: fallback — try just first segment (city/postal part before comma)
+    if not result and ',' in normalized:
+        first_part = normalized.split(',')[0].strip()
+        if len(first_part) > 3:
+            result = _nominatim_query(first_part)
+
+    _geocode_cache[key] = result
+    return result
 
 router = APIRouter(prefix="/admin/logistics", tags=["admin-logistics"])
 
@@ -240,6 +294,19 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                         w_lng = s.longitude
                         w_name = f"{w.title} ({s.name})"
 
+                # Fallback: geocode site_address via Nominatim
+                if not (w_lat and w_lng) and w.site_address:
+                    geocoded = geocode_address(w.site_address)
+                    if geocoded:
+                        w_lat, w_lng = geocoded
+                        # Persist coords so next load is instant
+                        try:
+                            w.site_latitude = w_lat
+                            w.site_longitude = w_lng
+                            db.add(w)
+                        except Exception:
+                            pass
+
                 if w_lat and w_lng:
                     dist_from_prev = 0
                     segment = None
@@ -383,3 +450,81 @@ def archive_daily_routes(req: ArchiveDayRequest, db: Session = Depends(get_db), 
     db.commit()
     return {"status": "ok", "message": "Ziua a fost arhivată în istoric."}
 
+
+@router.get("/period-report")
+def get_period_report(
+    start_date: date,
+    end_date: date,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin)
+):
+    try:
+        from app.models import Vehicle
+    except ImportError:
+        Vehicle = None
+
+    wos = db.query(WorkOrder).filter(
+        WorkOrder.organization_id == admin.organization_id,
+        WorkOrder.start_date >= start_date,
+        WorkOrder.start_date <= end_date,
+        WorkOrder.status != "cancelled",
+    ).order_by(WorkOrder.start_date, WorkOrder.start_time).all()
+
+    team_ids = list({wo.assigned_team_id for wo in wos if wo.assigned_team_id})
+    teams = {t.id: t for t in db.query(Team).filter(Team.id.in_(team_ids)).all()} if team_ids else {}
+
+    vehicles = {}
+    if Vehicle:
+        vehicle_ids = list({wo.assigned_vehicle_id for wo in wos if wo.assigned_vehicle_id})
+        if vehicle_ids:
+            vehicles = {v.id: v for v in db.query(Vehicle).filter(Vehicle.id.in_(vehicle_ids)).all()}
+
+    rows = []
+    for wo in wos:
+        sand_kg = calc_sand_kg(wo)
+        total_surface = 0.0
+        weighted_thickness = 0.0
+        vols = wo.volumes if isinstance(wo.volumes, list) else []
+        for v in vols:
+            surf = float(v.get("quantity", 0) or 0)
+            thick = float(v.get("thickness", 0) or 0)
+            total_surface += surf
+            weighted_thickness += surf * thick
+        avg_thickness = (weighted_thickness / total_surface) if total_surface > 0 else 0
+
+        team = teams.get(wo.assigned_team_id)
+        vehicle = vehicles.get(wo.assigned_vehicle_id) if wo.assigned_vehicle_id else None
+
+        rows.append({
+            "id": wo.id,
+            "date": wo.start_date.isoformat() if wo.start_date else None,
+            "start_time": wo.start_time,
+            "title": wo.title or "—",
+            "client_name": wo.client_name or "—",
+            "address": wo.site_address or "—",
+            "status": wo.status,
+            "team_id": team.id if team else None,
+            "team_name": team.name if team else "—",
+            "team_color": team.color if team else "#64748b",
+            "vehicle_name": getattr(vehicle, "name", None) or "—",
+            "vehicle_plate": getattr(vehicle, "plate_number", None) or "—",
+            "surface_m2": round(total_surface, 2),
+            "avg_thickness_cm": round(avg_thickness, 2),
+            "sand_kg": round(sand_kg, 1),
+            "sand_tons": round(sand_kg / 1000, 3),
+            "route_distance_km": round(float(wo.route_distance_km or 0), 2),
+        })
+
+    total_surface = sum(r["surface_m2"] for r in rows)
+    total_sand_kg = sum(r["sand_kg"] for r in rows)
+    total_distance = sum(r["route_distance_km"] for r in rows)
+
+    return {
+        "rows": rows,
+        "totals": {
+            "count": len(rows),
+            "surface_m2": round(total_surface, 2),
+            "sand_tons": round(total_sand_kg / 1000, 3),
+            "distance_km": round(total_distance, 2),
+        }
+    }

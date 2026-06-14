@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function KPICard({ label, value, icon: Icon, colorTheme = 'blue', onClick, pulse, isText, active }) {
+export default function KPICard({ label, value, icon: Icon, colorTheme = 'blue', onClick, pulse, isText, active, subtitle }) {
     const themes = {
         blue: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-100 dark:border-blue-500/20', iconBg: 'bg-blue-500', glow: 'shadow-blue-500', activeRing: 'ring-blue-500/30 border-blue-400' },
         green: { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-500/20', iconBg: 'bg-emerald-500', glow: 'shadow-emerald-500', activeRing: 'ring-emerald-500/30 border-emerald-400' },
@@ -34,6 +34,11 @@ export default function KPICard({ label, value, icon: Icon, colorTheme = 'blue',
                 <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate mt-0.5">
                     {label}
                 </div>
+                {subtitle && (
+                    <div className="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate mt-0.5 normal-case tracking-normal">
+                        {subtitle}
+                    </div>
+                )}
             </div>
             
             <div className={`absolute -right-4 -top-4 w-16 h-16 ${theme.bg} rounded-full blur-2xl opacity-40 group-hover:opacity-70 transition-opacity duration-500 pointer-events-none`}></div>

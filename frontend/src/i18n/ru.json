@@ -55,7 +55,27 @@
     "sand_needed": "Требуется песок",
     "distance": "Расстояние",
     "sand": "Песок",
-    "tons": "тонн"
+    "tons": "тонн",
+    "report": "Отчёт",
+    "map": "Карта",
+    "report_title": "Логистический отчёт",
+    "report_subtitle": "Маршруты, объёмы и материалы по периоду",
+    "report_orders": "Заказы",
+    "report_surface": "Площадь",
+    "group_by": "Группировка",
+    "by_day": "День",
+    "by_team": "Команда",
+    "no_group": "Нет",
+    "no_data_period": "Нет заказов за этот период",
+    "col_date": "Дата",
+    "col_team": "Команда",
+    "col_truck": "Грузовик",
+    "col_work": "Работа",
+    "col_surface": "Площадь",
+    "col_thickness": "Толщина",
+    "col_sand": "Песок",
+    "col_km": "Км",
+    "col_status": "Статус"
   },
   "common": {
     "save": "Сохранить",
@@ -1078,7 +1098,9 @@
     "refresh_radar": "Обновить радар",
     "open_buienradar": "Открыть Buienradar.be",
     "worker_complaints": "Жалобы работников",
-    "no_open_complaints": "Нет открытых жалоб"
+    "no_open_complaints": "Нет открытых жалоб",
+    "this_week": "Текущая неделя",
+    "pending_requests": "Ожидающие запросы"
   },
   "filters": {
     "today": "Сегодня",

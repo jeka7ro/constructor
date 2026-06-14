@@ -361,24 +361,26 @@ export default function AdminDashboard() {
             }}>
                 
                 {/* Logo Area matches Header height */}
-                <div className={`h-20 flex items-center border-b shrink-0 transition-colors ${sidebarOpen ? 'px-3' : 'px-0 justify-center'} relative ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
-                    <div className={`flex items-center ${sidebarOpen ? 'gap-2 w-full pr-8' : 'justify-center'}`}>
+                <div className={`h-20 flex items-center justify-center border-b shrink-0 transition-colors relative ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
+                    <div className={`flex items-center justify-center ${sidebarOpen ? 'w-full px-3' : 'w-14'}`}>
                         {tenant ? (
                             <>
-                                <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-14 h-14' : 'w-10 h-10'}`}>
-                                    {(!sidebarOpen && tenant.favicon_url) ? (
+                                {(!sidebarOpen && tenant.favicon_url) ? (
+                                    <div className="w-10 h-10 flex items-center justify-center">
                                         <img src={getImageUrl(tenant.favicon_url)} alt="Tenant Favicon" className="w-full h-full object-contain bg-white rounded-lg p-1" />
-                                    ) : tenant.logo_url ? (
-                                        <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="w-full h-full object-contain bg-white rounded-lg p-1" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/20">
-                                            {tenant.name?.charAt(0) || 'P'}
-                                        </div>
-                                    )}
-                                </div>
-                                {sidebarOpen && (
-                                    <div className="flex-1 min-w-0 pl-3 pr-2">
-                                        <h2 className="font-extrabold text-[14px] leading-tight tracking-tighter text-white truncate">{tenant.name}</h2>
+                                    </div>
+                                ) : tenant.logo_url ? (
+                                    <div className="flex items-center justify-center w-full">
+                                        <img
+                                            src={getImageUrl(tenant.logo_url)}
+                                            alt="Tenant Logo"
+                                            className={`object-contain bg-white rounded-xl ${sidebarOpen ? 'w-full h-16 max-h-16' : 'w-10 h-10'}`}
+                                            style={{ padding: sidebarOpen ? '3px 8px' : '2px' }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/20">
+                                        {tenant.name?.charAt(0) || 'P'}
                                     </div>
                                 )}
                             </>

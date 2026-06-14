@@ -55,7 +55,27 @@
     "sand_needed": "Sable Nécessaire",
     "distance": "Distance",
     "sand": "Sable",
-    "tons": "tonnes"
+    "tons": "tonnes",
+    "report": "Rapport",
+    "map": "Carte",
+    "report_title": "Rapport Logistique",
+    "report_subtitle": "Itinéraires, volumes et matériaux par période",
+    "report_orders": "Commandes",
+    "report_surface": "Surface",
+    "group_by": "Grouper par",
+    "by_day": "Jour",
+    "by_team": "Équipe",
+    "no_group": "Aucun",
+    "no_data_period": "Aucune commande sur cette période",
+    "col_date": "Date",
+    "col_team": "Équipe",
+    "col_truck": "Camion",
+    "col_work": "Chantier",
+    "col_surface": "Surface",
+    "col_thickness": "Épaisseur",
+    "col_sand": "Sable",
+    "col_km": "Km",
+    "col_status": "Statut"
   },
   "common": {
     "save": "Enregistrer",
@@ -1080,7 +1100,9 @@
     "refresh_radar": "Actualiser le radar",
     "open_buienradar": "Ouvrir Buienradar.be",
     "worker_complaints": "Plaintes des Travailleurs",
-    "no_open_complaints": "Aucune plainte ouverte"
+    "no_open_complaints": "Aucune plainte ouverte",
+    "this_week": "Semaine en cours",
+    "pending_requests": "Demandes en attente"
   },
   "filters": {
     "today": "Aujourd'hui",

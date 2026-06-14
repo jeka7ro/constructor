@@ -75,6 +75,17 @@ function KPI({ icon: Icon, label, value, sub, color = 'blue' }) {
     )
 }
 
+function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="1" />
+            <path d="M16 8h4l3 5v4h-7V8z" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+        </svg>
+    )
+}
+
 function Section({ className = '', contentClassName = '', icon: Icon, title, children }) {
     return (
         <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden ${className}`}>
@@ -137,7 +148,7 @@ function NavButtons({ lat, lon, address }) {
             {appleUrl && (
                 <a href={appleUrl} target="_blank" rel="noreferrer"
                     className="flex justify-center items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 dark:bg-slate-600 text-white text-[11px] font-bold hover:bg-slate-700 active:scale-95 transition-all shadow-sm whitespace-nowrap">
-                    <Navigation className="w-3 h-3 shrink-0" />
+                    <TruckSVG color="white" className="w-3 h-3 shrink-0" />
                     Apple
                 </a>
             )}
@@ -476,7 +487,7 @@ export default function WorkOrderDetail() {
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', "Volum")}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', "Grosime")}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', "medie")} color="rose" />
-                <KPI icon={Navigation} label={t('work_order_detail.kpi.route', "Traseu")}       value={wo.route_distance_km ? `${(wo.route_distance_km * 2).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', "dus-întors")} color="slate" />
+                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', "Traseu")}       value={wo.route_distance_km ? `${(wo.route_distance_km * 2).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', "dus-întors")} color="slate" />
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
@@ -503,6 +514,7 @@ export default function WorkOrderDetail() {
                             onRouteCalculated={handleRouteCalculated}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
                             sandStations={sandStations}
+                            teamColor={wo.team_color || '#2563eb'}
                             leftPanelContent={
                                 <>
                                     <div className="w-full shrink-0">
@@ -516,7 +528,7 @@ export default function WorkOrderDetail() {
                                         />
                                     </div>
                                     <div className="w-full shrink-0">
-                                        <Section className="h-full" icon={Navigation} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
+                                        <Section className="h-full" icon={({ className }) => <TruckSVG color={wo.team_color || '#2563eb'} className={className} />} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex-1 space-y-1.5">
                                                     <div>
@@ -543,7 +555,7 @@ export default function WorkOrderDetail() {
                                                     </div>
                                                 </div>
                                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><Navigation className="w-3 h-3"/> {t('work_order_detail.planning.route_hops', 'Traseu (Hop-uri)')}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/> {t('work_order_detail.planning.route_hops', 'Traseu (Hop-uri)')}</p>
                                                     {(wo.route_segments && wo.route_segments.length > 0) ? (
                                                         <>
                                                             <div className="relative pl-6 space-y-1.5 before:absolute before:inset-y-2 before:left-[11px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
@@ -609,7 +621,7 @@ export default function WorkOrderDetail() {
                     />
                 </div>
                 <div className="h-full">
-                    <Section className="h-full" icon={Navigation} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
+                    <Section className="h-full" icon={({ className }) => <TruckSVG color={wo.team_color || '#2563eb'} className={className} />} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
                         <div className="flex flex-col md:flex-row gap-3">
                             {/* Left: Schedule + Crew */}
                             <div className="flex-shrink-0 md:w-44 space-y-2">
@@ -642,7 +654,7 @@ export default function WorkOrderDetail() {
                             {/* Right: Route */}
                             <div className="flex-1 min-w-0">
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <Navigation className="w-3 h-3"/>
+                                    <TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/>
                                     {t('work_order_detail.planning.route_hops', 'Traseu (Etape)')}
                                 </p>
                                 {(wo.route_segments && wo.route_segments.length > 0) ? (

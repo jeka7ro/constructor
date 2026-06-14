@@ -55,7 +55,27 @@
     "sand_needed": "Sand Needed",
     "distance": "Distance",
     "sand": "Sand",
-    "tons": "tons"
+    "tons": "tons",
+    "report": "Report",
+    "map": "Map",
+    "report_title": "Logistics Report",
+    "report_subtitle": "Routes, volumes and materials by period",
+    "report_orders": "Orders",
+    "report_surface": "Surface",
+    "group_by": "Group by",
+    "by_day": "Day",
+    "by_team": "Team",
+    "no_group": "None",
+    "no_data_period": "No orders in this period",
+    "col_date": "Date",
+    "col_team": "Team",
+    "col_truck": "Truck",
+    "col_work": "Job",
+    "col_surface": "Surface",
+    "col_thickness": "Thickness",
+    "col_sand": "Sand",
+    "col_km": "Km",
+    "col_status": "Status"
   },
   "common": {
     "save": "Save",
@@ -1103,13 +1123,15 @@
     "refresh_radar": "Refresh Radar",
     "open_buienradar": "Open Buienradar.be",
     "worker_complaints": "Worker Complaints",
-    "no_open_complaints": "No open complaints"
+    "no_open_complaints": "No open complaints",
+    "this_week": "Current week",
+    "pending_requests": "Pending requests"
   },
   "filters": {
     "today": "Today",
-    "current_week": "Current Week",
+    "current_week": "This week",
     "last_week": "Last Week",
-    "current_month": "Current Month",
+    "current_month": "This month",
     "last_month": "Last Month",
     "current_year": "Current Year",
     "all": "All Periods"

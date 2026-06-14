@@ -25,7 +25,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function AdminOverview() {
     const navigate = useNavigate()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { tenant } = useTenantStore()
     const [stats, setStats] = useState({ total_users: 0, total_sites: 0, pending: 0, total_hours_week: 0 })
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
@@ -451,7 +451,6 @@ export default function AdminOverview() {
                 address: quickCreateClientForm.address || null,
                 phone: quickCreateClientForm.phone || null,
                 email: quickCreateClientForm.email || null,
-                is_favorite: true
             })
             // Fetch updated clients or just add to list
             const newClient = res.data
@@ -733,9 +732,9 @@ export default function AdminOverview() {
                     ))
                 ) : isScreeds ? (
                     <>
-                        <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={necesar.length} icon={Package} colorTheme="amber" onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'ro-RO', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={necesar.length} icon={Package} colorTheme="amber" subtitle={t('admin_overview.pending_requests', 'Cereri în așteptare')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
                     </>
                 ) : (
                     <>
@@ -756,8 +755,8 @@ export default function AdminOverview() {
 
             {/* Calendar Timesheet and Radar - Visible only for short term interventions */}
             {isShortTerm && (
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
-                    <div className="xl:col-span-3">
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,160px)] gap-6 mb-6">
+                    <div>
                         <ShortWorksCalendar 
                             workOrders={allWorkOrders} 
                             onOrderRescheduled={handleOrderRescheduled} 
@@ -807,7 +806,7 @@ export default function AdminOverview() {
                             }}
                         />
                     </div>
-                    <div className="xl:col-span-1 flex flex-col gap-4 h-[800px]">
+                    <div className="flex flex-col gap-4 h-[800px]">
                         {/* Drag and Drop Clients Module */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
                             <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
@@ -885,7 +884,7 @@ export default function AdminOverview() {
                                                 <Truck className="w-3 h-3" style={{ color: team.color || '#3b82f6' }} />
                                             </div>
                                             <div className="min-w-0 flex flex-col justify-center">
-                                                <div className="font-bold text-xs text-slate-800 dark:text-white truncate max-w-[120px] leading-tight">{team.name}</div>
+                                                <div className="font-bold text-xs text-slate-800 dark:text-white truncate max-w-[120px] leading-tight">{team.name.replace(/^echipa\s*/i, '')}</div>
                                                 {team.members?.length > 0 && (
                                                     <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none mt-0.5">{team.members.length} {t('common.members_short', 'membri')}</div>
                                                 )}
@@ -933,29 +932,20 @@ export default function AdminOverview() {
                                         label: t('common.title', 'Titlu'),
                                         sortable: true,
                                         render: (wo) => (
-                                            <div>
-                                                <div className="font-bold text-slate-900 dark:text-white text-sm">{wo.title}</div>
+                                            <div
+                                                className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                                                onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
+                                            >
+                                                <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400">{wo.title}</div>
                                                 {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}
                                             </div>
                                         )
-                                    },
-                                    {
-                                        key: 'client_name',
-                                        label: t('common.client', 'Client'),
-                                        sortable: true,
-                                        render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.client_name || '—'}</div>
                                     },
                                     {
                                         key: 'start_date',
                                         label: t('common.execution_date', 'Data Execuție'),
                                         sortable: true,
                                         render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO') : '—'}</div>
-                                    },
-                                    {
-                                        key: 'created_at',
-                                        label: t('common.creation_date', 'Dată Creare'),
-                                        sortable: true,
-                                        render: (wo) => <div className="text-xs text-slate-500 dark:text-slate-400">{wo.created_at ? new Date(wo.created_at).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</div>
                                     },
                                     {
                                         key: 'status',
@@ -979,30 +969,24 @@ export default function AdminOverview() {
                                         }
                                     },
                                     {
-                                        key: 'actions',
-                                        label: t('common.actions', 'Acțiuni'),
-                                        render: (wo) => (
-                                            <button onClick={() => {
-                                                setQuickEditOrder(wo);
-                                                const v = wo.volumes?.[0] || {};
-                                                setQuickEditForm({
-                                                    title: wo.title || '',
-                                                    clientId: wo.client_id ? String(wo.client_id) : '',
-                                                    address: wo.site_address || '',
-                                                    latitude: wo.site_latitude || '',
-                                                    longitude: wo.site_longitude || '',
-                                                    surface: v.quantity || '',
-                                                    thickness: v.thickness || '',
-                                                    has_foil: !!v.has_foil,
-                                                    has_mesh: !!v.has_mesh,
-                                                    has_duramint: !!v.has_duramint,
-                                                    teamId: wo.assigned_team_id ? String(wo.assigned_team_id) : '',
-                                                });
-                                            }} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors inline-block">
-                                                <ExternalLink className="w-4 h-4" />
-                                            </button>
-                                        )
-                                    }
+                                        key: 'is_invoiced',
+                                        label: t('work_order_detail.invoicing.title', 'Facturare'),
+                                        sortable: true,
+                                        render: (wo) => wo.status === 'completed' ? (
+                                            wo.is_invoiced ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                                    {wo.invoice_number || t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider whitespace-nowrap animate-pulse">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                                                    {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                                                </span>
+                                            )
+                                        ) : <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                    },
+
                                 ]}
                                 data={recentWorkOrders}
                                 defaultPageSize={5}

@@ -55,7 +55,27 @@
     "sand_needed": "Zand Benodigd",
     "distance": "Afstand",
     "sand": "Zand",
-    "tons": "ton"
+    "tons": "ton",
+    "report": "Rapport",
+    "map": "Kaart",
+    "report_title": "Logistiek Rapport",
+    "report_subtitle": "Routes, volumes en materialen per periode",
+    "report_orders": "Opdrachten",
+    "report_surface": "Oppervlak",
+    "group_by": "Groeperen op",
+    "by_day": "Dag",
+    "by_team": "Team",
+    "no_group": "Geen",
+    "no_data_period": "Geen opdrachten in deze periode",
+    "col_date": "Datum",
+    "col_team": "Team",
+    "col_truck": "Vrachtwagen",
+    "col_work": "Werk",
+    "col_surface": "Oppervlak",
+    "col_thickness": "Dikte",
+    "col_sand": "Zand",
+    "col_km": "Km",
+    "col_status": "Status"
   },
   "common": {
     "save": "Opslaan",
@@ -1103,13 +1123,15 @@
     "refresh_radar": "Radar vernieuwen",
     "open_buienradar": "Open Buienradar.be",
     "worker_complaints": "Klachten van Werknemers",
-    "no_open_complaints": "Geen openstaande klachten"
+    "no_open_complaints": "Geen openstaande klachten",
+    "this_week": "Huidige week",
+    "pending_requests": "Openstaande verzoeken"
   },
   "filters": {
     "today": "Vandaag",
-    "current_week": "Huidige Week",
+    "current_week": "Deze week",
     "last_week": "Vorige Week",
-    "current_month": "Huidige Maand",
+    "current_month": "Deze maand",
     "last_month": "Vorige Maand",
     "current_year": "Huidig Jaar",
     "all": "Alle Perioden"

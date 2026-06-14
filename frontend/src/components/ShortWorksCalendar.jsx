@@ -118,6 +118,7 @@ export default function ShortWorksCalendar({
     const [currentDate, setCurrentDate] = useState(new Date());
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
+    const hasAutoScrolled = useRef(false); // prevent re-jumping on data refresh
     const [showScrollHint, setShowScrollHint] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [draggedOrder, setDraggedOrder] = useState(null);
@@ -181,19 +182,26 @@ export default function ShortWorksCalendar({
         return earliest;
     }, [weeklyOrders]);
 
+    const END_HOUR = 21; // Calendar ends at 21:00
+
     const getGridRowFromTime = (timeStr) => {
-        if (!timeStr || typeof timeStr !== 'string') return 3; // Default
+        if (!timeStr || typeof timeStr !== 'string') return 3;
         const [hours] = timeStr.split(':').map(Number);
-        if (isNaN(hours)) return 3; // Prevent NaN infinite loop
-        const row = hours - dynamicStartHour + 1; // dynamically shift rows
-        const finalRow = Math.max(1, Math.min(13, row));
+        if (isNaN(hours)) return 3;
+        const row = hours - dynamicStartHour + 1;
+        const numRows = END_HOUR - dynamicStartHour;
+        const finalRow = Math.max(1, Math.min(numRows, row));
         return isNaN(finalRow) ? 3 : finalRow;
     };
 
-    // Auto-scroll to earliest event
+    // Auto-scroll to earliest event — only once per week change, not on every data refresh
     useEffect(() => {
-        if (containerRef.current) {
-            let earliestRow = 13;
+        hasAutoScrolled.current = false; // reset when week changes
+    }, [currentDate]);
+
+    useEffect(() => {
+        if (containerRef.current && !hasAutoScrolled.current && weeklyOrders.length > 0) {
+            let earliestRow = END_HOUR - dynamicStartHour;
             let latestRow = 1;
             let hasEvents = false;
             
@@ -213,26 +221,18 @@ export default function ShortWorksCalendar({
                 } catch (e) {}
             });
             
-            const targetRow = hasEvents ? Math.max(1, earliestRow - 1) : 2; // scroll a bit above the earliest event, or default 07:00
-            const newScrollTop = (targetRow - 1) * 80;
-            containerRef.current.scrollTop = newScrollTop;
+            if (hasEvents) {
+                const targetRow = Math.max(1, earliestRow - 1);
+                const newScrollTop = (targetRow - 1) * 80;
+                containerRef.current.scrollTop = newScrollTop;
+                hasAutoScrolled.current = true;
 
-            if (!hasEvents) {
-                setShowScrollHint(false);
-            } else {
-                // Determine if any events are out of view.
-                // clientHeight is usually ~480px, but we check real value with fallback.
                 const clientH = containerRef.current.clientHeight || 480;
                 const visibleBottom = newScrollTop + clientH;
-                
-                // Assuming an event takes at least 1 hour (80px)
                 const eventsBottom = latestRow * 80;
-                
-                if (eventsBottom > visibleBottom) {
-                    setShowScrollHint(true);
-                } else {
-                    setShowScrollHint(false);
-                }
+                setShowScrollHint(eventsBottom > visibleBottom);
+            } else {
+                setShowScrollHint(false);
             }
         }
     }, [weeklyOrders, currentDate]);
@@ -274,14 +274,12 @@ export default function ShortWorksCalendar({
             {/* Calendar Grid Container (Desktop) */}
             <div 
                 ref={containerRef}
-                className={`flex-1 hidden md:flex relative ${isScrollable ? 'overflow-auto' : 'overflow-hidden cursor-pointer'}`}
-                onClick={() => !isScrollable && setIsScrollable(true)}
-                onMouseLeave={() => setIsScrollable(false)}
+                className="flex-1 hidden md:flex relative overflow-auto"
             >
                 {/* Time Gutter */}
                 <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
-                    {Array.from({ length: 13 }).map((_, i) => (
+                    {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
                         <div key={i} className="h-20 border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
                             {(i + dynamicStartHour).toString().padStart(2, '0')}:00
                         </div>
@@ -292,7 +290,7 @@ export default function ShortWorksCalendar({
                 <div className="flex-1 min-w-[800px]">
 
                     {/* Header: Days */}
-                    <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-10">
+                    <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30">
                         {weekDays.map((day, i) => {
                             const isToday = isSameDay(day, new Date());
                             let dailySand = 0;
@@ -329,7 +327,7 @@ export default function ShortWorksCalendar({
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid grid-cols-7 grid-rows-[repeat(13,minmax(80px,80px))] bg-slate-50/30 dark:bg-slate-900/30">
+                    <div className="relative grid grid-cols-7 bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(80px, 80px))` }}>
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -626,7 +624,7 @@ export default function ShortWorksCalendar({
                                             )}
                                         </div>
                                         <div className="text-[10px] font-semibold mt-1 truncate flex items-center justify-between" style={{ color: colorHex }}>
-                                            <span>{wo.assigned_team_name || t('common.unassigned', 'Neasignat')}</span>
+                                            <span>{(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}</span>
                                             {calculateOrderSand(wo) > 0 && (
                                                 <span className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
                                                     {calculateOrderSand(wo).toFixed(1)}T
