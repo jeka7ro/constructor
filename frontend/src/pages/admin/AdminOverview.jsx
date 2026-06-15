@@ -1385,7 +1385,7 @@ export default function AdminOverview() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Adresă / Localitate</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate')}</label>
                                 <AddressAutocomplete 
                                     value={quickEditForm.address}
                                     onChange={(addr, lat, lon) => {
@@ -1400,7 +1400,7 @@ export default function AdminOverview() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Suprafață (m²)</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Suprafață (m²)')}</label>
                                     <input 
                                         type="number"
                                         min="0"
@@ -1411,7 +1411,7 @@ export default function AdminOverview() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Grosime (cm)</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Grosime (cm)')}</label>
                                     <input 
                                         type="number"
                                         min="0"
@@ -1430,7 +1430,7 @@ export default function AdminOverview() {
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_foil: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                     />
-                                    Include Folie plastic
+                                    {t('dashboard.quick_create.include_foil', 'Include Folie plastic')}
                                 </label>
                                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                     <input 
@@ -1439,7 +1439,7 @@ export default function AdminOverview() {
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_mesh: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                     />
-                                    Include Plasă metalică
+                                    {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică')}
                                 </label>
                                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                     <input 
@@ -1448,29 +1448,29 @@ export default function AdminOverview() {
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_duramint: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                     />
-                                    Include Duramint
+                                    {t('dashboard.quick_create.include_duramint', 'Include Duramint')}
                                 </label>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Echipă Alocată</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Echipă Alocată')}</label>
                                 <SearchableSelect
                                     value={quickEditForm.teamId || ''}
                                     onChange={val => setQuickEditForm(p => ({...p, teamId: val}))}
                                     options={[
-                                        { value: '', label: '-- Neasignat --' },
+                                        { value: '', label: t('dashboard.quick_create.no_team', '-- Neasignat --') },
                                         ...teams.map(t => ({ value: String(t.id), label: t.name }))
                                     ]}
-                                    placeholder="-- Neasignat --"
+                                    placeholder={t('dashboard.quick_create.no_team', '-- Neasignat --')}
                                     buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                     menuPosition="top"
                                 />
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
                                 <button type="button" onClick={() => setQuickEditOrder(null)} className="h-10 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                                    Anulează
+                                    {t('common.cancel', 'Anulează')}
                                 </button>
                                 <button type="submit" disabled={quickEditSaving} className="flex-1 h-10 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvează'}
+                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Salvează')}
                                 </button>
                                 <button 
                                     type="button" 
@@ -1485,7 +1485,7 @@ export default function AdminOverview() {
                                     className="flex-1 h-10 font-bold text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors rounded-xl flex items-center justify-center gap-2"
                                 >
                                     <ExternalLink className="w-4 h-4" />
-                                    Detalii Avansate
+                                    {t('dashboard.quick_edit.advanced_details', 'Detalii Avansate')}
                                 </button>
                             </div>
                         </form>

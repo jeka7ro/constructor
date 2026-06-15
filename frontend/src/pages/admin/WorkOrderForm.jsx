@@ -805,7 +805,7 @@ export default function WorkOrderForm() {
                                     value={vol.label} 
                                     onChange={val => updateRow('volumes', i, 'label', val)}
                                     options={activities.map(act => ({ value: act.name, label: act.name }))}
-                                    placeholder="Alege activitatea..."
+                                    placeholder={t('work_order_form.select_activity', 'Alege activitatea...')}
                                     className="flex-1 min-w-[150px]"
                                 />
                                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
@@ -858,14 +858,14 @@ export default function WorkOrderForm() {
                             {sandKg > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 mt-1 sm:ml-auto w-full sm:w-auto">
                                     <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-3 rounded-xl">
-                                        Necesar estimativ nisip: {sandKg.toLocaleString('ro-RO')} kg ({(sandKg / 1000).toLocaleString('ro-RO')} tone)
+                                        {t('work_order_form.sand_estimate', 'Necesar estimativ nisip: {{kg}} kg ({{tons}} tone)', { kg: sandKg.toLocaleString('ro-RO'), tons: (sandKg / 1000).toLocaleString('ro-RO') })}
                                     </div>
                                     <button 
                                         type="button"
                                         onClick={() => handleAcceptSand(sandKg)}
                                         className="flex items-center gap-1 text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
                                     >
-                                        <Plus className="w-3 h-3" /> Adaugă la Materiale
+                                        <Plus className="w-3 h-3" /> {t('work_order_form.add_to_materials', 'Adaugă la Materiale')}
                                     </button>
                                 </div>
                             )}
@@ -875,10 +875,10 @@ export default function WorkOrderForm() {
 
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Materiale Necesare</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.materials_needed', 'Materiale Necesare')}</span>
                         <button onClick={() => addRow('materials', { name: '', quantity: '', unit: '' })}
                             className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
-                            <Plus className="w-3 h-3" /> Adauga
+                            <Plus className="w-3 h-3" /> {t('common.add', 'Adauga')}
                         </button>
                     </div>
                     {form.materials.map((mat, i) => (
@@ -893,12 +893,12 @@ export default function WorkOrderForm() {
                                     }
                                 }}
                                 options={warehouseItems.map(item => ({ value: item.name, label: item.name }))}
-                                placeholder="Alege materialul..."
+                                placeholder={t('work_order_form.select_material', 'Alege materialul...')}
                                 className="flex-1"
                             />
-                            <input type="number" min="0" placeholder="Cant." value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
+                            <input type="number" min="0" placeholder={t('common.quantity_short', 'Cant.')} value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
                                 className="w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
-                            <input type="text" placeholder="Unit." value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
+                            <input type="text" placeholder={t('common.unit_short', 'Unit.')} value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
                                 className="w-16 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                             {form.materials.length > 1 && (
                                 <button onClick={() => removeRow('materials', i)}
