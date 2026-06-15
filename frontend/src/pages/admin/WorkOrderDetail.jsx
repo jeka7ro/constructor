@@ -695,11 +695,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start mb-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
                 <div className="flex flex-col gap-5">
 
-                    <Section icon={FileText} title={t('work_order_detail.general_details.title', "Detalii Generale")}>
-                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                    <Section className="flex-1" icon={FileText} title={t('work_order_detail.general_details.title', "Detalii Generale")} contentClassName="!p-3">
+                                            <div className="grid grid-cols-2 gap-4 mb-2">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Comandă')}</p>
                                                     <p className="font-mono text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
@@ -711,26 +711,26 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="mb-4 pb-4 border-b border-slate-50 dark:border-slate-700/50">
-                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.team_leader', 'Șef Echipă (Confirmare)')}</p>
+                                            <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0">{t('work_order_detail.general_details.team_leader', 'Șef Echipă (Confirmare)')}</p>
                                                 {wo.team_leader_confirmed_at ? (
-                                                    <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex flex-col">
+                                                    <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex flex-col sm:text-right">
                                                         <span>{t('work_order_detail.status.acknowledged_on', 'A luat la cunoștință pe')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
                                                         {wo.team_leader_confirmation_note && (
                                                             <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 italic">{t('work_order_detail.status.note', 'Notă:')} {wo.team_leader_confirmation_note}</span>
                                                         )}
                                                     </div>
                                                 ) : wo.team_leader_accepted_at ? (
-                                                    <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                                    <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 sm:text-right">
                                                         <span>{t('work_order_detail.status.opened_on', 'A deschis comanda pe')} {new Date(wo.team_leader_accepted_at).toLocaleString('ro-RO')}</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="text-sm font-semibold text-amber-600 dark:text-amber-500">
+                                                    <div className="text-sm font-semibold text-amber-600 dark:text-amber-500 sm:text-right">
                                                         <span>{t('work_order_detail.status.not_acknowledged', 'Nu a luat la cunoștință încă')}</span>
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 pb-4 border-b border-slate-50 dark:border-slate-700/50">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.client', 'Client')}</p>
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_name} <span className="text-xs text-slate-400">{getLanguageFlag(wo.client_language)}</span></p>
