@@ -884,42 +884,41 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
             </div>
 
-            <div className="mb-5">
-                <Section icon={Paperclip} title={t('work_order_detail.invoicing.title', "Documente & Fișiere")}>
-                                            {(wo.documents && wo.documents.length > 0) && (
-                                                <div className="mb-4">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Atașamente</p>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                    {wo.documents.map((doc, idx) => {
-                                                        const isImg = doc.content_type?.startsWith('image/');
-                                                        const Icon = isImg ? ImageIcon : FileText;
-                                                        return (
-                                                            <a
-                                                                key={doc.id || idx}
-                                                                href={`${API_BASE}${doc.file_path}`}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
-                                                            >
-                                                                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
-                                                                    <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                                                </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
-                                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                                                        {doc.file_size ? (doc.file_size / 1024).toFixed(0) + ' KB' : 'Atașament'}
-                                                                    </p>
-                                                                </div>
-                                                                <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0" />
-                                                            </a>
-                                                        );
-                                                    })}
-                                                </div>
-                                                </div>
-                                            )}
-                                            
-                                        </Section>
-            </div>
+            {(wo.documents && wo.documents.length > 0) && (
+                <div className="mb-5">
+                    <Section icon={Paperclip} title={t('work_order_detail.invoicing.title', "Documente & Fișiere")}>
+                        <div className="mb-4">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Atașamente</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {wo.documents.map((doc, idx) => {
+                                const isImg = doc.content_type?.startsWith('image/');
+                                const Icon = isImg ? ImageIcon : FileText;
+                                return (
+                                    <a
+                                        key={doc.id || idx}
+                                        href={`${API_BASE}${doc.file_path}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
+                                    >
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+                                            <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                {doc.file_size ? (doc.file_size / 1024).toFixed(0) + ' KB' : 'Atașament'}
+                                            </p>
+                                        </div>
+                                        <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0" />
+                                    </a>
+                                );
+                            })}
+                            </div>
+                        </div>
+                    </Section>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
                 {/* ─── Calcul Cost ────────────────────────────────────────── */}
