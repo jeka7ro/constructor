@@ -1230,7 +1230,8 @@
     "worker_complaints": "Plaintes des Travailleurs",
     "no_open_complaints": "Aucune plainte ouverte",
     "this_week": "Semaine en cours",
-    "pending_requests": "Demandes en attente"
+    "pending_requests": "Demandes en attente",
+    "tomorrow": "Demain"
   },
   "filters": {
     "today": "Aujourd'hui",

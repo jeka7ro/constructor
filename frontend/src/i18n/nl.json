@@ -1142,7 +1142,8 @@
     "worker_complaints": "Klachten van Werknemers",
     "no_open_complaints": "Geen openstaande klachten",
     "this_week": "Huidige week",
-    "pending_requests": "Openstaande verzoeken"
+    "pending_requests": "Openstaande verzoeken",
+    "tomorrow": "Morgen"
   },
   "filters": {
     "today": "Vandaag",

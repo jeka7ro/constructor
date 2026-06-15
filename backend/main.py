@@ -246,43 +246,90 @@ import requests as _requests
 import time as _time
 
 # Simple in-memory cache for reverse geocoding
-# key: (round(lat, 3), round(lon, 3)), value: (timestamp, data_dict)
 _geocode_cache = {}
 _geocode_cache_lock = threading.Lock()
 
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
 @app.get("/api/reverse-geocode")
 def reverse_geocode(lat: float, lon: float):
-    """Proxy reverse geocoding to Nominatim to avoid browser CORS"""
+    """Proxy reverse geocoding to Google Maps (avoids browser CORS/referrer issues)"""
     key = (round(lat, 3), round(lon, 3))
     now = _time.time()
-    
-    # Check cache
     with _geocode_cache_lock:
         if key in _geocode_cache:
             ts, cached_data = _geocode_cache[key]
-            if now - ts < 1800:  # cache for 30 minutes
+            if now - ts < 1800:
                 return cached_data
-                
     try:
         resp = _requests.get(
-            "https://nominatim.openstreetmap.org/reverse",
-            params={"lat": lat, "lon": lon, "format": "json", "accept-language": "ro"},
-            headers={"User-Agent": "PontajDigital/1.0"},
-            timeout=2.0
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"latlng": f"{lat},{lon}", "key": GOOGLE_MAPS_API_KEY, "language": "ro"},
+            timeout=5.0
         )
         data = resp.json()
-        
-        # Save to cache
+        display = ""
+        if data.get("results"):
+            display = data["results"][0].get("formatted_address", "")
+        result = {"display_name": display}
         with _geocode_cache_lock:
-            _geocode_cache[key] = (now, data)
-            
-        return data
+            _geocode_cache[key] = (now, result)
+        return result
     except Exception:
-        # Fallback to cache if expired is available
         with _geocode_cache_lock:
             if key in _geocode_cache:
                 return _geocode_cache[key][1]
         return {"display_name": ""}
+
+# Places Autocomplete proxy (avoids browser API key referrer restrictions)
+_places_cache = {}
+_places_cache_lock = threading.Lock()
+
+@app.get("/api/places/autocomplete")
+def places_autocomplete(input: str):
+    """Proxy to Google Places Autocomplete API — no browser referrer restrictions"""
+    key = input.strip().lower()
+    now = _time.time()
+    with _places_cache_lock:
+        if key in _places_cache:
+            ts, data = _places_cache[key]
+            if now - ts < 300:  # 5 min cache
+                return data
+    try:
+        resp = _requests.get(
+            "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+            params={
+                "input": input,
+                "key": GOOGLE_MAPS_API_KEY,
+                "language": "ro",
+            },
+            timeout=5.0
+        )
+        data = resp.json()
+        with _places_cache_lock:
+            _places_cache[key] = (now, data)
+        return data
+    except Exception as e:
+        return {"status": "ERROR", "predictions": [], "error": str(e)}
+
+@app.get("/api/places/details")
+def place_details(place_id: str):
+    """Proxy to Google Place Details API — gets lat/lng for a place"""
+    try:
+        resp = _requests.get(
+            "https://maps.googleapis.com/maps/api/place/details/json",
+            params={
+                "place_id": place_id,
+                "fields": "formatted_address,geometry",
+                "key": GOOGLE_MAPS_API_KEY,
+                "language": "ro",
+            },
+            timeout=5.0
+        )
+        return resp.json()
+    except Exception as e:
+        return {"status": "ERROR", "error": str(e)}
+
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

@@ -9,6 +9,7 @@ import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import SearchableSelect from '../../components/SearchableSelect'
+import { reverseGeocode, geocodeAddress } from '../../lib/geocode'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 
 const VOLUME_UNITS = ['m²', 'm³', 'm liniar', 'buc', 'ore', 'kg', 'tone', 'saci', 'pal', 'set']
@@ -185,20 +186,9 @@ export default function WorkOrderForm() {
                             setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
                             
                             try {
-                                const res = await fetch(
-                                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
-                                    { headers: { 'Accept-Language': 'ro' } }
-                                )
-                                const data = await res.json()
-                                if (data?.display_name) {
-                                    const a = data.address || {}
-                                    const parts = [
-                                        a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
-                                        a.city || a.town || a.village || a.municipality,
-                                        a.county,
-                                    ].filter(Boolean)
-                                    const addr = parts.length > 0 ? parts.join(', ') : data.display_name
-                                    setForm(p => ({ ...p, site_address: addr }))
+                                const address = await reverseGeocode(lat, lon)
+                                if (address) {
+                                    setForm(p => ({ ...p, site_address: address }))
                                 }
                             } catch {}
                         }, () => {}, { enableHighAccuracy: true, timeout: 10000 })
@@ -251,10 +241,9 @@ export default function WorkOrderForm() {
                     // Auto-geocode if address exists but no coordinates
                     if (wo.site_address && !wo.site_latitude && !wo.site_longitude) {
                         try {
-                            const geores = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(wo.site_address)}&format=json&limit=1`, { headers: { 'Accept-Language': 'ro' } })
-                            const data = await geores.json()
-                            if (data && data.length > 0) {
-                                setForm(p => ({ ...p, site_latitude: parseFloat(data[0].lat).toFixed(6), site_longitude: parseFloat(data[0].lon).toFixed(6) }))
+                            const coords = await geocodeAddress(wo.site_address);
+                            if (coords && coords.lat && coords.lon) {
+                                setForm(p => ({ ...p, site_latitude: parseFloat(coords.lat).toFixed(6), site_longitude: parseFloat(coords.lon).toFixed(6) }))
                             }
                         } catch {}
                     }
@@ -292,20 +281,9 @@ export default function WorkOrderForm() {
                 setForm(p => ({ ...p, site_latitude: lat, site_longitude: lon }))
                 // Reverse geocoding — populeaza adresa automat
                 try {
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&email=contact@davidechape.com`,
-                        { headers: { 'Accept-Language': 'ro,en,fr,de' } }
-                    )
-                    const data = await res.json()
-                    if (data?.display_name) {
-                        const a = data.address || {}
-                        const parts = [
-                            a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
-                            a.city || a.town || a.village || a.municipality,
-                            a.county,
-                        ].filter(Boolean)
-                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
-                        setForm(p => ({ ...p, site_address: addr }))
+                    const address = await reverseGeocode(lat, lon)
+                    if (address) {
+                        setForm(p => ({ ...p, site_address: address }))
                     }
                 } catch {}
                 setDetecting(false)

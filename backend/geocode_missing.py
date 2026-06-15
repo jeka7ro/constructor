@@ -7,14 +7,23 @@ from app.models import WorkOrder
 def geocode_address(address: str):
     if not address:
         return None, None
-    url = f"https://nominatim.openstreetmap.org/search?format=json&q={address}&limit=1"
-    headers = {"User-Agent": "PontajDigital/1.0", "Accept-Language": "ro"}
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        print("GOOGLE_MAPS_API_KEY is missing")
+        return None, None
+        
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {"address": address, "key": api_key, "region": "ro"}
     try:
-        resp = requests.get(url, headers=headers, timeout=5)
+        resp = requests.get(url, params=params, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
-            if data and len(data) > 0:
-                return float(data[0]['lat']), float(data[0]['lon'])
+            if data.get("status") == "OK" and data.get("results"):
+                loc = data["results"][0]["geometry"]["location"]
+                return float(loc['lat']), float(loc['lng'])
     except Exception as e:
         print(f"Error geocoding {address}: {e}")
     return None, None

@@ -19,7 +19,13 @@ router = APIRouter(prefix="/admin/sites", tags=["admin-sites"])
 
 
 def geocode_address(address: str, county: str = None) -> dict:
-    """Geocode an address using OpenStreetMap Nominatim (free, no API key needed)"""
+    """Geocode an address using Google Maps API"""
+    import os
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        logger.warning("GOOGLE_MAPS_API_KEY is not set. Geocoding skipped.")
+        return {}
+        
     try:
         query = address
         if county:
@@ -27,16 +33,16 @@ def geocode_address(address: str, county: str = None) -> dict:
         query += ", Romania"
         
         response = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "json", "limit": 1, "countrycodes": "ro"},
-            headers={"User-Agent": "PontajDigital/1.0"},
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"address": query, "key": api_key, "region": "ro"},
             timeout=5
         )
         results = response.json()
-        if results:
+        if results.get("status") == "OK" and results.get("results"):
+            location = results["results"][0]["geometry"]["location"]
             return {
-                "latitude": float(results[0]["lat"]),
-                "longitude": float(results[0]["lon"])
+                "latitude": float(location["lat"]),
+                "longitude": float(location["lng"])
             }
     except Exception as e:
         logger.warning(f"Geocoding failed for '{address}': {e}")

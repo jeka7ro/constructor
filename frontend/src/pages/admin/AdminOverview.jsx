@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import SiteMap from '../../components/SiteMap'
+import { reverseGeocode } from '../../lib/geocode'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area, PieChart, Pie, Cell, Legend, ComposedChart, Line
@@ -92,11 +93,16 @@ export default function AdminOverview() {
 
     const [weeklyOrdersCount, setWeeklyOrdersCount] = useState(0)
     const [todayOrdersCount, setTodayOrdersCount] = useState(0)
+    const [tomorrowSandTons, setTomorrowSandTons] = useState(0)
     
     useEffect(() => {
         if (!isScreeds || !allWorkOrders) return;
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
+        
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
         
         const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
         startOfWeek.setHours(0,0,0,0);
@@ -106,6 +112,7 @@ export default function AdminOverview() {
         
         let wCount = 0;
         let tCount = 0;
+        let sandKg = 0;
         
         allWorkOrders.forEach(wo => {
             const dateStr = wo.start_date || wo.deadline_date;
@@ -115,10 +122,26 @@ export default function AdminOverview() {
             
             if (dStr === todayStr) tCount++;
             if (d >= startOfWeek && d <= endOfWeek) wCount++;
+            
+            // Calculate sand for tomorrow's orders
+            if (dStr === tomorrowStr) {
+                if (wo.volumes && wo.volumes.length > 0) {
+                    wo.volumes.forEach(vol => {
+                        const surface = parseFloat(vol.quantity) || 0;
+                        const thickness = parseFloat(vol.thickness) || 0;
+                        sandKg += surface * thickness * 16;
+                    });
+                } else {
+                    const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+                    const fallbackThick = parseFloat(wo.thickness) || 0;
+                    sandKg += fallbackSurface * fallbackThick * 16;
+                }
+            }
         });
         
         setWeeklyOrdersCount(wCount);
         setTodayOrdersCount(tCount);
+        setTomorrowSandTons(parseFloat((sandKg / 1000).toFixed(1)));
     }, [allWorkOrders, isScreeds]);
 
     // Worker detail drawer
@@ -408,20 +431,9 @@ export default function AdminOverview() {
                 const lon = pos.coords.longitude.toFixed(6)
                 
                 try {
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&email=contact@davidechape.com`,
-                        { headers: { 'Accept-Language': 'ro,en,fr,de' } }
-                    )
-                    const data = await res.json()
-                    if (data?.display_name) {
-                        const a = data.address || {}
-                        const parts = [
-                            a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
-                            a.city || a.town || a.village || a.municipality,
-                            a.county
-                        ].filter(Boolean)
-                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
-                        setQuickCreateForm(p => ({ ...p, address: addr, latitude: lat, longitude: lon }))
+                    const address = await reverseGeocode(lat, lon)
+                    if (address) {
+                        setQuickCreateForm(p => ({ ...p, address: address, latitude: lat, longitude: lon }))
                     }
                 } catch (e) {
                     console.error('Eroare reverse geocoding:', e)
@@ -764,7 +776,7 @@ export default function AdminOverview() {
                     <>
                         <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'ro-RO', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
                         <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={necesar.length} icon={Package} colorTheme="amber" subtitle={t('admin_overview.pending_requests', 'Cereri în așteptare')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={tomorrowSandTons > 0 ? `${tomorrowSandTons} t` : '0'} icon={Package} colorTheme="amber" subtitle={t('admin_overview.tomorrow', 'Mâine')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
                     </>
                 ) : (
                     <>

@@ -239,7 +239,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (wo.route_distance_km && Math.abs(wo.route_distance_km - km) < 0.1) return;
         try {
             const updatedSegments = [...(wo.route_segments || [])];
-            if (updatedSegments.length > 0) {
+            // Distribute the calculated distance proportionally across all segments
+            const oldTotal = updatedSegments.reduce((sum, s) => sum + (s.km || 0), 0);
+            if (oldTotal > 0 && updatedSegments.length > 0) {
+                updatedSegments.forEach(seg => {
+                    seg.km = parseFloat(((seg.km / oldTotal) * km * 2).toFixed(1));
+                });
+            } else if (updatedSegments.length === 2) {
+                // Simple A→B→A: split equally
+                updatedSegments[0].km = parseFloat(km.toFixed(1));
+                updatedSegments[1].km = parseFloat(km.toFixed(1));
+            } else if (updatedSegments.length > 0) {
                 updatedSegments[0].km = parseFloat(km.toFixed(1));
             }
             setWo(prev => ({ 

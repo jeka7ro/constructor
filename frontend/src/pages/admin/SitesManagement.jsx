@@ -25,6 +25,7 @@ import PhotoGallery from '../../components/PhotoGallery'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import { useUIStore } from '../../store/uiStore'
 import SiteDetailView from '../../components/SiteDetailView'
+import { reverseGeocode } from '../../lib/geocode'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const PAGE_ID = 'admin-sites'
@@ -336,10 +337,9 @@ export default function SitesManagement() {
                 let fetchedAddress = formData.address
                 
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ro,en`)
-                    const data = await res.json()
-                    if (data && data.display_name) {
-                        fetchedAddress = data.display_name
+                    const address = await reverseGeocode(lat, lon)
+                    if (address) {
+                        fetchedAddress = address
                     }
                 } catch(e) {
                     console.error("Geocoding failed:", e)

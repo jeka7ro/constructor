@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, MapPin, Loader2, Save, X, ArrowLeft } from 'lucide-react'
 import api from '../../../lib/api'
 import { Link } from 'react-router-dom'
+import { reverseGeocode } from '../../../lib/geocode'
 import AddressAutocomplete from '../../../components/AddressAutocomplete'
 import MapView from '../../../components/MapView'
 import DataTable from '../../../components/DataTable'
@@ -28,9 +29,8 @@ export default function BasesPage() {
             async (pos) => {
                 const { latitude, longitude } = pos.coords
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, { headers: { 'Accept-Language': 'ro' } })
-                    const data = await res.json()
-                    setFormData(prev => ({ ...prev, latitude, longitude, address: data.display_name || prev.address }))
+                    const address = await reverseGeocode(latitude, longitude)
+                    setFormData(prev => ({ ...prev, latitude, longitude, address: address || prev.address }))
                 } catch (e) {
                     setFormData(prev => ({ ...prev, latitude, longitude }))
                 } finally {

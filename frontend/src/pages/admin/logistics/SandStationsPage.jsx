@@ -13,6 +13,7 @@ const getSandStationIcon = (letter) => new L.DivIcon({
 })
 import api from '../../../lib/api'
 import { Link } from 'react-router-dom'
+import { reverseGeocode } from '../../../lib/geocode'
 import AddressAutocomplete from '../../../components/AddressAutocomplete'
 import MapView from '../../../components/MapView'
 import DataTable from '../../../components/DataTable'
@@ -45,9 +46,8 @@ export default function SandStationsPage() {
             async (pos) => {
                 const { latitude, longitude } = pos.coords
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`, { headers: { 'Accept-Language': 'ro' } })
-                    const data = await res.json()
-                    setFormData(prev => ({ ...prev, latitude, longitude, address: data.display_name || prev.address }))
+                    const address = await reverseGeocode(latitude, longitude)
+                    setFormData(prev => ({ ...prev, latitude, longitude, address: address || prev.address }))
                 } catch (e) {
                     setFormData(prev => ({ ...prev, latitude, longitude }))
                 } finally {
@@ -241,7 +241,7 @@ export default function SandStationsPage() {
                             scrollWheelZoom={false}
                             style={{ width: '100%', height: '100%' }}
                         >
-                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                             {stations.filter(s => s.latitude && s.longitude).map((s) => (
                                 <Marker key={s.id} position={[s.latitude, s.longitude]} icon={getSandStationIcon(s.type === 'theirs' ? 'I' : 'D')}>
                                     <Popup>

@@ -1142,7 +1142,8 @@
     "worker_complaints": "Worker Complaints",
     "no_open_complaints": "No open complaints",
     "this_week": "Current week",
-    "pending_requests": "Pending requests"
+    "pending_requests": "Pending requests",
+    "tomorrow": "Tomorrow"
   },
   "filters": {
     "today": "Today",

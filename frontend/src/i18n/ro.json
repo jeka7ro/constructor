@@ -1238,7 +1238,8 @@
     "worker_complaints": "Sesizări Muncitori",
     "no_open_complaints": "Nicio sesizare deschisă",
     "this_week": "Săptămâna în curs",
-    "pending_requests": "Cereri în așteptare"
+    "pending_requests": "Cereri în așteptare",
+    "tomorrow": "Mâine"
   },
   "filters": {
     "today": "Azi",

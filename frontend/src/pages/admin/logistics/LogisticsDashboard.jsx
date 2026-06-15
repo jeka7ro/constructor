@@ -364,8 +364,9 @@ export default function LogisticsDashboard() {
                             style={{ width: '100%', height: '100%' }}
                         >
                             <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution='&copy; Google Maps'
+                                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                                maxZoom={20}
                             />
                             <MapBoundsFitter data={data} activeTeams={focusedTeamId ? [focusedTeamId] : activeTeams} />
                             <MapResizer isMapFull={isMapFull} />
@@ -433,9 +434,10 @@ export default function LogisticsDashboard() {
 
                             {/* Sand Stations Rendering */}
                             {showSandStations && SAND_STATIONS.map((station, idx) => {
-                                // D = ale noastre (ours/common), I = concurenta (theirs)
-                                const _letter = station.type === 'theirs' ? 'I' : 'D'
-                                const _bg = '#ef4444'
+                                const _letter = 'D'
+                                const _bg = station.type === 'theirs' ? '#ef4444' : '#3b82f6'
+                                const bgColor = station.type === 'theirs' ? '#ef4444' : '#3b82f6'
+                                const borderColor = station.type === 'theirs' ? '#dc2626' : '#2563eb'
                                 return (
                                     <Marker
                                         key={`sand-${idx}`}

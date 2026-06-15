@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * AddressAutocomplete — uses backend proxy to call Google Places API.
+ * This bypasses all browser-level API key referrer restrictions.
+ */
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, className }) {
     const { t } = useTranslation();
     const [query, setQuery] = useState(value || '');
@@ -10,24 +14,20 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef(null);
     const debounceTimeout = useRef(null);
-    const queryRef = useRef(query);
-    const suggestionsRef = useRef(suggestions);
+    const abortCtrl = useRef(null);
 
-    queryRef.current = query;
-    suggestionsRef.current = suggestions;
-
-    // Update local query if external value changes (e.g. from GPS detect)
+    // Sync external value changes (e.g. GPS detect)
     useEffect(() => {
         if (value !== undefined && value !== query) {
             setQuery(value);
         }
     }, [value]);
 
+    // Close dropdown on outside click
     useEffect(() => {
-        function handleClickOutside(event) {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        function handleClickOutside(e) {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
                 setIsOpen(false);
-                // Close suggestions on outside click
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
@@ -37,30 +37,33 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     const fetchSuggestions = async (searchQuery) => {
         if (!searchQuery || searchQuery.length < 3) {
             setSuggestions([]);
+            setLoading(false);
             return;
         }
+
+        // Cancel previous request
+        if (abortCtrl.current) abortCtrl.current.abort();
+        abortCtrl.current = new AbortController();
+
         setLoading(true);
         try {
-            const normalizedQuery = searchQuery
-                .replace(/,/g, ', ')
-                .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            // Using email param is REQUIRED by Nominatim Usage Policy to avoid 429/403 errors
             const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(normalizedQuery)}&format=json&addressdetails=1&limit=5&email=contact@davidechape.com`,
-                { 
-                    headers: { 
-                        'Accept-Language': 'ro,en,fr,de'
-                    } 
-                }
+                `/api/places/autocomplete?input=${encodeURIComponent(searchQuery)}`,
+                { signal: abortCtrl.current.signal }
             );
             const data = await res.json();
-            setSuggestions(data || []);
-            setIsOpen(true);
+            if (data.status === 'OK' && data.predictions?.length > 0) {
+                setSuggestions(data.predictions);
+                setIsOpen(true);
+            } else {
+                setSuggestions([]);
+                setIsOpen(false);
+            }
         } catch (err) {
-            console.error('Eroare la fetch adrese Nominatim:', err);
+            if (err.name !== 'AbortError') {
+                console.error('[AddressAutocomplete]', err);
+                setSuggestions([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -69,38 +72,37 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     const handleInputChange = (e) => {
         const val = e.target.value;
         setQuery(val);
-        // Call the parent onChange with just the text so they can type freely
         if (onChange) onChange(val, null, null);
 
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-        debounceTimeout.current = setTimeout(() => {
-            fetchSuggestions(val);
-        }, 800);
+        debounceTimeout.current = setTimeout(() => fetchSuggestions(val), 400);
     };
 
-    const handleSelect = (item) => {
-        let addr = item.display_name;
-        // Try to construct a cleaner address if address details are present
-        if (item.address) {
-            const a = item.address;
-            const parts = [
-                a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
-                a.city || a.town || a.village || a.municipality,
-                a.county,
-            ].filter(Boolean);
-            if (parts.length > 0) {
-                addr = parts.join(', ');
-            }
-        }
-
-        const lat = parseFloat(item.lat).toFixed(6);
-        const lon = parseFloat(item.lon).toFixed(6);
+    const handleSelect = async (item) => {
+        const addr = item.description;
         setQuery(addr);
         setIsOpen(false);
-        
-        // Pass the formatted address and the exact coordinates to the parent
-        if (onChange) onChange(addr, lat, lon);
-        if (onSelect) onSelect({ address: addr, lat, lon });
+        setSuggestions([]);
+
+        // Fetch coordinates via backend proxy
+        try {
+            const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(item.place_id)}`);
+            const data = await res.json();
+            if (data.status === 'OK' && data.result?.geometry?.location) {
+                const lat = data.result.geometry.location.lat.toFixed(6);
+                const lon = data.result.geometry.location.lng.toFixed(6);
+                const formattedAddr = data.result.formatted_address || addr;
+                if (onChange) onChange(formattedAddr, lat, lon);
+                if (onSelect) onSelect({ address: formattedAddr, lat, lon });
+            } else {
+                if (onChange) onChange(addr, null, null);
+                if (onSelect) onSelect({ address: addr });
+            }
+        } catch (err) {
+            console.error('[AddressAutocomplete] place details error:', err);
+            if (onChange) onChange(addr, null, null);
+            if (onSelect) onSelect({ address: addr });
+        }
     };
 
     return (
@@ -116,7 +118,10 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
                     autoComplete="off"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <Search className="w-4 h-4" />}
+                    {loading
+                        ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                        : <Search className="w-4 h-4" />
+                    }
                 </div>
             </div>
 
@@ -131,14 +136,12 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
                         >
                             <MapPin className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                             <span className="text-slate-700 dark:text-slate-300 leading-snug">
-                                {item.display_name}
+                                {item.description}
                             </span>
                         </button>
                     ))}
                 </div>
             )}
-
-            {/* Banner sugestie eliminat — textul liber e acceptat direct */}
         </div>
     );
 }

@@ -1,160 +1,168 @@
-import { useEffect, useRef, useState } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import 'leaflet-routing-machine'
-import { Maximize2, Minimize2, Layers } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react';
+import { Maximize2, Minimize2, Layers } from 'lucide-react';
 
-// Fix Leaflet default icon broken paths
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
-    iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
-    shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
-})
+const getTruckSvg = (teamColor) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+    <circle cx="18" cy="18" r="16" fill="${teamColor || '#2563eb'}" stroke="white" stroke-width="2"/>
+    <g transform="translate(6, 6)">
+        <rect x="1" y="3" width="15" height="13" rx="1" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 8h4l3 5v4h-7V8z" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="5.5" cy="18.5" r="2.5" fill="none" stroke="white" stroke-width="2"/>
+        <circle cx="18.5" cy="18.5" r="2.5" fill="none" stroke="white" stroke-width="2"/>
+    </g>
+</svg>
+`)}`;
 
-const getSandStationIcon = (letter) => new L.DivIcon({
-    html: `<div style="width:26px;height:26px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);position:relative;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-weight:900;font-size:12px;font-family:Arial,sans-serif;line-height:1;">${letter}</span></div>`,
-    className: '',
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    popupAnchor: [0, -14]
-})
+const getBaseSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="13" fill="#000" stroke="white" stroke-width="2"/>
+    <text x="14" y="19" font-family="sans-serif" font-size="14" font-weight="900" fill="white" text-anchor="middle">B</text>
+</svg>
+`)}`;
+
+const getSandStationSvg = (letter) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+    <circle cx="13" cy="13" r="12" fill="#ef4444" stroke="white" stroke-width="2"/>
+    <text x="13" y="17.5" font-family="Arial,sans-serif" font-size="12" font-weight="900" fill="white" text-anchor="middle">${letter}</text>
+</svg>
+`)}`;
 
 /**
- * MapView — hartă read-only.
- * Dacă latitude/longitude sunt nule, geocodează automat `address` via Nominatim.
- * Props: latitude, longitude, address, height, zoom, geofenceRadius, label, routeSegments, navButtons, sandStations
+ * MapView — hartă read-only folosind Google Maps.
+ * Dacă latitude/longitude sunt nule, geocodează automat `address` via Google Geocoder.
  */
 const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb' }) => {
-    const mapRef = useRef(null)
-    const mapInstance = useRef(null)
-    const markerRef = useRef(null)
-    const circleRef = useRef(null)
-    const routingControlRef = useRef(null)
-    const detailMapRef = useRef(null)
-    const detailMapInstance = useRef(null)
-    const detailMarkerRef = useRef(null)
-    const sandStationsLayerRef = useRef(null)
+    const mapRef = useRef(null);
+    const detailMapRef = useRef(null);
+    const mapInstance = useRef(null);
+    const detailMapInstance = useRef(null);
     
-    const [geocoding, setGeocoding] = useState(false)
-    const [geoError, setGeoError] = useState(false)
-    const [isFullScreen, setIsFullScreen] = useState(false)
+    const elementsRef = useRef({
+        marker: null,
+        circle: null,
+        baseMarker: null,
+        detailMarker: null,
+        directionsRenderer: null,
+        sandStationMarkers: [],
+        infoWindow: null
+    });
+
+    const [geocoding, setGeocoding] = useState(false);
+    const [geoError, setGeoError] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
     const [showSandStations, setShowSandStations] = useState(() => {
         try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
-    })
+    });
 
     const toggleSandStations = (val) => {
-        setShowSandStations(val)
-        localStorage.setItem('nisip_toggle', JSON.stringify(val))
-    }
+        setShowSandStations(val);
+        localStorage.setItem('nisip_toggle', JSON.stringify(val));
+    };
+
+    const clearMapElements = () => {
+        const { marker, circle, baseMarker, detailMarker, directionsRenderer, sandStationMarkers, infoWindow } = elementsRef.current;
+        if (marker) marker.setMap(null);
+        if (circle) circle.setMap(null);
+        if (baseMarker) baseMarker.setMap(null);
+        if (detailMarker) detailMarker.setMap(null);
+        if (directionsRenderer) directionsRenderer.setMap(null);
+        if (infoWindow) infoWindow.close();
+        sandStationMarkers.forEach(m => m.setMap(null));
+        
+        elementsRef.current = {
+            marker: null,
+            circle: null,
+            baseMarker: null,
+            detailMarker: null,
+            directionsRenderer: null,
+            sandStationMarkers: [],
+            infoWindow: new window.google.maps.InfoWindow()
+        };
+    };
 
     const initMap = (lat, lon, z, popupLabel) => {
-        if (!mapRef.current) return
+        if (!window.google || !window.google.maps) return;
+        
+        const center = { lat, lng: lon };
 
+        // Main Map
         if (!mapInstance.current) {
-            mapInstance.current = L.map(mapRef.current, {
-                zoomControl: false, // Disabled default topleft zoom
-                scrollWheelZoom: false,
-                dragging: true,
-                doubleClickZoom: true,
-                attributionControl: true,
-            }).setView([lat, lon], z)
-            
-            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.current)
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
-                maxZoom: 19,
-            }).addTo(mapInstance.current)
+            mapInstance.current = new window.google.maps.Map(mapRef.current, {
+                center,
+                zoom: z,
+                disableDefaultUI: true,
+                zoomControl: true,
+                gestureHandling: 'greedy'
+            });
         } else {
-            mapInstance.current.setView([lat, lon], z)
+            mapInstance.current.setCenter(center);
+            mapInstance.current.setZoom(z);
         }
 
-        // Marker destinatie (camion in culoarea echipei)
-        if (markerRef.current) markerRef.current.remove()
-        const mainTruckIcon = L.divIcon({
-            className: 'custom-truck-marker',
-            html: `<div style="background-color: ${teamColor}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.35);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="1" y="3" width="15" height="13" rx="1"/>
-                    <path d="M16 8h4l3 5v4h-7V8z"/>
-                    <circle cx="5.5" cy="18.5" r="2.5"/>
-                    <circle cx="18.5" cy="18.5" r="2.5"/>
-                </svg>
-            </div>`,
-            iconSize: [34, 34],
-            iconAnchor: [17, 17],
-            popupAnchor: [0, -20]
-        })
-        markerRef.current = L.marker([lat, lon], { icon: mainTruckIcon })
-        if (popupLabel) {
-            markerRef.current.bindPopup(`<strong style="font-size:13px">${popupLabel}</strong>`)
-            markerRef.current.openPopup()
-        }
-        markerRef.current.addTo(mapInstance.current)
-
-        // Cerc geofence
-        if (circleRef.current) circleRef.current.remove()
-        if (geofenceRadius && parseFloat(geofenceRadius) > 0) {
-            circleRef.current = L.circle([lat, lon], {
-                radius: parseFloat(geofenceRadius),
-                color: '#3b82f6',
-                fillColor: '#3b82f6',
-                fillOpacity: 0.08,
-                weight: 2,
-                dashArray: '6 4',
-            }).addTo(mapInstance.current)
-        }
-
-        // Initialize detail map
+        // Detail Map
         if (detailMapRef.current) {
             if (!detailMapInstance.current) {
-                detailMapInstance.current = L.map(detailMapRef.current, {
-                    zoomControl: false,
-                    scrollWheelZoom: false,
-                    dragging: true,
-                    doubleClickZoom: true,
-                    attributionControl: false,
-                }).setView([lat, lon], 17)
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                }).addTo(detailMapInstance.current)
+                detailMapInstance.current = new window.google.maps.Map(detailMapRef.current, {
+                    center,
+                    zoom: 17,
+                    disableDefaultUI: true,
+                    gestureHandling: 'greedy'
+                });
             } else {
-                detailMapInstance.current.setView([lat, lon], 17)
+                detailMapInstance.current.setCenter(center);
+                detailMapInstance.current.setZoom(17);
             }
+        }
 
-            if (detailMarkerRef.current) detailMarkerRef.current.remove()
-            
-            const destinationIcon = L.divIcon({
-                className: 'custom-destination-marker',
-                html: `<div style="background-color: ${teamColor}; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.35); border: 2px solid white;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="1" y="3" width="15" height="13" rx="1"/>
-                        <path d="M16 8h4l3 5v4h-7V8z"/>
-                        <circle cx="5.5" cy="18.5" r="2.5"/>
-                        <circle cx="18.5" cy="18.5" r="2.5"/>
-                    </svg>
-                </div>`,
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-                popupAnchor: [0, -20]
+        clearMapElements();
+
+        // Marker Main Map
+        elementsRef.current.marker = new window.google.maps.Marker({
+            position: center,
+            map: mapInstance.current,
+            icon: {
+                url: getTruckSvg(teamColor),
+                scaledSize: new window.google.maps.Size(36, 36),
+                anchor: new window.google.maps.Point(18, 18)
+            },
+            title: popupLabel || 'Destinație'
+        });
+
+        if (popupLabel) {
+            elementsRef.current.marker.addListener('click', () => {
+                elementsRef.current.infoWindow.setContent(`<strong style="font-size:13px">${popupLabel}</strong>`);
+                elementsRef.current.infoWindow.open(mapInstance.current, elementsRef.current.marker);
             });
-
-            detailMarkerRef.current = L.marker([lat, lon], { icon: destinationIcon })
-            if (popupLabel) {
-                detailMarkerRef.current.bindPopup(`<strong style="font-size:13px">Destinație: ${popupLabel}</strong>`)
-            }
-            detailMarkerRef.current.addTo(detailMapInstance.current)
         }
 
-        // Force resize după mount
-
-        if (routingControlRef.current) {
-            mapInstance.current.removeControl(routingControlRef.current)
-            routingControlRef.current = null
+        // Marker Detail Map
+        if (detailMapInstance.current) {
+            elementsRef.current.detailMarker = new window.google.maps.Marker({
+                position: center,
+                map: detailMapInstance.current,
+                icon: {
+                    url: getTruckSvg(teamColor),
+                    scaledSize: new window.google.maps.Size(36, 36),
+                    anchor: new window.google.maps.Point(18, 18)
+                }
+            });
         }
 
+        // Geofence Circle
+        if (geofenceRadius && parseFloat(geofenceRadius) > 0) {
+            elementsRef.current.circle = new window.google.maps.Circle({
+                strokeColor: "#3b82f6",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#3b82f6",
+                fillOpacity: 0.08,
+                map: mapInstance.current,
+                center,
+                radius: parseFloat(geofenceRadius)
+            });
+        }
+
+        // Routing
         let startName = null;
         let startLat = null;
         let startLng = null;
@@ -171,236 +179,185 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         if (startName) {
             const geocodeStart = async (query) => {
                 if (startLat && startLng) {
-                    return { lat: parseFloat(startLat), lon: parseFloat(startLng) };
+                    return { lat: parseFloat(startLat), lng: parseFloat(startLng) };
                 }
                 if (query.toLowerCase().includes('baza') || query.toLowerCase().includes('base') || query.toLowerCase().includes('h&h')) {
-                    return { lat: 50.88243, lon: 4.39343 }; // Baza H&H Resources Brussels
+                    return { lat: 50.88243, lng: 4.39343 }; // Baza H&H Resources Brussels
                 }
-                try {
-                    const normalizedQuery = query
-                        .replace(/,/g, ', ')
-                        .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
-                        .replace(/\s+/g, ' ')
-                        .trim();
-
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(normalizedQuery)}&limit=1`,
-                        { headers: { 'Accept-Language': 'ro', 'User-Agent': 'PontajDigital/1.0' } }
-                    );
-                    const data = await res.json();
-                    if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                } catch (e) {
-                    console.error("Geocoding failed for start node", e);
-                }
-                return null;
+                return new Promise((resolve) => {
+                    const geocoder = new window.google.maps.Geocoder();
+                    geocoder.geocode({ address: query }, (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            resolve({ lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() });
+                        } else {
+                            resolve(null);
+                        }
+                    });
+                });
             };
 
             geocodeStart(startName).then(startCoords => {
                 if (startCoords && mapInstance.current) {
-                    routingControlRef.current = L.Routing.control({
-                        waypoints: [
-                            L.latLng(startCoords.lat, startCoords.lon),
-                            L.latLng(lat, lon)
-                        ],
-                        lineOptions: {
-                            styles: [{ color: '#3b82f6', weight: 4, opacity: 0.8 }],
-                            extendToWaypoints: false,
-                            missingRouteTolerance: 0
+                    // Draw base marker
+                    elementsRef.current.baseMarker = new window.google.maps.Marker({
+                        position: startCoords,
+                        map: mapInstance.current,
+                        icon: {
+                            url: getBaseSvg(),
+                            scaledSize: new window.google.maps.Size(28, 28),
+                            anchor: new window.google.maps.Point(14, 14)
                         },
-                        show: false,
-                        addWaypoints: false,
-                        routeWhileDragging: false,
-                        fitSelectedRoutes: true,
-                        showAlternatives: false,
-                        createMarker: () => null
-                    }).addTo(mapInstance.current);
-                    
-                    // Hide routing container
-                    const container = routingControlRef.current.getContainer();
-                    if (container) container.style.display = 'none';
+                        title: `Baza: ${startName}`
+                    });
 
-                    routingControlRef.current.on('routesfound', function(e) {
-                        const routes = e.routes;
-                        if (routes && routes.length > 0) {
-                            const summary = routes[0].summary;
-                            if (onRouteCalculated && summary && summary.totalDistance) {
-                                onRouteCalculated(summary.totalDistance / 1000);
+                    // Route
+                    const directionsService = new window.google.maps.DirectionsService();
+                    const directionsRenderer = new window.google.maps.DirectionsRenderer({
+                        map: mapInstance.current,
+                        suppressMarkers: true,
+                        polylineOptions: { strokeColor: '#3b82f6', strokeWeight: 4, strokeOpacity: 0.8 }
+                    });
+                    elementsRef.current.directionsRenderer = directionsRenderer;
+
+                    directionsService.route({
+                        origin: startCoords,
+                        destination: center,
+                        travelMode: window.google.maps.TravelMode.DRIVING
+                    }, (response, status) => {
+                        if (status === 'OK') {
+                            directionsRenderer.setDirections(response);
+                            if (onRouteCalculated && response.routes[0] && response.routes[0].legs[0]) {
+                                onRouteCalculated(response.routes[0].legs[0].distance.value / 1000);
                             }
+                        } else {
+                            // Fallback direct line if routing fails
+                            const line = new window.google.maps.Polyline({
+                                path: [startCoords, center],
+                                strokeColor: '#3b82f6',
+                                strokeOpacity: 0.8,
+                                strokeWeight: 3,
+                                map: mapInstance.current
+                            });
+                            elementsRef.current.directionsRenderer = line; // Save reference to clear it later
+                            
+                            const bounds = new window.google.maps.LatLngBounds();
+                            bounds.extend(startCoords);
+                            bounds.extend(center);
+                            mapInstance.current.fitBounds(bounds, { padding: 50 });
                         }
                     });
-
-                    routingControlRef.current.on('routingerror', function() {
-                        // Fallback la linie dreaptă dacă OSRM dă eroare de limită de distanță
-                        if (mapInstance.current && routingControlRef.current) {
-                            mapInstance.current.removeControl(routingControlRef.current);
-                            routingControlRef.current = null;
-                            const line = L.polyline([
-                                [startCoords.lat, startCoords.lon],
-                                [lat, lon]
-                            ], {
-                                color: '#3b82f6',
-                                weight: 3,
-                                dashArray: '8, 8',
-                                opacity: 0.8
-                            }).addTo(mapInstance.current);
-                            mapInstance.current.fitBounds(line.getBounds(), { padding: [50, 50] });
-                        }
-                    });
-
-                    const baseIcon = L.divIcon({
-                        className: 'custom-base-marker',
-                        html: '<div style="background-color: #000; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: sans-serif; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); font-size: 14px;">B</div>',
-                        iconSize: [28, 28],
-                        iconAnchor: [14, 14],
-                        popupAnchor: [0, -14]
-                    });
-
-                    L.marker([startCoords.lat, startCoords.lon], { icon: baseIcon })
-                        .bindPopup(`<strong style="font-size:13px">Baza: ${startName}</strong>`)
-                        .addTo(mapInstance.current);
                 }
             });
         }
-
-        setTimeout(() => {
-            mapInstance.current?.invalidateSize()
-            detailMapInstance.current?.invalidateSize()
-        }, 100)
-    }
+    };
 
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape' && isFullScreen) {
-                setIsFullScreen(false)
+                setIsFullScreen(false);
             }
-        }
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [isFullScreen])
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullScreen]);
 
     useEffect(() => {
-        if (!mapRef.current) return
+        if (!mapRef.current || !window.google) return;
 
-        const hasCoords = latitude && longitude &&
-            parseFloat(latitude) !== 0 && parseFloat(longitude) !== 0
+        const hasCoords = latitude && longitude && parseFloat(latitude) !== 0 && parseFloat(longitude) !== 0;
 
         if (hasCoords) {
-            // Coordonate GPS directe
-            initMap(parseFloat(latitude), parseFloat(longitude), zoom, label || address)
+            initMap(parseFloat(latitude), parseFloat(longitude), zoom, label || address);
         } else if (address && address.trim().length > 3) {
-            // Geocodare automată după adresă via Nominatim (gratis, fără API key)
-            const normalizedAddress = address
-                .replace(/,/g, ', ')
-                .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
-                .replace(/\s+/g, ' ')
-                .trim()
-
-            setGeocoding(true)
-            setGeoError(false)
-            fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(normalizedAddress)}&limit=1`,
-                { headers: { 'Accept-Language': 'ro', 'User-Agent': 'PontajDigital/1.0' } }
-            )
-                .then(r => r.json())
-                .then(data => {
-                    setGeocoding(false)
-                    if (data && data.length > 0) {
-                        const { lat, lon } = data[0]
-                        initMap(parseFloat(lat), parseFloat(lon), 15, label || address)
-                    } else {
-                        setGeoError(true)
-                        // Fallback: hartă Romania
-                        if (!mapInstance.current && mapRef.current) {
-                            mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false, zoomControl: false })
-                                .setView([50.8503, 4.3517], 7)
-                            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.current)
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '© OpenStreetMap', maxZoom: 19
-                            }).addTo(mapInstance.current)
-                        }
+            setGeocoding(true);
+            setGeoError(false);
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ address }, (results, status) => {
+                setGeocoding(false);
+                if (status === 'OK' && results[0]) {
+                    const lat = results[0].geometry.location.lat();
+                    const lon = results[0].geometry.location.lng();
+                    initMap(lat, lon, 15, label || address);
+                } else {
+                    setGeoError(true);
+                    // Fallback to Belgium center
+                    if (!mapInstance.current) {
+                        mapInstance.current = new window.google.maps.Map(mapRef.current, {
+                            center: { lat: 50.8503, lng: 4.3517 },
+                            zoom: 7,
+                            disableDefaultUI: true,
+                            zoomControl: true
+                        });
                     }
-                })
-                .catch(() => {
-                    setGeocoding(false)
-                    setGeoError(true)
-                })
-        } else {
-            // Nicio informație GPS/adresă — hartă Romania generală
-            if (!mapInstance.current && mapRef.current) {
-                mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false, zoomControl: false })
-                    .setView([50.8503, 4.3517], 7)
-                L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.current)
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap', maxZoom: 19
-                }).addTo(mapInstance.current)
-            }
-        }
-
-        return () => {
-            if (mapInstance.current) {
-                if (routingControlRef.current) {
-                    mapInstance.current.removeControl(routingControlRef.current)
-                    routingControlRef.current = null
                 }
-                mapInstance.current.remove()
-                mapInstance.current = null
-                markerRef.current = null
-                circleRef.current = null
-            }
-            if (detailMapInstance.current) {
-                detailMapInstance.current.remove()
-                detailMapInstance.current = null
-                detailMarkerRef.current = null
+            });
+        } else {
+            // Nicio informație GPS/adresă — hartă generală (Bruxelles)
+            if (!mapInstance.current) {
+                mapInstance.current = new window.google.maps.Map(mapRef.current, {
+                    center: { lat: 50.8503, lng: 4.3517 },
+                    zoom: 7,
+                    disableDefaultUI: true,
+                    zoomControl: true
+                });
             }
         }
-    }, [latitude, longitude, address, zoom, geofenceRadius, routeSegments])
+    }, [latitude, longitude, address, zoom, geofenceRadius, routeSegments]);
 
-    // ─── Render Sand Stations ────────────────────────────────────────────────────────────
+    // Render Sand Stations
     useEffect(() => {
-        if (!mapInstance.current) return
+        if (!mapInstance.current || !window.google) return;
         
-        // Curățăm layerul anterior
-        if (sandStationsLayerRef.current) {
-            mapInstance.current.removeLayer(sandStationsLayerRef.current)
-            sandStationsLayerRef.current = null
-        }
+        elementsRef.current.sandStationMarkers.forEach(m => m.setMap(null));
+        elementsRef.current.sandStationMarkers = [];
 
         if (showSandStations && sandStations && sandStations.length > 0) {
-            sandStationsLayerRef.current = L.layerGroup()
-            
-            sandStations.forEach((s, idx) => {
+            const newMarkers = [];
+            sandStations.forEach((s) => {
                 if (s.latitude && s.longitude) {
-                    const _letter = s.type === 'theirs' ? 'I' : 'D'
-                    const marker = L.marker([s.latitude, s.longitude], {
-                        icon: getSandStationIcon(_letter)
-                    })
-                    marker.bindPopup(`
-                        <div style="text-align:center">
-                            <strong style="font-size:13px; color:#ef4444">${s.name}</strong>
-                            ${s.address ? `<br/><span style="font-size:11px; color:#64748b">${s.address}</span>` : ''}
-                        </div>
-                    `)
-                    marker.addTo(sandStationsLayerRef.current)
+                    const _letter = s.type === 'theirs' ? 'I' : 'D';
+                    const marker = new window.google.maps.Marker({
+                        position: { lat: s.latitude, lng: s.longitude },
+                        map: mapInstance.current,
+                        icon: {
+                            url: getSandStationSvg(_letter),
+                            scaledSize: new window.google.maps.Size(26, 26),
+                            anchor: new window.google.maps.Point(13, 13)
+                        },
+                        title: s.name
+                    });
+                    
+                    marker.addListener('click', () => {
+                        elementsRef.current.infoWindow.setContent(`
+                            <div style="text-align:center; padding: 4px;">
+                                <strong style="font-size:13px; color:#ef4444">${s.name}</strong>
+                                ${s.address ? `<br/><span style="font-size:11px; color:#64748b">${s.address}</span>` : ''}
+                            </div>
+                        `);
+                        elementsRef.current.infoWindow.open(mapInstance.current, marker);
+                    });
+                    
+                    newMarkers.push(marker);
                 }
-            })
-            
-            sandStationsLayerRef.current.addTo(mapInstance.current)
+            });
+            elementsRef.current.sandStationMarkers = newMarkers;
         }
-    }, [showSandStations, sandStations])
+    }, [showSandStations, sandStations]);
 
-    // ─── Invalidate Size on FullScreen Toggle ────────────────────────────────────────────
+    // Trigger map resize on fullscreen toggle
     useEffect(() => {
-        if (mapInstance.current) {
-            // Need a slight timeout to allow CSS transitions/resizes to apply
+        if (window.google && mapInstance.current) {
             setTimeout(() => {
-                mapInstance.current.invalidateSize()
-                if (isFullScreen && latitude && longitude) {
-                    mapInstance.current.setView([latitude, longitude], zoom)
+                window.google.maps.event.trigger(mapInstance.current, 'resize');
+                if (detailMapInstance.current) {
+                    window.google.maps.event.trigger(detailMapInstance.current, 'resize');
                 }
-            }, 100)
+                if (isFullScreen && latitude && longitude) {
+                    mapInstance.current.setCenter({ lat: parseFloat(latitude), lng: parseFloat(longitude) });
+                }
+            }, 100);
         }
-    }, [isFullScreen, latitude, longitude, zoom])
-
+    }, [isFullScreen, latitude, longitude]);
 
     return (
         <div
@@ -439,7 +396,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     >
                         {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                     </button>
-                    {/* Sand Stations Toggle Button (only if sandStations are provided) */}
+                    {/* Sand Stations Toggle Button */}
                     {sandStations && sandStations.length > 0 && (
                         <label className="flex items-center gap-2 cursor-pointer bg-white/90 dark:bg-slate-800/90 px-2.5 py-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors pointer-events-auto backdrop-blur-sm h-full">
                             <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
@@ -479,7 +436,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 )}
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default MapView
+export default MapView;

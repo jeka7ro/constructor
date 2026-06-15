@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     ROBAWS_API_KEY: str = ""
     ROBAWS_API_SECRET: str = ""
     
+    # Google Maps
+    GOOGLE_MAPS_API_KEY: str = ""
+    
     # App
     APP_NAME: str = "Pontaj Digital"
     APP_VERSION: str = "1.0.0"

@@ -17,6 +17,7 @@ import EmployeeWorkOrdersPanel from './EmployeeWorkOrdersPanel'
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { reverseGeocode } from '../../lib/geocode'
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -281,22 +282,23 @@ export default function ClockInPage() {
         }
 
         const controller = new AbortController()
-        fetch(`/api/reverse-geocode?lat=${location.latitude}&lon=${location.longitude}`, {
-            signal: controller.signal
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.display_name) {
-                    // Simplify: take first 3 parts of the address
-                    const parts = data.display_name.split(', ')
-                    setCurrentAddress(parts.slice(0, 3).join(', '))
+        const fetchAddress = async () => {
+            try {
+                const address = await reverseGeocode(location.latitude, location.longitude)
+                if (address && !controller.signal.aborted) {
+                    setCurrentAddress(address)
                     lastGeocodedCoords.current = {
                         latitude: location.latitude,
                         longitude: location.longitude
                     }
                 }
-            })
-            .catch(() => { })
+            } catch (error) {
+                // Ignore abort errors
+            }
+        }
+        
+        fetchAddress()
+        
         return () => controller.abort()
     }, [location?.latitude, location?.longitude])
 

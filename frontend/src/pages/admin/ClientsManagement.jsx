@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MiniMapSelector from '../../components/MiniMapSelector'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
+import { reverseGeocode } from '../../lib/geocode'
 import api from '../../lib/api'
 
 export default function ClientsManagement() {
@@ -169,20 +170,9 @@ export default function ClientsManagement() {
                 const lon = pos.coords.longitude.toFixed(6)
                 setFormData(p => ({ ...p, latitude: lat, longitude: lon }))
                 try {
-                    const res = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
-                        { headers: { 'Accept-Language': 'ro' } }
-                    )
-                    const data = await res.json()
-                    if (data?.display_name) {
-                        const a = data.address || {}
-                        const parts = [
-                            a.road && a.house_number ? `${a.road} ${a.house_number}` : a.road,
-                            a.city || a.town || a.village || a.municipality,
-                            a.county,
-                        ].filter(Boolean)
-                        const addr = parts.length > 0 ? parts.join(', ') : data.display_name
-                        setFormData(p => ({ ...p, address: addr }))
+                    const address = await reverseGeocode(lat, lon)
+                    if (address) {
+                        setFormData(p => ({ ...p, address }))
                     }
                 } catch {}
                 setDetecting(false)

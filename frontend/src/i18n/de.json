@@ -1100,7 +1100,8 @@
     "worker_complaints": "Beschwerden von Arbeitern",
     "no_open_complaints": "Keine offenen Beschwerden",
     "this_week": "Aktuelle Woche",
-    "pending_requests": "Ausstehende Anfragen"
+    "pending_requests": "Ausstehende Anfragen",
+    "tomorrow": "Morgen"
   },
   "filters": {
     "today": "Heute",

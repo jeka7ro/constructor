@@ -26,43 +26,36 @@ def _normalize_address(address: str) -> str:
     normalized = re.sub(r',\s*', ', ', spaced)
     return normalized.strip()
 
-def _nominatim_query(q: str):
-    import requests
-    try:
-        resp = requests.get(
-            'https://nominatim.openstreetmap.org/search',
-            params={'q': q, 'format': 'json', 'limit': 1, 'countrycodes': 'be,nl,fr,de,lu'},
-            headers={'User-Agent': 'DaveChape-Logistics/1.0', 'Accept-Language': 'fr'},
-            timeout=6
-        )
-        results = resp.json()
-        if results:
-            return float(results[0]['lat']), float(results[0]['lon'])
-    except Exception:
-        pass
-    return None
-
 def geocode_address(address: str):
-    """Geocode an address using Nominatim. Returns (lat, lng) or None."""
+    """Geocode an address using Google Maps API. Returns (lat, lng) or None."""
     if not address or len(address.strip()) < 5:
         return None
     key = address.strip().lower()
     if key in _geocode_cache:
         return _geocode_cache[key]
 
-    normalized = _normalize_address(address)
-
-    # Attempt 1: full normalized address
-    result = _nominatim_query(normalized)
-
-    # Attempt 2: fallback — try just first segment (city/postal part before comma)
-    if not result and ',' in normalized:
-        first_part = normalized.split(',')[0].strip()
-        if len(first_part) > 3:
-            result = _nominatim_query(first_part)
-
-    _geocode_cache[key] = result
-    return result
+    import os
+    import requests
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return None
+        
+    try:
+        response = requests.get(
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"address": address, "key": api_key, "region": "ro"},
+            timeout=5
+        )
+        results = response.json()
+        if results.get("status") == "OK" and results.get("results"):
+            location = results["results"][0]["geometry"]["location"]
+            result = (float(location["lat"]), float(location["lng"]))
+            _geocode_cache[key] = result
+            return result
+    except Exception:
+        pass
+        
+    return None
 
 router = APIRouter(prefix="/admin/logistics", tags=["admin-logistics"])
 

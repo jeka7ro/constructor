@@ -20,38 +20,38 @@ def geocode_address_for_scraper(address: str):
     if "belgium" not in query.lower() and "belgie" not in query.lower() and "belgique" not in query.lower():
         query += ", Belgium"
         
-    import re
-    import time
-    time.sleep(1.1) # Respect Nominatim 1 req/sec limit to prevent IP ban
-    headers = {"User-Agent": "IsoflexAppAPI/1.0"}
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return None, None
     
     try:
         res = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "json", "limit": 1, "countrycodes": "be,nl,fr,lu,de"},
-            headers=headers,
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"address": query, "key": api_key},
             timeout=5
         )
         data = res.json()
-        if data and len(data) > 0:
-            return float(data[0]["lat"]), float(data[0]["lon"])
+        if data.get("status") == "OK" and data.get("results"):
+            loc = data["results"][0]["geometry"]["location"]
+            return float(loc["lat"]), float(loc["lng"])
     except:
         pass
         
     # Fallback to postal code extraction
+    import re
     match = re.search(r'\b([1-9][0-9]{3})\b', address)
     if match:
         fallback_query = f"{match.group(1)}, Belgium"
         try:
             res = requests.get(
-                "https://nominatim.openstreetmap.org/search",
-                params={"q": fallback_query, "format": "json", "limit": 1},
-                headers=headers,
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": fallback_query, "key": api_key},
                 timeout=5
             )
             data = res.json()
-            if data and len(data) > 0:
-                return float(data[0]["lat"]), float(data[0]["lon"])
+            if data.get("status") == "OK" and data.get("results"):
+                loc = data["results"][0]["geometry"]["location"]
+                return float(loc["lat"]), float(loc["lng"])
         except:
             pass
 

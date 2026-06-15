@@ -418,15 +418,19 @@ def create_work_order(
         if (not wo.site_latitude or not wo.site_longitude) and wo.site_address:
             try:
                 import requests
-                res = requests.get(
-                    f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(wo.site_address)}&limit=1&email=contact@davidechape.com",
-                    headers={"Accept-Language": "ro", "User-Agent": "PontajDigitalApp/2.0"},
-                    timeout=3
-                )
-                data = res.json()
-                if data and len(data) > 0:
-                    wo.site_latitude = float(data[0]['lat'])
-                    wo.site_longitude = float(data[0]['lon'])
+                import os
+                api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+                if api_key:
+                    res = requests.get(
+                        "https://maps.googleapis.com/maps/api/geocode/json",
+                        params={"address": wo.site_address, "key": api_key, "region": "ro"},
+                        timeout=3
+                    )
+                    data = res.json()
+                    if data.get("status") == "OK" and data.get("results"):
+                        loc = data["results"][0]["geometry"]["location"]
+                        wo.site_latitude = float(loc['lat'])
+                        wo.site_longitude = float(loc['lng'])
             except Exception:
                 pass
 
@@ -589,15 +593,20 @@ def update_work_order(
         # Geocode if coordinates are missing but we have an address
         if (not wo.site_latitude or not wo.site_longitude) and wo.site_address:
             try:
-                res = requests.get(
-                    f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(wo.site_address)}&limit=1&email=contact@davidechape.com",
-                    headers={"Accept-Language": "ro", "User-Agent": "PontajDigital/1.0"},
-                    timeout=3
-                )
-                data = res.json()
-                if data and len(data) > 0:
-                    wo.site_latitude = float(data[0]['lat'])
-                    wo.site_longitude = float(data[0]['lon'])
+                import requests
+                import os
+                api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+                if api_key:
+                    res = requests.get(
+                        "https://maps.googleapis.com/maps/api/geocode/json",
+                        params={"address": wo.site_address, "key": api_key, "region": "ro"},
+                        timeout=3
+                    )
+                    data = res.json()
+                    if data.get("status") == "OK" and data.get("results"):
+                        loc = data["results"][0]["geometry"]["location"]
+                        wo.site_latitude = float(loc['lat'])
+                        wo.site_longitude = float(loc['lng'])
             except Exception:
                 pass
 
