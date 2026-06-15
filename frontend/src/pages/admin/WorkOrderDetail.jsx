@@ -756,63 +756,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
-                                            {wo.estimated_price && <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={wo.estimated_price} />}
-                                            {isAuto && (
-                                                <div className="mt-4 mb-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                                                    <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
-                                                    <div className="space-y-1.5 text-sm">
-                                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                            <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
-                                                            <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
-                                                        </div>
-                                                        {autoExtra > 0 && (
-                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                <span>{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                                                <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
-                                                            </div>
-                                                        )}
-                                                        {autoFoil > 0 && (
-                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                <span>{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
-                                                                <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
-                                                            </div>
-                                                        )}
-                                                        {autoMesh > 0 && (
-                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                <span>{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
-                                                                <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
-                                                            </div>
-                                                        )}
-                                                        {autoFiber > 0 && (
-                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                <span>{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
-                                                                <span>{surfaceForAuto} m² × {(surfaceForAuto <= 200 ? 2.5 : 2.0).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
-                                                            </div>
-                                                        )}
-                                                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-                                                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                                                            <span>{t('work_order_detail.invoicing.net', 'Total Net:')}</span>
-                                                            <span>{autoNet.toFixed(2)} EUR</span>
-                                                        </div>
-                                                        {wo.client_type === 'fizica' ? (
-                                                            <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
-                                                                <span>{t('work_order_detail.invoicing.vat', 'TVA (21%)')}:</span>
-                                                                <span>{autoVat.toFixed(2)} EUR</span>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex justify-between text-slate-500 text-xs">
-                                                                <span>{t('work_order_detail.invoicing.vat', 'TVA')}: 0%</span>
-                                                                <span>0.00 EUR</span>
-                                                            </div>
-                                                        )}
-                                                        <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-                                                        <div className="flex justify-between text-base font-black text-blue-600 dark:text-blue-400">
-                                                            <span>{t('work_order_detail.invoicing.gross', 'TOTAL DE PLATĂ:')}</span>
-                                                            <span>{totalGross.toFixed(2)} EUR</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+
                                         </Section>
                 </div>
                 <div
@@ -989,10 +933,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                             )}
                                             
-                                            {/* ─── Facturare & Recepție ─────────────────────────────────────── */}
+                                            {/* ─── Costuri & Facturare ─────────────────────────────────────── */}
                                             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                                                 <div className="flex items-center justify-between mb-3">
-                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.title', 'Facturare & Recepție')}</p>
+                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.title_cost', 'Costuri & Facturare')}</p>
                                                     {wo.is_invoiced ? (
                                                         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
@@ -1005,6 +949,69 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         </span>
                                                     )}
                                                 </div>
+
+                                                {wo.estimated_price && (
+                                                    <div className="mb-3">
+                                                        <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={wo.estimated_price} />
+                                                    </div>
+                                                )}
+
+                                                {isAuto && (
+                                                    <div className="mb-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+                                                        <p className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
+                                                        <div className="space-y-1 text-[11px] sm:text-xs">
+                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
+                                                                <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
+                                                            </div>
+                                                            {autoExtra > 0 && (
+                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                    <span>{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
+                                                                    <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
+                                                                </div>
+                                                            )}
+                                                            {autoFoil > 0 && (
+                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                    <span>{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
+                                                                    <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
+                                                                </div>
+                                                            )}
+                                                            {autoMesh > 0 && (
+                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                    <span>{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
+                                                                    <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                                                </div>
+                                                            )}
+                                                            {autoFiber > 0 && (
+                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                    <span>{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
+                                                                    <span>{surfaceForAuto} m² × {(surfaceForAuto <= 200 ? 2.5 : 2.0).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
+                                                                </div>
+                                                            )}
+                                                            <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5"></div>
+                                                            <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                                                                <span>{t('work_order_detail.invoicing.net', 'Total Net:')}</span>
+                                                                <span>{autoNet.toFixed(2)} EUR</span>
+                                                            </div>
+                                                            {wo.client_type === 'fizica' ? (
+                                                                <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
+                                                                    <span>{t('work_order_detail.invoicing.vat', 'TVA (21%)')}:</span>
+                                                                    <span>{autoVat.toFixed(2)} EUR</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex justify-between text-slate-500 text-[10px]">
+                                                                    <span>{t('work_order_detail.invoicing.vat', 'TVA')}: 0%</span>
+                                                                    <span>0.00 EUR</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5"></div>
+                                                            <div className="flex justify-between text-sm font-black text-blue-600 dark:text-blue-400">
+                                                                <span>{t('work_order_detail.invoicing.gross', 'TOTAL DE PLATĂ:')}</span>
+                                                                <span>{totalGross.toFixed(2)} EUR</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* Nr. Factură + dată */}
                                                 <div className="space-y-2 mb-3">

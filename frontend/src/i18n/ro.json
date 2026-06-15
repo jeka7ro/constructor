@@ -1042,7 +1042,8 @@
             "choose_pdf": "Alege PDF Factură",
             "view_invoice": "Vezi Factura",
             "signature": "Semnătură Client",
-            "signed_on": "Semnat la"
+            "signed_on": "Semnat la",
+            "title_cost": "Costuri & Facturare"
         },
         "top_cards": {
             "order": "Comandă",

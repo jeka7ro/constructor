@@ -373,6 +373,7 @@ def create_work_order(
         client_name=client_name,
         client_email=client_email,
         client_phone=client_phone,
+        client_language=getattr(payload, 'client_language', 'ro'),
         requirements=payload.requirements or [],
         materials=payload.materials or [],
         volumes=payload.volumes or [],
@@ -521,7 +522,7 @@ def update_work_order(
     fields = [
         "title", "notes", "start_date", "start_time", "deadline_date",
         "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
-        "client_email", "client_phone", "requirements", "materials", "volumes",
+        "client_email", "client_phone", "client_language", "requirements", "materials", "volumes",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
         "estimated_price", "status"
     ]

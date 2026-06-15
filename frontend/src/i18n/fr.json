@@ -1044,7 +1044,8 @@
             "choose_pdf": "Choisir PDF",
             "view_invoice": "Voir Facture",
             "signature": "Signature Client",
-            "signed_on": "Signé le"
+            "signed_on": "Signé le",
+            "title_cost": "Coûts et Facturation"
         },
         "top_cards": {
             "order": "Commande",

@@ -945,7 +945,8 @@
             "choose_pdf": "Kies PDF",
             "view_invoice": "Bekijk Factuur",
             "signature": "Handtekening",
-            "signed_on": "Getekend op"
+            "signed_on": "Getekend op",
+            "title_cost": "Kosten & Facturering"
         },
         "top_cards": {
             "order": "Bestelling",

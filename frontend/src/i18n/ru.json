@@ -939,7 +939,8 @@
             "choose_pdf": "Выбрать PDF",
             "view_invoice": "Счет",
             "signature": "Подпись клиента",
-            "signed_on": "Подписано"
+            "signed_on": "Подписано",
+            "title_cost": "Затраты и выставление счетов"
         },
         "top_cards": {
             "order": "Заказ",

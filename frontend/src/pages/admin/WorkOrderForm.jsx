@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import {
     ChevronLeft, Plus, Trash2, ClipboardList, Check,
     User, MapPin, Calendar, FileText, Loader2,
@@ -84,6 +84,7 @@ const SELECT = "w-full px-3 h-9 text-sm rounded-xl border border-slate-200 dark:
 export default function WorkOrderForm() {
     const navigate = useNavigate()
     const { id } = useParams()
+    const location = useLocation()
     const [searchParams] = useSearchParams()
     const { t } = useTranslation()
     const isEdit = Boolean(id)
@@ -371,7 +372,7 @@ export default function WorkOrderForm() {
             }
             if (instructionPhotos.length) await uploadInstructionPhotos(woId)
             if (andSend) await api.post(`/admin/work-orders/${woId}/send`)
-            navigate('/admin/work-orders')
+            navigate(location.state?.from || '/admin/work-orders')
         } catch (e) {
             setError(e.response?.data?.detail || 'Eroare la salvare.')
         } finally {
@@ -465,7 +466,7 @@ export default function WorkOrderForm() {
             <div className="flex items-center justify-between gap-3 mb-4 flex-wrap sm:flex-nowrap w-full max-w-6xl xl:max-w-7xl">
                 <div className="flex items-center gap-3 min-w-0">
                     <button
-                        onClick={() => navigate('/admin/work-orders')}
+                        onClick={() => navigate(location.state?.from || '/admin/work-orders')}
                         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
                     >
                         <ChevronLeft className="w-5 h-5 text-slate-500" />
@@ -790,7 +791,7 @@ export default function WorkOrderForm() {
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.volumes_works', 'Lucrari / Volume')}</span>
                         <button onClick={() => addRow('volumes', { label: '', quantity: '', unit: 'm²' })}
                             className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
-                            <Plus className="w-3 h-3" /> Adauga
+                            <Plus className="w-3 h-3" /> {t('common.add', 'Adauga')}
                         </button>
                     </div>
                     {form.volumes.map((vol, i) => {
@@ -811,7 +812,7 @@ export default function WorkOrderForm() {
                                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
                                     <div className="flex gap-2 flex-1 sm:flex-none">
                                         <input value={vol.quantity} onChange={e => updateRow('volumes', i, 'quantity', e.target.value)}
-                                            placeholder="Cant." type="number" min="0"
+                                            placeholder={t('common.quantity_short', 'Cant.')} type="number" min="0"
                                             className="w-full sm:w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                                         <select value={vol.unit} onChange={e => updateRow('volumes', i, 'unit', e.target.value)}
                                             className="w-20 px-2 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm shrink-0">
@@ -820,7 +821,7 @@ export default function WorkOrderForm() {
                                     </div>
                                     <div className="flex gap-2 w-full sm:w-auto">
                                         <input value={vol.thickness} onChange={e => updateRow('volumes', i, 'thickness', e.target.value)}
-                                            placeholder="Grosime (cm)" type="number" step="any" min="0"
+                                            placeholder={t('dashboard.quick_create.thickness', 'Grosime (cm)')} type="number" step="any" min="0"
                                             className="flex-1 sm:w-32 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                                         
                                         {form.volumes.length > 1 && (
@@ -841,7 +842,7 @@ export default function WorkOrderForm() {
                                             onChange={e => updateRow('volumes', i, 'has_foil', e.target.checked)}
                                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                         />
-                                        Include Folie plastic (1,2 EUR/m²)
+                                        {t('dashboard.quick_create.include_foil', 'Include Folie plastic (1,2 EUR/m²)')}
                                     </label>
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
                                         <input 
@@ -850,7 +851,7 @@ export default function WorkOrderForm() {
                                             onChange={e => updateRow('volumes', i, 'has_mesh', e.target.checked)}
                                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                         />
-                                        Include Plasă metalică (2,50 EUR/m²)
+                                        {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
                                     </label>
                                 </div>
                             )}

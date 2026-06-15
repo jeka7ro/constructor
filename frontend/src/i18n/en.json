@@ -945,7 +945,8 @@
             "choose_pdf": "Choose Invoice PDF",
             "view_invoice": "View Invoice",
             "signature": "Client Signature",
-            "signed_on": "Signed on"
+            "signed_on": "Signed on",
+            "title_cost": "Costs & Invoicing"
         },
         "top_cards": {
             "order": "Order",

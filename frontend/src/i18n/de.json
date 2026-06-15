@@ -939,7 +939,8 @@
             "choose_pdf": "Rechnung wählen",
             "view_invoice": "Rechnung anzeigen",
             "signature": "Kundenunterschrift",
-            "signed_on": "Unterzeichnet am"
+            "signed_on": "Unterzeichnet am",
+            "title_cost": "Kosten & Rechnungsstellung"
         },
         "top_cards": {
             "order": "Bestellung",
