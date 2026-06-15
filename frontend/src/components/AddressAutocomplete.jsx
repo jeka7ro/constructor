@@ -69,7 +69,6 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     const handleInputChange = (e) => {
         const val = e.target.value;
         setQuery(val);
-        setUnselectedSuggestion(null);
         // Call the parent onChange with just the text so they can type freely
         if (onChange) onChange(val, null, null);
 
@@ -98,7 +97,6 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         const lon = parseFloat(item.lon).toFixed(6);
         setQuery(addr);
         setIsOpen(false);
-        setUnselectedSuggestion(null);
         
         // Pass the formatted address and the exact coordinates to the parent
         if (onChange) onChange(addr, lat, lon);
