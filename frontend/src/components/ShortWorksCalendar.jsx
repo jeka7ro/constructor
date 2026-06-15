@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -394,13 +394,14 @@ export default function ShortWorksCalendar({
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap"
+                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
                                         style={{ 
                                             backgroundColor: tenant?.primary_color || '#2563eb',
                                             color: 'white'
                                         }}
                                     >
-                                        ⭐ {client.name}
+                                        <Star className="w-3 h-3 shrink-0 fill-white" />
+                                        {client.name}
                                     </div>
                                 ))}
                             </div>
