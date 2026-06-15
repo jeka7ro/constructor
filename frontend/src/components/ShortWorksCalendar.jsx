@@ -368,8 +368,8 @@ export default function ShortWorksCalendar({
                                             e.dataTransfer.setData("type", "team")
                                             e.dataTransfer.setData("id", String(team.id))
                                         }}
-                                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm border-l-[3px] text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
-                                        style={{ borderLeftColor: team.color || '#3b82f6', color: team.color || '#3b82f6' }}
+                                        className="px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap"
+                                        style={{ backgroundColor: team.color || '#3b82f6', color: 'white' }}
                                     >
                                         {team.name.replace(/^echipa\s*/i, '')}
                                     </div>
@@ -393,7 +393,8 @@ export default function ShortWorksCalendar({
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="px-2.5 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-500 shadow-sm text-xs font-bold text-orange-700 dark:text-orange-400 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap"
+                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap border-2"
+                                        style={{ backgroundColor: '#fff8ed', borderColor: '#f97316', color: '#c2410c' }}
                                     >
                                         ⭐ {client.name}
                                     </div>
