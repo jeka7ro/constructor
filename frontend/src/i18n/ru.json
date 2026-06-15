@@ -1101,7 +1101,8 @@
     "no_open_complaints": "Нет открытых жалоб",
     "this_week": "Текущая неделя",
     "pending_requests": "Ожидающие запросы",
-    "tomorrow": "Завтра"
+    "tomorrow": "Завтра",
+    "this_month": "Месяц"
   },
   "filters": {
     "today": "Сегодня",

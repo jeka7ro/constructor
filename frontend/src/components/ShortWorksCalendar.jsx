@@ -34,13 +34,17 @@ function WeatherWidget({ lat, lon, dateStr }) {
         };
 
         if (weatherCache[cacheKey]) {
+            // Skip if cached error is less than 10 minutes old
+            if (weatherCache[cacheKey]?._error && (Date.now() - weatherCache[cacheKey]._ts) < 600000) {
+                return;
+            }
             if (weatherCache[cacheKey] instanceof Promise) {
                 setLoading(true);
                 weatherCache[cacheKey].then(daily => {
                     if (daily) processData(daily);
                     setLoading(false);
                 });
-            } else {
+            } else if (!weatherCache[cacheKey]?._error) {
                 processData(weatherCache[cacheKey]);
             }
             return;
@@ -55,7 +59,7 @@ function WeatherWidget({ lat, lon, dateStr }) {
                 return daily;
             })
             .catch(() => {
-                weatherCache[cacheKey] = null;
+                weatherCache[cacheKey] = { _error: true, _ts: Date.now() };
                 return null;
             });
             
@@ -522,7 +526,7 @@ export default function ShortWorksCalendar({
                                             if (onEmptyCellClick) {
                                                 onEmptyCellClick(targetDate, targetTime);
                                             } else {
-                                                navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`);
+                                                navigate(`/admin/work-orders/new?date=${targetDate}&time=${targetTime}`, { state: { from: '/admin/planning' } });
                                             }
                                         }
                                     }}
@@ -674,7 +678,7 @@ export default function ShortWorksCalendar({
                                             e.stopPropagation();
                                             if (!isDragging) {
                                                 if (onOrderClick) onOrderClick(wo);
-                                                else navigate(`/admin/work-orders/${wo.id}`);
+                                                else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
                                             }
                                         }}
                                         onDoubleClick={(e) => {
@@ -782,7 +786,7 @@ export default function ShortWorksCalendar({
                                                     onClick={(e) => { 
                                                         e.stopPropagation(); 
                                                         if (onOrderEdit) onOrderEdit(wo);
-                                                        else navigate(`/admin/work-orders/${wo.id}/edit`); 
+                                                        else navigate(`/admin/work-orders/${wo.id}/edit`, { state: { from: '/admin/planning' } }); 
                                                     }}
                                                     className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
                                                     title={t('common.edit', 'Editează')}
@@ -865,7 +869,7 @@ export default function ShortWorksCalendar({
                                         style={!isCompleted ? { borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` } : { borderLeft: `4px solid #22c55e` }}
                                         onClick={() => {
                                             if (onOrderClick) onOrderClick(wo);
-                                            else navigate(`/admin/work-orders/${wo.id}`);
+                                            else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
                                         }}
                                     >
                                         <div className="flex items-start justify-between gap-2">

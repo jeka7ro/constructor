@@ -1143,7 +1143,8 @@
     "no_open_complaints": "Geen openstaande klachten",
     "this_week": "Huidige week",
     "pending_requests": "Openstaande verzoeken",
-    "tomorrow": "Morgen"
+    "tomorrow": "Morgen",
+    "this_month": "Maand"
   },
   "filters": {
     "today": "Vandaag",

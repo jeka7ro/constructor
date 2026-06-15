@@ -94,6 +94,24 @@ export default function AdminOverview() {
     const [weeklyOrdersCount, setWeeklyOrdersCount] = useState(0)
     const [todayOrdersCount, setTodayOrdersCount] = useState(0)
     const [tomorrowSandTons, setTomorrowSandTons] = useState(0)
+    const [weekSandTons, setWeekSandTons] = useState(0)
+    const [monthSandTons, setMonthSandTons] = useState(0)
+    
+    const calcSandKg = (wo) => {
+        let kg = 0;
+        if (wo.volumes && wo.volumes.length > 0) {
+            wo.volumes.forEach(vol => {
+                const surface = parseFloat(vol.quantity) || 0;
+                const thickness = parseFloat(vol.thickness) || 0;
+                kg += surface * thickness * 16;
+            });
+        } else {
+            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+            const fallbackThick = parseFloat(wo.thickness) || 0;
+            kg += fallbackSurface * fallbackThick * 16;
+        }
+        return kg;
+    };
     
     useEffect(() => {
         if (!isScreeds || !allWorkOrders) return;
@@ -104,44 +122,49 @@ export default function AdminOverview() {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
+        const startOfWeek = new Date(now);
+        const dayOfWeek = now.getDay();
+        startOfWeek.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
         startOfWeek.setHours(0,0,0,0);
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(endOfWeek.getDate() + 6);
         endOfWeek.setHours(23,59,59,999);
         
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        startOfMonth.setHours(0,0,0,0);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endOfMonth.setHours(23,59,59,999);
+        
         let wCount = 0;
         let tCount = 0;
-        let sandKg = 0;
+        let sandTomorrow = 0;
+        let sandWeek = 0;
+        let sandMonth = 0;
         
         allWorkOrders.forEach(wo => {
             const dateStr = wo.start_date || wo.deadline_date;
             if (!dateStr) return;
             const dStr = dateStr.split('T')[0];
-            const d = new Date(dStr);
+            const d = new Date(dStr + 'T12:00:00');
             
             if (dStr === todayStr) tCount++;
-            if (d >= startOfWeek && d <= endOfWeek) wCount++;
-            
-            // Calculate sand for tomorrow's orders
+            if (d >= startOfWeek && d <= endOfWeek) {
+                wCount++;
+                sandWeek += calcSandKg(wo);
+            }
+            if (d >= startOfMonth && d <= endOfMonth) {
+                sandMonth += calcSandKg(wo);
+            }
             if (dStr === tomorrowStr) {
-                if (wo.volumes && wo.volumes.length > 0) {
-                    wo.volumes.forEach(vol => {
-                        const surface = parseFloat(vol.quantity) || 0;
-                        const thickness = parseFloat(vol.thickness) || 0;
-                        sandKg += surface * thickness * 16;
-                    });
-                } else {
-                    const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
-                    const fallbackThick = parseFloat(wo.thickness) || 0;
-                    sandKg += fallbackSurface * fallbackThick * 16;
-                }
+                sandTomorrow += calcSandKg(wo);
             }
         });
         
         setWeeklyOrdersCount(wCount);
         setTodayOrdersCount(tCount);
-        setTomorrowSandTons(parseFloat((sandKg / 1000).toFixed(1)));
+        setTomorrowSandTons(parseFloat((sandTomorrow / 1000).toFixed(1)));
+        setWeekSandTons(parseFloat((sandWeek / 1000).toFixed(1)));
+        setMonthSandTons(parseFloat((sandMonth / 1000).toFixed(1)));
     }, [allWorkOrders, isScreeds]);
 
     // Worker detail drawer
@@ -776,7 +799,7 @@ export default function AdminOverview() {
                     <>
                         <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'ro-RO', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
                         <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={tomorrowSandTons > 0 ? `${tomorrowSandTons} t` : '0'} icon={Package} colorTheme="amber" subtitle={t('admin_overview.tomorrow', 'Mâine')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={tomorrowSandTons > 0 ? `${tomorrowSandTons} t` : '0'} icon={Package} colorTheme="amber" subtitle={`${t('admin_overview.tomorrow', 'Mâine')} · ${t('admin_overview.this_week', 'Săpt.')}: ${weekSandTons}t · ${t('admin_overview.this_month', 'Luna')}: ${monthSandTons}t`} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
                     </>
                 ) : (
                     <>
@@ -1503,7 +1526,7 @@ export default function AdminOverview() {
                                         render: (wo) => (
                                             <div
                                                 className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
-                                                onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
+                                                onClick={() => navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } })}
                                             >
                                                 <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400">{wo.title}</div>
                                                 {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}

@@ -1239,7 +1239,8 @@
     "no_open_complaints": "Nicio sesizare deschisă",
     "this_week": "Săptămâna în curs",
     "pending_requests": "Cereri în așteptare",
-    "tomorrow": "Mâine"
+    "tomorrow": "Mâine",
+    "this_month": "Luna"
   },
   "filters": {
     "today": "Azi",

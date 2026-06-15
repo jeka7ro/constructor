@@ -1143,7 +1143,8 @@
     "no_open_complaints": "No open complaints",
     "this_week": "Current week",
     "pending_requests": "Pending requests",
-    "tomorrow": "Tomorrow"
+    "tomorrow": "Tomorrow",
+    "this_month": "Month"
   },
   "filters": {
     "today": "Today",
