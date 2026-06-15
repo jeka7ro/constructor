@@ -577,7 +577,7 @@ export default function AdminOverview() {
                 isAutoCalculated = true;
             }
 
-            await api.patch(`/admin/work-orders/${quickEditOrder.id}`, {
+            await api.put(`/admin/work-orders/${quickEditOrder.id}`, {
                 title: quickEditForm.title,
                 site_address: quickEditForm.address,
                 site_latitude: quickEditForm.latitude,
