@@ -803,7 +803,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                             </div>
                                         </Section>
-                    <Section className="flex-1" icon={Wrench} title={t('work_order_detail.materials_volumes.title', "Cantități & Materiale (Estimate vs Consumate)")}>
+                    {(() => {
+                        const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0;
+                        const sectionTitle = hasConsumed 
+                            ? t('work_order_detail.materials_volumes.title', "Cantități & Materiale (Estimate vs Consumate)")
+                            : t('work_order_detail.materials_volumes.title_no_consumed', "Cantități & Materiale (Estimate)");
+                        
+                        return (
+                            <Section className="flex-1" icon={Wrench} title={sectionTitle}>
                                             <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-4">
@@ -841,14 +848,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             )}
                                         
                                                 </div>
-                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
-                                                <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-5 xl:pt-0">
-                                                    <div className="flex items-center gap-2 mb-4">
-                                                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'Consumat Efectiv')}</p>
-                                                    </div>
-                                            {(wo.materials_consumed || []).filter(m => m.name).length > 0 ? (
-                                                <>
+                                                {hasConsumed ? (
+                                                    <>
+                                                        <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
+                                                        <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-5 xl:pt-0">
+                                                            <div className="flex items-center gap-2 mb-4">
+                                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'Consumat Efectiv')}</p>
+                                                            </div>
                                                     <div className="space-y-1.5 mb-4">
                                                         {wo.materials_consumed.filter(m => m.name).map((m, i) => (
                                                             <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/30">
@@ -873,14 +880,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                             </ResponsiveContainer>
                                                         </>
                                                     )}
-                                                </>
-                                            ) : (
-                                                <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials_volumes.no_consumed_materials', 'Niciun material consumat înregistrat')}</p>
-                                            )}
-                                        
-                                                </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex-1 hidden xl:block"></div>
+                                                )}
                                             </div>
                                         </Section>
+                        );
+                    })()}
                 </div>
             </div>
 
