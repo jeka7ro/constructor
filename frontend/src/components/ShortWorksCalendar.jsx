@@ -394,7 +394,11 @@ export default function ShortWorksCalendar({
                                             e.dataTransfer.setData("name", client.name)
                                         }}
                                         className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap border-2"
-                                        style={{ backgroundColor: '#fff8ed', borderColor: '#f97316', color: '#c2410c' }}
+                                        style={{ 
+                                            backgroundColor: `${tenant?.primary_color || '#2563eb'}18`,
+                                            borderColor: tenant?.primary_color || '#2563eb',
+                                            color: tenant?.primary_color || '#2563eb'
+                                        }}
                                     >
                                         ⭐ {client.name}
                                     </div>
