@@ -750,7 +750,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <div className="flex flex-col gap-5">
 
                     <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")}>
-                                            <div className="flex flex-col sm:flex-row gap-6">
+                                            <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1 space-y-2">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
                                                     {wo.team_leader_confirmed_at ? (
@@ -774,8 +774,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden sm:block"></div>
-                                                <div className="flex-1 border-t sm:border-t-0 border-slate-100 dark:border-slate-700 pt-4 sm:pt-0 space-y-2">
+                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
+                                                <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-4 xl:pt-0 space-y-2">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Beneficiar')}</p>
                                                     {wo.confirmed_at ? (
                                                         <>
@@ -804,7 +804,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             </div>
                                         </Section>
                     <Section className="flex-1" icon={Wrench} title={t('work_order_detail.materials_volumes.title', "Cantități & Materiale (Estimate vs Consumate)")}>
-                                            <div className="flex flex-col sm:flex-row gap-6">
+                                            <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -841,8 +841,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             )}
                                         
                                                 </div>
-                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden sm:block"></div>
-                                                <div className="flex-1 border-t sm:border-t-0 border-slate-100 dark:border-slate-700 pt-5 sm:pt-0">
+                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
+                                                <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-5 xl:pt-0">
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                                                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'Consumat Efectiv')}</p>
