@@ -799,7 +799,31 @@ export default function AdminOverview() {
                     <>
                         <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'ro-RO', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
                         <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={tomorrowSandTons > 0 ? `${tomorrowSandTons} t` : '0'} icon={Package} colorTheme="amber" subtitle={`${t('admin_overview.tomorrow', 'Mâine')} · ${t('admin_overview.this_week', 'Săpt.')}: ${weekSandTons}t · ${t('admin_overview.this_month', 'Luna')}: ${monthSandTons}t`} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <div 
+                            className="relative overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })}
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                                    <Package className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">{t('admin_overview.sand_needed', 'Necesar Nisip')}</span>
+                            </div>
+                            <div className="space-y-1.5">
+                                <div className="flex items-baseline justify-between">
+                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('admin_overview.tomorrow', 'Mâine')}</span>
+                                    <span className="text-xl font-black text-amber-600 dark:text-amber-400">{tomorrowSandTons > 0 ? `${tomorrowSandTons} t` : '0'}</span>
+                                </div>
+                                <div className="flex items-baseline justify-between border-t border-amber-200/60 dark:border-amber-800/30 pt-1">
+                                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{t('admin_overview.this_week', 'Săptămâna')}</span>
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{weekSandTons} t</span>
+                                </div>
+                                <div className="flex items-baseline justify-between border-t border-amber-200/60 dark:border-amber-800/30 pt-1">
+                                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{t('admin_overview.this_month', 'Luna')}</span>
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{monthSandTons} t</span>
+                                </div>
+                            </div>
+                        </div>
                     </>
                 ) : (
                     <>
