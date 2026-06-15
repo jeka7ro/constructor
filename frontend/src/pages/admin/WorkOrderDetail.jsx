@@ -285,16 +285,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         }
     }, [id])
 
-    useEffect(() => {
-        if (!leftColRef.current) return;
-        const ro = new ResizeObserver(entries => {
-            for (const entry of entries) {
-                setLeftColHeight(entry.contentRect.height);
-            }
-        });
-        ro.observe(leftColRef.current);
-        return () => ro.disconnect();
-    }, [wo]);
 
     useEffect(() => { load() }, [load])
 
