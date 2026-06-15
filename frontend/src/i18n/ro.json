@@ -1043,7 +1043,9 @@
             "view_invoice": "Vezi Factura",
             "signature": "Semnătură Client",
             "signed_on": "Semnat la",
-            "title_cost": "Costuri & Facturare"
+            "title_cost": "Costuri & Facturare",
+            "title_calc": "Calcul Cost",
+            "status_label": "Status Factură"
         },
         "top_cards": {
             "order": "Comandă",

@@ -946,7 +946,9 @@
             "view_invoice": "Bekijk Factuur",
             "signature": "Handtekening",
             "signed_on": "Getekend op",
-            "title_cost": "Kosten & Facturering"
+            "title_cost": "Kosten & Facturering",
+            "title_calc": "Kostenberekening",
+            "status_label": "Factuurstatus"
         },
         "top_cards": {
             "order": "Bestelling",

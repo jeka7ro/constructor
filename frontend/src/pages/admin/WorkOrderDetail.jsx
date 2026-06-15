@@ -5,7 +5,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator
 } from 'lucide-react'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
@@ -933,163 +933,171 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                             )}
                                             
-                                            {/* ─── Costuri & Facturare ─────────────────────────────────────── */}
-                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.title_cost', 'Costuri & Facturare')}</p>
-                                                    {wo.is_invoiced ? (
-                                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                                            {t('work_order_detail.invoicing.invoiced', 'Facturat')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
-                                                            {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {wo.estimated_price && (
-                                                    <div className="mb-3">
-                                                        <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={wo.estimated_price} />
-                                                    </div>
-                                                )}
-
-                                                {isAuto && (
-                                                    <div className="mb-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
-                                                        <p className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
-                                                        <div className="space-y-1 text-[11px] sm:text-xs">
-                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
-                                                                <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
-                                                            </div>
-                                                            {autoExtra > 0 && (
-                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                    <span>{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                                                    <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
-                                                                </div>
-                                                            )}
-                                                            {autoFoil > 0 && (
-                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                    <span>{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
-                                                                    <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
-                                                                </div>
-                                                            )}
-                                                            {autoMesh > 0 && (
-                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                    <span>{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
-                                                                    <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
-                                                                </div>
-                                                            )}
-                                                            {autoFiber > 0 && (
-                                                                <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                                                    <span>{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
-                                                                    <span>{surfaceForAuto} m² × {(surfaceForAuto <= 200 ? 2.5 : 2.0).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
-                                                                </div>
-                                                            )}
-                                                            <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5"></div>
-                                                            <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                                                                <span>{t('work_order_detail.invoicing.net', 'Total Net:')}</span>
-                                                                <span>{autoNet.toFixed(2)} EUR</span>
-                                                            </div>
-                                                            {wo.client_type === 'fizica' ? (
-                                                                <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
-                                                                    <span>{t('work_order_detail.invoicing.vat', 'TVA (21%)')}:</span>
-                                                                    <span>{autoVat.toFixed(2)} EUR</span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex justify-between text-slate-500 text-[10px]">
-                                                                    <span>{t('work_order_detail.invoicing.vat', 'TVA')}: 0%</span>
-                                                                    <span>0.00 EUR</span>
-                                                                </div>
-                                                            )}
-                                                            <div className="h-px bg-slate-200 dark:bg-slate-700 my-1.5"></div>
-                                                            <div className="flex justify-between text-sm font-black text-blue-600 dark:text-blue-400">
-                                                                <span>{t('work_order_detail.invoicing.gross', 'TOTAL DE PLATĂ:')}</span>
-                                                                <span>{totalGross.toFixed(2)} EUR</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Nr. Factură + dată */}
-                                                <div className="space-y-2 mb-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="text"
-                                                            placeholder={t('work_order_detail.invoicing.invoice_number_placeholder', 'Nr. Factură (ex: 2025-0042)')}
-                                                            value={invoiceNumberDraft ?? (wo.invoice_number || '')}
-                                                            onChange={e => setInvoiceNumberDraft(e.target.value)}
-                                                            className="flex-1 h-9 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 placeholder:font-normal placeholder:text-slate-400"
-                                                        />
-                                                        {(invoiceNumberDraft !== null && invoiceNumberDraft !== (wo.invoice_number || '')) && (
-                                                            <button
-                                                                onClick={handleSaveInvoiceNumber}
-                                                                disabled={savingInvoiceStatus}
-                                                                className="px-3 h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
-                                                            >
-                                                                {savingInvoiceStatus ? '...' : t('common.save', 'Salvează')}
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {wo.invoiced_at && (
-                                                        <p className="text-[10px] text-slate-400 font-medium">
-                                                            {t('work_order_detail.invoicing.invoiced_at', 'Facturat pe')} {new Date(wo.invoiced_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                {/* Upload PDF */}
-                                                {wo.final_invoice_path ? (
-                                                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-2">
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">{t('work_order_detail.invoicing.pdf_uploaded', 'PDF Factură Încărcat')}</span>
-                                                        </div>
-                                                        <a href={`${API_BASE}${wo.final_invoice_path}`} target="_blank" rel="noreferrer"
-                                                            className="px-2.5 py-1 bg-white dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 rounded-lg text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 transition-colors shrink-0">
-                                                            {t('work_order_detail.invoicing.view_invoice', 'Vezi PDF')}
-                                                        </a>
-                                                    </div>
-                                                ) : (
-                                                    <label className="flex items-center justify-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all mb-2 group">
-                                                        <FileText className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
-                                                        <span className="text-xs font-semibold text-slate-500 group-hover:text-blue-600 dark:text-slate-400">
-                                                            {uploadingInvoice ? t('work_order_detail.invoicing.uploading', 'Se încarcă...') : t('work_order_detail.invoicing.upload_pdf', 'Upload PDF Factură → marchează automat')}
-                                                        </span>
-                                                        <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleInvoiceUpload} disabled={uploadingInvoice} />
-                                                    </label>
-                                                )}
-
-                                                {/* Butoane marcare manual */}
-                                                <div className="flex gap-2">
-                                                    {!wo.is_invoiced ? (
-                                                        <button
-                                                            onClick={() => handleToggleInvoiced(true)}
-                                                            disabled={savingInvoiceStatus}
-                                                            className="flex-1 flex items-center justify-center gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50"
-                                                        >
-                                                            <CheckCircle2 className="w-3.5 h-3.5" />
-                                                            {t('work_order_detail.invoicing.mark_invoiced', 'Marchează ca Facturat')}
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handleToggleInvoiced(false)}
-                                                            disabled={savingInvoiceStatus}
-                                                            className="flex-1 flex items-center justify-center gap-1.5 h-8 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50"
-                                                        >
-                                                            <Circle className="w-3.5 h-3.5" />
-                                                            {t('work_order_detail.invoicing.mark_not_invoiced', 'Marchează ca Nefacturat')}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {!(wo.documents && wo.documents.length > 0) && !wo.is_invoiced && (
-                                                <p className="text-xs text-slate-400 text-center py-2 mt-2">{t('work_order_detail.invoicing.no_docs', 'Niciun document disponibil.')}</p>
-                                            )}
                                         </Section>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                {/* ─── Calcul Cost ────────────────────────────────────────── */}
+                <div className="flex flex-col h-full">
+                    <Section icon={Calculator} title={t('work_order_detail.invoicing.title_calc', 'Calcul Cost')} className="h-full">
+                        {wo.estimated_price && (
+                            <div className="mb-4">
+                                <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={wo.estimated_price} />
+                            </div>
+                        )}
+
+                        {isAuto ? (
+                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                                <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                        <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
+                                        <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
+                                    </div>
+                                    {autoExtra > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
+                                            <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {autoFoil > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
+                                            <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {autoMesh > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
+                                            <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {autoFiber > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
+                                            <span>{surfaceForAuto} m² × {(surfaceForAuto <= 200 ? 2.5 : 2.0).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+                                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                                        <span>{t('work_order_detail.invoicing.net', 'Total Net:')}</span>
+                                        <span>{autoNet.toFixed(2)} EUR</span>
+                                    </div>
+                                    {wo.client_type === 'fizica' ? (
+                                        <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
+                                            <span>{t('work_order_detail.invoicing.vat', 'TVA (21%)')}:</span>
+                                            <span>{autoVat.toFixed(2)} EUR</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between text-slate-500 text-xs">
+                                            <span>{t('work_order_detail.invoicing.vat', 'TVA')}: 0%</span>
+                                            <span>0.00 EUR</span>
+                                        </div>
+                                    )}
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+                                    <div className="flex justify-between text-base font-black text-blue-600 dark:text-blue-400">
+                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL DE PLATĂ:')}</span>
+                                        <span>{totalGross.toFixed(2)} EUR</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            !wo.estimated_price && <p className="text-sm text-slate-400 py-4">{t('work_order_detail.invoicing.no_calc', 'Niciun calcul disponibil.')}</p>
+                        )}
+                    </Section>
+                </div>
+
+                {/* ─── Facturare ──────────────────────────────────────────── */}
+                <div className="flex flex-col h-full">
+                    <Section icon={FileText} title={t('work_order_detail.invoicing.title_invoice', 'Facturare')} className="h-full">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.status_label', 'Status Factură')}</p>
+                            {wo.is_invoiced ? (
+                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                    {t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                                    {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Nr. Factură + dată */}
+                        <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    placeholder={t('work_order_detail.invoicing.invoice_number_placeholder', 'Nr. Factură (ex: 2025-0042)')}
+                                    value={invoiceNumberDraft ?? (wo.invoice_number || '')}
+                                    onChange={e => setInvoiceNumberDraft(e.target.value)}
+                                    className="flex-1 h-9 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 placeholder:font-normal placeholder:text-slate-400"
+                                />
+                                {(invoiceNumberDraft !== null && invoiceNumberDraft !== (wo.invoice_number || '')) && (
+                                    <button
+                                        onClick={handleSaveInvoiceNumber}
+                                        disabled={savingInvoiceStatus}
+                                        className="px-3 h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                                    >
+                                        {savingInvoiceStatus ? '...' : t('common.save', 'Salvează')}
+                                    </button>
+                                )}
+                            </div>
+                            {wo.invoiced_at && (
+                                <p className="text-[10px] text-slate-400 font-medium">
+                                    {t('work_order_detail.invoicing.invoiced_at', 'Facturat pe')} {new Date(wo.invoiced_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Upload PDF */}
+                        {wo.final_invoice_path ? (
+                            <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-4">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
+                                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 truncate">{t('work_order_detail.invoicing.pdf_uploaded', 'PDF Factură Încărcat')}</span>
+                                </div>
+                                <a href={`${API_BASE}${wo.final_invoice_path}`} target="_blank" rel="noreferrer"
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 rounded-lg text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 transition-colors shrink-0">
+                                    {t('work_order_detail.invoicing.view_invoice', 'Vezi PDF')}
+                                </a>
+                            </div>
+                        ) : (
+                            <label className="flex items-center justify-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all mb-4 group">
+                                <FileText className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
+                                <span className="text-sm font-semibold text-slate-500 group-hover:text-blue-600 dark:text-slate-400">
+                                    {uploadingInvoice ? t('work_order_detail.invoicing.uploading', 'Se încarcă...') : t('work_order_detail.invoicing.upload_pdf', 'Upload PDF Factură → marchează automat')}
+                                </span>
+                                <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleInvoiceUpload} disabled={uploadingInvoice} />
+                            </label>
+                        )}
+
+                        {/* Butoane marcare manual */}
+                        <div className="flex gap-3 mt-auto">
+                            {!wo.is_invoiced ? (
+                                <button
+                                    onClick={() => handleToggleInvoiced(true)}
+                                    disabled={savingInvoiceStatus}
+                                    className="flex-1 flex items-center justify-center gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    {t('work_order_detail.invoicing.mark_invoiced', 'Marchează ca Facturat')}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handleToggleInvoiced(false)}
+                                    disabled={savingInvoiceStatus}
+                                    className="flex-1 flex items-center justify-center gap-2 h-10 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                    <Circle className="w-4 h-4" />
+                                    {t('work_order_detail.invoicing.mark_not_invoiced', 'Marchează ca Nefacturat')}
+                                </button>
+                            )}
+                        </div>
+                    </Section>
+                </div>
 
                 </div>
 

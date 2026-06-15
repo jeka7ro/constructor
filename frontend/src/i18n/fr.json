@@ -1045,7 +1045,9 @@
             "view_invoice": "Voir Facture",
             "signature": "Signature Client",
             "signed_on": "Signé le",
-            "title_cost": "Coûts et Facturation"
+            "title_cost": "Coûts et Facturation",
+            "title_calc": "Calcul des Coûts",
+            "status_label": "Statut Facturation"
         },
         "top_cards": {
             "order": "Commande",

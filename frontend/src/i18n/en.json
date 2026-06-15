@@ -946,7 +946,9 @@
             "view_invoice": "View Invoice",
             "signature": "Client Signature",
             "signed_on": "Signed on",
-            "title_cost": "Costs & Invoicing"
+            "title_cost": "Costs & Invoicing",
+            "title_calc": "Cost Calculation",
+            "status_label": "Invoice Status"
         },
         "top_cards": {
             "order": "Order",
