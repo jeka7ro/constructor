@@ -368,9 +368,10 @@ export default function ShortWorksCalendar({
                                             e.dataTransfer.setData("type", "team")
                                             e.dataTransfer.setData("id", String(team.id))
                                         }}
-                                        className="px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap"
+                                        className="px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
                                         style={{ backgroundColor: team.color || '#3b82f6', color: 'white' }}
                                     >
+                                        <Truck className="w-3 h-3 shrink-0" />
                                         {team.name.replace(/^echipa\s*/i, '')}
                                     </div>
                                 ))}
@@ -393,11 +394,10 @@ export default function ShortWorksCalendar({
                                             e.dataTransfer.setData("id", String(client.id))
                                             e.dataTransfer.setData("name", client.name)
                                         }}
-                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap border-2"
+                                        className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap"
                                         style={{ 
-                                            backgroundColor: `${tenant?.primary_color || '#2563eb'}18`,
-                                            borderColor: tenant?.primary_color || '#2563eb',
-                                            color: tenant?.primary_color || '#2563eb'
+                                            backgroundColor: tenant?.primary_color || '#2563eb',
+                                            color: 'white'
                                         }}
                                     >
                                         ⭐ {client.name}
