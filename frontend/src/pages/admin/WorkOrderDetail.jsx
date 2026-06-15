@@ -750,7 +750,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <div className="flex flex-col gap-5">
 
                     <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")}>
-                                            <div className="flex flex-col xl:flex-row gap-6">
+                                            <div className="flex flex-col sm:flex-row gap-6">
                                                 <div className="flex-1 space-y-2">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
                                                     {wo.team_leader_confirmed_at ? (
@@ -774,8 +774,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
-                                                <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-4 xl:pt-0 space-y-2">
+                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden sm:block"></div>
+                                                <div className="flex-1 border-t sm:border-t-0 border-slate-100 dark:border-slate-700 pt-4 sm:pt-0 space-y-2">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Beneficiar')}</p>
                                                     {wo.confirmed_at ? (
                                                         <>
@@ -803,16 +803,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                             </div>
                                         </Section>
-                    <Section className="flex-1" icon={Wrench} title={t('work_order_detail.materials.title', "Cantități & Materiale (Estimate vs Consumate)")}>
-                                            <div className="flex flex-col xl:flex-row gap-6">
+                    <Section className="flex-1" icon={Wrench} title={t('work_order_detail.materials_volumes.title', "Cantități & Materiale (Estimate vs Consumate)")}>
+                                            <div className="flex flex-col sm:flex-row gap-6">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.planned_estimated', 'Planificat / Estimat')}</p>
+                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
                                                     </div>
                                             {(wo.volumes || []).length > 0 && (
                                                 <div className="mb-4">
-                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.materials.works_volumes', 'Lucrări / Volume')}</p>
+                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
                                                     <div className="space-y-1.5">
                                                         {wo.volumes.map((v, i) => (
                                                             <div key={i} className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
@@ -841,11 +841,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             )}
                                         
                                                 </div>
-                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
-                                                <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-5 xl:pt-0">
+                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden sm:block"></div>
+                                                <div className="flex-1 border-t sm:border-t-0 border-slate-100 dark:border-slate-700 pt-5 sm:pt-0">
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.actual_consumed', 'Consumat Efectiv')}</p>
+                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'Consumat Efectiv')}</p>
                                                     </div>
                                             {(wo.materials_consumed || []).filter(m => m.name).length > 0 ? (
                                                 <>
@@ -875,7 +875,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     )}
                                                 </>
                                             ) : (
-                                                <p className="text-sm text-slate-400 text-center py-4">Niciun material consumat înregistrat</p>
+                                                <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials_volumes.no_consumed_materials', 'Niciun material consumat înregistrat')}</p>
                                             )}
                                         
                                                 </div>
@@ -886,7 +886,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {(wo.documents && wo.documents.length > 0) && (
                 <div className="mb-5">
-                    <Section icon={Paperclip} title={t('work_order_detail.invoicing.title', "Documente & Fișiere")}>
+                    <Section icon={Paperclip} title={t('work_order_detail.documents.title', "Documente & Fișiere")}>
                         <div className="mb-4">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Atașamente</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1002,7 +1002,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                 {/* ─── Facturare ──────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
-                    <Section icon={FileText} title={t('work_order_detail.invoicing.title_invoice', 'Facturare')} className="h-full">
+                    <Section icon={FileText} title={t('work_order_detail.invoicing.title', 'Facturare')} className="h-full">
                         <div className="flex items-center justify-between mb-4">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.status_label', 'Status Factură')}</p>
                             {wo.is_invoiced ? (
