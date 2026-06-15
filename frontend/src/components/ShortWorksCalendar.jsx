@@ -358,7 +358,7 @@ export default function ShortWorksCalendar({
                     <div className="px-4 pb-3 flex items-center gap-6 overflow-x-auto custom-scrollbar">
                         {/* Echipe */}
                         <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Truck className="w-3.5 h-3.5"/> Echipe</span>
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Truck className="w-3.5 h-3.5"/> {t('admin_overview.trucks_teams', 'Équipes')}</span>
                             <div className="flex gap-2 items-center">
                                 {teams?.map(team => (
                                     <div 
@@ -383,7 +383,7 @@ export default function ShortWorksCalendar({
 
                         {/* Clienti */}
                         <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> Clienți</span>
+                            <span className="text-[10px] font-black text-white/70 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1"><Building2 className="w-3.5 h-3.5"/> {t('admin_overview.frequent_clients', 'Clients')}</span>
                             <div className="flex gap-2 items-center">
                                 {clients?.filter(c => c.is_favorite).map(client => (
                                     <div 
@@ -397,7 +397,8 @@ export default function ShortWorksCalendar({
                                         className="px-2.5 py-1.5 rounded-lg shadow-sm text-xs font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-1.5"
                                         style={{ 
                                             backgroundColor: tenant?.primary_color || '#2563eb',
-                                            color: 'white'
+                                            color: 'white',
+                                            border: '2px solid white'
                                         }}
                                     >
                                         <Star className="w-3 h-3 shrink-0 fill-white" />
