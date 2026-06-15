@@ -836,17 +836,12 @@ export default function ClockInPage() {
             return
         }
 
-        if (!location) {
-            requestLocation()
-            return
-        }
-
         try {
             setLoading(true)
-            await api.post('/timesheets/start-break', {
-                latitude: location.latitude,
-                longitude: location.longitude
-            })
+            const payload = location 
+                ? { latitude: location.latitude, longitude: location.longitude }
+                : {}
+            await api.post('/timesheets/start-break', payload)
 
             await fetchActiveShift()
         } catch (error) {
