@@ -178,8 +178,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [lightbox, setLightbox] = useState(null)
     // Sand stations — folosim lista hardcodata completa (aceleasi ca in Logistica)
     const [uploadingInvoice, setUploadingInvoice] = useState(false)
-    const leftColRef = useRef(null)
-    const [leftColHeight, setLeftColHeight] = useState(undefined)
     const [invoiceNumberDraft, setInvoiceNumberDraft] = useState(null)
     const [savingInvoiceStatus, setSavingInvoiceStatus] = useState(false)
 
@@ -287,7 +285,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         }
     }, [id])
 
-    // Track left column height to cap right column
     useEffect(() => {
         if (!leftColRef.current) return;
         const ro = new ResizeObserver(entries => {
@@ -709,7 +706,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start mb-5">
-                <div className="flex flex-col gap-5" ref={leftColRef} id="left-col-main">
+                <div className="flex flex-col gap-5">
 
                     <Section icon={FileText} title={t('work_order_detail.general_details.title', "Detalii Generale")}>
                                             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -760,10 +757,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                                         </Section>
                 </div>
-                <div
-                    className="flex flex-col gap-5 overflow-hidden"
-                    style={leftColHeight ? { maxHeight: leftColHeight, overflowY: 'auto' } : undefined}
-                >
+                <div className="flex flex-col gap-5">
 
                     <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")}>
                                             <div className="flex flex-col xl:flex-row gap-6">
