@@ -407,17 +407,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     (wo.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
-        if (vol.label?.toLowerCase()?.includes('sapa') && surface > 0) {
+        const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (labelSafe.includes('sapa') && surface > 0) {
             isAuto = true;
             surfaceForAuto += surface;
             const extraThickness = Math.max(0, thickness - 5);
             extraThickForAuto = extraThickness;
-            autoBase += 12.5 * surface;
-            autoExtra += extraThickness * 1.25 * surface;
-            autoFoil += vol.has_foil ? 1.2 * surface : 0;
-            autoMesh += vol.has_mesh ? 2.5 * surface : 0;
+            autoBase += parseFloat(wo.prices?.base || 12.5) * surface;
+            autoExtra += extraThickness * parseFloat(wo.prices?.extra || 1.25) * surface;
+            autoFoil += vol.has_foil ? parseFloat(wo.prices?.foil || 1.2) * surface : 0;
+            autoMesh += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0;
             
-            const fiberRate = surface <= 200 ? 2.5 : 2.0;
+            const fiberRate = parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
             autoFiber += surface * fiberRate;
         }
     });
@@ -952,30 +953,30 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                         <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
-                                        <span>{surfaceForAuto} m² × 12.50 = <b>{autoBase.toFixed(2)} EUR</b></span>
+                                        <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)} EUR</b></span>
                                     </div>
                                     {autoExtra > 0 && (
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                             <span>{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                            <span>{surfaceForAuto} m² × {extraThickForAuto * 1.25} = <b>{autoExtra.toFixed(2)} EUR</b></span>
+                                            <span>{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoFoil > 0 && (
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                             <span>{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
-                                            <span>{surfaceForAuto} m² × 1.20 = <b>{autoFoil.toFixed(2)} EUR</b></span>
+                                            <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoMesh > 0 && (
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                             <span>{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
-                                            <span>{surfaceForAuto} m² × 2.50 = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                            <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoFiber > 0 && (
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                             <span>{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
-                                            <span>{surfaceForAuto} m² × {(surfaceForAuto <= 200 ? 2.5 : 2.0).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
+                                            <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
