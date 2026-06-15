@@ -749,8 +749,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
                 <div className="flex flex-col gap-5">
 
-                    <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")}>
-                                            <div className="flex flex-col xl:flex-row gap-6">
+                    <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")} contentClassName="!p-3">
+                                            <div className="flex flex-col xl:flex-row gap-3">
                                                 <div className="flex-1 space-y-2">
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
                                                     {wo.team_leader_confirmed_at ? (
@@ -796,7 +796,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <div className="flex items-center justify-center h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                                        <div className="flex items-center justify-center py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                                                             <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Neconfirmată de client.')}</p>
                                                         </div>
                                                     )}
@@ -810,8 +810,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             : t('work_order_detail.materials_volumes.title_no_consumed', "Cantități & Materiale (Estimate)");
                         
                         return (
-                            <Section className="flex-1" icon={Wrench} title={sectionTitle}>
-                                            <div className="flex flex-col xl:flex-row gap-6">
+                            <Section className="flex-1" icon={Wrench} title={sectionTitle} contentClassName="!p-3">
+                                            <div className="flex flex-col xl:flex-row gap-3">
                                                 <div className="flex-1">
                                                     <div className="flex items-center flex-nowrap gap-2 overflow-x-auto no-scrollbar">
                                                         <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
