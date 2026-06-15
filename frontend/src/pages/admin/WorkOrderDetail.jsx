@@ -813,36 +813,40 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             <Section className="flex-1" icon={Wrench} title={sectionTitle}>
                                             <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-4">
-                                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
+                                                    <div className="flex items-center flex-wrap gap-2.5">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
+                                                        </div>
+                                                        {(wo.volumes || []).length > 0 && (
+                                                            <>
+                                                                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
+                                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    {wo.volumes.map((v, i) => (
+                                                                        <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{v.label || '—'}</span>
+                                                                            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400">{v.quantity} {v.unit}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                        {(wo.materials || []).length > 0 && (
+                                                            <>
+                                                                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
+                                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Materiale Necesare')}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    {wo.materials.map((m, i) => (
+                                                                        <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{m.name}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{m.quantity} {m.unit}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
-                                            {(wo.volumes || []).length > 0 && (
-                                                <div className="mb-4">
-                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
-                                                    <div className="space-y-1.5">
-                                                        {wo.volumes.map((v, i) => (
-                                                            <div key={i} className="flex items-center justify-between px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{v.label || '—'}</span>
-                                                                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">{v.quantity} {v.unit}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {(wo.materials || []).length > 0 && (
-                                                <div>
-                                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.materials.required', 'Materiale Necesare')}</p>
-                                                    <div className="space-y-1.5">
-                                                        {wo.materials.map((m, i) => (
-                                                            <div key={i} className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/40 rounded-xl">
-                                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{m.name}</span>
-                                                                <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{m.quantity} {m.unit}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
                                             {!(wo.volumes?.length) && !(wo.materials?.length) && (
                                                 <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials.no_quantity', 'Nicio cantitate înregistrată')}</p>
                                             )}
