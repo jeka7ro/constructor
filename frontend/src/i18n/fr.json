@@ -1047,7 +1047,15 @@
             "signed_on": "Signé le",
             "title_cost": "Coûts et Facturation",
             "title_calc": "Calcul des Coûts",
-            "status_label": "Statut Facturation"
+            "status_label": "Statut Facturation",
+            "invoice_number_placeholder": "N° Facture (ex: 2025-0042)",
+            "invoiced_on": "Facturé le",
+            "pdf_uploaded": "PDF Facture Téléchargé",
+            "mark_unbilled": "Marquer comme Non Facturé"
+        },
+        "documents": {
+            "title": "Documents & Fichiers",
+            "attachments": "Pièces jointes"
         },
         "top_cards": {
             "order": "Commande",
