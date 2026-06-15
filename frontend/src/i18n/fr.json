@@ -1237,7 +1237,8 @@
         "this_week": "Semaine en cours",
         "pending_requests": "Demandes en attente",
         "tomorrow": "Demain",
-        "this_month": "Mois"
+        "this_month": "Mois",
+        "sand_consumption": "Consommation Sable"
     },
     "filters": {
         "today": "Aujourd'hui",

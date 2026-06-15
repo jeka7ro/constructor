@@ -799,8 +799,8 @@ export default function AdminOverview() {
                     <>
                         <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'ro-RO', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
                         <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={`${weekSandTons} t`} icon={Package} colorTheme="amber" subtitle={t('admin_overview.this_week', 'Săptămâna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                        <KPICard label={t('admin_overview.sand_needed', 'Necesar Nisip')} value={`${monthSandTons} t`} icon={Package} colorTheme="orange" subtitle={t('admin_overview.this_month', 'Luna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('admin_overview.sand_consumption', 'Consum Nisip')} value={`${weekSandTons} t`} icon={Package} colorTheme="amber" subtitle={t('admin_overview.this_week', 'Săptămâna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                        <KPICard label={t('admin_overview.sand_consumption', 'Consum Nisip')} value={`${monthSandTons} t`} icon={Package} colorTheme="orange" subtitle={t('admin_overview.this_month', 'Luna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
                     </>
                 ) : (
                     <>

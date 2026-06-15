@@ -1149,7 +1149,8 @@
         "this_week": "Current week",
         "pending_requests": "Pending requests",
         "tomorrow": "Tomorrow",
-        "this_month": "Month"
+        "this_month": "Month",
+        "sand_consumption": "Sand Consumption"
     },
     "filters": {
         "today": "Today",

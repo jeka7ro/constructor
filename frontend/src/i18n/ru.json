@@ -1107,7 +1107,8 @@
         "this_week": "Текущая неделя",
         "pending_requests": "Ожидающие запросы",
         "tomorrow": "Завтра",
-        "this_month": "Месяц"
+        "this_month": "Месяц",
+        "sand_consumption": "Расход песка"
     },
     "filters": {
         "today": "Сегодня",

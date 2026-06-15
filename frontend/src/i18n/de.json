@@ -1107,7 +1107,8 @@
         "this_week": "Aktuelle Woche",
         "pending_requests": "Ausstehende Anfragen",
         "tomorrow": "Morgen",
-        "this_month": "Monat"
+        "this_month": "Monat",
+        "sand_consumption": "Sandverbrauch"
     },
     "filters": {
         "today": "Heute",

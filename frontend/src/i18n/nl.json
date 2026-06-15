@@ -1149,7 +1149,8 @@
         "this_week": "Huidige week",
         "pending_requests": "Openstaande verzoeken",
         "tomorrow": "Morgen",
-        "this_month": "Maand"
+        "this_month": "Maand",
+        "sand_consumption": "Zandverbruik"
     },
     "filters": {
         "today": "Vandaag",

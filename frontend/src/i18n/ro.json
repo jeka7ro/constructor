@@ -1245,7 +1245,8 @@
         "this_week": "Săptămâna în curs",
         "pending_requests": "Cereri în așteptare",
         "tomorrow": "Mâine",
-        "this_month": "Luna"
+        "this_month": "Luna",
+        "sand_consumption": "Consum Nisip"
     },
     "filters": {
         "today": "Azi",
