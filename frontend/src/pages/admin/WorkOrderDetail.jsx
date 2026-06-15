@@ -949,7 +949,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                         {isAuto ? (
                             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                                <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
+                                <div className="flex justify-between items-center mb-3">
+                                    <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
+                                    <button 
+                                        onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
+                                        className="text-slate-400 hover:text-blue-600 transition-colors bg-white dark:bg-slate-800 p-1 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm"
+                                        title={t('work_order_detail.edit', 'Editează')}
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                         <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
