@@ -537,7 +537,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex-1 space-y-1.5">
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
+                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
                                                         <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-1">
                                                             <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.start_work', 'Start Lucrare')}</span>
                                                             <span className="font-semibold text-slate-800 dark:text-slate-200">
@@ -546,7 +546,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.crew', 'Echipaj Alocat')}</p>
+                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.crew', 'Echipaj Alocat')}</p>
                                                         <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-1 mb-1">
                                                             <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.manager', 'Responsabil')}</span>
                                                             <span className="font-semibold text-slate-800 dark:text-slate-200">{wo.assigned_team_name || '—'}</span>
@@ -560,7 +560,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     </div>
                                                 </div>
                                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/> {t('work_order_detail.planning.route_hops', 'Traseu (Hop-uri)')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/> {t('work_order_detail.planning.route_hops', 'Traseu (Hop-uri)')}</p>
                                                     {(wo.route_segments && wo.route_segments.length > 0) ? (
                                                         <>
                                                             <div className="relative pl-6 space-y-1.5 before:absolute before:inset-y-2 before:left-[11px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
@@ -603,7 +603,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 {wo.access_notes && (
                     <div className="px-4 pb-4 pt-3">
                         <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 {t('work_order_detail.access_notes', 'Note Acces')}</p>
+                            <p className="text-[10px] whitespace-nowrap font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 {t('work_order_detail.access_notes', 'Note Acces')}</p>
                             <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
                         </div>
                     </div>
@@ -701,18 +701,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     <Section icon={FileText} title={t('work_order_detail.general_details.title', "Detalii Generale")}>
                                             <div className="grid grid-cols-2 gap-4 mb-4">
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Comandă')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Comandă')}</p>
                                                     <p className="font-mono text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.status', 'Status')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.status', 'Status')}</p>
                                                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-700 uppercase tracking-wider">
                                                         {cfg?.label || wo.status}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div className="mb-4 pb-4 border-b border-slate-50 dark:border-slate-700/50">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.team_leader', 'Șef Echipă (Confirmare)')}</p>
+                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.team_leader', 'Șef Echipă (Confirmare)')}</p>
                                                 {wo.team_leader_confirmed_at ? (
                                                     <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex flex-col">
                                                         <span>{t('work_order_detail.status.acknowledged_on', 'A luat la cunoștință pe')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
@@ -732,15 +732,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 pb-4 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.client', 'Client')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.client', 'Client')}</p>
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_name} <span className="text-xs text-slate-400">{getLanguageFlag(wo.client_language)}</span></p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.email', 'Email')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.email', 'Email')}</p>
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 break-all">{wo.client_email || '—'}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Telefon')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Telefon')}</p>
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
@@ -752,31 +752,31 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")}>
                                             <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1 space-y-2">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
                                                     {wo.team_leader_confirmed_at ? (
                                                         <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-1.5">
+                                                            <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                                                                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmat')}</span>
                                                             </div>
                                                             <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center gap-1.5">
+                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                             <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
                                                             <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'În așteptare confirmare')}</span>
                                                         </div>
                                                     )}
                                                     {wo.team_leader_confirmation_note && (
                                                         <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
-                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Notă')}</p>
+                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Notă')}</p>
                                                             <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
                                                 <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-4 xl:pt-0 space-y-2">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Beneficiar')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Beneficiar')}</p>
                                                     {wo.confirmed_at ? (
                                                         <>
                                                             <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
@@ -813,18 +813,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             <Section className="flex-1" icon={Wrench} title={sectionTitle}>
                                             <div className="flex flex-col xl:flex-row gap-6">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center flex-wrap gap-2.5">
-                                                        <div className="flex items-center gap-1.5">
+                                                    <div className="flex items-center flex-nowrap gap-2 overflow-x-auto no-scrollbar">
+                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
+                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
                                                         </div>
                                                         {(wo.volumes || []).length > 0 && (
                                                             <>
                                                                 <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
-                                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.volumes.map((v, i) => (
-                                                                        <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg">
+                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg">
                                                                             <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{v.label || '—'}</span>
                                                                             <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400">{v.quantity} {v.unit}</span>
                                                                         </div>
@@ -835,10 +835,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         {(wo.materials || []).length > 0 && (
                                                             <>
                                                                 <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
-                                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Materiale Necesare')}</p>
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Materiale Necesare')}</p>
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.materials.map((m, i) => (
-                                                                        <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg">
+                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg">
                                                                             <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{m.name}</span>
                                                                             <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{m.quantity} {m.unit}</span>
                                                                         </div>
@@ -900,7 +900,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <div className="mb-5">
                     <Section icon={Paperclip} title={t('work_order_detail.documents.title', "Documente & Fișiere")}>
                         <div className="mb-4">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Atașamente</p>
+                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">Atașamente</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {wo.documents.map((doc, idx) => {
                                 const isImg = doc.content_type?.startsWith('image/');
@@ -1018,12 +1018,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         <div className="flex items-center justify-between mb-4">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.status_label', 'Status Factură')}</p>
                             {wo.is_invoiced ? (
-                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
+                                <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                                     {t('work_order_detail.invoicing.invoiced', 'Facturat')}
                                 </span>
                             ) : (
-                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
+                                <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
                                     {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
                                 </span>
