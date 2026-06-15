@@ -941,9 +941,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 {/* ─── Calcul Cost ────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
                     <Section icon={Calculator} title={t('work_order_detail.invoicing.title_calc', 'Calcul Cost')} className="h-full">
-                        {wo.estimated_price && (
+                        {wo.estimated_price && !isAuto && (
                             <div className="mb-4">
-                                <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={wo.estimated_price} />
+                                <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={`${parseFloat(wo.estimated_price).toFixed(2)} EUR`} />
                             </div>
                         )}
 
