@@ -2,7 +2,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import datetime
 
 from app.database import get_db
@@ -31,6 +31,12 @@ class ClientBase(BaseModel):
     is_active: bool = True
     is_favorite: Optional[bool] = False
 
+    @field_validator('email', mode='before')
+    def empty_email_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+
 class ClientCreate(ClientBase):
     pass
 
@@ -51,6 +57,12 @@ class ClientUpdate(BaseModel):
     swift: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
     is_favorite: Optional[bool] = None
+
+    @field_validator('email', mode='before')
+    def empty_email_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class ClientResponse(ClientBase):
     id: str
