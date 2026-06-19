@@ -2,7 +2,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, model_validator
 from datetime import datetime
 
 from app.database import get_db
@@ -31,11 +31,18 @@ class ClientBase(BaseModel):
     is_active: bool = True
     is_favorite: Optional[bool] = False
 
-    @field_validator('email', mode='before')
-    def empty_email_to_none(cls, v):
-        if v == "":
-            return None
-        return v
+    @model_validator(mode='before')
+    @classmethod
+    def clean_empty_strings(cls, values):
+        if isinstance(values, dict):
+            for k, v in list(values.items()):
+                if isinstance(v, str):
+                    stripped = v.strip()
+                    if stripped == "":
+                        values[k] = None
+                    else:
+                        values[k] = stripped
+        return values
 
 class ClientCreate(ClientBase):
     pass
@@ -58,11 +65,18 @@ class ClientUpdate(BaseModel):
     is_active: Optional[bool] = None
     is_favorite: Optional[bool] = None
 
-    @field_validator('email', mode='before')
-    def empty_email_to_none(cls, v):
-        if v == "":
-            return None
-        return v
+    @model_validator(mode='before')
+    @classmethod
+    def clean_empty_strings(cls, values):
+        if isinstance(values, dict):
+            for k, v in list(values.items()):
+                if isinstance(v, str):
+                    stripped = v.strip()
+                    if stripped == "":
+                        values[k] = None
+                    else:
+                        values[k] = stripped
+        return values
 
 class ClientResponse(ClientBase):
     id: str

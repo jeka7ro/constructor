@@ -1,57 +1,42 @@
-import sys
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.database import SessionLocal
-from app.models import Role, User, Organization
-import uuid
+engine = create_engine(os.getenv("DATABASE_URL"))
+Session = sessionmaker(bind=engine)
+session = Session()
 
-db = SessionLocal()
+from app.models import Client
 
-davide_org_id = '84b73e6b-8e3c-45f6-b133-9e19d41a1bf2'
+clients = session.query(Client).all()
+fixed = 0
+for c in clients:
+    if getattr(c, 'email', None) == "":
+        c.email = None
+        fixed += 1
+    if getattr(c, 'cui', None) == "":
+        c.cui = None
+        fixed += 1
+    if getattr(c, 'reg_com', None) == "":
+        c.reg_com = None
+        fixed += 1
+    if getattr(c, 'contact_person', None) == "":
+        c.contact_person = None
+        fixed += 1
+    if getattr(c, 'phone', None) == "":
+        c.phone = None
+        fixed += 1
+    if getattr(c, 'bank_name', None) == "":
+        c.bank_name = None
+        fixed += 1
+    if getattr(c, 'iban', None) == "":
+        c.iban = None
+        fixed += 1
 
-# Ensure roles exist for Davide Chape
-roles_to_create = [
-    {"code": "WORKER", "name": "Muncitor", "is_employee": True},
-    {"code": "DRIVER", "name": "Sofer", "is_employee": True},
-    {"code": "TEAM_LEAD", "name": "Sef Echipa", "is_employee": True}
-]
-
-role_map = {}
-for r_data in roles_to_create:
-    existing = db.query(Role).filter_by(organization_id=davide_org_id, code=r_data["code"]).first()
-    if not existing:
-        new_role = Role(
-            id=str(uuid.uuid4()),
-            organization_id=davide_org_id,
-            code=r_data["code"],
-            name=r_data["name"],
-            is_employee=r_data["is_employee"]
-        )
-        db.add(new_role)
-        db.commit()
-        db.refresh(new_role)
-        role_map[r_data["name"]] = new_role.id
-    else:
-        role_map[r_data["name"]] = existing.id
-
-# Fix the 4 users
-users_to_fix = ["Badea DAF", "Vasea DAF", "Petrea Man", "Sasha Renault"]
-users = db.query(User).filter(User.full_name.in_(users_to_fix)).all()
-
-for u in users:
-    # get the role name from the old role
-    old_role = db.query(Role).filter_by(id=u.role_id).first()
-    role_name = old_role.name if old_role else "Muncitor"
-    
-    if role_name in role_map:
-        new_role_id = role_map[role_name]
-    else:
-        new_role_id = role_map["Muncitor"]
-
-    u.organization_id = davide_org_id
-    u.role_id = new_role_id
-
-db.commit()
-print("Fixed successfully!")
+if fixed > 0:
+    session.commit()
+    print(f"Fixed {fixed} fields in the database!")
+else:
+    print("No fields needed fixing.")
