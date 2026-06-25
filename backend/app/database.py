@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
@@ -21,7 +21,30 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from sqlalchemy import MetaData
 metadata = MetaData(schema="saas_app")
-Base = declarative_base(metadata=metadata)
+_DeclarativeBase = declarative_base(metadata=metadata)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GLOBAL SANITIZER MIXIN
+# Adaugat pe Base, converteste orice string gol ("" sau "  ") in NULL
+# inainte sa fie salvat in DB, prevenind erori de validare Pydantic la citire
+# ─────────────────────────────────────────────────────────────────────────────
+class _SanitizeMixin:
+    """Mixin that converts empty strings to None on any ORM attribute set."""
+
+    def __setattr__(self, key: str, value):
+        # Only sanitize plain string values on non-private attributes
+        if (
+            isinstance(value, str)
+            and not key.startswith("_")
+            and value.strip() == ""
+        ):
+            value = None
+        super().__setattr__(key, value)
+
+
+# Base is the combined class — every model that extends Base gets sanitization
+class Base(_SanitizeMixin, _DeclarativeBase):  # type: ignore[misc]
+    __abstract__ = True
 
 def get_db():
     """Dependency for database sessions"""

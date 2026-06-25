@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -110,6 +110,19 @@ class WorkOrderCreate(BaseModel):
     # Preț Estimativ
     estimated_price: Optional[str] = None
     is_auto_calculated: Optional[bool] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def clean_empty_strings(cls, values):
+        if isinstance(values, dict):
+            for k, v in list(values.items()):
+                if isinstance(v, str):
+                    stripped = v.strip()
+                    if stripped == "":
+                        values[k] = None
+                    else:
+                        values[k] = stripped
+        return values
 
 class WorkOrderUpdate(WorkOrderCreate):
     title: Optional[str] = None

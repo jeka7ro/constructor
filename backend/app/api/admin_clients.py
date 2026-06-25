@@ -2,7 +2,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel, Field, EmailStr, model_validator
+from pydantic import BaseModel, Field, EmailStr, model_validator, field_validator
 from datetime import datetime
 
 from app.database import get_db
@@ -30,6 +30,13 @@ class ClientBase(BaseModel):
     swift: Optional[str] = Field(None, max_length=20)
     is_active: bool = True
     is_favorite: Optional[bool] = False
+
+    @field_validator('email', mode='before')
+    @classmethod
+    def clean_email(cls, v):
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
     @model_validator(mode='before')
     @classmethod
