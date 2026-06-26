@@ -780,7 +780,7 @@ export default function AdminOverview() {
 
 
     return (
-        <div className="p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen">
+        <div className="p-3 lg:p-4 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Subtle loading bar at very top */}
             {(statsLoading || workersLoading) && (
                 <div className="fixed top-0 left-0 right-0 z-[999] h-1 bg-blue-100 overflow-hidden">
@@ -790,7 +790,7 @@ export default function AdminOverview() {
             {/* Header removed as it duplicates the top navbar title */}
 
             {/* KPI Row */}
-            <div className={`grid gap-3 mb-6 ${isScreeds ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
+            <div className={`grid gap-2 mb-3 ${isScreeds ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
                 {statsLoading ? (
                     Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} className="h-24 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
@@ -825,7 +825,7 @@ export default function AdminOverview() {
                     ref={calendarWrapperRef}
                     className={isCalendarFull 
                         ? "w-screen h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden gap-0 p-4 md:p-6" 
-                        : "grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,160px)] gap-6 mb-6"
+                        : "grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,160px)] gap-3 mb-3"
                     }
                 >
                     <div className={isCalendarFull ? "flex-1 h-full min-w-0" : "min-w-0"}>

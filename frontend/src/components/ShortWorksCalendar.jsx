@@ -358,10 +358,12 @@ export default function ShortWorksCalendar({
         }
     }, [weeklyOrders, currentDate]);
 
-    const [dragOffset, setDragOffset] = useState(0);
-    const [isSwiping, setIsSwiping] = useState(false);
+    const [swipeDir, setSwipeDir] = useState(0); // -1 left, 1 right
+    const [swipePhase, setSwipePhase] = useState('idle'); // idle | exit | enter
     const [touchStart, setTouchStart] = useState({ x: null, y: null });
     const [touchEnd, setTouchEnd] = useState({ x: null, y: null });
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isSwiping, setIsSwiping] = useState(false);
 
     const onTouchStart = (e) => {
         setTouchEnd({ x: null, y: null });
@@ -391,25 +393,26 @@ export default function ShortWorksCalendar({
         
         const distanceX = touchStart.x - touchEnd.x;
         const distanceY = touchStart.y - touchEnd.y;
-        const minSwipeDistance = 70;
+        const minSwipeDistance = 60;
         
         if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > minSwipeDistance) {
-            const direction = distanceX > 0 ? 1 : -1;
+            const direction = distanceX > 0 ? 1 : -1; // 1 = next, -1 = prev
             setIsSwiping(false);
-            setDragOffset(direction * -window.innerWidth);
-            
+            setDragOffset(0);
+            // Phase 1: slide out
+            setSwipeDir(direction);
+            setSwipePhase('exit');
             setTimeout(() => {
                 navigateWeek(direction);
-                setIsSwiping(true);
-                setDragOffset(direction * window.innerWidth);
-                
+                setSwipePhase('enter');
+                // Phase 2: slide in from opposite
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        setIsSwiping(false);
-                        setDragOffset(0);
+                        setSwipePhase('idle');
+                        setSwipeDir(0);
                     });
                 });
-            }, 300);
+            }, 220);
         } else {
             setIsSwiping(false);
             setDragOffset(0);
@@ -526,24 +529,22 @@ export default function ShortWorksCalendar({
 
             {/* Calendar Swipe Animation Wrapper */}
             <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
-                
-                {/* Background Swipe Preloader (Apple-like) */}
-                <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-300 ${Math.abs(dragOffset) > 10 || isSwiping ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="relative flex items-center justify-center w-20 h-20 bg-white dark:bg-slate-900 rounded-[22px] shadow-2xl border border-slate-200 dark:border-slate-700/50 scale-110">
-                        {tenant?.favicon_url || tenant?.logo_url ? (
-                            <img src={tenant.favicon_url || tenant.logo_url} alt="Tenant Logo" className="w-12 h-12 object-contain opacity-90 animate-pulse" />
-                        ) : (
-                            <CalendarIcon className="w-8 h-8 text-slate-400 dark:text-slate-500 animate-pulse" />
-                        )}
-                        <div className="absolute inset-[-4px] rounded-[24px] border-[3px] border-transparent border-t-blue-500 border-b-blue-500 animate-spin opacity-80" style={{ animationDuration: '1.5s', borderTopColor: tenant?.primary_color || '#3b82f6', borderBottomColor: tenant?.primary_color || '#3b82f6' }}></div>
-                    </div>
-                </div>
 
                 <div 
                     className="flex-1 flex flex-col w-full h-full relative z-10" 
                     style={{ 
-                        transform: `translateX(${dragOffset}px)`,
-                        transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
+                        transform: isSwiping 
+                            ? `translateX(${dragOffset * 0.4}px)` 
+                            : swipePhase === 'exit' 
+                                ? `translateX(${swipeDir * -60}px)` 
+                                : swipePhase === 'enter' 
+                                    ? `translateX(${swipeDir * 60}px)` 
+                                    : 'translateX(0)',
+                        opacity: swipePhase === 'exit' || swipePhase === 'enter' ? 0 : 1,
+                        filter: swipePhase === 'exit' || swipePhase === 'enter' ? 'blur(2px)' : 'blur(0px)',
+                        transition: isSwiping 
+                            ? 'none' 
+                            : 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, filter 0.22s ease',
                     }}
                 >
 
