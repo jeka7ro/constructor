@@ -366,7 +366,6 @@ export default function ShortWorksCalendar({
     const onTouchStart = (e) => {
         setTouchEnd({ x: null, y: null });
         setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
-        setIsSwiping(true);
     };
 
     const onTouchMove = (e) => {
@@ -376,7 +375,8 @@ export default function ShortWorksCalendar({
         const diffX = currentX - touchStart.x;
         const diffY = currentY - touchStart.y;
         
-        if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+            setIsSwiping(true);
             setDragOffset(diffX);
         }
         setTouchEnd({ x: currentX, y: currentY });
@@ -530,8 +530,8 @@ export default function ShortWorksCalendar({
                 {/* Background Swipe Preloader (Apple-like) */}
                 <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-300 ${Math.abs(dragOffset) > 10 || isSwiping ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="relative flex items-center justify-center w-20 h-20 bg-white dark:bg-slate-900 rounded-[22px] shadow-2xl border border-slate-200 dark:border-slate-700/50 scale-110">
-                        {tenant?.logo_url ? (
-                            <img src={tenant.logo_url} alt="Tenant Logo" className="w-12 h-12 object-contain opacity-90 animate-pulse" />
+                        {tenant?.favicon_url || tenant?.logo_url ? (
+                            <img src={tenant.favicon_url || tenant.logo_url} alt="Tenant Logo" className="w-12 h-12 object-contain opacity-90 animate-pulse" />
                         ) : (
                             <CalendarIcon className="w-8 h-8 text-slate-400 dark:text-slate-500 animate-pulse" />
                         )}
@@ -935,7 +935,7 @@ export default function ShortWorksCalendar({
                                         </div>
                                         <div className="mt-1 flex items-center justify-between">
                                             <div className="flex items-center gap-1.5 truncate bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-full shadow-sm">
-                                                <div className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colorHex }}></div>
+                                                <Truck className="w-3 h-3 shrink-0" style={{ color: colorHex }} />
                                                 <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate">
                                                     {(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}
                                                 </span>
@@ -1037,7 +1037,7 @@ export default function ShortWorksCalendar({
                                         </div>
                                         <div className="mt-1.5">
                                             <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-full shadow-sm max-w-full">
-                                                <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colorHex }}></div>
+                                                <Truck className="w-3.5 h-3.5 shrink-0" style={{ color: colorHex }} />
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
                                                     {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
                                                 </span>

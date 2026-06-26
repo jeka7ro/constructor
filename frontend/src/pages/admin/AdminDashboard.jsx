@@ -354,7 +354,7 @@ export default function AdminDashboard() {
                 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
                 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
-                border-r transition-all duration-300 flex flex-col relative
+                md:my-4 md:ml-4 md:h-[calc(100dvh-32px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
             `}
             style={{ 
                 '--tenant-bg': tenant?.primary_color || '#2563EB',
@@ -480,7 +480,7 @@ export default function AdminDashboard() {
             <div className="flex-1 flex flex-col min-w-0 relative">
                 {/* Header Bar */}
                 <header 
-                    className={`h-20 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between sticky top-0 z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white max-md:border-b-0`}
+                    className={`h-20 bg-white dark:bg-slate-800 px-6 flex items-center justify-between z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white md:mx-4 md:mt-4 md:mb-4 md:rounded-[24px] shrink-0`}
                     style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     <div className="flex items-center gap-4">
