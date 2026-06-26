@@ -322,30 +322,61 @@ export default function ShortWorksCalendar({
         }
     }, [weeklyOrders, currentDate]);
 
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isSwiping, setIsSwiping] = useState(false);
     const [touchStart, setTouchStart] = useState({ x: null, y: null });
     const [touchEnd, setTouchEnd] = useState({ x: null, y: null });
 
     const onTouchStart = (e) => {
         setTouchEnd({ x: null, y: null });
         setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        setIsSwiping(true);
     };
 
     const onTouchMove = (e) => {
-        setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        if (!touchStart.x) return;
+        const currentX = e.targetTouches[0].clientX;
+        const currentY = e.targetTouches[0].clientY;
+        const diffX = currentX - touchStart.x;
+        const diffY = currentY - touchStart.y;
+        
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            setDragOffset(diffX);
+        }
+        setTouchEnd({ x: currentX, y: currentY });
     };
 
     const onTouchEndEvent = () => {
-        if (!touchStart.x || !touchEnd.x) return;
+        if (!touchStart.x || !touchEnd.x) {
+            setIsSwiping(false);
+            setDragOffset(0);
+            return;
+        }
+        
         const distanceX = touchStart.x - touchEnd.x;
         const distanceY = touchStart.y - touchEnd.y;
-        const minSwipeDistance = 50;
+        const minSwipeDistance = 70;
         
         if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > minSwipeDistance) {
-            if (distanceX > 0) {
-                navigateWeek(1);
-            } else {
-                navigateWeek(-1);
-            }
+            const direction = distanceX > 0 ? 1 : -1;
+            setIsSwiping(false);
+            setDragOffset(direction * -window.innerWidth);
+            
+            setTimeout(() => {
+                navigateWeek(direction);
+                setIsSwiping(true);
+                setDragOffset(direction * window.innerWidth);
+                
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        setIsSwiping(false);
+                        setDragOffset(0);
+                    });
+                });
+            }, 300);
+        } else {
+            setIsSwiping(false);
+            setDragOffset(0);
         }
     };
 
@@ -456,6 +487,16 @@ export default function ShortWorksCalendar({
                     </div>
                 </div>
             )}
+
+            {/* Calendar Swipe Animation Wrapper */}
+            <div className="flex-1 relative overflow-hidden flex flex-col">
+                <div 
+                    className="flex-1 flex flex-col w-full h-full" 
+                    style={{ 
+                        transform: `translateX(${dragOffset}px)`,
+                        transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
+                    }}
+                >
 
             {/* Calendar Grid Container (Desktop) */}
             <div 
@@ -843,8 +884,13 @@ export default function ShortWorksCalendar({
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
                                             <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
-                                        <div className="text-[10px] font-semibold mt-1 truncate flex items-center justify-between" style={{ color: colorHex }}>
-                                            <span className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-full truncate">{(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}</span>
+                                        <div className="mt-1 flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5 truncate bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-full shadow-sm">
+                                                <div className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colorHex }}></div>
+                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate">
+                                                    {(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}
+                                                </span>
+                                            </div>
                                             {calculateOrderSand(wo) > 0 && (
                                                 <span className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
                                                     {calculateOrderSand(wo).toFixed(1)}T
@@ -940,10 +986,13 @@ export default function ShortWorksCalendar({
                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                                             <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
-                                        <div className="text-xs font-bold mt-1">
-                                            <span className="bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full inline-block truncate max-w-full" style={{ color: colorHex }}>
-                                                {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
-                                            </span>
+                                        <div className="mt-1.5">
+                                            <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-full shadow-sm max-w-full">
+                                                <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colorHex }}></div>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
+                                                    {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </React.Fragment>
@@ -951,6 +1000,8 @@ export default function ShortWorksCalendar({
                         });
                     })()
                 )}
+            </div>
+                </div>
             </div>
 
             {/* Delete Confirmation Popup */}
