@@ -374,7 +374,7 @@ export default function AdminDashboard() {
             
                 {/* Header Bar */}
                 <header 
-                    className={`h-20 bg-[color:var(--tenant-bg)] px-6 flex items-center justify-between z-40 text-white shadow-sm transition-colors md:mx-4 md:mt-4 md:mb-4 md:rounded-[24px] shrink-0`}
+                    className={`h-16 md:h-16 bg-[color:var(--tenant-bg)] px-6 flex items-center justify-between z-40 text-white shadow-sm transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0`}
                     style={{ '--tenant-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     <div className="flex items-center gap-4">
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
                 ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
                 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
-                md:my-4 md:ml-4 md:h-[calc(100dvh-32px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
+                md:mb-3 md:ml-3 md:h-[calc(100dvh-100px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
             `}
             style={{ 
                 '--tenant-bg': tenant?.primary_color || '#2563EB',
@@ -575,16 +575,16 @@ export default function AdminDashboard() {
                 {/* Main View Outlet */}
                 <main className={`flex-1 overflow-auto relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                     {/* Page Title inside main area */}
-                    <div className="px-4 pt-4 md:px-6 md:pt-6 pb-2">
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
+                    <div className="px-4 pt-3 md:px-5 md:pt-4 pb-0 flex items-end gap-3 shrink-0">
+                        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight leading-none">
                             {pageTitle}
                         </h1>
-                        <p className="text-xs md:text-sm text-slate-500 font-medium mt-1">
+                        <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none mb-[2px]">
                             {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
                         </p>
                     </div>
                     {/* Page Content */}
-                    <div className="p-4 md:p-6 md:pt-2 pb-24">
+                    <div className="p-4 md:p-5 md:pt-3 pb-24">
                         <Outlet />
                     </div>
                 </main>
