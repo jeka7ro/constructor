@@ -844,7 +844,7 @@ export default function ShortWorksCalendar({
                                             <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
                                         <div className="text-[10px] font-semibold mt-1 truncate flex items-center justify-between" style={{ color: colorHex }}>
-                                            <span>{(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}</span>
+                                            <span className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-full truncate">{(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}</span>
                                             {calculateOrderSand(wo) > 0 && (
                                                 <span className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
                                                     {calculateOrderSand(wo).toFixed(1)}T
@@ -940,8 +940,10 @@ export default function ShortWorksCalendar({
                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                                             <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
-                                        <div className="text-xs font-bold mt-1" style={{ color: colorHex }}>
-                                            {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
+                                        <div className="text-xs font-bold mt-1">
+                                            <span className="bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full inline-block truncate max-w-full" style={{ color: colorHex }}>
+                                                {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
+                                            </span>
                                         </div>
                                     </div>
                                 </React.Fragment>
