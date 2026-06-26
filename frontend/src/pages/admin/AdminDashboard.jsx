@@ -343,13 +343,13 @@ export default function AdminDashboard() {
             
                 {/* Header Bar */}
                 <header 
-                    className={`h-20 bg-white dark:bg-slate-800 px-6 flex items-center justify-between z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white md:mx-4 md:mt-4 md:mb-4 md:rounded-[24px] shrink-0`}
-                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                    className={`h-20 bg-[color:var(--tenant-bg)] px-6 flex items-center justify-between z-40 text-white shadow-sm transition-colors md:mx-4 md:mt-4 md:mb-4 md:rounded-[24px] shrink-0`}
+                    style={{ '--tenant-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     <div className="flex items-center gap-4">
                          <button 
                              onClick={() => setSidebarOpen(!sidebarOpen)}
-                             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors hidden md:block"
+                             className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors hidden md:block"
                              title={sidebarOpen ? t('admin.collapse_menu') : t('admin.expand_menu')}
                          >
                              <Menu className="w-5 h-5" />
@@ -360,7 +360,7 @@ export default function AdminDashboard() {
                              tenant.logo_url ? (
                                  <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-10 max-h-12 w-auto object-contain bg-transparent" />
                              ) : (
-                                 <div className="font-extrabold text-xl text-blue-600 px-2">{tenant.name || 'Tenant'}</div>
+                                 <div className="font-extrabold text-xl text-white px-2">{tenant.name || 'Tenant'}</div>
                              )
                          ) : (
                              <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-10 object-contain opacity-70" />
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
                               {tenant?.logo_url && (
                                   <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white drop-shadow-sm p-0.5" />
                               )}
-                              <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-slate-900 dark:text-white/95 max-md:text-white truncate max-w-[200px]">
+                              <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-white truncate max-w-[200px]">
                                   {(() => {
                                       const p = location.pathname;
                                       if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
@@ -406,7 +406,7 @@ export default function AdminDashboard() {
                          </div>
                          {/* Desktop Title & Date */}
                          <div className="hidden md:flex flex-col mt-0.5">
-                             <span className={`font-bold text-lg leading-tight tracking-tight text-slate-900 font-extrabold dark:text-white/90 uppercase tracking-wider`}>
+                             <span className={`font-bold text-lg leading-tight tracking-tight text-white font-extrabold uppercase tracking-wider`}>
                                  {(() => {
                                       const p = location.pathname;
                                       if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
@@ -438,7 +438,7 @@ export default function AdminDashboard() {
                                       return t('nav.planning', 'Planning');
                                   })()}
                              </span>
-                             <span className="text-[10px] text-slate-500 font-medium leading-none tracking-wide mt-0.5">
+                             <span className="text-[10px] text-white/70 font-medium leading-none tracking-wide mt-0.5">
                                  {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
                              </span>
                          </div>
@@ -447,12 +447,12 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3 sm:gap-5">
                         {/* Right side items: Language, Theme, Notifications */}
                         <div className="flex items-center gap-2">
-                           <LanguageSelector variant={darkMode ? 'dark' : 'light'} className="max-md:!text-white max-md:!border-white/30 max-md:!bg-white/10" />
-                           <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/20 mx-1 hidden sm:block"></div>
+                           <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
+                           <div className="w-[1px] h-5 bg-white/20 mx-1 hidden sm:block"></div>
                            <button
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode') : t('admin.dark_mode')}
-                               className="w-8 h-8 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 max-md:border-white/30 text-slate-500 max-md:text-white dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 max-md:hover:bg-white/10 transition-all duration-200 shadow-sm"
+                               className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
                            >
                                {darkMode
                                    ? <Moon className="w-4 h-4 text-blue-300" />
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
                            </button>
                            {!isScreeds && (
                                <>
-                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 max-md:border-white/30 transition-colors relative text-slate-500 max-md:text-white hover:text-blue-600 max-md:hover:text-white hover:bg-slate-50 max-md:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" title="Sesizări Noi">
+                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" title="Sesizări Noi">
                                        <MessageSquareWarning className="w-4 h-4" />
                                        {openComplaintsCount > 0 && (
                                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
@@ -469,7 +469,7 @@ export default function AdminDashboard() {
                                            </span>
                                        )}
                                    </button>
-                                   <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 max-md:border-white/30 transition-colors relative text-slate-500 max-md:text-white hover:text-blue-600 max-md:hover:text-white hover:bg-slate-50 max-md:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 shadow-sm" onClick={() => navigate('/admin/notifications')}>
+                                   <button className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" onClick={() => navigate('/admin/notifications')}>
                                        <Bell className="w-4 h-4" />
                                        {unreadCount > 0 && (
                                            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
@@ -479,13 +479,13 @@ export default function AdminDashboard() {
                            )}
                         </div>
                         
-                        <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/20 hidden sm:block"></div>
+                        <div className="w-[1px] h-8 bg-white/20 hidden sm:block"></div>
 
                         {/* User Profile */}
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold leading-none">{admin?.full_name}</p>
-                                <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 font-medium flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
+                                <button onClick={handleLogout} className="text-xs text-red-200 hover:text-white font-medium flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
                                     <LogOut className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform"/> {t('admin.logout')}
                                 </button>
                             </div>
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
                             {/* Mobile Logout Button */}
                             <button 
                                 onClick={handleLogout} 
-                                className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 max-md:border-white/30 max-md:bg-white/10 text-red-500 max-md:text-white hover:bg-red-50 dark:hover:bg-slate-800 transition-colors shadow-sm ml-0.5" 
+                                className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-white/30 bg-white/10 text-white hover:bg-red-500/80 transition-colors shadow-sm ml-0.5" 
                                 title={t('admin.logout')}
                             >
                                 <LogOut className="w-4 h-4" />
