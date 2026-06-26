@@ -339,145 +339,8 @@ export default function AdminDashboard() {
     }, [darkMode])
 
     return (
-        <div className={`h-[100dvh] w-full ${darkMode ? 'bg-slate-950' : 'bg-slate-50'} flex font-sans text-slate-800 transition-colors duration-300 overflow-hidden`}>
+        <div className={`h-[100dvh] w-full ${darkMode ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col font-sans text-slate-800 transition-colors duration-300 overflow-hidden`}>
             
-            {/* Mobile Sidebar Overlay */}
-            {sidebarOpen && (
-                <div 
-                    className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[75] transition-opacity" 
-                    onClick={() => setSidebarOpen(false)} 
-                />
-            )}
-
-            {/* Sidebar */}
-            <aside className={`
-                ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
-                max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
-                ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
-                md:my-4 md:ml-4 md:h-[calc(100dvh-32px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
-            `}
-            style={{ 
-                '--tenant-bg': tenant?.primary_color || '#2563EB',
-                '--tenant-border': tenant?.primary_color ? 'rgba(255,255,255,0.1)' : '#1D4ED8'
-            }}>
-                
-                {/* Logo Area matches Header height */}
-                <div className={`h-20 flex items-center justify-center border-b shrink-0 transition-colors relative ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
-                    <div className={`flex items-center justify-center ${sidebarOpen ? 'w-full px-3' : 'w-14'}`}>
-                        {tenant ? (
-                            <>
-                                {(!sidebarOpen && tenant.favicon_url) ? (
-                                    <div className="w-10 h-10 flex items-center justify-center">
-                                        <img src={getImageUrl(tenant.favicon_url)} alt="Tenant Favicon" className="w-full h-full object-contain bg-white rounded-lg p-1" />
-                                    </div>
-                                ) : tenant.logo_url ? (
-                                    <div className="flex items-center justify-center w-full">
-                                        <img
-                                            src={getImageUrl(tenant.logo_url)}
-                                            alt="Tenant Logo"
-                                            className={`object-contain bg-white rounded-xl ${sidebarOpen ? 'w-full h-16 max-h-16' : 'w-10 h-10'}`}
-                                            style={{ padding: sidebarOpen ? '3px 8px' : '2px' }}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/20">
-                                        {tenant.name?.charAt(0) || 'P'}
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                <div className={`flex items-center justify-center shrink-0 ${sidebarOpen ? 'w-full px-2' : 'w-10 h-10'}`}>
-                                    {sidebarOpen ? (
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[color:var(--tenant-bg)] shadow-inner">
-                                                <span className="text-white font-bold text-xs">ST</span>
-                                            </div>
-                                            <span className="font-extrabold text-[14px] leading-tight tracking-tighter text-white">Smart Timesheet</span>
-                                        </div>
-                                    ) : (
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[color:var(--tenant-bg)] shadow-inner">
-                                            <span className="text-white font-bold text-xs">ST</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                {/* Navigation */}
-                <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {filteredCategories.map((cat, index) => (
-                        <div key={cat.id} className="space-y-1">
-                            {/* Category Header (Only visible if sidebar open) */}
-                            {sidebarOpen && (
-                                <div 
-                                    onClick={() => toggleCategory(cat.id)}
-                                    className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
-                                >
-                                    <span className={`text-[11px] font-bold uppercase tracking-widest tracking-wider transition-colors ${darkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-blue-200 group-hover:text-white'}`}>
-                                        {cat.label}
-                                    </span>
-                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} ${darkMode ? 'text-slate-600 group-hover:text-slate-400' : 'text-blue-300 group-hover:text-blue-100'}`} />
-                                </div>
-                            )}
-
-                            {/* Items Container */}
-                            <div className={`space-y-1 overflow-hidden transition-all duration-300 ${sidebarOpen ? (expandedCategories[cat.id] ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0') : 'max-h-none opacity-100'}`}>
-                                {cat.items.map((item) => (
-                                    <NavLink
-                                        key={item.path}
-                                        to={item.path}
-                                        className={({ isActive }) =>
-                                            `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
-                                                ? (darkMode ? 'bg-[color:var(--tenant-bg)] text-white font-semibold shadow-md shadow-black/20' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
-                                                : (darkMode ? 'text-slate-400 font-medium hover:bg-white/10 hover:text-white' : 'text-blue-100 font-medium hover:bg-white/10 hover:text-white')
-                                            }`
-                                        }
-                                        title={!sidebarOpen ? item.label : undefined}
-                                    >
-                                        <item.icon className="w-5 h-5 shrink-0" />
-                                        {sidebarOpen && <span className="text-sm truncate flex-1">{item.label}</span>}
-                                        
-                                        {/* Badge Support */}
-                                        {sidebarOpen && item.badge > 0 && (
-                                            <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                                {item.badge > 99 ? '99+' : item.badge}
-                                            </span>
-                                        )}
-                                        {!sidebarOpen && item.badge > 0 && (
-                                            <span className="absolute left-7 top-1 w-2 h-2 bg-orange-500 rounded-full" />
-                                        )}
-                                    </NavLink>
-                                ))}
-                            </div>
-
-                            {/* Separator when collapsed */}
-                            {!sidebarOpen && index < filteredCategories.length - 1 && (
-                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-slate-700' : 'bg-[color:var(--tenant-border)]'}`} />
-                            )}
-                        </div>
-                    ))}
-                </nav>
-
-                {/* Footer Brand */}
-                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
-                    <div 
-                        className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
-                        title="Smart Timesheet"
-                    >
-                        {sidebarOpen ? (
-                             <img src="/getapp_smart_timesheet_white.png" alt="Smart Timesheet" className="w-[188px] h-auto object-contain opacity-70" />
-                        ) : (
-                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-10 h-10 object-contain opacity-70 scale-110" />
-                        )}
-                    </div>
-                </div>
-            </aside>
-
-            {/* Main Content Area — dark class on html element handles all dark: variants */}
-            <div className="flex-1 flex flex-col min-w-0 relative">
                 {/* Header Bar */}
                 <header 
                     className={`h-20 bg-white dark:bg-slate-800 px-6 flex items-center justify-between z-40 text-slate-800 dark:text-white shadow-sm transition-colors shadow-slate-900/10 max-md:bg-[color:var(--mobile-bg)] max-md:text-white md:mx-4 md:mt-4 md:mb-4 md:rounded-[24px] shrink-0`}
@@ -491,6 +354,18 @@ export default function AdminDashboard() {
                          >
                              <Menu className="w-5 h-5" />
                          </button>
+                     {/* Desktop Logo extracted from Sidebar */}
+                     <div className="hidden md:flex items-center justify-center mr-2">
+                         {tenant ? (
+                             tenant.logo_url ? (
+                                 <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-10 max-h-12 w-auto object-contain bg-transparent" />
+                             ) : (
+                                 <div className="font-extrabold text-xl text-blue-600 px-2">{tenant.name || 'Tenant'}</div>
+                             )
+                         ) : (
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-10 object-contain opacity-70" />
+                         )}
+                     </div>
                          {/* Mobile Logo & Tenant Name */}
                          <div className="md:hidden flex items-center gap-2">
                               {tenant?.logo_url && (
@@ -638,6 +513,100 @@ export default function AdminDashboard() {
                     </div>
                 </header>
 
+
+            {/* Layout below header */}
+            <div className="flex-1 flex min-h-0 relative">
+            {/* Mobile Sidebar Overlay */}
+            {sidebarOpen && (
+                <div 
+                    className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[75] transition-opacity" 
+                    onClick={() => setSidebarOpen(false)} 
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={`
+                ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
+                max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
+                ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
+                md:my-4 md:ml-4 md:h-[calc(100dvh-32px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden
+            `}
+            style={{ 
+                '--tenant-bg': tenant?.primary_color || '#2563EB',
+                '--tenant-border': tenant?.primary_color ? 'rgba(255,255,255,0.1)' : '#1D4ED8'
+            }}>
+                
+                {/* Navigation */}
+                <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {filteredCategories.map((cat, index) => (
+                        <div key={cat.id} className="space-y-1">
+                            {/* Category Header (Only visible if sidebar open) */}
+                            {sidebarOpen && (
+                                <div 
+                                    onClick={() => toggleCategory(cat.id)}
+                                    className="flex items-center justify-between px-2 py-1.5 mb-1 cursor-pointer group select-none"
+                                >
+                                    <span className={`text-[11px] font-bold uppercase tracking-widest tracking-wider transition-colors ${darkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-blue-200 group-hover:text-white'}`}>
+                                        {cat.label}
+                                    </span>
+                                    <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedCategories[cat.id] ? 'rotate-90' : ''} ${darkMode ? 'text-slate-600 group-hover:text-slate-400' : 'text-blue-300 group-hover:text-blue-100'}`} />
+                                </div>
+                            )}
+
+                            {/* Items Container */}
+                            <div className={`space-y-1 overflow-hidden transition-all duration-300 ${sidebarOpen ? (expandedCategories[cat.id] ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0') : 'max-h-none opacity-100'}`}>
+                                {cat.items.map((item) => (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
+                                                ? (darkMode ? 'bg-[color:var(--tenant-bg)] text-white font-semibold shadow-md shadow-black/20' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
+                                                : (darkMode ? 'text-slate-400 font-medium hover:bg-white/10 hover:text-white' : 'text-blue-100 font-medium hover:bg-white/10 hover:text-white')
+                                            }`
+                                        }
+                                        title={!sidebarOpen ? item.label : undefined}
+                                    >
+                                        <item.icon className="w-5 h-5 shrink-0" />
+                                        {sidebarOpen && <span className="text-sm truncate flex-1">{item.label}</span>}
+                                        
+                                        {/* Badge Support */}
+                                        {sidebarOpen && item.badge > 0 && (
+                                            <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                                {item.badge > 99 ? '99+' : item.badge}
+                                            </span>
+                                        )}
+                                        {!sidebarOpen && item.badge > 0 && (
+                                            <span className="absolute left-7 top-1 w-2 h-2 bg-orange-500 rounded-full" />
+                                        )}
+                                    </NavLink>
+                                ))}
+                            </div>
+
+                            {/* Separator when collapsed */}
+                            {!sidebarOpen && index < filteredCategories.length - 1 && (
+                                <div className={`h-px my-3 mx-2 ${darkMode ? 'bg-slate-700' : 'bg-[color:var(--tenant-border)]'}`} />
+                            )}
+                        </div>
+                    ))}
+                </nav>
+
+                {/* Footer Brand */}
+                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
+                    <div 
+                        className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
+                        title="Smart Timesheet"
+                    >
+                        {sidebarOpen ? (
+                             <img src="/getapp_smart_timesheet_white.png" alt="Smart Timesheet" className="w-[188px] h-auto object-contain opacity-70" />
+                        ) : (
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-10 h-10 object-contain opacity-70 scale-110" />
+                        )}
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main Content Area */}
                 {/* Main View Outlet */}
                 <main className={`flex-1 overflow-auto relative p-4 pb-24 md:pb-4 custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                     <Outlet />

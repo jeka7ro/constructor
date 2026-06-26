@@ -703,6 +703,7 @@ export default function ShortWorksCalendar({
                                             setSyncing(false);
                                         }
                                     }}
+                                >
                                 </div>
                             );
                         })}
