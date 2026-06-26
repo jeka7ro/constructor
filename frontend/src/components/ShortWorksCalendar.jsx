@@ -703,12 +703,6 @@ export default function ShortWorksCalendar({
                                             setSyncing(false);
                                         }
                                     }}
-                                >
-                                    {!isDragging && (
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
-                                            <Plus className="w-5 h-5 text-white" strokeWidth={3} />
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}
