@@ -322,8 +322,40 @@ export default function ShortWorksCalendar({
         }
     }, [weeklyOrders, currentDate]);
 
+    const [touchStart, setTouchStart] = useState({ x: null, y: null });
+    const [touchEnd, setTouchEnd] = useState({ x: null, y: null });
+
+    const onTouchStart = (e) => {
+        setTouchEnd({ x: null, y: null });
+        setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+    };
+
+    const onTouchMove = (e) => {
+        setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+    };
+
+    const onTouchEndEvent = () => {
+        if (!touchStart.x || !touchEnd.x) return;
+        const distanceX = touchStart.x - touchEnd.x;
+        const distanceY = touchStart.y - touchEnd.y;
+        const minSwipeDistance = 50;
+        
+        if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > minSwipeDistance) {
+            if (distanceX > 0) {
+                navigateWeek(1);
+            } else {
+                navigateWeek(-1);
+            }
+        }
+    };
+
     return (
-        <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}>
+        <div 
+            className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEndEvent}
+        >
             {/* Header */}
             <div className="flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                 <div className="px-4 py-3 flex items-center justify-between">
@@ -763,7 +795,7 @@ export default function ShortWorksCalendar({
                                                 setSyncing(false);
                                             }
                                         }}
-                                        title={`${wo.title} — trageți pentru a muta`}
+                                        title={`${wo.client_name || wo.title} — trageți pentru a muta`}
                                     >
                                         {!isCompleted && (
                                             <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 opacity-100 group-hover:opacity-0`}>
@@ -802,10 +834,10 @@ export default function ShortWorksCalendar({
                                                 </button>
                                         </div>
 
-                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.title}>
+                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.client_name || wo.title}>
                                             {wo.status === 'draft' && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
-                                            <span className="truncate">{wo.title}</span>
+                                            <span className="truncate">{wo.client_name || wo.title}</span>
                                         </div>
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1">
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
@@ -876,7 +908,7 @@ export default function ShortWorksCalendar({
                                             <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10 flex items-center gap-1.5">
                                                 {wo.status === 'draft' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                                 {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" title="Finalizată" />}
-                                                <span>{wo.title}</span>
+                                                <span>{wo.client_name || wo.title}</span>
                                             </div>
                                             {!isCompleted && (
                                                 <div className="absolute top-2 right-2">

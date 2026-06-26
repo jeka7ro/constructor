@@ -72,7 +72,7 @@ router = APIRouter()
 # ──────────────────────────────────────────────────────────────────────────────
 
 class WorkOrderCreate(BaseModel):
-    title: str
+    title: Optional[str] = None
     notes: Optional[str] = None
     start_date: Optional[str] = None
     start_time: Optional[str] = None
@@ -110,6 +110,7 @@ class WorkOrderCreate(BaseModel):
     # Preț Estimativ
     estimated_price: Optional[str] = None
     is_auto_calculated: Optional[bool] = None
+    route_distance_km: Optional[float] = None
 
     @model_validator(mode='before')
     @classmethod
@@ -370,10 +371,22 @@ def create_work_order(
         site_latitude = cl.latitude
         site_longitude = cl.longitude
 
+    order_title = payload.title
+    if not order_title:
+        count = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id).count()
+        date_str = payload.start_date or datetime.now().strftime("%Y-%m-%d")
+        try:
+            from datetime import datetime
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+            date_display = date_obj.strftime("%d.%m.%Y")
+        except:
+            date_display = date_str
+        order_title = f"{count + 1} / {date_display}"
+
     wo = WorkOrder(
         organization_id=current_admin.organization_id,
         token=secrets.token_urlsafe(32),
-        title=payload.title,
+        title=order_title,
         notes=payload.notes,
         start_date=payload.start_date,
         start_time=payload.start_time,
@@ -449,16 +462,21 @@ def create_work_order(
                 pass
 
         if wo.site_latitude and wo.site_longitude and base_lat and base_lng:
-            def haversine(lat1, lon1, lat2, lon2):
-                R = 6371.0
-                phi1, phi2 = math.radians(lat1), math.radians(lat2)
-                dphi = math.radians(lat2 - lat1)
-                dlambda = math.radians(lon2 - lon1)
-                a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-                return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+            if getattr(payload, 'route_distance_km', None) is not None:
+                dist_one_way = payload.route_distance_km / 2.0
+                wo.route_distance_km = round(payload.route_distance_km, 2)
+            else:
+                def haversine(lat1, lon1, lat2, lon2):
+                    R = 6371.0
+                    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+                    dphi = math.radians(lat2 - lat1)
+                    dlambda = math.radians(lon2 - lon1)
+                    a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+                    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                
+                dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
+                wo.route_distance_km = round(dist_one_way * 2, 2)
             
-            dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
-            wo.route_distance_km = round(dist_one_way * 2, 2)
             wo.route_segments = [
                 {
                     "from": base_name,
@@ -571,7 +589,16 @@ def update_work_order(
                 name=wo.client_name,
                 email=wo.client_email,
                 phone=wo.client_phone,
+                client_type=getattr(payload, 'client_type', 'fizica'),
                 country=getattr(payload, 'client_country', 'RO'),
+                contact_person=getattr(payload, 'client_contact_person', None),
+                address=getattr(payload, 'client_address', None),
+                preferred_language=getattr(payload, 'client_language', 'ro'),
+                reg_com=getattr(payload, 'client_company_reg_number', None),
+                cui=getattr(payload, 'client_company_vat', None),
+                bank_name=getattr(payload, 'client_company_bank', None),
+                iban=getattr(payload, 'client_company_iban', None),
+                swift=getattr(payload, 'client_company_swift', None),
             )
             db.add(cl)
             db.commit()
@@ -625,16 +652,21 @@ def update_work_order(
                 pass
 
         if wo.site_latitude and wo.site_longitude and base_lat and base_lng:
-            def haversine(lat1, lon1, lat2, lon2):
-                R = 6371.0
-                phi1, phi2 = math.radians(lat1), math.radians(lat2)
-                dphi = math.radians(lat2 - lat1)
-                dlambda = math.radians(lon2 - lon1)
-                a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-                return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+            if getattr(payload, 'route_distance_km', None) is not None:
+                dist_one_way = payload.route_distance_km / 2.0
+                wo.route_distance_km = round(payload.route_distance_km, 2)
+            else:
+                def haversine(lat1, lon1, lat2, lon2):
+                    R = 6371.0
+                    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+                    dphi = math.radians(lat2 - lat1)
+                    dlambda = math.radians(lon2 - lon1)
+                    a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+                    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                
+                dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
+                wo.route_distance_km = round(dist_one_way * 2, 2)
             
-            dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
-            wo.route_distance_km = round(dist_one_way * 2, 2)
             wo.route_segments = [
                 {
                     "from": base_name,

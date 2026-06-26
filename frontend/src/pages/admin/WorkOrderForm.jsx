@@ -313,15 +313,8 @@ export default function WorkOrderForm() {
     }
 
     const buildPayload = () => {
-        let generatedTitle = form.title.trim();
-        if (!generatedTitle) {
-            const cName = form.client_mode === 'existing' 
-                ? clients.find(c => c.id === form.client_id)?.name 
-                : form.client_name;
-            generatedTitle = `Comandă ${cName || 'Fără Titlu'}`;
-        }
         return {
-            title: generatedTitle,
+            title: form.title?.trim() || null,
             status: form.status || 'scheduled',
         access_notes: form.access_notes,
         start_date: form.start_date || null,

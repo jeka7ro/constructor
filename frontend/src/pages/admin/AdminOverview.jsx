@@ -1070,17 +1070,7 @@ export default function AdminOverview() {
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
-                                        <input 
-                                            type="text"
-                                            autoFocus
-                                            required
-                                            value={quickCreateForm.title}
-                                            onChange={e => setQuickCreateForm({ ...quickCreateForm, title: e.target.value })}
-                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
+
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
                                             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate (Opțional)')}</label>
@@ -1355,16 +1345,7 @@ export default function AdminOverview() {
                                     buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.work_title', 'Titlu Lucrare *')}</label>
-                                <input 
-                                    type="text"
-                                    required
-                                    value={quickEditForm.title}
-                                    onChange={e => setQuickEditForm({ ...quickEditForm, title: e.target.value })}
-                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
+
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate')}</label>
                                 <AddressAutocomplete 
