@@ -937,7 +937,7 @@ export default function ShortWorksCalendar({
                                                 </span>
                                             </div>
                                             {calculateOrderSand(wo) > 0 && (
-                                                <span className="text-[10px] text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
+                                                <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 py-0.5 rounded shadow-sm">
                                                     {calculateOrderSand(wo).toFixed(1)}T
                                                 </span>
                                             )}

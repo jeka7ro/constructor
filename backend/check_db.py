@@ -10,8 +10,17 @@ session = Session()
 
 from app.models import Client
 
-clients = session.query(Client).filter(Client.organization_id == '84b73e6b-8e3c-45f6-b133-9e19d41a1bf2').all()
+clients = session.query(Client).all()
+bad_clients = 0
 for c in clients:
-    if getattr(c, 'latitude', None) == "": print("Empty latitude for", c.id)
-    if getattr(c, 'longitude', None) == "": print("Empty longitude for", c.id)
-    if getattr(c, 'email', None) == "": print("Empty email for", c.id)
+    if not c.name or len(c.name) < 2:
+        print("Bad name:", c.id, c.name)
+        bad_clients += 1
+    if not c.country:
+        print("Bad country:", c.id, c.country)
+        bad_clients += 1
+    if not c.client_type:
+        print("Bad client_type:", c.id, c.client_type)
+        bad_clients += 1
+
+print(f"Found {bad_clients} bad clients.")
