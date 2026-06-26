@@ -92,7 +92,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 zoom: z,
                 disableDefaultUI: true,
                 zoomControl: true,
-                gestureHandling: 'greedy'
+                gestureHandling: 'cooperative'
             });
         } else {
             mapInstance.current.setCenter(center);
@@ -106,7 +106,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     center,
                     zoom: 17,
                     disableDefaultUI: true,
-                    gestureHandling: 'greedy'
+                    zoomControl: false,
+                    gestureHandling: 'cooperative'
                 });
             } else {
                 detailMapInstance.current.setCenter(center);

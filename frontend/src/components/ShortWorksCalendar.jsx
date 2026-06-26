@@ -96,15 +96,51 @@ function WeatherWidget({ lat, lon, dateStr }) {
 }
 
 const calculateOrderSand = (wo) => {
-    if (!wo.volumes || !Array.isArray(wo.volumes)) return 0;
+    // 1. Check materials for explicit sand
+    if (wo.materials && Array.isArray(wo.materials)) {
+        let matSandKg = 0;
+        wo.materials.forEach(m => {
+            if (m.name && m.name.toLowerCase().includes('nisip')) {
+                let q = parseFloat(m.quantity) || 0;
+                if (m.unit && m.unit.toLowerCase().startsWith('t')) q *= 1000;
+                matSandKg += q;
+            }
+        });
+        if (matSandKg > 0) return matSandKg / 1000;
+    }
+
     let totalKg = 0;
-    wo.volumes.forEach(vol => {
-        const surface = parseFloat(vol.quantity) || 0;
-        const thickness = parseFloat(vol.thickness) || 0;
-        if (surface > 0 && thickness > 0) {
-            totalKg += surface * thickness * 16;
+    // 2. Check volumes
+    if (wo.volumes && Array.isArray(wo.volumes)) {
+        wo.volumes.forEach(vol => {
+            const surface = parseFloat(vol.quantity) || 0;
+            const thickness = parseFloat(vol.thickness) || 0;
+            if (surface > 0 && thickness > 0) {
+                totalKg += surface * thickness * 16;
+            }
+        });
+    }
+
+    // 3. Check legacy surface_area/thickness fields
+    if (totalKg === 0) {
+        const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+        const fallbackThick = parseFloat(wo.thickness) || 0;
+        if (fallbackSurface > 0 && fallbackThick > 0) {
+            totalKg = fallbackSurface * fallbackThick * 16;
         }
-    });
+    }
+
+    // 4. Ultimate fallback: try to extract area from title (e.g. "93 m2 - Chape") assuming 5cm thickness
+    if (totalKg === 0 && wo.title) {
+        const titleAreaMatch = wo.title.match(/(\d+(?:[.,]\d+)?)\s*m/i);
+        if (titleAreaMatch) {
+            const extractedSurface = parseFloat(titleAreaMatch[1].replace(',', '.'));
+            if (extractedSurface > 0) {
+                totalKg = extractedSurface * 0.05 * 16; // assume 5cm
+            }
+        }
+    }
+
     return totalKg / 1000;
 };
 
@@ -489,9 +525,18 @@ export default function ShortWorksCalendar({
             )}
 
             {/* Calendar Swipe Animation Wrapper */}
-            <div className="flex-1 relative overflow-hidden flex flex-col">
+            <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
+                
+                {/* Background Swipe Preloader (Apple-like) */}
+                <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-300 ${Math.abs(dragOffset) > 10 || isSwiping ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="relative flex items-center justify-center w-20 h-20 bg-white dark:bg-slate-900 rounded-[22px] shadow-2xl border border-slate-200 dark:border-slate-700/50 scale-110">
+                        <img src="/favicon.png" alt="App Logo" className="w-11 h-11 object-contain opacity-90 animate-pulse" />
+                        <div className="absolute inset-[-4px] rounded-[24px] border-[3px] border-transparent border-t-blue-500 border-b-blue-500 animate-spin opacity-80" style={{ animationDuration: '1.5s' }}></div>
+                    </div>
+                </div>
+
                 <div 
-                    className="flex-1 flex flex-col w-full h-full" 
+                    className="flex-1 flex flex-col w-full h-full relative z-10" 
                     style={{ 
                         transform: `translateX(${dragOffset}px)`,
                         transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
@@ -892,7 +937,7 @@ export default function ShortWorksCalendar({
                                                 </span>
                                             </div>
                                             {calculateOrderSand(wo) > 0 && (
-                                                <span className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
+                                                <span className="text-[10px] text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 rounded">
                                                     {calculateOrderSand(wo).toFixed(1)}T
                                                 </span>
                                             )}
