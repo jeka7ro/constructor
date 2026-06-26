@@ -530,8 +530,12 @@ export default function ShortWorksCalendar({
                 {/* Background Swipe Preloader (Apple-like) */}
                 <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity duration-300 ${Math.abs(dragOffset) > 10 || isSwiping ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="relative flex items-center justify-center w-20 h-20 bg-white dark:bg-slate-900 rounded-[22px] shadow-2xl border border-slate-200 dark:border-slate-700/50 scale-110">
-                        <img src="/favicon.png" alt="App Logo" className="w-11 h-11 object-contain opacity-90 animate-pulse" />
-                        <div className="absolute inset-[-4px] rounded-[24px] border-[3px] border-transparent border-t-blue-500 border-b-blue-500 animate-spin opacity-80" style={{ animationDuration: '1.5s' }}></div>
+                        {tenant?.logo_url ? (
+                            <img src={tenant.logo_url} alt="Tenant Logo" className="w-12 h-12 object-contain opacity-90 animate-pulse" />
+                        ) : (
+                            <CalendarIcon className="w-8 h-8 text-slate-400 dark:text-slate-500 animate-pulse" />
+                        )}
+                        <div className="absolute inset-[-4px] rounded-[24px] border-[3px] border-transparent border-t-blue-500 border-b-blue-500 animate-spin opacity-80" style={{ animationDuration: '1.5s', borderTopColor: tenant?.primary_color || '#3b82f6', borderBottomColor: tenant?.primary_color || '#3b82f6' }}></div>
                     </div>
                 </div>
 
