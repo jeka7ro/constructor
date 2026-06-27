@@ -543,6 +543,43 @@ export default function ShortWorksCalendar({
             {/* Calendar Swipe Animation Wrapper */}
             <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
 
+                {/* Swipe Preloader — favicon frumos cu glassmorphism */}
+                <div
+                    className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+                    style={{
+                        opacity: swipePhase === 'exit' || swipePhase === 'enter' ? 1 : 0,
+                        transition: 'opacity 0.15s ease',
+                    }}
+                >
+                    <div style={{
+                        transform: swipePhase === 'exit' || swipePhase === 'enter' ? 'scale(1)' : 'scale(0.7)',
+                        transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        background: 'rgba(255,255,255,0.18)',
+                        border: '1.5px solid rgba(255,255,255,0.35)',
+                        borderRadius: '28px',
+                        padding: '20px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    }}>
+                        {tenant?.favicon_url ? (
+                            <img
+                                src={tenant.favicon_url.startsWith('http') ? tenant.favicon_url : `${(typeof window !== 'undefined' ? window.location.origin : '')}${tenant.favicon_url}`}
+                                alt="favicon"
+                                style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 12, display: 'block' }}
+                            />
+                        ) : tenant?.logo_url ? (
+                            <img
+                                src={tenant.logo_url.startsWith('http') ? tenant.logo_url : `${(typeof window !== 'undefined' ? window.location.origin : '')}${tenant.logo_url}`}
+                                alt="logo"
+                                style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 12, display: 'block' }}
+                            />
+                        ) : (
+                            <CalendarIcon style={{ width: 40, height: 40, color: tenant?.primary_color || '#3b82f6' }} />
+                        )}
+                    </div>
+                </div>
+
                 <div 
                     className="flex-1 flex flex-col w-full h-full relative z-10" 
                     style={{ 
