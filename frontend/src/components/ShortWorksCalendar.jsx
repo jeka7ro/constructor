@@ -406,7 +406,7 @@ export default function ShortWorksCalendar({
             // Show preloader for 3 seconds
             if (preloaderTimerRef.current) clearTimeout(preloaderTimerRef.current);
             setShowPreloader(true);
-            preloaderTimerRef.current = setTimeout(() => setShowPreloader(false), 3000);
+            preloaderTimerRef.current = setTimeout(() => setShowPreloader(false), 1500);
             // Phase 1: calendar slides out
             setSwipeDir(direction);
             setSwipePhase('exit');
@@ -556,11 +556,8 @@ export default function ShortWorksCalendar({
                         transition: 'opacity 0.3s ease',
                     }}
                 >
-                    {/* Card glassmorphism */}
+                    {/* Card glassmorphism simplu */}
                     <div style={{
-                        position: 'relative',
-                        transform: showPreloader ? 'scale(1)' : 'scale(0.6)',
-                        transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         backdropFilter: 'blur(30px)',
                         WebkitBackdropFilter: 'blur(30px)',
                         background: 'rgba(255,255,255,0.22)',
@@ -568,45 +565,23 @@ export default function ShortWorksCalendar({
                         borderRadius: '32px',
                         padding: '24px',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        transform: showPreloader ? 'scale(1)' : 'scale(0.6)',
+                        transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     }}>
-                        <style>{`
-                            @keyframes spinRing {
-                                0%   { transform: rotate(0deg); }
-                                100% { transform: rotate(360deg); }
-                            }
-                            @keyframes spinRingReverse {
-                                0%   { transform: rotate(0deg); }
-                                100% { transform: rotate(-360deg); }
-                            }
-                        `}</style>
-                        {/* Un singur inel exterior */}
-                        <div style={{
-                            position: 'absolute',
-                            inset: -12,
-                            borderRadius: '50%',
-                            border: '3px solid transparent',
-                            borderTopColor: tenant?.primary_color || '#3b82f6',
-                            borderRightColor: (tenant?.primary_color || '#3b82f6') + '50',
-                            animation: 'spinRing 1.4s linear infinite',
-                        }} />
-                        {/* Favicon */}
                         {tenant?.favicon_url ? (
                             <img
                                 src={tenant.favicon_url.startsWith('http') ? tenant.favicon_url : `${typeof window !== 'undefined' ? window.location.origin : ''}${tenant.favicon_url}`}
                                 alt="favicon"
-                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block', position: 'relative', zIndex: 1 }}
+                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block' }}
                             />
                         ) : tenant?.logo_url ? (
                             <img
                                 src={tenant.logo_url.startsWith('http') ? tenant.logo_url : `${typeof window !== 'undefined' ? window.location.origin : ''}${tenant.logo_url}`}
                                 alt="logo"
-                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block', position: 'relative', zIndex: 1 }}
+                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block' }}
                             />
                         ) : (
-                            <CalendarIcon style={{ width: 44, height: 44, color: tenant?.primary_color || '#3b82f6', position: 'relative', zIndex: 1 }} />
+                            <CalendarIcon style={{ width: 44, height: 44, color: tenant?.primary_color || '#3b82f6' }} />
                         )}
                     </div>
                 </div>
