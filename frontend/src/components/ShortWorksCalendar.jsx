@@ -378,6 +378,8 @@ export default function ShortWorksCalendar({
         const diffY = currentY - touchStart.y;
         
         if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+            // Block vertical page scroll during horizontal swipe
+            e.preventDefault();
             setIsSwiping(true);
             setDragOffset(diffX);
         }
@@ -419,11 +421,22 @@ export default function ShortWorksCalendar({
         }
     };
 
+    const calendarSwipeRef = useRef(null);
+
+    // Attach non-passive touchmove so preventDefault() blocks page scroll
+    useEffect(() => {
+        const el = calendarSwipeRef.current;
+        if (!el) return;
+        const handler = (e) => onTouchMove(e);
+        el.addEventListener('touchmove', handler, { passive: false });
+        return () => el.removeEventListener('touchmove', handler);
+    });
+
     return (
         <div 
+            ref={calendarSwipeRef}
             className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}
             onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
             onTouchEnd={onTouchEndEvent}
         >
             {/* Header */}

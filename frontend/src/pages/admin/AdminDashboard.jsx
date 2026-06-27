@@ -401,9 +401,11 @@ export default function AdminDashboard() {
                      </div>
                          {/* Mobile Logo & Tenant Name */}
                          <div className="md:hidden flex items-center gap-2">
-                              {tenant?.logo_url && (
+                              {tenant?.favicon_url ? (
+                                  <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain rounded-xl bg-white/15 p-0.5 drop-shadow" />
+                              ) : tenant?.logo_url ? (
                                   <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white drop-shadow-sm p-0.5" />
-                              )}
+                              ) : null}
                               <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-white truncate max-w-[200px]">
                                   {tenant?.name || 'Smart Timesheet'}
                               </span>
