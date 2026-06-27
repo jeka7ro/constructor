@@ -385,11 +385,13 @@ export default function AdminDashboard() {
                          >
                              <Menu className="w-5 h-5" />
                          </button>
-                     {/* Desktop Logo extracted from Sidebar */}
+                     {/* Desktop Logo/Favicon extracted from Sidebar */}
                      <div className="hidden md:flex items-center justify-center mr-2">
                          {tenant ? (
-                             tenant.logo_url ? (
-                                 <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-10 max-h-12 w-auto object-contain bg-transparent" />
+                             tenant.favicon_url ? (
+                                 <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="h-9 w-9 object-contain rounded-xl bg-white/10 p-0.5 drop-shadow" />
+                             ) : tenant.logo_url ? (
+                                 <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-10 max-h-12 max-w-[180px] w-auto object-contain bg-transparent" />
                              ) : (
                                  <div className="font-extrabold text-xl text-white px-2">{tenant.name || 'Tenant'}</div>
                              )
