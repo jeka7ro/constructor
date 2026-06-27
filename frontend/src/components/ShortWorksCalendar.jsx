@@ -548,17 +548,12 @@ export default function ShortWorksCalendar({
             {/* Calendar Swipe Animation Wrapper */}
             <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
 
-                {/* Swipe Preloader — 3s, glassmorphism puternic + inel rotativ */}
+                {/* Swipe Preloader — card glassmorphism fără fundal întunecat */}
                 <div
                     className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
                     style={{
                         opacity: showPreloader ? 1 : 0,
                         transition: 'opacity 0.3s ease',
-                        background: showPreloader
-                            ? 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(30,30,60,0.45) 100%)'
-                            : 'transparent',
-                        backdropFilter: showPreloader ? 'blur(12px)' : 'none',
-                        WebkitBackdropFilter: showPreloader ? 'blur(12px)' : 'none',
                     }}
                 >
                     {/* Card glassmorphism */}
@@ -577,7 +572,6 @@ export default function ShortWorksCalendar({
                         alignItems: 'center',
                         justifyContent: 'center',
                     }}>
-                        {/* Inel rotativ în jurul imaginii */}
                         <style>{`
                             @keyframes spinRing {
                                 0%   { transform: rotate(0deg); }
@@ -588,25 +582,15 @@ export default function ShortWorksCalendar({
                                 100% { transform: rotate(-360deg); }
                             }
                         `}</style>
-                        {/* Inel exterior */}
+                        {/* Un singur inel exterior */}
                         <div style={{
                             position: 'absolute',
-                            inset: -10,
+                            inset: -12,
                             borderRadius: '50%',
                             border: '3px solid transparent',
                             borderTopColor: tenant?.primary_color || '#3b82f6',
-                            borderRightColor: (tenant?.primary_color || '#3b82f6') + '60',
-                            animation: 'spinRing 1.2s linear infinite',
-                        }} />
-                        {/* Inel interior */}
-                        <div style={{
-                            position: 'absolute',
-                            inset: -18,
-                            borderRadius: '50%',
-                            border: '2px solid transparent',
-                            borderBottomColor: tenant?.primary_color || '#3b82f6',
-                            borderLeftColor: (tenant?.primary_color || '#3b82f6') + '40',
-                            animation: 'spinRingReverse 1.8s linear infinite',
+                            borderRightColor: (tenant?.primary_color || '#3b82f6') + '50',
+                            animation: 'spinRing 1.4s linear infinite',
                         }} />
                         {/* Favicon */}
                         {tenant?.favicon_url ? (
