@@ -358,12 +358,14 @@ export default function ShortWorksCalendar({
         }
     }, [weeklyOrders, currentDate]);
 
-    const [swipeDir, setSwipeDir] = useState(0); // -1 left, 1 right
-    const [swipePhase, setSwipePhase] = useState('idle'); // idle | exit | enter
+    const [swipeDir, setSwipeDir] = useState(0);
+    const [swipePhase, setSwipePhase] = useState('idle');
+    const [showPreloader, setShowPreloader] = useState(false);
     const [touchStart, setTouchStart] = useState({ x: null, y: null });
     const [touchEnd, setTouchEnd] = useState({ x: null, y: null });
     const [dragOffset, setDragOffset] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
+    const preloaderTimerRef = useRef(null);
 
     const onTouchStart = (e) => {
         setTouchEnd({ x: null, y: null });
@@ -398,16 +400,19 @@ export default function ShortWorksCalendar({
         const minSwipeDistance = 60;
         
         if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > minSwipeDistance) {
-            const direction = distanceX > 0 ? 1 : -1; // 1 = next, -1 = prev
+            const direction = distanceX > 0 ? 1 : -1;
             setIsSwiping(false);
             setDragOffset(0);
-            // Phase 1: slide out
+            // Show preloader for 3 seconds
+            if (preloaderTimerRef.current) clearTimeout(preloaderTimerRef.current);
+            setShowPreloader(true);
+            preloaderTimerRef.current = setTimeout(() => setShowPreloader(false), 3000);
+            // Phase 1: calendar slides out
             setSwipeDir(direction);
             setSwipePhase('exit');
             setTimeout(() => {
                 navigateWeek(direction);
                 setSwipePhase('enter');
-                // Phase 2: slide in from opposite
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         setSwipePhase('idle');
@@ -543,39 +548,81 @@ export default function ShortWorksCalendar({
             {/* Calendar Swipe Animation Wrapper */}
             <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-950">
 
-                {/* Swipe Preloader — favicon frumos cu glassmorphism */}
+                {/* Swipe Preloader — 3s, glassmorphism puternic + inel rotativ */}
                 <div
                     className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
                     style={{
-                        opacity: swipePhase === 'exit' || swipePhase === 'enter' ? 1 : 0,
-                        transition: 'opacity 0.15s ease',
+                        opacity: showPreloader ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                        background: showPreloader
+                            ? 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(30,30,60,0.45) 100%)'
+                            : 'transparent',
+                        backdropFilter: showPreloader ? 'blur(12px)' : 'none',
+                        WebkitBackdropFilter: showPreloader ? 'blur(12px)' : 'none',
                     }}
                 >
+                    {/* Card glassmorphism */}
                     <div style={{
-                        transform: swipePhase === 'exit' || swipePhase === 'enter' ? 'scale(1)' : 'scale(0.7)',
-                        transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        background: 'rgba(255,255,255,0.18)',
-                        border: '1.5px solid rgba(255,255,255,0.35)',
-                        borderRadius: '28px',
-                        padding: '20px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                        position: 'relative',
+                        transform: showPreloader ? 'scale(1)' : 'scale(0.6)',
+                        transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
+                        background: 'rgba(255,255,255,0.22)',
+                        border: '1.5px solid rgba(255,255,255,0.4)',
+                        borderRadius: '32px',
+                        padding: '24px',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                     }}>
+                        {/* Inel rotativ în jurul imaginii */}
+                        <style>{`
+                            @keyframes spinRing {
+                                0%   { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            @keyframes spinRingReverse {
+                                0%   { transform: rotate(0deg); }
+                                100% { transform: rotate(-360deg); }
+                            }
+                        `}</style>
+                        {/* Inel exterior */}
+                        <div style={{
+                            position: 'absolute',
+                            inset: -10,
+                            borderRadius: '50%',
+                            border: '3px solid transparent',
+                            borderTopColor: tenant?.primary_color || '#3b82f6',
+                            borderRightColor: (tenant?.primary_color || '#3b82f6') + '60',
+                            animation: 'spinRing 1.2s linear infinite',
+                        }} />
+                        {/* Inel interior */}
+                        <div style={{
+                            position: 'absolute',
+                            inset: -18,
+                            borderRadius: '50%',
+                            border: '2px solid transparent',
+                            borderBottomColor: tenant?.primary_color || '#3b82f6',
+                            borderLeftColor: (tenant?.primary_color || '#3b82f6') + '40',
+                            animation: 'spinRingReverse 1.8s linear infinite',
+                        }} />
+                        {/* Favicon */}
                         {tenant?.favicon_url ? (
                             <img
-                                src={tenant.favicon_url.startsWith('http') ? tenant.favicon_url : `${(typeof window !== 'undefined' ? window.location.origin : '')}${tenant.favicon_url}`}
+                                src={tenant.favicon_url.startsWith('http') ? tenant.favicon_url : `${typeof window !== 'undefined' ? window.location.origin : ''}${tenant.favicon_url}`}
                                 alt="favicon"
-                                style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 12, display: 'block' }}
+                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block', position: 'relative', zIndex: 1 }}
                             />
                         ) : tenant?.logo_url ? (
                             <img
-                                src={tenant.logo_url.startsWith('http') ? tenant.logo_url : `${(typeof window !== 'undefined' ? window.location.origin : '')}${tenant.logo_url}`}
+                                src={tenant.logo_url.startsWith('http') ? tenant.logo_url : `${typeof window !== 'undefined' ? window.location.origin : ''}${tenant.logo_url}`}
                                 alt="logo"
-                                style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 12, display: 'block' }}
+                                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 14, display: 'block', position: 'relative', zIndex: 1 }}
                             />
                         ) : (
-                            <CalendarIcon style={{ width: 40, height: 40, color: tenant?.primary_color || '#3b82f6' }} />
+                            <CalendarIcon style={{ width: 44, height: 44, color: tenant?.primary_color || '#3b82f6', position: 'relative', zIndex: 1 }} />
                         )}
                     </div>
                 </div>
