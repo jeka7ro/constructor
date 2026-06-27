@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Outlet, NavLink, useLocation, Navigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import { useTenantStore } from '../../store/tenantStore'
@@ -585,9 +585,22 @@ export default function AdminDashboard() {
                             {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
                         </p>
                     </div>
-                    {/* Page Content */}
-                    <div className="p-4 md:p-5 md:pt-3 pb-24">
-                        <Outlet />
+                    {/* Page Content with smooth fade transition */}
+                    <div
+                        key={location.pathname}
+                        style={{
+                            animation: 'pageFade 0.2s ease both'
+                        }}
+                    >
+                        <style>{`
+                            @keyframes pageFade {
+                                from { opacity: 0; }
+                                to   { opacity: 1; }
+                            }
+                        `}</style>
+                        <div className="p-4 md:p-5 md:pt-3 pb-24">
+                            <Outlet />
+                        </div>
                     </div>
                 </main>
             </div>
