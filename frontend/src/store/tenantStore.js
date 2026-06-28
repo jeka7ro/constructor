@@ -13,14 +13,26 @@ const useTenantStore = create(
             // Helper to get domain/slug
             getCurrentSubdomain: () => {
                 const hostname = window.location.hostname
-                
-                // If it's pure localhost or IP, it's the master tenant (Platforma Centrala)
-                if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                    return null
+
+                // Allow ?slug= param for IP access — save to localStorage so it persists after navigation
+                const urlParams = new URLSearchParams(window.location.search)
+                const slugParam = urlParams.get('slug')
+                if (slugParam) {
+                    localStorage.setItem('tenant_slug_override', slugParam)
+                    return slugParam
+                }
+
+                // Check localStorage fallback (for IP access after navigation)
+                const savedSlug = localStorage.getItem('tenant_slug_override')
+
+                // If it's pure localhost or IP, use saved slug or null
+                if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+                    return savedSlug || null
                 }
                 
-                // Allow *.localhost for testing locally without localStorage leaking!
+                // Allow *.localhost for testing locally
                 if (hostname.endsWith('.localhost')) {
+                    localStorage.removeItem('tenant_slug_override')
                     return hostname.split('.')[0]
                 }
                 
@@ -36,7 +48,7 @@ const useTenantStore = create(
                     }
                 }
                 
-                return null
+                return savedSlug || null
             }
         }),
         {
