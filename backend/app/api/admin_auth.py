@@ -114,11 +114,7 @@ def get_current_admin(token: str = Depends(oauth2_scheme), db: Session = Depends
 @router.post("/login", response_model=Token)
 def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
     """Admin login with email and password"""
-    print(f"Login attempt: {credentials.email} {credentials.password}")
     admin = db.query(Admin).filter(Admin.email == credentials.email).first()
-    print(f"Admin found: {admin.email if admin else None}")
-    if admin:
-        print(f"Password correct: {verify_password(credentials.password, admin.password_hash)}")
     
     if not admin or not verify_password(credentials.password, admin.password_hash):
         raise HTTPException(
