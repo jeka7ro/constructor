@@ -71,6 +71,7 @@ class LocalAdminCreate(BaseModel):
     role: str = "ADMIN"
 
 class LocalAdminUpdatePassword(BaseModel):
+    old_password: str
     password: str
 
 class LocalAdminResponse(BaseModel):
@@ -390,7 +391,10 @@ def update_org_admin_password(
     if not admin:
         raise HTTPException(status_code=404, detail="Admin-ul nu a fost găsit în această companie.")
     
-    from app.api.admin_auth import hash_password
+    from app.api.admin_auth import hash_password, verify_password
+    if not verify_password(data.old_password, admin.password_hash):
+        raise HTTPException(status_code=400, detail="Parola veche este incorectă.")
+        
     admin.password_hash = hash_password(data.password)
     db.commit()
     return {"message": "Parola a fost actualizată."}
