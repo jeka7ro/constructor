@@ -22,6 +22,8 @@ class TenantConfigResponse(BaseModel):
     has_long_term_sites: Optional[bool] = True
     has_short_term_interventions: Optional[bool] = False
     features: Optional[list] = []
+    country: Optional[str] = None
+    default_language: Optional[str] = None
 
 @router.get("/tenant-config", response_model=TenantConfigResponse)
 def get_tenant_config(domain: Optional[str] = None, slug: Optional[str] = None, db: Session = Depends(get_db)):
@@ -56,6 +58,8 @@ def get_tenant_config(domain: Optional[str] = None, slug: Optional[str] = None, 
         "has_long_term_sites": getattr(org, 'has_long_term_sites', True),
         "has_short_term_interventions": getattr(org, 'has_short_term_interventions', False),
         "features": getattr(org, "features", []) or [],
+        "country": getattr(org, 'country', None),
+        "default_language": getattr(org, 'default_language', None),
     }
 
 class DemoSignupRequest(BaseModel):
