@@ -41,6 +41,8 @@ export default function OrganizationsManagement() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [adminFormData, setAdminFormData] = useState({ email: '', full_name: '', password: '', confirm_password: '', role: 'ADMIN' })
     const [adminFormError, setAdminFormError] = useState(null)
+    const [isEditPasswordModalOpen, setIsEditPasswordModalOpen] = useState(false)
+    const [editingAdminId, setEditingAdminId] = useState(null)
 
     const [formData, setFormData] = useState({
         name: '',
@@ -206,6 +208,7 @@ export default function OrganizationsManagement() {
         setLoadingAdmins(true)
         try {
             const res = await api.get(`/admin/organizations/${org.id}/admins`)
+            const res = await api.get(`/admin/organizations/${orgId}/admins`)
             setOrgAdmins(res.data)
         } catch {
             setOrgAdmins([])
@@ -214,19 +217,59 @@ export default function OrganizationsManagement() {
         }
     }
 
+    const openAdminsDrawer = async (org) => {
+        setAdminsDrawerOrg(org)
+        fetchOrgAdmins(org.id)
+    }
+
     const handleAddAdmin = async (e) => {
         e.preventDefault()
         setAdminFormError(null)
+
         if (adminFormData.password !== adminFormData.confirm_password) {
-            return setAdminFormError('Parolele nu coincid.')
+            setAdminFormError('Parolele nu se potrivesc.')
+            return
         }
+        if (adminFormData.password.length < 6) {
+            setAdminFormError('Parola trebuie să aibă minim 6 caractere.')
+            return
+        }
+
         try {
-            const res = await api.post(`/admin/organizations/${adminsDrawerOrg.id}/admins`, adminFormData)
-            setOrgAdmins(prev => [...prev, res.data])
+            await api.post(`/admin/organizations/${adminsDrawerOrg.id}/admins`, {
+                email: adminFormData.email,
+                full_name: adminFormData.full_name,
+                password: adminFormData.password,
+                role: adminFormData.role
+            })
+            fetchOrgAdmins(adminsDrawerOrg.id)
             setIsAddAdminModalOpen(false)
             setAdminFormData({ email: '', full_name: '', password: '', confirm_password: '', role: 'ADMIN' })
         } catch (err) {
-            setAdminFormError(err.response?.data?.detail || 'Eroare la crearea adminului.')
+            setAdminFormError(err.response?.data?.detail || 'Eroare la adăugarea admin-ului.')
+        }
+    }
+
+    const handleUpdatePassword = async (e) => {
+        e.preventDefault()
+        setAdminFormError(null)
+        if (adminFormData.password !== adminFormData.confirm_password) {
+            setAdminFormError('Parolele nu se potrivesc.')
+            return
+        }
+        if (adminFormData.password.length < 6) {
+            setAdminFormError('Parola trebuie să aibă minim 6 caractere.')
+            return
+        }
+        try {
+            await api.put(`/admin/organizations/${adminsDrawerOrg.id}/admins/${editingAdminId}/password`, {
+                password: adminFormData.password
+            })
+            setIsEditPasswordModalOpen(false)
+            setEditingAdminId(null)
+            setAdminFormData({ email: '', full_name: '', password: '', confirm_password: '', role: 'ADMIN' })
+        } catch (err) {
+            setAdminFormError(err.response?.data?.detail || 'Eroare la actualizarea parolei.')
         }
     }
 
@@ -735,6 +778,13 @@ export default function OrganizationsManagement() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 uppercase">{a.role}</span>
+                                                <button onClick={() => {
+                                                    setEditingAdminId(a.id)
+                                                    setAdminFormData({ email: '', full_name: '', password: '', confirm_password: '', role: 'ADMIN' })
+                                                    setIsEditPasswordModalOpen(true)
+                                                }} title="Editează parola" className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 hover:text-slate-900 text-slate-500 transition-colors">
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
                                                 <button onClick={() => handleDeleteAdmin(a.id)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-rose-50 hover:text-rose-600 text-slate-600 dark:text-slate-400 transition-colors">
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -817,6 +867,54 @@ export default function OrganizationsManagement() {
                     </div>
                 </div>
             )}
+
+            {/* =================== EDIT PASSWORD MODAL =================== */}
+            {isEditPasswordModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Schimbă Parola Admin</h3>
+                            <button onClick={() => setIsEditPasswordModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdatePassword}>
+                            <div className="p-6 space-y-4">
+                                {adminFormError && (
+                                    <div className="p-3 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-sm font-bold">{adminFormError}</div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-600 dark:text-slate-400 mb-1.5">Noua Parolă *</label>
+                                        <div className="relative">
+                                            <input required type={showPassword ? 'text' : 'password'} minLength={6} value={adminFormData.password} onChange={e => setAdminFormData({...adminFormData, password: e.target.value})} className="w-full pl-4 pr-12 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none transition-all shadow-sm" placeholder="Minim 6 caractere" />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 hover:text-slate-600">
+                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-600 dark:text-slate-400 mb-1.5">Confirmă Parola *</label>
+                                        <div className="relative">
+                                            <input required type={showConfirmPassword ? 'text' : 'password'} minLength={6} value={adminFormData.confirm_password} onChange={e => setAdminFormData({...adminFormData, confirm_password: e.target.value})} className="w-full pl-4 pr-12 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none transition-all shadow-sm" placeholder="Confirmă parola" />
+                                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 hover:text-slate-600">
+                                                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                                <button type="button" onClick={() => setIsEditPasswordModalOpen(false)} className="px-5 h-10 rounded-full font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                                <button type="submit" className="px-5 h-10 rounded-full font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2">
+                                    <Save className="w-4 h-4" /> Actualizează Parola
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
         </div>
     )
 }

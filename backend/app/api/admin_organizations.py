@@ -70,6 +70,9 @@ class LocalAdminCreate(BaseModel):
     password: str
     role: str = "ADMIN"
 
+class LocalAdminUpdatePassword(BaseModel):
+    password: str
+
 class LocalAdminResponse(BaseModel):
     id: str
     email: str
@@ -368,3 +371,26 @@ def delete_org_admin(
     db.delete(admin)
     db.commit()
     return {"message": "Admin-ul a fost șters."}
+
+@router.put("/{org_id}/admins/{admin_id}/password")
+def update_org_admin_password(
+    org_id: str,
+    admin_id: str,
+    data: LocalAdminUpdatePassword,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Change password for a local admin"""
+    check_super_admin(current_admin)
+    admin = db.query(Admin).filter(
+        Admin.id == admin_id,
+        Admin.organization_id == org_id,
+        Admin.is_super_admin == False
+    ).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin-ul nu a fost găsit în această companie.")
+    
+    from app.api.admin_auth import hash_password
+    admin.password_hash = hash_password(data.password)
+    db.commit()
+    return {"message": "Parola a fost actualizată."}
