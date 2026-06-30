@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, Save, CheckCircle2, BarChart3, RefreshCw, X, ExternalLink, Package, Ruler, Maximize2, Minimize2, CloudRain } from 'lucide-react'
 import api from '../../../lib/api'
-import useTenantStore from '../../../store/tenantStore'
+import { useTenantStore } from '../../../store/tenantStore'
 
 function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
     return (
