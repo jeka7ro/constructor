@@ -49,15 +49,26 @@ class Token(BaseModel):
     admin: AdminResponse
 
 
-# Helper Functions
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 def hash_password(password: str) -> str:
-    """Hash password using SHA256 (for development - use bcrypt in production)"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using bcrypt"""
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(plain_password) == hashed_password
+    """Verify password against hash. Supports both bcrypt and legacy SHA256"""
+    # Legacy SHA256 hashes are 64 characters long and don't start with $
+    if len(hashed_password) == 64 and not hashed_password.startswith("$"):
+        return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+    
+    # Otherwise use standard bcrypt verification
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception:
+        return False
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
