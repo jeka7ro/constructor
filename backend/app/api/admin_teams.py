@@ -75,7 +75,7 @@ def list_teams(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """List all teams."""
-    teams = db.query(Team).order_by(Team.created_at.desc()).all()
+    teams = db.query(Team).filter(Team.organization_id == current_admin.organization_id).order_by(Team.created_at.desc()).all()
     if not teams:
         return {"teams": []}
     

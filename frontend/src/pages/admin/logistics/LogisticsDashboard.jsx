@@ -187,6 +187,8 @@ const SAND_STATIONS = [
 
 export default function LogisticsDashboard() {
     const { t } = useTranslation()
+    const tenant = useTenantStore(s => s.tenant)
+    const isDavideChape = tenant?.slug === 'davidechape'
     const [targetDate, setTargetDate] = useState(() => {
         const d = new Date();
         return d.toISOString().split('T')[0];
@@ -287,9 +289,11 @@ export default function LogisticsDashboard() {
                         <Link to="/admin/logistica/bases" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                             <MapPin className="w-4 h-4" /> {t('logistics.bases', 'Baze')}
                         </Link>
-                        <Link to="/admin/logistica/sand-stations" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
-                            <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stații Nisip')}
-                        </Link>
+                        {isDavideChape && (
+                            <Link to="/admin/logistica/sand-stations" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
+                                <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stații Nisip')}
+                            </Link>
+                        )}
                         <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                             <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Raport')}
                         </Link>
@@ -443,7 +447,7 @@ export default function LogisticsDashboard() {
 
 
                             {/* Sand Stations Rendering */}
-                            {showSandStations && SAND_STATIONS.map((station, idx) => {
+                            {isDavideChape && showSandStations && SAND_STATIONS.map((station, idx) => {
                                 const _letter = 'D'
                                 const _bg = station.type === 'theirs' ? '#ef4444' : '#3b82f6'
                                 const bgColor = station.type === 'theirs' ? '#ef4444' : '#3b82f6'
@@ -562,7 +566,7 @@ export default function LogisticsDashboard() {
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                         <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Șantier / Lucrare')}
                                     </div>
-                                    {showSandStations && (
+                                    {isDavideChape && showSandStations && (
                                         <>
                                         <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                             <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">D</div> Stații Nisip – Noi

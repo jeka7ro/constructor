@@ -601,7 +601,10 @@ def get_map_data(
     import sqlalchemy
 
     today = get_local_today()
-    sites = db.query(ConstructionSite).filter(ConstructionSite.status == "active").all()
+    sites = db.query(ConstructionSite).filter(
+        ConstructionSite.status == "active",
+        ConstructionSite.organization_id == current_admin.organization_id
+    ).all()
     result = []
 
     for site in sites:
@@ -681,7 +684,10 @@ def get_map_data_short_term(
         ConstructionSite, TimesheetSegment.site_id == ConstructionSite.id
     ).join(
         Timesheet, TimesheetSegment.timesheet_id == Timesheet.id
-    ).filter(ConstructionSite.project_type == "short_term")
+    ).filter(
+        ConstructionSite.project_type == "short_term",
+        ConstructionSite.organization_id == current_admin.organization_id
+    )
 
     if start_date:
         query = query.filter(Timesheet.date >= start_date)
