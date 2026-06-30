@@ -357,12 +357,21 @@ export default function LogisticsDashboard() {
                         ? 'fixed inset-0 z-[9999] bg-black w-screen h-screen'
                         : 'w-full h-[500px] lg:h-[700px] bg-slate-100 rounded-2xl shadow-inner border border-slate-200 overflow-hidden relative shrink-0'
                     } style={{ isolation: 'isolate' }}>
-                        <MapContainer
-                            center={[50.8503, 4.3517]} 
-                            zoom={7} 
-                            scrollWheelZoom={false}
-                            style={{ width: '100%', height: '100%' }}
-                        >
+                        {(() => {
+                            const tenant = useTenantStore.getState().tenant;
+                            let defaultCenter = [50.8503, 4.3517]; // BE
+                            if (tenant?.country === 'RO') defaultCenter = [45.9432, 24.9668];
+                            else if (tenant?.country === 'NL') defaultCenter = [52.3676, 4.9041];
+                            else if (tenant?.country === 'FR') defaultCenter = [46.2276, 2.2137];
+                            else if (tenant?.country === 'DE') defaultCenter = [51.1657, 10.4515];
+                            
+                            return (
+                                <MapContainer
+                                    center={defaultCenter} 
+                                    zoom={7} 
+                                    scrollWheelZoom={false}
+                                    style={{ width: '100%', height: '100%' }}
+                                >
                             <TileLayer
                                 attribution='&copy; Google Maps'
                                 url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
@@ -501,6 +510,8 @@ export default function LogisticsDashboard() {
                                 </label>
                             </div>
                         </MapContainer>
+                        );
+                    })()}
 
                         {/* Map Overlay Stats & Teams */}
                         <div className="absolute top-4 right-4 z-[400] pointer-events-none flex flex-col gap-3 max-h-[calc(100%-2rem)] overflow-y-auto no-scrollbar pb-4">
