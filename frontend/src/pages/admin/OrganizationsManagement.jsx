@@ -203,11 +203,9 @@ export default function OrganizationsManagement() {
     }
 
     // ---- Admins Drawer ----
-    const openAdminsDrawer = async (org) => {
-        setAdminsDrawerOrg(org)
+    const fetchOrgAdmins = async (orgId) => {
         setLoadingAdmins(true)
         try {
-            const res = await api.get(`/admin/organizations/${org.id}/admins`)
             const res = await api.get(`/admin/organizations/${orgId}/admins`)
             setOrgAdmins(res.data)
         } catch {
