@@ -169,6 +169,8 @@ export default function OrganizationsManagement() {
             logo_url: formData.logo_url || null,
             favicon_url: formData.favicon_url || null,
             timezone: formData.timezone || 'auto',
+            country: formData.country || 'BE',
+            default_language: formData.default_language || 'ro',
             is_active: formData.is_active,
             features: formData.features,
             has_long_term_sites: formData.has_long_term_sites,
@@ -542,11 +544,13 @@ export default function OrganizationsManagement() {
                                     <div className="flex flex-col items-end gap-2">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Status Cont</label>
                                         <label className="flex items-center gap-2 cursor-pointer">
-                                            <div className={`relative w-10 h-5 rounded-full transition-colors ${formData.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                                            <div className={`relative w-10 h-5 rounded-full transition-colors ${!formData.is_active ? 'bg-slate-300' : ''}`}
+                                                 style={{ backgroundColor: formData.is_active ? (formData.primary_color || '#3b82f6') : undefined }}>
                                                 <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${formData.is_active ? 'left-[22px]' : 'left-0.5'}`} />
                                             </div>
                                             <input type="checkbox" className="hidden" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} />
-                                            <span className={`text-sm font-bold ${formData.is_active ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                            <span className={`text-sm font-bold ${!formData.is_active ? 'text-slate-400' : ''}`}
+                                                  style={{ color: formData.is_active ? (formData.primary_color || '#3b82f6') : undefined }}>
                                                 {formData.is_active ? 'Activ' : 'Inactiv'}
                                             </span>
                                         </label>
