@@ -563,23 +563,23 @@ export default function OrganizationsManagement() {
                                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Țară Implicită (Hartă)</label>
                                         <select value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}
                                             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                                            <option value="RO">România</option>
-                                            <option value="BE">Belgia</option>
-                                            <option value="NL">Olanda</option>
-                                            <option value="FR">Franța</option>
-                                            <option value="DE">Germania</option>
+                                            <option value="RO">🇷🇴 România</option>
+                                            <option value="BE">🇧🇪 Belgia</option>
+                                            <option value="NL">🇳🇱 Olanda</option>
+                                            <option value="FR">🇫🇷 Franța</option>
+                                            <option value="DE">🇩🇪 Germania</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Limbă Implicită</label>
                                         <select value={formData.default_language} onChange={e => setFormData({...formData, default_language: e.target.value})}
                                             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                                            <option value="ro">Română (RO)</option>
-                                            <option value="en">Engleză (EN)</option>
-                                            <option value="fr">Franceză (FR)</option>
-                                            <option value="nl">Olandeză (NL)</option>
-                                            <option value="de">Germană (DE)</option>
-                                            <option value="ru">Rusă (RU)</option>
+                                            <option value="ro">🇷🇴 Română (RO)</option>
+                                            <option value="en">🇬🇧 Engleză (EN)</option>
+                                            <option value="fr">🇫🇷 Franceză (FR)</option>
+                                            <option value="nl">🇳🇱 Olandeză (NL)</option>
+                                            <option value="de">🇩🇪 Germană (DE)</option>
+                                            <option value="ru">🇲🇩 Rusă (RU)</option>
                                         </select>
                                     </div>
                                 </div>

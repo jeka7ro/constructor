@@ -301,10 +301,17 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 }
             });
         } else {
-            // Nicio informație GPS/adresă — hartă generală (Bruxelles)
+            // Nicio informație GPS/adresă — hartă generală conform tenant-ului
+            let defaultCenter = { lat: 50.8503, lng: 4.3517 }; // BE fallback
+            const tenant = useTenantStore.getState().tenant;
+            if (tenant?.country === 'RO') defaultCenter = { lat: 45.9432, lng: 24.9668 };
+            else if (tenant?.country === 'NL') defaultCenter = { lat: 52.3676, lng: 4.9041 };
+            else if (tenant?.country === 'FR') defaultCenter = { lat: 46.2276, lng: 2.2137 };
+            else if (tenant?.country === 'DE') defaultCenter = { lat: 51.1657, lng: 10.4515 };
+
             if (!mapInstance.current) {
                 mapInstance.current = new window.google.maps.Map(mapRef.current, {
-                    center: { lat: 50.8503, lng: 4.3517 },
+                    center: defaultCenter,
                     zoom: 7,
                     disableDefaultUI: true,
                     zoomControl: true
