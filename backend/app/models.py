@@ -25,6 +25,8 @@ class Organization(Base):
     plan_tier = Column(String(50), default="basic", nullable=False)
     max_users = Column(Integer, nullable=True)
     features = Column(JSON, nullable=True)
+    country = Column(String(50), default="BE", nullable=True)
+    default_language = Column(String(10), default="ro", nullable=True)
     timezone = Column(String(50), default="auto", nullable=True)
     has_long_term_sites = Column(Boolean, default=True, nullable=True)
     has_short_term_interventions = Column(Boolean, default=False, nullable=True)

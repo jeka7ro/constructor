@@ -25,6 +25,8 @@ class OrganizationBase(BaseModel):
     support_email: Optional[str] = None
     plan_tier: str = "basic"
     max_users: Optional[int] = None
+    country: Optional[str] = "BE"
+    default_language: Optional[str] = "ro"
     timezone: Optional[str] = "auto"
     has_long_term_sites: Optional[bool] = True
     has_short_term_interventions: Optional[bool] = False
@@ -44,6 +46,8 @@ class OrganizationUpdate(BaseModel):
     support_email: Optional[str] = None
     plan_tier: Optional[str] = None
     max_users: Optional[int] = None
+    country: Optional[str] = None
+    default_language: Optional[str] = None
     timezone: Optional[str] = None
     has_long_term_sites: Optional[bool] = None
     has_short_term_interventions: Optional[bool] = None

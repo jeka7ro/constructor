@@ -6,6 +6,7 @@ import { useTenantStore } from './store/tenantStore'
 import api from './lib/api'
 import Login from './pages/Login'
 import { Loader2 } from 'lucide-react'
+import i18n from './i18n'
 
 // Eager load core admin pages for INSTANT navigation and 0 delays
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -130,6 +131,9 @@ function App() {
                     setTenant(res.data)
                     if (res.data.name) {
                         document.title = `${res.data.name} - Smart Timesheet`
+                    }
+                    if (res.data.default_language) {
+                        i18n.changeLanguage(res.data.default_language)
                     }
                     
                     let iconUrl = res.data.favicon_url || res.data.logo_url;

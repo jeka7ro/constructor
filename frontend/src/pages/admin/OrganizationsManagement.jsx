@@ -53,6 +53,8 @@ export default function OrganizationsManagement() {
         logo_url: '',
         favicon_url: '',
         timezone: 'auto',
+        country: 'BE',
+        default_language: 'ro',
         has_long_term_sites: true,
         has_short_term_interventions: false,
         is_active: true,
@@ -86,6 +88,8 @@ export default function OrganizationsManagement() {
                 secondary_color: org.secondary_color || '#1e40af',
                 logo_url: org.logo_url || '',
                 timezone: org.timezone || 'auto',
+                country: org.country || 'BE',
+                default_language: org.default_language || 'ro',
                 has_long_term_sites: org.has_long_term_sites !== false,
                 has_short_term_interventions: org.has_short_term_interventions === true,
                 is_active: org.is_active,
@@ -101,13 +105,16 @@ export default function OrganizationsManagement() {
                 plan_tier: 'basic',
                 max_users: '',
                 primary_color: '#3b82f6',
-                secondary_color: '#1e40af',
+                secondary_color: null,
                 logo_url: '',
                 favicon_url: '',
                 timezone: 'auto',
+                country: 'BE',
+                default_language: 'ro',
                 has_long_term_sites: true,
                 has_short_term_interventions: false,
                 is_active: true,
+                favicon_url: '',
                 features: []
             })
         }
@@ -543,6 +550,33 @@ export default function OrganizationsManagement() {
                                                 {formData.is_active ? 'Activ' : 'Inactiv'}
                                             </span>
                                         </label>
+                                    </div>
+                                </div>
+
+                                {/* ROW 5.5: Country & Language */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Țară Implicită (Hartă)</label>
+                                        <select value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                            <option value="RO">România</option>
+                                            <option value="BE">Belgia</option>
+                                            <option value="NL">Olanda</option>
+                                            <option value="FR">Franța</option>
+                                            <option value="DE">Germania</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Limbă Implicită</label>
+                                        <select value={formData.default_language} onChange={e => setFormData({...formData, default_language: e.target.value})}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                            <option value="ro">Română (RO)</option>
+                                            <option value="en">Engleză (EN)</option>
+                                            <option value="fr">Franceză (FR)</option>
+                                            <option value="nl">Olandeză (NL)</option>
+                                            <option value="de">Germană (DE)</option>
+                                            <option value="ru">Rusă (RU)</option>
+                                        </select>
                                     </div>
                                 </div>
 
