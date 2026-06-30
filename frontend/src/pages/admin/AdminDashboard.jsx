@@ -264,7 +264,7 @@ export default function AdminDashboard() {
         if (path === '/admin/work-orders') return hasShortTerm
         if (path === '/admin/planning') return isScreeds
         if (path === '/admin/timesheets') return !tenantFeatures.includes('disable_timesheets')
-        if (path === '/admin/logistica') return isScreeds || tenantFeatures.includes('logistica')
+        if (path === '/admin/logistica') return tenantFeatures.includes('logistica')
         if (['/admin/fleet', '/admin/transport', '/admin/tracking'].includes(path)) return tenantFeatures.includes('fleet')
         if (['/admin/warehouse', '/admin/material-requests'].includes(path)) return tenantFeatures.includes('warehouse') || tenant?.has_warehouse === true
         if (path === '/admin/accommodations') return tenantFeatures.includes('accommodations')
