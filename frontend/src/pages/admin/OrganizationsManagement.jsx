@@ -244,7 +244,7 @@ export default function OrganizationsManagement() {
 
     const moduleOptions = [
         { id: 'timesheets', label: 'Pontaje' },
-        { id: 'screeds', label: 'Șape (Comenzi Montaj)' },
+        { id: 'screeds', label: 'Planificare & Comenzi (Șape)' },
         { id: 'sites', label: 'Șantiere (Termen Lung)' },
         { id: 'fleet', label: 'Parc Auto' },
         { id: 'warehouse', label: 'Magazie & Inventar' },
