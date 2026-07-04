@@ -311,6 +311,7 @@ function Lightbox({ url, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
+    const [showStation, setShowStation] = useState(false)
 
     // Parse access_notes in bullet lines
     const accessLines = (order.access_notes || '')
@@ -418,37 +419,53 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                             </span>
                                         </div>
                                         {bestStation && (
-                                            <div className="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-                                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                                    <MapPin className="w-3 h-3" /> Stație Nisip Recomandată
-                                                </p>
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-amber-900 dark:text-amber-400 leading-tight truncate">{bestStation.name}</p>
-                                                        {bestStation.address && <p className="text-[11px] font-medium text-amber-700 dark:text-amber-500/80 mt-0.5 line-clamp-2">{bestStation.address}</p>}
+                                            <div className="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 transition-all duration-200">
+                                                <div 
+                                                    className="flex items-center justify-between cursor-pointer select-none"
+                                                    onClick={() => setShowStation(!showStation)}
+                                                >
+                                                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-1.5 m-0">
+                                                        <MapPin className="w-3 h-3" /> Sugestie Stație Nisip
+                                                    </p>
+                                                    <button className="px-2.5 py-1 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-lg transition-colors shadow-sm">
+                                                        {showStation ? 'Ascunde' : 'Vezi Recomandare'}
+                                                    </button>
+                                                </div>
+                                                
+                                                {showStation && (
+                                                    <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-700/50">
+                                                        <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                            <CheckCircle2 className="w-3 h-3" /> Cea Recomandată
+                                                        </p>
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="min-w-0">
+                                                                <p className="text-sm font-bold text-amber-900 dark:text-amber-400 leading-tight truncate">{bestStation.name}</p>
+                                                                {bestStation.address && <p className="text-[11px] font-medium text-amber-700 dark:text-amber-500/80 mt-0.5 line-clamp-2">{bestStation.address}</p>}
+                                                            </div>
+                                                            <span className="shrink-0 bg-white dark:bg-slate-800 shadow-sm border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded">
+                                                                +{Math.max(0, minDistance - directDist).toFixed(1)} km deviere
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-2.5">
+                                                            <a 
+                                                                href={`https://waze.com/ul?ll=${bestStation.latitude},${bestStation.longitude}&navigate=yes`} 
+                                                                target="_blank" 
+                                                                rel="noreferrer"
+                                                                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-[#05C8F7] hover:bg-[#04b0d8] text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                                                            >
+                                                                Waze
+                                                            </a>
+                                                            <a 
+                                                                href={`https://www.google.com/maps/dir/?api=1&destination=${bestStation.latitude},${bestStation.longitude}&travelmode=driving`} 
+                                                                target="_blank" 
+                                                                rel="noreferrer"
+                                                                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                                                            >
+                                                                Google
+                                                            </a>
+                                                        </div>
                                                     </div>
-                                                    <span className="shrink-0 bg-white dark:bg-slate-800 shadow-sm border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded">
-                                                        +{Math.max(0, minDistance - directDist).toFixed(1)} km deviere
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-2.5">
-                                                    <a 
-                                                        href={`https://waze.com/ul?ll=${bestStation.latitude},${bestStation.longitude}&navigate=yes`} 
-                                                        target="_blank" 
-                                                        rel="noreferrer"
-                                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-[#05C8F7] hover:bg-[#04b0d8] text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
-                                                    >
-                                                        Waze
-                                                    </a>
-                                                    <a 
-                                                        href={`https://www.google.com/maps/dir/?api=1&destination=${bestStation.latitude},${bestStation.longitude}&travelmode=driving`} 
-                                                        target="_blank" 
-                                                        rel="noreferrer"
-                                                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
-                                                    >
-                                                        Google
-                                                    </a>
-                                                </div>
+                                                )}
                                             </div>
                                         )}
                                     </>
