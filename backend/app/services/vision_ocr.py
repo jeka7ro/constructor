@@ -11,10 +11,11 @@ def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = Non
     Extracts 'Zand' (Sand) and 'Cement' values from a Bremat machine screen photo.
     Returns a dict with: sand_kg, cement_kg.
     """
-    api_key = os.environ.get("OPENAI_API_KEY")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     
-    # MOCK MODE (daca nu exista cheie API configurata)
-    if not api_key:
+    # MOCK MODE (daca nu exista nicio cheie API configurata)
+    if not openai_key and not gemini_key:
         print("🤖 [OCR] MOCK MODE: Returnam valori simulate pentru ecran Bremat.")
         return {
             "sand_kg": 19562,
@@ -29,38 +30,62 @@ def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = Non
             base64_image = base64.b64encode(image_bytes).decode('utf-8')
         else:
             base64_image = encode_image_to_base64(image_path)
-        
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        }
+            
+        prompt_text = "Extrage exact numerele pentru 'Zand' (atât kg cât și m³) și 'Cement' (kg) afișate pe acest ecran de mașină Bremat. Răspunde strict cu un JSON valid fără markdown: {\"sand_kg\": 12345, \"sand_m3\": 12.5, \"cement_kg\": 456}."
 
-        payload = {
-            "model": "gpt-4o",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Extrage exact numerele pentru 'Zand' (atât kg cât și m³) și 'Cement' (kg) afișate pe acest ecran de mașină Bremat. Răspunde strict cu un JSON valid fără markdown: {\"sand_kg\": 12345, \"sand_m3\": 12.5, \"cement_kg\": 456}."
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
+        if gemini_key:
+            # --- GEMINI API ---
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt_text},
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": base64_image
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "responseMimeType": "application/json"
                 }
-            ],
-            "max_tokens": 100
-        }
+            }
+            response = requests.post(url, json=payload)
+            data = response.json()
+            if "error" in data:
+                raise Exception(data["error"].get("message", str(data)))
+            content = data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            # --- OPENAI API ---
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {openai_key}"
+            }
+            payload = {
+                "model": "gpt-4o",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt_text},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                        ]
+                    }
+                ],
+                "max_tokens": 100
+            }
+            response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+            data = response.json()
+            if "error" in data:
+                raise Exception(data["error"].get("message", str(data)))
+            content = data['choices'][0]['message']['content']
 
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-        data = response.json()
-        content = data['choices'][0]['message']['content']
-        # remove markdown backticks if any
+        # Clean JSON markdown if necessary
         if content.startswith("```json"):
             content = content[7:-3]
         elif content.startswith("```"):
@@ -71,5 +96,5 @@ def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = Non
         return parsed
 
     except Exception as e:
-        print(f"❌ [OCR] Eroare la OpenAI: {e}")
-        return {"sand_kg": None, "cement_kg": None, "status": "error", "error": str(e)}
+        print(f"❌ [OCR] Eroare la API: {e}")
+        return {"sand_kg": None, "sand_m3": None, "cement_kg": None, "status": "error", "error": str(e)}
