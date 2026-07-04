@@ -1372,6 +1372,9 @@ export default function WorkerOrdersPage() {
                 if (res.data.ocr_data.cement_kg) {
                     setActualCement(res.data.ocr_data.cement_kg)
                 }
+                if (res.data.ocr_data.status === 'error') {
+                    showToast(`Eroare OCR: ${res.data.ocr_data.error}`, 'error')
+                }
             }
             
             await fetchOrderPhotos(selected.id)
@@ -1472,6 +1475,9 @@ export default function WorkerOrdersPage() {
                 }
                 if (res.data.ocr_data.cement_kg) {
                     setActualCement(res.data.ocr_data.cement_kg)
+                }
+                if (res.data.ocr_data.status === 'error') {
+                    showToast(`Eroare OCR: ${res.data.ocr_data.error}`, 'error')
                 }
             }
         } catch (e) {

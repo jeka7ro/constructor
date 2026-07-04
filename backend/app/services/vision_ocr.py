@@ -35,7 +35,7 @@ def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = Non
 
         if gemini_key:
             # --- GEMINI API ---
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
             payload = {
                 "contents": [
                     {
