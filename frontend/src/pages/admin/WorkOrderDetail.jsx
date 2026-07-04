@@ -804,7 +804,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             </div>
                                         </Section>
                     {(() => {
-                        const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0;
+                        const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0 || wo.actual_surface_m2 || wo.actual_sand_quantity;
                         const sectionTitle = hasConsumed 
                             ? t('work_order_detail.materials_volumes.title', "Cantități & Materiale (Estimate vs Consumate)")
                             : t('work_order_detail.materials_volumes.title_no_consumed', "Cantități & Materiale (Estimate)");
@@ -860,8 +860,28 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                                                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'Consumat Efectiv')}</p>
                                                             </div>
-                                                    <div className="space-y-1.5 mb-4">
-                                                        {wo.materials_consumed.filter(m => m.name).map((m, i) => (
+                                                            <div className="space-y-1.5 mb-4">
+                                                                {wo.actual_surface_m2 && (
+                                                                    <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
+                                                                        <div>
+                                                                            <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Suprafață Confirmată</span>
+                                                                            <p className="text-xs text-emerald-600">Raportat de echipă</p>
+                                                                        </div>
+                                                                        <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 ml-3 shrink-0">{wo.actual_surface_m2} m²</span>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {wo.actual_sand_quantity && (
+                                                                    <div className="flex items-center justify-between px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                                                                        <div>
+                                                                            <span className="text-sm font-bold text-amber-800 dark:text-amber-300">Nisip (kg)</span>
+                                                                            <p className="text-xs text-amber-600">Raportat de echipă</p>
+                                                                        </div>
+                                                                        <span className="text-sm font-extrabold text-amber-700 dark:text-amber-400 ml-3 shrink-0">{wo.actual_sand_quantity} kg</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {(wo.materials_consumed || []).filter(m => m.name).map((m, i) => (
                                                             <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/30">
                                                                 <div>
                                                                     <span className="text-sm font-bold text-amber-800 dark:text-amber-300">{m.name}</span>

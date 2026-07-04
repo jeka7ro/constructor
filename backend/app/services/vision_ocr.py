@@ -18,6 +18,7 @@ def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = Non
         print("🤖 [OCR] MOCK MODE: Returnam valori simulate pentru ecran Bremat.")
         return {
             "sand_kg": 19562,
+            "sand_m3": 12.5,
             "cement_kg": 2306,
             "status": "mock"
         }
@@ -42,7 +43,7 @@ def extract_machine_screen_data(image_path: str = None, image_bytes: bytes = Non
                     "content": [
                         {
                             "type": "text",
-                            "text": "Extrage exact numerele pentru 'Zand' (kg) și 'Cement' (kg) afișate pe acest ecran de mașină Bremat. Răspunde strict cu un JSON valid fără markdown: {\"sand_kg\": 123, \"cement_kg\": 456}."
+                            "text": "Extrage exact numerele pentru 'Zand' (atât kg cât și m³) și 'Cement' (kg) afișate pe acest ecran de mașină Bremat. Răspunde strict cu un JSON valid fără markdown: {\"sand_kg\": 12345, \"sand_m3\": 12.5, \"cement_kg\": 456}."
                         },
                         {
                             "type": "image_url",

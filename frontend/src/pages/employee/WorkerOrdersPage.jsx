@@ -1006,7 +1006,7 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
                 
                 {ocrData && ocrData.status === 'success' && (
                     <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
-                        ✅ Verificat AI: <strong>Nisip: {ocrData.sand_kg}kg</strong> | Ciment: {ocrData.cement_kg}kg
+                        ✅ Verificat AI: <strong>Nisip: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
                     </div>
                 )}
 
@@ -1023,7 +1023,7 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualSand, setActualSand, onReopen }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen }) {
     const isCompleted = order.status === 'completed'
 
     return (
@@ -1072,7 +1072,7 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip folosită</label>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip folosită (kg)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -1080,6 +1080,30 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                     value={actualSand}
                                     onChange={(e) => setActualSand(e.target.value)}
                                     placeholder="Ex: 8500"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip folosită (m³)</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    step="0.01"
+                                    value={actualSandM3}
+                                    onChange={(e) => setActualSandM3(e.target.value)}
+                                    placeholder="Ex: 5.5"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate ciment folosită (kg)</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    step="0.01"
+                                    value={actualCement}
+                                    onChange={(e) => setActualCement(e.target.value)}
+                                    placeholder="Ex: 1200"
                                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                 />
                             </div>
@@ -1147,6 +1171,8 @@ export default function WorkerOrdersPage() {
     const [location, setLocation]     = useState(null)
     const [actualSurface, setActualSurface] = useState('')
     const [actualSand, setActualSand] = useState('')
+    const [actualSandM3, setActualSandM3] = useState('')
+    const [actualCement, setActualCement] = useState('')
     const [ocrData, setOcrData]       = useState(null)
     const [sandStations, setSandStations] = useState([])
 
@@ -1318,6 +1344,12 @@ export default function WorkerOrdersPage() {
                 if (res.data.ocr_data.sand_kg) {
                     setActualSand(res.data.ocr_data.sand_kg) // autofill
                 }
+                if (res.data.ocr_data.sand_m3) {
+                    setActualSandM3(res.data.ocr_data.sand_m3)
+                }
+                if (res.data.ocr_data.cement_kg) {
+                    setActualCement(res.data.ocr_data.cement_kg)
+                }
             }
             
             await fetchOrderPhotos(selected.id)
@@ -1361,7 +1393,11 @@ export default function WorkerOrdersPage() {
         setClosing(true)
         try {
             const res = await api.post(`/worker/orders/${selected.id}/close`, {
-                materials_consumed: selected.materials_consumed || [],
+                materials_consumed: [
+                    ...(selected.materials_consumed || []),
+                    ...(actualSandM3 ? [{ name: 'Nisip (m³)', quantity: parseFloat(actualSandM3), unit: 'm³' }] : []),
+                    ...(actualCement ? [{ name: 'Ciment', quantity: parseFloat(actualCement), unit: 'kg' }] : [])
+                ],
                 volumes: selected.volumes || [],
                 actual_surface_m2: parseFloat(actualSurface) || null,
                 actual_sand_quantity: parseFloat(actualSand) || null,
@@ -1558,6 +1594,10 @@ export default function WorkerOrdersPage() {
                         setActualSurface={setActualSurface}
                         actualSand={actualSand}
                         setActualSand={setActualSand}
+                        actualSandM3={actualSandM3}
+                        setActualSandM3={setActualSandM3}
+                        actualCement={actualCement}
+                        setActualCement={setActualCement}
                         onReopen={handleReopen}
                     />
                 )}
