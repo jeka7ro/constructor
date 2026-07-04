@@ -24,7 +24,7 @@ import {
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
     Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home,
-    FileText, ExternalLink
+    FileText, ExternalLink, Loader2
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
