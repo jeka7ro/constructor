@@ -450,6 +450,52 @@ async def upload_photo(
     }
 
 
+@router.post("/{order_id}/photos/{photo_id}/re-ocr")
+def re_ocr_photo(
+    order_id: str,
+    photo_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Reface analiza OCR pentru o poza existenta (calculator masina)."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == order_id,
+        WorkOrder.organization_id == current_user.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost gasita.")
+
+    photo = db.query(WorkOrderPhoto).filter(
+        WorkOrderPhoto.id == photo_id,
+        WorkOrderPhoto.work_order_id == order_id
+    ).first()
+    
+    if not photo:
+        raise HTTPException(status_code=404, detail="Poza nu a fost gasita.")
+
+    from app.storage import get_file_url
+    import requests
+    
+    url = get_file_url(photo.photo_path)
+    try:
+        res = requests.get(url)
+        res.raise_for_status()
+        content = res.content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Eroare la descarcarea pozei: {str(e)}")
+
+    from app.services.vision_ocr import extract_machine_screen_data
+    ocr_data = extract_machine_screen_data(image_bytes=content)
+    
+    if ocr_data and (ocr_data.get('status') == 'success' or ocr_data.get('status') == 'mock'):
+        if ocr_data.get('sand_kg') is not None:
+            wo.ai_sand_kg = ocr_data['sand_kg']
+        if ocr_data.get('cement_kg') is not None:
+            wo.ai_cement_kg = ocr_data['cement_kg']
+        db.commit()
+
+    return {"ocr_data": ocr_data, "message": "Analiza AI completată."}
+
 @router.get("/{order_id}/photos")
 def get_photos(
     order_id: str,

@@ -1023,7 +1023,7 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen, isReanalyzing, onReanalyze }) {
     const isCompleted = order.status === 'completed'
 
     return (
@@ -1056,6 +1056,28 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                             </div>
                         </div>
                     </div>
+
+                    {machinePhotos.length > 0 && (
+                        <div className="flex justify-end mb-4">
+                            <button
+                                onClick={onReanalyze}
+                                disabled={isReanalyzing}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold border border-blue-200 active:bg-blue-100 disabled:opacity-50 transition-colors"
+                            >
+                                {isReanalyzing ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        Analizează...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                        Re-analizează Poza cu AI
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
 
                     <Section label="Date Măsurători Lucrare (OBLIGATORIU)">
                         <div className="space-y-3">
@@ -1429,6 +1451,36 @@ export default function WorkerOrdersPage() {
         })
     }
 
+    const [isReanalyzing, setIsReanalyzing] = useState(false)
+
+    const handleReanalyzeOCR = async () => {
+        const machinePhoto = machinePhotos[0]
+        if (!machinePhoto) return
+        
+        setIsReanalyzing(true)
+        try {
+            const res = await api.post(`/worker/orders/${selected.id}/photos/${machinePhoto.id}/re-ocr`)
+            showToast('Analiza AI completată cu succes.', 'success')
+            
+            if (res.data?.ocr_data) {
+                setOcrData(res.data.ocr_data)
+                if (res.data.ocr_data.sand_kg) {
+                    setActualSand(res.data.ocr_data.sand_kg)
+                }
+                if (res.data.ocr_data.sand_m3) {
+                    setActualSandM3(res.data.ocr_data.sand_m3)
+                }
+                if (res.data.ocr_data.cement_kg) {
+                    setActualCement(res.data.ocr_data.cement_kg)
+                }
+            }
+        } catch (e) {
+            showToast(e.response?.data?.detail || 'Eroare la re-analiza pozei.', 'error')
+        } finally {
+            setIsReanalyzing(false)
+        }
+    }
+
     // DELETE PHOTO
     const handleDeletePhoto = async (photoId) => {
         setConfirmDialog({
@@ -1599,6 +1651,8 @@ export default function WorkerOrdersPage() {
                         actualCement={actualCement}
                         setActualCement={setActualCement}
                         onReopen={handleReopen}
+                        isReanalyzing={isReanalyzing}
+                        onReanalyze={handleReanalyzeOCR}
                     />
                 )}
             </div>
