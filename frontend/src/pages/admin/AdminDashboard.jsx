@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -185,6 +185,7 @@ export default function AdminDashboard() {
                 { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistică') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Comenzi') },
+                { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Istoric Isoflex') },
                 { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tabel calcul') },
                 { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
                 { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
@@ -257,7 +258,7 @@ export default function AdminDashboard() {
     const tenantFeatures = tenant?.features || []
     const hasLongTerm = tenant?.has_long_term_sites !== false
     const hasShortTerm = tenant?.has_short_term_interventions === true
-    const isScreeds = tenantFeatures.includes('screeds') === true || tenant?.name?.toLowerCase().includes('davide')
+    const isScreeds = hasShortTerm || tenantFeatures.includes('screeds') === true || tenant?.name?.toLowerCase().includes('davide')
 
     const isFeatureEnabled = (path) => {
         if (['/admin/sites', '/admin/site-photos'].includes(path)) return hasLongTerm
@@ -342,6 +343,7 @@ export default function AdminDashboard() {
         const p = location.pathname;
         if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
         if (p.includes('/logistica')) return t('nav.logistics', 'Logistică');
+        if (p.includes('/isoflex-history')) return t('nav.isoflex_history', 'Istoric Isoflex');
         if (p.includes('/work-orders')) return t('nav.work_orders', 'Comenzi');
         if (p.includes('/screed-analytics')) return t('nav.screed_analytics', 'Tabel calcul');
         if (p.includes('/timesheets')) return t('nav.timesheets', 'Pontaje');

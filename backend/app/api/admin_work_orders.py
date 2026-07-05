@@ -1149,3 +1149,148 @@ def update_materials_consumed(
         "materials_consumed": wo.materials_consumed or [],
         "deducted_from_stock": deducted_items
     }
+
+
+# ─── ISTORIC ISOFLEX — fetch direct din Robaws API, fără import în DB ──────────
+
+@router.get("/work-orders/robaws-history")
+def get_robaws_history(
+    team_id: Optional[str] = None,
+    page: int = 0,
+    limit: int = 50,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Returnează lucrările direct din API-ul Robaws pentru echipele organizației.
+    Nu salvează nimic în baza de date locală.
+    """
+    import requests as _req
+
+    org_id = current_admin.organization_id
+    if not org_id:
+        raise HTTPException(status_code=403, detail="No organization")
+
+    # Preluăm echipele cu chei Robaws
+    teams_query = db.query(Team).filter(
+        Team.organization_id == org_id,
+        Team.is_active == True,
+        Team.robaws_email != None,
+        Team.robaws_email != ""
+    )
+    if team_id:
+        teams_query = teams_query.filter(Team.id == team_id)
+
+    teams_list = teams_query.all()
+
+    all_items = []
+    teams_meta = []
+
+    for team in teams_list:
+        api_key = team.robaws_email
+        api_secret = team.robaws_password
+        if not api_key or not api_secret:
+            continue
+
+        try:
+            offset = page * limit
+            url = f"https://app.robaws.com/api/v2/work-orders?limit={limit}&offset={offset}&include=lineItems"
+            r = _req.get(
+                url,
+                auth=(api_key, api_secret),
+                headers={"Accept": "application/json"},
+                timeout=15
+            )
+            if r.status_code != 200:
+                teams_meta.append({
+                    "team_id": str(team.id),
+                    "team_name": team.name,
+                    "error": f"HTTP {r.status_code}",
+                    "total": 0
+                })
+                continue
+
+            data = r.json()
+            total_items = data.get("totalItems", 0)
+            total_pages = data.get("totalPages", 1)
+            items = data.get("items", [])
+
+            for item in items:
+                # Extrage adresa
+                addr_obj = item.get("address") or {}
+                addr_parts = []
+                if addr_obj.get("addressLine1"): addr_parts.append(addr_obj["addressLine1"])
+                if addr_obj.get("postalCode"):   addr_parts.append(addr_obj["postalCode"])
+                if addr_obj.get("city"):         addr_parts.append(addr_obj["city"])
+                address = ", ".join(addr_parts)
+
+                # Extrage client
+                client_obj = item.get("client") or {}
+                client_name = client_obj.get("name", "") if isinstance(client_obj, dict) else ""
+
+                # Extrage line items
+                line_items = item.get("lineItems", [])
+                total_volume = 0.0
+                materials_found = []
+                for li in line_items:
+                    qty = float(li.get("quantity") or 0)
+                    unit = (li.get("unitType") or "").lower()
+                    desc = (li.get("description") or "")
+                    if unit in ["m2", "m²", "m3", "m³"]:
+                        total_volume += qty
+                    if desc:
+                        materials_found.append(f"{desc} ({qty} {unit})" if qty else desc)
+
+                # Verifică dacă există deja în DB
+                ext_id = str(item.get("id", ""))
+                in_db = db.query(WorkOrder.id).filter(
+                    WorkOrder.external_id == ext_id,
+                    WorkOrder.organization_id == org_id
+                ).first() is not None
+
+                all_items.append({
+                    "ext_id": ext_id,
+                    "robaws_nr": item.get("number") or item.get("id"),
+                    "title": item.get("title", ""),
+                    "date": item.get("date"),
+                    "client_name": client_name,
+                    "address": address,
+                    "status": item.get("status", ""),
+                    "total_volume": round(total_volume, 2),
+                    "materials_summary": "; ".join(materials_found[:3]),
+                    "assignee": item.get("assignee", {}).get("name", "") if isinstance(item.get("assignee"), dict) else "",
+                    "team_id": str(team.id),
+                    "team_name": team.name,
+                    "in_db": in_db,
+                    "raw": {
+                        "latitude": addr_obj.get("latitude"),
+                        "longitude": addr_obj.get("longitude"),
+                        "notes": item.get("description") or item.get("notes") or "",
+                    }
+                })
+
+            teams_meta.append({
+                "team_id": str(team.id),
+                "team_name": team.name,
+                "total": total_items,
+                "total_pages": total_pages,
+                "fetched": len(items)
+            })
+
+        except Exception as e:
+            teams_meta.append({
+                "team_id": str(team.id),
+                "team_name": team.name,
+                "error": str(e),
+                "total": 0
+            })
+
+    # Sortare după dată descrescător
+    all_items.sort(key=lambda x: x.get("date") or "", reverse=True)
+
+    return {
+        "items": all_items,
+        "teams": teams_meta,
+        "page": page,
+        "limit": limit,
+    }

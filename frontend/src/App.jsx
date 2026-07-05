@@ -45,6 +45,7 @@ const ComplaintsManagement = lazy(() => import('./pages/admin/ComplaintsManageme
 const AccommodationsManagement = lazy(() => import('./pages/admin/AccommodationsManagement'))
 const LeavesManagement = lazy(() => import('./pages/admin/LeavesManagement'))
 const ExpensesManagement = lazy(() => import('./pages/admin/ExpensesManagement'))
+const IsoflexHistory = lazy(() => import('./pages/admin/IsoflexHistory'))
 const AdminMaterialRequests = lazy(() => import('./pages/admin/AdminMaterialRequests'))
 const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
@@ -294,6 +295,7 @@ function App() {
                                 <Route path="alerts" element={<AlertsManagement />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                         <Route path="work-orders" element={<WorkOrders />} />
+                        <Route path="isoflex-history" element={<IsoflexHistory />} />
                         <Route path="work-orders/new" element={<WorkOrderForm />} />
                         <Route path="work-orders/:id" element={<WorkOrderDetail />} />
                         <Route path="work-orders/:id/edit" element={<WorkOrderForm />} />
