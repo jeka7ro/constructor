@@ -178,8 +178,13 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     // Items array from config or default fallback
+    let shouldUseFallback = !pData?.items || pData.items.length === 0;
+    if (pData?.items?.length === 1 && (pData.items[0].id === 'default' || String(pData.items[0].desc).includes('Lucrări conform deviz') || String(pData.items[0].desc).includes('Manoperă'))) {
+        shouldUseFallback = true;
+    }
+
     // Try translating items on the fly if desc isn't hardcoded or uses translation keys
-    const items = pData?.items?.length > 0 ? pData.items.map(item => {
+    const items = !shouldUseFallback ? pData.items.map(item => {
         let newDesc = item.desc;
         const match = newDesc?.match(/^(proforma\.items\.[a-zA-Z0-9_]+)(.*)$/);
         if (match) {
