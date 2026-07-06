@@ -42,7 +42,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                 ref={btnRef} 
                 onClick={toggle} 
                 className="p-1.5 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors border border-slate-200 shadow-sm"
-                title="Meniu Acțiuni"
+                title={t('invoicing.menu_actions', 'Meniu Acțiuni')}
             >
                 <MoreVertical className="w-4 h-4" />
             </button>
@@ -61,21 +61,21 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <FileOutput className="w-4 h-4 text-slate-400" />
-                                Descarcă / Vezi PDF
+                                {t('invoicing.view_pdf', 'Descarcă / Vezi PDF')}
                             </a>
                             <button 
                                 onClick={() => { onEdit(wo); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <Pencil className="w-4 h-4 text-slate-400" />
-                                Editează Document
+                                {t('invoicing.edit_doc', 'Editează Document')}
                             </button>
                             <button
                                 onClick={() => { onCopyLink(wo); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                                Copiază Link Client
+                                {t('invoicing.copy_link', 'Copiază Link Client')}
                             </button>
 
                             {!wo.is_invoiced ? (
@@ -84,7 +84,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                                     className="w-full text-left px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
                                 >
                                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                    Marchează Facturată
+                                    {t('invoicing.mark_invoiced', 'Marchează Facturată')}
                                 </button>
                             ) : (
                                 <button
@@ -92,7 +92,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
                                 >
                                     <XCircle className="w-4 h-4 text-red-500" />
-                                    Storno / Anulează Factura
+                                    {t('invoicing.storno', 'Storno / Anulează Factura')}
                                 </button>
                             )}
                         </>
@@ -102,7 +102,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                             className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                         >
                             <FileOutput className="w-4 h-4 text-slate-400" />
-                            Generează Proformă
+                            {t('invoicing.generate_proforma', 'Generează Proformă')}
                         </button>
                     )}
                     
@@ -114,7 +114,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                         className="w-full text-left px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-2"
                     >
                         <ExternalLink className="w-4 h-4 text-slate-400" />
-                        Vezi Detalii Lucrare
+                        {t('invoicing.view_details', 'Vezi Detalii Lucrare')}
                     </a>
                 </div>,
                 document.body
