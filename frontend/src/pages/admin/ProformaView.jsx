@@ -94,7 +94,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         if (wo.client_phone) parts.push(wo.client_phone);
         
         const cui = wo.client_cui || wo.client_company_vat || wo.client?.cui || wo.client?.company_vat;
-        if (cui) parts.push(`VAT: ${cui}`);
+        if (cui) parts.push(`N° TVA: ${cui}`);
         
         const reg = wo.client_reg_com || wo.client?.reg_com || wo.client?.company_reg_number;
         if (reg) parts.push(`Reg: ${reg}`);
@@ -169,13 +169,15 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">FURNIZORI</h3>
                         <p className="font-bold text-slate-800 text-base mb-1">{tenant?.name || 'Davide Chape SRL'}</p>
                         <div className="text-sm text-slate-600 leading-snug">
-                            <p>VAT: BE 0785.292.895</p>
+                            <p>TVA: BE 0785.292.895</p>
                             <p>Gemeentehuisstraat 27/5, 1740 Ternat</p>
+                            <p>Flandre, Belgique</p>
                         </div>
                     </div>
                     <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-2xl p-4 text-right print:border-none print:shadow-none print:p-0 print:pl-4">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">À L'ATTENTION DE</h3>
                         <p className="font-bold text-slate-800 text-base mb-1">{cName || tL('client_none')}</p>
+                        <p className="text-sm font-bold text-slate-700 mt-2 mb-1">N° client: <span className="font-normal">{wo.client?.id || wo.client_id ? `CUST-${(wo.client?.id || wo.client_id).toString().substring(0, 5)}` : '-'}</span></p>
                         <p className="text-sm text-slate-600 whitespace-pre-wrap leading-snug">{cDetails}</p>
                     </div>
                 </div>
@@ -186,7 +188,8 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <th className="py-3 pr-4 text-left text-xs font-bold text-slate-500 uppercase w-[55%]">{tL('desc')}</th>
                             <th className="py-3 px-4 text-center text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('qty')}</th>
                             <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('price')}</th>
-                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('total')}</th>
+                            <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[10%]">TVA</th>
+                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">Sous-total (EUR)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -204,47 +207,76 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                     )}
                                 </td>
                                 <td className="py-4 px-4 text-center text-slate-600 align-top">{item.qty}</td>
-                                <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">€ {Number(item.price).toFixed(2)}</td>
-                                <td className="py-4 pl-4 text-right font-medium text-slate-800 whitespace-nowrap align-top">€ {(item.qty * item.price).toFixed(2)}</td>
+                                <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{Number(item.price).toFixed(2)}</td>
+                                <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</td>
+                                <td className="py-4 pl-4 text-right font-medium text-slate-800 whitespace-nowrap align-top">{(item.qty * item.price).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
 
                 <div className="flex justify-end mb-12">
-                    <div className="w-64 bg-slate-50 rounded-xl p-6 print:bg-transparent print:p-0">
+                    <div className="w-[450px] print:w-[350px]">
                         <div className="flex justify-between mb-2">
-                            <span className="text-sm text-slate-500">{tL('subtotal')}</span>
-                            <span className="font-medium text-slate-800 whitespace-nowrap">€ {priceRaw.toFixed(2)}</span>
+                            <span className="font-bold text-slate-800 text-sm">Sous-total:</span>
+                            <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{priceRaw.toFixed(2)} EUR</span>
                         </div>
                         {discountPct > 0 && (
                             <div className="flex justify-between mb-2 text-green-600">
-                                <span className="text-sm">Discount ({discountPct}%)</span>
-                                <span className="font-medium whitespace-nowrap">-€ {discountAmount.toFixed(2)}</span>
+                                <span className="font-bold text-sm">Discount ({discountPct}%)</span>
+                                <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                             </div>
                         )}
-                        <div className="flex justify-between mb-4 border-b border-slate-200 pb-2">
-                            <span className="text-sm text-slate-500">{tL('base')}</span>
-                            <span className="font-medium text-slate-800 whitespace-nowrap">€ {subtotal.toFixed(2)}</span>
-                        </div>
-                        {useVat && (
-                            <div className="flex justify-between mb-4">
-                                <span className="text-sm text-slate-500">{tL('vat')} ({vatRate}%)</span>
-                                <span className="font-medium text-slate-800 whitespace-nowrap">€ {vatAmount.toFixed(2)}</span>
+                        {useVat && vatRate > 0 ? (
+                            <div className="flex justify-between mb-6">
+                                <span className="font-bold text-slate-800 text-sm">TVA {vatRate}%:</span>
+                                <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{vatAmount.toFixed(2)} EUR</span>
+                            </div>
+                        ) : (
+                            <div className="mb-6">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="font-bold text-slate-800 text-sm">TVA 0,0% Autoliquidation:</span>
+                                    <div className="flex gap-12 items-center">
+                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{subtotal.toFixed(2)} EUR</span>
+                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">0,00 EUR</span>
+                                    </div>
+                                </div>
+                                <span className="text-sm text-slate-500 block w-full">Autoliquidation</span>
                             </div>
                         )}
                         <div className="flex justify-between pt-4 border-t border-slate-200">
-                            <span className="font-bold text-slate-800 uppercase text-sm">{tL('grand_total')}</span>
-                            <span className="text-xl font-black text-slate-900 whitespace-nowrap">€ {totalAmount.toFixed(2)}</span>
+                            <span className="font-bold text-slate-800 text-base">Total:</span>
+                            <span className="font-bold text-slate-800 whitespace-nowrap text-base">{totalAmount.toFixed(2)} EUR</span>
                         </div>
                     </div>
                 </div>
 
-                {!wo.is_invoiced && (
-                    <div className="text-xs text-slate-400 text-center mt-16 pt-8 border-t border-slate-100">
-                        <p>{tL('note')}</p>
+                {/* Info Bancaires & Commentaires */}
+                <div className="flex flex-col gap-4 mb-8">
+                    <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
+                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Informations bancaires</div>
+                        <div className="p-4 text-sm text-slate-700 leading-relaxed">
+                            <p>{tenant?.name || 'DAVIDE CHAPE'}</p>
+                            <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
+                            <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
+                            <br/>
+                            <p>Référence de Paiement: <span className="font-medium">{wo.is_invoiced ? (wo.invoice_number || '...') : `PF-${wo.id}`}</span></p>
+                        </div>
                     </div>
-                )}
+                    
+                    <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
+                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Commentaires</div>
+                        <div className="p-4 text-sm text-slate-700 leading-relaxed text-justify">
+                            Autoliquidation : en l’absence de contestation par écrit, dans un délai d’un mois à compter de la réception de la facture, le client est présumé reconnaître qu’il est un assujetti tenu au dépôt de déclarations périodiques. Si cette condition n’est pas remplie, le client endossera, par rapport à cette condition, la responsabilité quant au paiement de la taxe, des intérêts et des amendes dus (nouvel article 20, §3 AR n° 1).
+                        </div>
+                    </div>
+                </div>
+
+                <div className="text-sm text-slate-600 mt-auto pt-8 border-t border-slate-100">
+                    <p className="mb-1 uppercase">{tenant?.name || 'DAVIDE CHAPE'}, Gemeentehuisstraat 27/5, 1740, Ternat, Flandre, Belgique</p>
+                    <p className="mb-1">TVA: BE0785292895</p>
+                    <p>Téléphone: 0493.37.07.77 | Email: info@davidechape.be</p>
+                </div>
             </div>
 
             {!workOrderData && (
