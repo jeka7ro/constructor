@@ -85,7 +85,18 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     
     // Custom Client Fields
     const cName = pData?.clientName !== undefined ? pData.clientName : wo.client_name
-    const cDetails = pData?.clientDetails !== undefined ? pData.clientDetails : wo.client_email
+    let cDetails = pData?.clientDetails !== undefined ? pData.clientDetails : wo.client_email
+
+    // Retroactively patch old invoices that only saved the email in clientDetails
+    if (!cDetails || cDetails === wo.client_email) {
+        const parts = [];
+        if (wo.client_email) parts.push(wo.client_email);
+        if (wo.client_phone) parts.push(wo.client_phone);
+        if (wo.client_cui || wo.client_company_vat || wo.client?.company_vat) parts.push(`VAT: ${wo.client_cui || wo.client_company_vat || wo.client?.company_vat}`);
+        if (wo.client_reg_com || wo.client?.company_reg_number) parts.push(`Reg: ${wo.client_reg_com || wo.client?.company_reg_number}`);
+        if (wo.client_address || wo.client?.company_address || wo.site_address) parts.push(wo.client_address || wo.client?.company_address || wo.site_address);
+        cDetails = parts.join('\n');
+    }
 
     // Items array from config or default fallback
     // Try translating items on the fly if desc isn't hardcoded or uses translation keys (or just re-render when language changes)
