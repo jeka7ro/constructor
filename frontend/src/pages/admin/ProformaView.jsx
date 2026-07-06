@@ -131,60 +131,52 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     return (
         <div className="w-full min-h-full font-sans bg-slate-50 print:bg-white p-4 md:p-8">
             <div className="max-w-[800px] mx-auto bg-white p-8 md:p-12 shadow-sm rounded-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
-                <div className="flex justify-between items-start mb-8">
-                    {/* Left side: Supplier Info */}
-                    <div className="flex-1 pr-8">
+                {/* Header Top: Logo and Invoice Title */}
+                <div className="flex justify-between items-start mb-12">
+                    <div>
                         {tenant?.logo_url ? (
-                            <img src={tenant.logo_url} alt="Logo" className="h-16 object-contain mb-6" />
+                            <img src={tenant.logo_url} alt="Logo" className="h-16 object-contain" />
                         ) : (
-                            <div className="flex items-baseline gap-2 mb-6">
+                            <div className="flex items-baseline gap-2">
                                 <h1 className="text-3xl font-extrabold text-slate-800">{tenant?.name || 'Davide Chape'}</h1>
                                 <span className="text-lg font-bold text-slate-400">(SRL)</span>
                             </div>
                         )}
-                        <div className="text-sm text-slate-600 leading-relaxed">
-                            <p className="font-bold text-slate-800 mb-1">{tenant?.name || 'Davide Chape SRL'}</p>
-                            <p>VAT: BE 0785.292.895</p>
-                            <p>Gemeentehuisstraat 27/5, 1740 Ternat</p>
-                        </div>
                     </div>
-
-                    {/* Right side: Invoice Info & Client Info */}
-                    <div className="flex-1 pl-8 flex flex-col items-end">
-                        <div className="text-right mb-8">
-                            <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-3 leading-tight">
-                                {wo.is_invoiced ? (
-                                    tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
-                                ) : (
-                                    tL('proforma').split(' ').map((word, i, arr) => (
-                                        <React.Fragment key={i}>
-                                            {word}
-                                            {i < arr.length - 1 && <br />}
-                                        </React.Fragment>
-                                    ))
-                                )}
-                            </h2>
-                            <div className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg inline-block print:bg-transparent print:p-0">
-                                <p>{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
-                                <p>{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
-                            </div>
-                        </div>
-
-                        <div className="w-full bg-slate-50 print:bg-transparent p-5 rounded-xl border border-slate-100 print:border-none print:p-0 text-left">
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tL('to')}</h3>
-                            <p className="font-bold text-slate-800 text-lg">{cName || tL('client_none')}</p>
-                            <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap leading-relaxed">{cDetails}</p>
+                    <div className="text-right">
+                        <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-3 leading-tight">
+                            {wo.is_invoiced ? (
+                                tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
+                            ) : (
+                                tL('proforma').split(' ').map((word, i, arr) => (
+                                    <React.Fragment key={i}>
+                                        {word}
+                                        {i < arr.length - 1 && <br />}
+                                    </React.Fragment>
+                                ))
+                            )}
+                        </h2>
+                        <div className="text-sm text-slate-600">
+                            <p>{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
+                            <p>{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
                         </div>
                     </div>
                 </div>
 
-                {/* Site Address Box */}
-                <div className="mb-8 p-4 bg-blue-50/50 print:bg-transparent border border-blue-100 print:border-slate-200 rounded-xl print:rounded-none">
-                    <h3 className="text-[10px] font-bold text-blue-600 print:text-slate-500 uppercase tracking-wider mb-1">{tL('address')} (Chantier / Emplacement)</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                        <p className="font-semibold text-slate-800">{wo.site_name || tL('site_none')}</p>
-                        {wo.site_address && <span className="text-slate-400">•</span>}
-                        {wo.site_address && <p className="text-sm text-slate-600">{wo.site_address}</p>}
+                {/* Header Middle: Supplier and Client Details (Same Row, Same Format) */}
+                <div className="flex justify-between items-start mb-12">
+                    <div className="flex-1 pr-8">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">FURNIZORI</h3>
+                        <p className="font-bold text-slate-800 text-lg mb-1">{tenant?.name || 'Davide Chape SRL'}</p>
+                        <div className="text-sm text-slate-600 leading-relaxed">
+                            <p>VAT: BE 0785.292.895</p>
+                            <p>Gemeentehuisstraat 27/5, 1740 Ternat</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 pl-8">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">À L'ATTENTION DE</h3>
+                        <p className="font-bold text-slate-800 text-lg mb-1">{cName || tL('client_none')}</p>
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{cDetails}</p>
                     </div>
                 </div>
 
@@ -202,6 +194,14 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <tr key={item.id || idx} className="border-b border-slate-100">
                                 <td className="py-4">
                                     <p className="font-medium text-slate-800">{item.desc}</p>
+                                    {idx === 0 && (wo.site_name || wo.site_address) && (
+                                        <div className="mt-2 text-sm text-slate-500">
+                                            <span className="font-semibold">{tL('address')} (Chantier):</span>{' '}
+                                            {wo.site_name && <span>{wo.site_name}</span>}
+                                            {wo.site_name && wo.site_address && <span> - </span>}
+                                            {wo.site_address && <span>{wo.site_address}</span>}
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="py-4 text-right text-slate-600">{item.qty}</td>
                                 <td className="py-4 text-right text-slate-600 whitespace-nowrap">€ {Number(item.price).toFixed(2)}</td>
