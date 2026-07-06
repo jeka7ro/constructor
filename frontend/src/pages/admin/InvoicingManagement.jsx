@@ -344,7 +344,7 @@ export default function InvoicingManagement() {
             render: (wo) => {
                 if (wo.is_invoiced) {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap w-fit shrink-0">
                             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                             {t('invoicing.status_invoiced', 'Facturat')}
                         </span>
@@ -352,14 +352,18 @@ export default function InvoicingManagement() {
                 }
                 if (wo.proforma_path) {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-blue-600 whitespace-nowrap w-fit shrink-0">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-600 w-fit shrink-0">
                             <Clock className="w-3.5 h-3.5 shrink-0" />
-                            {t('invoicing.status_proforma', 'Proformă')}
+                            <span className="flex flex-col items-start leading-[1.1]">
+                                {t('invoicing.status_proforma', 'Proformă Emisă').split(' ').map((word, i) => (
+                                    <span key={i}>{word}</span>
+                                ))}
+                            </span>
                         </span>
                     )
                 }
                 return (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-600 whitespace-nowrap w-fit shrink-0">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap w-fit shrink-0">
                         <CircleDot className="w-3.5 h-3.5 shrink-0" />
                         {t('invoicing.status_notinvoiced', 'Nefacturat')}
                     </span>
@@ -377,7 +381,7 @@ export default function InvoicingManagement() {
                                 href={wo.proforma_path} 
                                 target="_blank" 
                                 rel="noreferrer"
-                                className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full transition-colors border border-indigo-200"
+                                className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
                                 title={t('invoicing.view_proforma', 'Descarcă/Vezi Proformă PDF')}
                             >
                                 <FileOutput className="w-4 h-4" />
@@ -394,17 +398,17 @@ export default function InvoicingManagement() {
                                         showToast("Token indisponibil pentru această lucrare.", 'error');
                                     }
                                 }}
-                                className="p-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-full transition-colors border border-green-200"
+                                className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
                                 title="Copiază link public client"
                             >
-                                {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                                {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-slate-800" /> : <Copy className="w-4 h-4" />}
                             </button>
                         </>
                     ) : (
                         <button 
                             onClick={() => handleOpenPreview(wo)}
                             disabled={wo.is_invoiced}
-                            className={`p-1.5 rounded-full transition-colors border ${wo.is_invoiced ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-700 border-blue-200 shadow-sm'}`}
+                            className={`p-1.5 rounded-full transition-colors border shadow-sm ${wo.is_invoiced ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'}`}
                             title={t('invoicing.preview_generate', 'Previzualizează & Generează Proformă')}
                         >
                             <FileOutput className="w-4 h-4" />
@@ -414,7 +418,7 @@ export default function InvoicingManagement() {
                     {!wo.is_invoiced && (
                         <button
                             onClick={() => handleMarkInvoiced(wo.id)}
-                            className="p-1.5 bg-white hover:bg-emerald-50 text-emerald-600 rounded-full transition-colors border border-emerald-200 shadow-sm"
+                            className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
                             title={t('invoicing.mark_final_invoice', 'Marchează ca facturată final (în Billtobox etc.)')}
                         >
                             <CheckCircle2 className="w-4 h-4" />
@@ -425,7 +429,7 @@ export default function InvoicingManagement() {
                         href={`/admin/work-orders/${wo.id}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors border border-transparent hover:border-slate-200"
+                        className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
                         title="Vezi detaliile lucrării (Tab nou)"
                     >
                         <ExternalLink className="w-4 h-4" />
