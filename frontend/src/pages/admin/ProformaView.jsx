@@ -180,19 +180,19 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     </div>
                 </div>
 
-                <table className="w-full mb-12">
+                <table className="w-full mb-12 table-fixed">
                     <thead>
                         <tr className="border-b-2 border-slate-200">
-                            <th className="py-3 text-left text-xs font-bold text-slate-500 uppercase">{tL('desc')}</th>
-                            <th className="py-3 text-right text-xs font-bold text-slate-500 uppercase">{tL('qty')}</th>
-                            <th className="py-3 text-right text-xs font-bold text-slate-500 uppercase">{tL('price')}</th>
-                            <th className="py-3 text-right text-xs font-bold text-slate-500 uppercase">{tL('total')}</th>
+                            <th className="py-3 pr-4 text-left text-xs font-bold text-slate-500 uppercase w-[55%]">{tL('desc')}</th>
+                            <th className="py-3 px-4 text-center text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('qty')}</th>
+                            <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('price')}</th>
+                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('total')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map((item, idx) => (
                             <tr key={item.id || idx} className="border-b border-slate-100">
-                                <td className="py-4">
+                                <td className="py-4 pr-4 align-top">
                                     <p className="font-medium text-slate-800">{item.desc}</p>
                                     {idx === 0 && (wo.site_name || wo.site_address) && (
                                         <div className="mt-2 text-sm text-slate-500">
@@ -203,9 +203,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                         </div>
                                     )}
                                 </td>
-                                <td className="py-4 text-right text-slate-600">{item.qty}</td>
-                                <td className="py-4 text-right text-slate-600 whitespace-nowrap">€ {Number(item.price).toFixed(2)}</td>
-                                <td className="py-4 text-right font-medium text-slate-800 whitespace-nowrap">€ {(item.qty * item.price).toFixed(2)}</td>
+                                <td className="py-4 px-4 text-center text-slate-600 align-top">{item.qty}</td>
+                                <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">€ {Number(item.price).toFixed(2)}</td>
+                                <td className="py-4 pl-4 text-right font-medium text-slate-800 whitespace-nowrap align-top">€ {(item.qty * item.price).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
