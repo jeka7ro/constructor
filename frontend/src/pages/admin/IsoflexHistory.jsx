@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-    History, RefreshCw, ExternalLink, ChevronLeft, ChevronRight,
+    RefreshCw, ExternalLink, ChevronLeft, ChevronRight,
     MapPin, User, Calendar, Package, Building2, Search, X,
-    CheckCircle2, Clock, AlertCircle, Filter, ChevronDown
+    CheckCircle2, Clock, AlertCircle
 } from 'lucide-react'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
@@ -122,25 +123,28 @@ function InfoRow({ icon, label, value }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function IsoflexHistory() {
+    const navigate = useNavigate()
     const [items, setItems] = useState([])
     const [teamsMeta, setTeamsMeta] = useState([])
     const [loading, setLoading] = useState(false)
+    const [syncing, setSyncing] = useState(false)
     const [error, setError] = useState(null)
     const [page, setPage] = useState(0)
     const [filterTeam, setFilterTeam] = useState('all')
     const [search, setSearch] = useState('')
-    const [selectedItem, setSelectedItem] = useState(null)
+
     const [showOnlyNew, setShowOnlyNew] = useState(false)
 
-    const LIMIT = 50
+    const LIMIT = 200
 
+    // Citește din cache (instant)
     const load = useCallback(async (p = 0, teamId = 'all') => {
         setLoading(true)
         setError(null)
         try {
             const params = { page: p, limit: LIMIT }
             if (teamId !== 'all') params.team_id = teamId
-            const res = await api.get('/admin/work-orders/robaws-history', { params })
+            const res = await api.get('/admin/robaws-history', { params })
             setItems(res.data.items || [])
             setTeamsMeta(res.data.teams || [])
             setPage(p)
@@ -151,7 +155,46 @@ export default function IsoflexHistory() {
         }
     }, [])
 
-    useEffect(() => { load(0, filterTeam) }, [])
+    // Sync din Robaws API (mai lent, apoi reîncarcă)
+    const syncFromRobaws = useCallback(async () => {
+        setSyncing(true)
+        setError(null)
+        try {
+            await api.post('/admin/sync-robaws')
+            await load(0, filterTeam)
+        } catch (e) {
+            setError(e.response?.data?.detail || 'Eroare la sincronizare')
+        } finally {
+            setSyncing(false)
+        }
+    }, [filterTeam, load])
+
+    // Prima încărcare: citește din cache. Dacă e gol, sync automat.
+    useEffect(() => {
+        (async () => {
+            setLoading(true)
+            try {
+                const res = await api.get('/admin/robaws-history', { params: { page: 0, limit: LIMIT } })
+                const items = res.data.items || []
+                setItems(items)
+                setTeamsMeta(res.data.teams || [])
+                // Cache gol → sync automat
+                if (items.length === 0) {
+                    setSyncing(true)
+                    await api.post('/admin/sync-robaws')
+                    const res2 = await api.get('/admin/robaws-history', { params: { page: 0, limit: LIMIT } })
+                    setItems(res2.data.items || [])
+                    setTeamsMeta(res2.data.teams || [])
+                    setSyncing(false)
+                }
+            } catch (e) {
+                setError(e.response?.data?.detail || 'Eroare')
+            } finally {
+                setLoading(false)
+                setSyncing(false)
+            }
+        })()
+    }, [])
 
     const handleTeamChange = (val) => {
         setFilterTeam(val)
@@ -177,15 +220,7 @@ export default function IsoflexHistory() {
     const newCount = items.filter(i => !i.in_db).length
 
     const columns = [
-        {
-            key: 'nr',
-            label: 'Nr.',
-            render: (_, idx) => (
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
-                    {idx + 1 + page * LIMIT}
-                </span>
-            )
-        },
+
         {
             key: 'date',
             label: 'Dată',
@@ -253,54 +288,52 @@ export default function IsoflexHistory() {
     ]
 
     return (
-        <div className="p-4 md:p-6 space-y-5">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-                        <History size={18} className="text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Istoric Isoflex</h1>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Lucrări din Robaws • {totalInRobaws > 0 ? `${totalInRobaws} total` : '—'} • <span className="text-amber-600 dark:text-amber-400">{newCount} neimportate</span>
-                        </p>
-                    </div>
-                </div>
-                <button
-                    onClick={() => load(page, filterTeam)}
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-                    Reîmprospătează
-                </button>
-            </div>
-
-            {/* Teams status */}
-            {teamsMeta.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    {teamsMeta.map(t => (
-                        <div key={t.team_id} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${t.error ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400' : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}>
-                            {t.error ? <AlertCircle size={11} /> : <CheckCircle2 size={11} className="text-emerald-500" />}
-                            <span className="font-medium">{t.team_name}</span>
-                            {!t.error && <span className="text-slate-400 dark:text-slate-500">• {t.total}</span>}
-                            {t.error && <span>• {t.error}</span>}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Filters */}
+        <div className="p-4 md:p-6 space-y-4">
+            {/* Single compact filter bar: teams + search + filters + refresh */}
             <div className="flex flex-wrap items-center gap-2">
+                {/* Team badge filters */}
+                {teamsMeta.length > 0 && (
+                    <>
+                        <button
+                            onClick={() => handleTeamChange('all')}
+                            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${filterTeam === 'all'
+                                ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-400/30'
+                                : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            <span className="font-medium">Toate</span>
+                            <span className="text-slate-400 dark:text-slate-500">• {totalInRobaws}</span>
+                        </button>
+                        {teamsMeta.map(t => (
+                            <button
+                                key={t.team_id}
+                                onClick={() => handleTeamChange(t.team_id)}
+                                className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${filterTeam === String(t.team_id)
+                                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-400/30'
+                                    : t.error
+                                        ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'
+                                        : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                }`}
+                            >
+                                {t.error ? <AlertCircle size={11} /> : <CheckCircle2 size={11} className="text-emerald-500" />}
+                                <span className="font-medium">{t.team_name}</span>
+                                {!t.error && <span className="text-slate-400 dark:text-slate-500">• {t.total}</span>}
+                            </button>
+                        ))}
+                    </>
+                )}
+
+                {/* Spacer */}
+                <div className="flex-1 min-w-[8px]" />
+
                 {/* Search */}
-                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <div className="relative min-w-[180px] max-w-[260px]">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Caută titlu, client, adresă..."
-                        className="w-full pl-8 pr-8 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                        className="w-full pl-8 pr-8 py-1.5 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                     />
                     {search && (
                         <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -309,33 +342,27 @@ export default function IsoflexHistory() {
                     )}
                 </div>
 
-                {/* Team filter */}
-                {teamsMeta.length > 1 && (
-                    <div className="relative">
-                        <select
-                            value={filterTeam}
-                            onChange={e => handleTeamChange(e.target.value)}
-                            className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 cursor-pointer"
-                        >
-                            <option value="all">Toate echipele</option>
-                            {teamsMeta.map(t => (
-                                <option key={t.team_id} value={t.team_id}>{t.team_name}</option>
-                            ))}
-                        </select>
-                        <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-                )}
-
                 {/* Only new filter */}
                 <button
                     onClick={() => setShowOnlyNew(v => !v)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border transition-colors ${showOnlyNew
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border transition-colors ${showOnlyNew
                         ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300'
                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                     }`}
                 >
                     <Clock size={13} />
-                    Doar neimportate
+                    Neimportate
+                </button>
+
+                {/* Sync from Robaws */}
+                <button
+                    onClick={syncFromRobaws}
+                    disabled={syncing || loading}
+                    title="Sincronizează din Robaws"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                >
+                    <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+                    {syncing ? 'Sync...' : ''}
                 </button>
             </div>
 
@@ -357,7 +384,13 @@ export default function IsoflexHistory() {
                 defaultSortDir="desc"
                 searchable={false}
                 emptyText={loading ? 'Se încarcă...' : 'Nu s-au găsit lucrări.'}
-                onRowClick={(row) => setSelectedItem(row)}
+                onRowClick={(row) => {
+                    if (row.local_id) {
+                        navigate(`/admin/work-orders/${row.local_id}`)
+                    } else {
+                        window.open(`https://app.robaws.com/#/work-orders/${row.ext_id}`, '_blank')
+                    }
+                }}
                 rowClassName={() => 'cursor-pointer hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors'}
             />
 
@@ -382,10 +415,7 @@ export default function IsoflexHistory() {
                 </div>
             )}
 
-            {/* Detail Modal */}
-            {selectedItem && (
-                <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
-            )}
+
         </div>
     )
 }

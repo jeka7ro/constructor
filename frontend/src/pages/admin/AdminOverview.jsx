@@ -281,15 +281,30 @@ export default function AdminOverview() {
     }
 
     useEffect(() => {
-        // Fire all requests in parallel — dashboard shows immediately, each section fills in
-        fetchStats()
-        fetchChartData()
-        fetchActiveWorkers()
-        fetchFleetAlerts()
-        fetchComplaints()
-        fetchTeams()
-        fetchClients()
-        if (isShortTerm) fetchWorkOrdersStats()
+        // Batch sequential fetching to prevent Supabase pool exhaustion (max 15 connections)
+        const loadAll = async () => {
+            // Batch 1: Essential & Critical Data (Works & Teams)
+            await Promise.allSettled([
+                fetchTeams(),
+                fetchClients(),
+                isShortTerm ? fetchWorkOrdersStats() : Promise.resolve()
+            ])
+            
+            // Batch 2: Workers & Quick Stats
+            await Promise.allSettled([
+                fetchActiveWorkers(),
+                fetchStats()
+            ])
+            
+            // Batch 3: Heavy / Background Stats
+            await Promise.allSettled([
+                fetchChartData(),
+                fetchFleetAlerts(),
+                fetchComplaints()
+            ])
+        }
+        
+        loadAll()
 
         const params = new URLSearchParams(window.location.search)
         if (params.get('quickCreate') === '1') {

@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
@@ -179,6 +179,9 @@ def _serialize(wo: WorkOrder) -> dict:
         "invoiced_at": wo.invoiced_at.isoformat() if wo.invoiced_at else None,
         "invoice_number": wo.invoice_number,
         "invoice_notes": wo.invoice_notes,
+        "proforma_path": wo.proforma_path,
+        "proforma_issued_at": wo.proforma_issued_at.isoformat() if wo.proforma_issued_at else None,
+        "external_id": wo.external_id,
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
         # Echipa si vehicul
@@ -230,46 +233,50 @@ def list_work_orders(
     """Lista tuturor comenzilor de lucru ale organizației."""
     
     # --- AUTO-ARCHIVE LOGISTICS (Smart/Lazy Mode) ---
-    if start_date and end_date:
-        try:
-            from app.api.admin_logistics import _calculate_daily_routes
-            from app.models import LogisticsDailyPlan
-            from datetime import timedelta, datetime
-            
-            start_d = datetime.strptime(start_date, "%Y-%m-%d").date()
-            end_d = datetime.strptime(end_date, "%Y-%m-%d").date()
-            today = date_today_import.today()
-            
-            # Prevent abuse, max 31 days check
-            if (end_d - start_d).days <= 31:
-                curr = start_d
-                while curr <= end_d and curr < today:
-                    existing = db.query(LogisticsDailyPlan).filter(
-                        LogisticsDailyPlan.organization_id == current_admin.organization_id,
-                        LogisticsDailyPlan.date == curr
-                    ).first()
-                    if not existing:
-                        data = _calculate_daily_routes(curr, db, current_admin)
-                        plan = LogisticsDailyPlan(
-                            organization_id=current_admin.organization_id,
-                            date=curr,
-                            snapshot_data=data,
-                            saved_by_id=current_admin.id
-                        )
-                        db.add(plan)
-                        db.commit()
-                    curr += timedelta(days=1)
-        except Exception as e:
-            db.rollback()
-            print(f"Error auto-archiving logistics in list_work_orders: {e}")
+    # Temporarily disabled to prevent performance issues / timeouts
+    # if start_date and end_date:
+    #     try:
+    #         from app.api.admin_logistics import _calculate_daily_routes
+    #         from app.models import LogisticsDailyPlan
+    #         from datetime import timedelta, datetime
+    #         
+    #         start_d = datetime.strptime(start_date, "%Y-%m-%d").date()
+    #         end_d = datetime.strptime(end_date, "%Y-%m-%d").date()
+    #         today = date_today_import.today()
+    #         
+    #         # Prevent abuse, max 31 days check
+    #         if (end_d - start_d).days <= 31:
+    #             curr = start_d
+    #             while curr <= end_d and curr < today:
+    #                 existing = db.query(LogisticsDailyPlan).filter(
+    #                     LogisticsDailyPlan.organization_id == current_admin.organization_id,
+    #                     LogisticsDailyPlan.date == curr
+    #                 ).first()
+    #                 if not existing:
+    #                     data = _calculate_daily_routes(curr, db, current_admin) # TODO
+    #                     plan = LogisticsDailyPlan(
+    #                         organization_id=current_admin.organization_id,
+    #                         date=curr,
+    #                         snapshot_data=data,
+    #                         saved_by_id=current_admin.id
+    #                     )
+    #                     db.add(plan)
+    #                     db.commit()
+    #                 curr += timedelta(days=1)
+    #     except Exception as e:
+    #         db.rollback()
+    #         print(f"Error auto-archiving logistics in list_work_orders: {e}")
     # ------------------------------------------------
     
+    from sqlalchemy.orm import selectinload
+
     q = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id)
     q = q.options(
         joinedload(WorkOrder.site),
         joinedload(WorkOrder.client),
         joinedload(WorkOrder.assigned_team),
-        joinedload(WorkOrder.assigned_vehicle)
+        joinedload(WorkOrder.assigned_vehicle),
+        selectinload(WorkOrder.documents)
     )
     if status:
         q = q.filter(WorkOrder.status == status)
@@ -1153,38 +1160,119 @@ def update_materials_consumed(
 
 # ─── ISTORIC ISOFLEX — fetch direct din Robaws API, fără import în DB ──────────
 
-@router.get("/work-orders/robaws-history")
+@router.get("/robaws-history")
 def get_robaws_history(
     team_id: Optional[str] = None,
     page: int = 0,
-    limit: int = 50,
+    limit: int = 200,
     current_admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
     """
-    Returnează lucrările direct din API-ul Robaws pentru echipele organizației.
-    Nu salvează nimic în baza de date locală.
+    Returnează lucrările din cache-ul local (rapid!).
+    Nu face sync automat — sync-ul e manual via POST /sync-robaws.
     """
-    import requests as _req
+    from app.models import RobawsWorkOrderCache
 
     org_id = current_admin.organization_id
     if not org_id:
         raise HTTPException(status_code=403, detail="No organization")
 
-    # Preluăm echipele cu chei Robaws
-    teams_query = db.query(Team).filter(
+    # Citește din cache
+    q = db.query(RobawsWorkOrderCache).filter(
+        RobawsWorkOrderCache.organization_id == org_id
+    )
+    if team_id:
+        q = q.filter(RobawsWorkOrderCache.team_id == team_id)
+
+    q = q.order_by(RobawsWorkOrderCache.date.desc())
+    total = q.count()
+    items = q.offset(page * limit).limit(limit).all()
+
+    # Teams meta din cache
+    teams_raw = db.query(
+        RobawsWorkOrderCache.team_id,
+        RobawsWorkOrderCache.team_name,
+        func.count(RobawsWorkOrderCache.id)
+    ).filter(
+        RobawsWorkOrderCache.organization_id == org_id
+    ).group_by(
+        RobawsWorkOrderCache.team_id,
+        RobawsWorkOrderCache.team_name
+    ).all()
+
+    teams_meta = [
+        {"team_id": str(t[0]) if t[0] else "unknown", "team_name": t[1] or "—", "total": t[2]}
+        for t in teams_raw
+    ]
+
+    # Check in_db status + get local IDs
+    ext_ids = [i.ext_id for i in items]
+    ext_id_to_local = {}
+    if ext_ids:
+        existing = db.query(WorkOrder.external_id, WorkOrder.id).filter(
+            WorkOrder.external_id.in_(ext_ids),
+            WorkOrder.organization_id == org_id
+        ).all()
+        ext_id_to_local = {e[0]: e[1] for e in existing}
+
+    result_items = []
+    for item in items:
+        local_id = ext_id_to_local.get(item.ext_id)
+        result_items.append({
+            "ext_id": item.ext_id,
+            "robaws_nr": item.robaws_nr,
+            "title": item.title,
+            "date": item.date,
+            "client_name": item.client_name,
+            "address": item.address,
+            "status": item.status,
+            "total_volume": item.total_volume or 0,
+            "materials_summary": item.materials_summary,
+            "team_id": str(item.team_id) if item.team_id else None,
+            "team_name": item.team_name,
+            "in_db": local_id is not None,
+            "local_id": local_id,
+            "raw": {
+                "latitude": item.latitude,
+                "longitude": item.longitude,
+                "notes": item.notes,
+            }
+        })
+
+    return {
+        "items": result_items,
+        "teams": teams_meta,
+        "total": total,
+        "page": page,
+        "limit": limit,
+    }
+
+
+def _sync_robaws_cache(org_id: str, db: Session):
+    """Sincronizează lucrările din Robaws în cache-ul local."""
+    import requests as _req
+    import re
+    from app.models import RobawsWorkOrderCache
+
+    # Șterge cache-ul vechi
+    db.query(RobawsWorkOrderCache).filter(
+        RobawsWorkOrderCache.organization_id == org_id
+    ).delete()
+    db.commit()
+
+    teams_list = db.query(Team).filter(
         Team.organization_id == org_id,
         Team.is_active == True,
         Team.robaws_email != None,
         Team.robaws_email != ""
-    )
-    if team_id:
-        teams_query = teams_query.filter(Team.id == team_id)
+    ).all()
 
-    teams_list = teams_query.all()
+    if not teams_list:
+        return
 
-    all_items = []
-    teams_meta = []
+    # Collect TOATE lucrările din TOATE echipele, dedup by ext_id
+    unique_items = {}  # ext_id -> {data + team info}
 
     for team in teams_list:
         api_key = team.robaws_email
@@ -1193,104 +1281,168 @@ def get_robaws_history(
             continue
 
         try:
-            offset = page * limit
-            url = f"https://app.robaws.com/api/v2/work-orders?limit={limit}&offset={offset}&include=lineItems"
-            r = _req.get(
-                url,
-                auth=(api_key, api_secret),
-                headers={"Accept": "application/json"},
-                timeout=15
-            )
-            if r.status_code != 200:
-                teams_meta.append({
-                    "team_id": str(team.id),
-                    "team_name": team.name,
-                    "error": f"HTTP {r.status_code}",
-                    "total": 0
-                })
-                continue
+            all_items = []
+            offset = 0
+            batch_size = 100
+            total_api = None
+            while True:
+                url = f"https://app.robaws.com/api/v2/work-orders?limit={batch_size}&offset={offset}&include=lineItems"
+                r = _req.get(url, auth=(api_key, api_secret),
+                            headers={"Accept": "application/json"}, timeout=15)
+                if r.status_code != 200:
+                    break
+                data = r.json()
+                items = data.get("items", [])
+                if total_api is None:
+                    total_api = data.get("totalItems", 0)
+                all_items.extend(items)
+                if not items or len(all_items) >= total_api:
+                    break
+                offset += len(items)
 
-            data = r.json()
-            total_items = data.get("totalItems", 0)
-            total_pages = data.get("totalPages", 1)
-            items = data.get("items", [])
+            for item in all_items:
+                ext_id = str(item.get("id", ""))
+                if not ext_id or ext_id in unique_items:
+                    continue  # Skip dacă deja procesat
 
-            for item in items:
-                # Extrage adresa
                 addr_obj = item.get("address") or {}
                 addr_parts = []
                 if addr_obj.get("addressLine1"): addr_parts.append(addr_obj["addressLine1"])
                 if addr_obj.get("postalCode"):   addr_parts.append(addr_obj["postalCode"])
                 if addr_obj.get("city"):         addr_parts.append(addr_obj["city"])
-                address = ", ".join(addr_parts)
 
-                # Extrage client
                 client_obj = item.get("client") or {}
                 client_name = client_obj.get("name", "") if isinstance(client_obj, dict) else ""
 
-                # Extrage line items
                 line_items = item.get("lineItems", [])
-                total_volume = 0.0
+                volumes_found = []
                 materials_found = []
                 for li in line_items:
                     qty = float(li.get("quantity") or 0)
                     unit = (li.get("unitType") or "").lower()
                     desc = (li.get("description") or "")
-                    if unit in ["m2", "m²", "m3", "m³"]:
-                        total_volume += qty
+                    if unit in ["m2", "m²", "m3", "m³"] and qty > 0:
+                        volumes_found.append(qty)
                     if desc:
                         materials_found.append(f"{desc} ({qty} {unit})" if qty else desc)
 
-                # Verifică dacă există deja în DB
-                ext_id = str(item.get("id", ""))
-                in_db = db.query(WorkOrder.id).filter(
-                    WorkOrder.external_id == ext_id,
-                    WorkOrder.organization_id == org_id
-                ).first() is not None
+                total_volume = max(volumes_found) if volumes_found else 0.0
+                if total_volume == 0.0:
+                    title_str = item.get("title") or ""
+                    vol_match = re.search(r'([\d.,]+)\s*m[²³2]', title_str)
+                    if vol_match:
+                        try:
+                            total_volume = float(vol_match.group(1).replace(',', '.'))
+                        except:
+                            pass
 
-                all_items.append({
+                unique_items[ext_id] = {
+                    "team_id": str(team.id),
+                    "team_name": team.name,
                     "ext_id": ext_id,
-                    "robaws_nr": item.get("number") or item.get("id"),
+                    "robaws_nr": str(item.get("number") or item.get("id")),
                     "title": item.get("title", ""),
                     "date": item.get("date"),
                     "client_name": client_name,
-                    "address": address,
+                    "address": ", ".join(addr_parts),
                     "status": item.get("status", ""),
                     "total_volume": round(total_volume, 2),
-                    "materials_summary": "; ".join(materials_found[:3]),
-                    "assignee": item.get("assignee", {}).get("name", "") if isinstance(item.get("assignee"), dict) else "",
-                    "team_id": str(team.id),
-                    "team_name": team.name,
-                    "in_db": in_db,
-                    "raw": {
-                        "latitude": addr_obj.get("latitude"),
-                        "longitude": addr_obj.get("longitude"),
-                        "notes": item.get("description") or item.get("notes") or "",
-                    }
-                })
-
-            teams_meta.append({
-                "team_id": str(team.id),
-                "team_name": team.name,
-                "total": total_items,
-                "total_pages": total_pages,
-                "fetched": len(items)
-            })
+                    "materials_summary": "; ".join(materials_found[:5]),
+                    "latitude": addr_obj.get("latitude"),
+                    "longitude": addr_obj.get("longitude"),
+                    "notes": item.get("description") or item.get("notes") or "",
+                }
 
         except Exception as e:
-            teams_meta.append({
-                "team_id": str(team.id),
-                "team_name": team.name,
-                "error": str(e),
-                "total": 0
-            })
+            print(f"Sync error for team {team.name}: {e}")
 
-    # Sortare după dată descrescător
-    all_items.sort(key=lambda x: x.get("date") or "", reverse=True)
+    # Bulk insert toate lucrările unice
+    for data in unique_items.values():
+        db.add(RobawsWorkOrderCache(
+            organization_id=org_id,
+            **data
+        ))
+    db.commit()
+    print(f"Synced {len(unique_items)} unique work orders from Robaws")
 
+
+@router.post("/sync-robaws")
+def sync_robaws(
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Sincronizează lucrările din Robaws API în cache-ul local."""
+    org_id = current_admin.organization_id
+    if not org_id:
+        raise HTTPException(status_code=403, detail="No organization")
+
+    _sync_robaws_cache(org_id, db)
+
+    from app.models import RobawsWorkOrderCache
+    total = db.query(RobawsWorkOrderCache).filter(
+        RobawsWorkOrderCache.organization_id == org_id
+    ).count()
+
+    return {"message": "Sincronizare completă", "total_cached": total}
+
+@router.post("/work-orders/{wo_id}/generate-proforma")
+def generate_proforma(
+    wo_id: str,
+    payload: dict = Body(default=None),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    from datetime import datetime
+    from app.models import Client
+    
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+    
+    proforma_route = f"/proforma/{wo.id}"
+    
+    wo.proforma_path = proforma_route
+    wo.proforma_issued_at = datetime.utcnow()
+    
+    if payload:
+        wo.proforma_data = payload
+        
+        # Extrage si salveaza clientul
+        client_mode = payload.get("client_mode")
+        if client_mode == "new" and payload.get("clientName"):
+            existing_client = db.query(Client).filter(
+                Client.organization_id == current_admin.organization_id,
+                Client.name == payload.get("clientName")
+            ).first()
+            if not existing_client:
+                new_cl = Client(
+                    organization_id=current_admin.organization_id,
+                    name=payload.get("clientName"),
+                    email=payload.get("client_email"),
+                    phone=payload.get("client_phone"),
+                    client_type=payload.get("client_type", "fizica"),
+                    country=payload.get("client_country", "RO"),
+                    cui=payload.get("client_company_vat"),
+                    address=payload.get("client_address")
+                )
+                db.add(new_cl)
+                db.flush()
+                wo.client_id = new_cl.id
+                wo.client_name = new_cl.name
+        elif client_mode == "existing" and payload.get("client_id"):
+            wo.client_id = payload.get("client_id")
+            if payload.get("clientName"):
+                wo.client_name = payload.get("clientName")
+            
+    wo.is_invoiced = True
+    if not wo.invoiced_at:
+        from datetime import datetime
+        wo.invoiced_at = datetime.utcnow()
+            
+    db.commit()
+    
     return {
-        "items": all_items,
-        "teams": teams_meta,
-        "page": page,
-        "limit": limit,
+        "message": "Proformă generată cu succes",
+        "proforma_path": wo.proforma_path,
+        "proforma_issued_at": wo.proforma_issued_at.isoformat()
     }

@@ -48,6 +48,10 @@ const ExpensesManagement = lazy(() => import('./pages/admin/ExpensesManagement')
 const IsoflexHistory = lazy(() => import('./pages/admin/IsoflexHistory'))
 const AdminMaterialRequests = lazy(() => import('./pages/admin/AdminMaterialRequests'))
 const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
+const InvoicingManagement = lazy(() => import('./pages/admin/InvoicingManagement'))
+const InvoiceDetails = lazy(() => import('./pages/admin/InvoiceDetails'))
+const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
+const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
 const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
@@ -279,10 +283,12 @@ function App() {
                         <Route path="reports" element={<ReportsPage />} />
                         <Route path="timesheets" element={<TimesheetApprovalPage />} />
                         <Route path="screed-analytics" element={<WorkOrderCalculations />} />
-                        <Route path="activities" element={<ActivitiesManagement />} />
-                        <Route path="settings" element={<SettingsPage />} />
-                        <Route path="site-photos" element={<SitePhotosPage />} />
-                        <Route path="teams" element={<TeamsManagement />} />
+                            <Route path="activities" element={<ActivitiesManagement />} />
+                            <Route path="settings" element={<SettingsPage />} />
+                            <Route path="site-photos" element={<SitePhotosPage />} />
+                            <Route path="invoicing" element={<InvoicingManagement />} />
+                            <Route path="invoices/:id" element={<InvoiceDetails />} />
+                            <Route path="teams" element={<TeamsManagement />} />
                         <Route path="fleet" element={<FleetManagement />} />
                         <Route path="transport" element={<TransportManagement />} />
                         <Route path="tracking" element={<LiveTracking />} />
@@ -330,6 +336,26 @@ function App() {
                             <Route path="/comenzi" element={<WorkerOrdersPage />} />
                         </Route>
                     ) : null}
+
+                    {/* Print-only routes */}
+                    <Route 
+                        path="/proforma/:id" 
+                        element={
+                            <Suspense fallback={<PageLoader />}>
+                                <ProformaView />
+                            </Suspense>
+                        } 
+                    />
+                    
+                    {/* Public route */}
+                    <Route 
+                        path="/public/proforma/:token" 
+                        element={
+                            <Suspense fallback={<PageLoader />}>
+                                <PublicProformaView />
+                            </Suspense>
+                        } 
+                    />
 
                     {/* Fallback - redirect based on path */}
                     <Route path="*" element={<SmartRedirect />} />

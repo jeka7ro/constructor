@@ -1,0 +1,218 @@
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { ChevronLeft, FileText, Loader2, User, MapPin, Calendar, Receipt, Building2, Phone, Mail } from 'lucide-react'
+import api from '../../lib/api'
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+
+export default function InvoiceDetails() {
+    const { id } = useParams()
+    const navigate = useNavigate()
+    const { t } = useTranslation()
+    const [wo, setWo] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchWo = async () => {
+            try {
+                const res = await api.get(`/admin/work-orders/${id}`)
+                setWo(res.data)
+            } catch (err) {
+                console.error("Error fetching work order:", err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchWo()
+    }, [id])
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        )
+    }
+
+    if (!wo) {
+        return (
+            <div className="p-8 text-center">
+                <h2 className="text-xl font-bold text-slate-800">{t('invoicing_details.not_found', 'Lucrarea nu a fost găsită')}</h2>
+                <button onClick={() => navigate('/admin/invoicing')} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">{t('invoicing_details.back_to_invoicing', 'Înapoi la facturare')}</button>
+            </div>
+        )
+    }
+
+    const pdfPath = wo.final_invoice_path || wo.proforma_path
+    const isGenerated = !!pdfPath
+
+    const clientData = wo.proforma_data || {}
+    let items = clientData.items || []
+    
+    if (items.length === 0) {
+        items = [{
+            qty: 1,
+            price: parseFloat(wo.estimated_price?.toString().replace(/[^0-9.]/g, '') || '0')
+        }]
+    }
+
+    const subtotal = items.reduce((sum, it) => sum + (it.qty * it.price), 0)
+    const discountVal = (subtotal * (clientData.discount || 0)) / 100
+    const netTotal = subtotal - discountVal
+
+    const getIframeSrc = () => {
+        if (wo.final_invoice_path) return `${API_BASE}${wo.final_invoice_path}#toolbar=0`
+        if (wo.proforma_path) return `${window.location.origin}${wo.proforma_path}`
+        return ''
+    }
+
+    return (
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto h-[calc(100vh-64px)] flex flex-col">
+            <div className="flex items-center gap-4 mb-6 shrink-0">
+                <button 
+                    onClick={() => navigate('/admin/invoicing')}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                >
+                    <ChevronLeft className="w-5 h-5 text-slate-500" />
+                </button>
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-6 h-6 text-slate-800 dark:text-slate-200" />
+                        {t('invoicing_details.title', 'Detalii Fiscale')}: {wo.title || t('invoicing.no_title', 'Fără titlu')}
+                    </h1>
+                    <div className="flex items-center gap-3 mt-1 text-sm">
+                        {wo.is_invoiced ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                {t('invoicing.status_invoiced', 'Facturat')}
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                {t('invoicing_details.status_notinvoiced', 'Nefacturat / Proformă')}
+                            </span>
+                        )}
+                        <span className="text-slate-500 font-medium">#{wo.id}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6 h-full overflow-hidden">
+                {/* Left side - Fiscal Details */}
+                <div className="w-full lg:w-[450px] shrink-0 flex flex-col gap-6 overflow-y-auto pb-8 pr-2 custom-scrollbar">
+                    {/* Client Info */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-4">
+                            <User className="w-4 h-4" /> {t('invoicing_details.client_data', 'Date Client')}
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">{t('invoicing_details.name_company', 'Nume / Companie')}</p>
+                                <p className="font-semibold text-slate-900 dark:text-white">{clientData.clientName || clientData.client_name || wo.client_name || wo.client?.company_name || (wo.client?.first_name ? `${wo.client.first_name} ${wo.client.last_name}` : null) || t('invoicing_details.unspecified', 'Nespecificat')}</p>
+                            </div>
+                            {(clientData.client_type === 'juridica' || wo.client_type === 'juridica') && (clientData.client_company_vat || wo.client_company_vat || wo.client?.company_vat) && (
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{t('invoicing_details.cui_vat', 'CUI / VAT')}</p>
+                                    <p className="font-semibold text-slate-700 dark:text-slate-300">{clientData.client_company_vat || wo.client_company_vat || wo.client?.company_vat}</p>
+                                </div>
+                            )}
+                            {(clientData.client_address || wo.client_address || wo.client?.company_address || wo.site_address) && (
+                                <div className="flex gap-2 text-slate-600 dark:text-slate-400">
+                                    <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <p className="text-sm leading-snug">{clientData.client_address || wo.client_address || wo.client?.company_address || wo.site_address}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Invoice Info */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-4">
+                            <Receipt className="w-4 h-4" /> {t('invoicing_details.issue_details', 'Detalii Emitere')}
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.invoice_number', 'Nr. Factură')}</p>
+                                <p className="font-semibold text-slate-900 dark:text-white">{wo.invoice_number || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.invoice_date', 'Dată Facturare')}</p>
+                                <p className="font-medium text-slate-700 dark:text-slate-300">
+                                    {wo.invoiced_at ? new Date(wo.invoiced_at).toLocaleDateString() : 'N/A'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.issue_status', 'Status Emitere')}</p>
+                                <p className="font-medium text-slate-700 dark:text-slate-300">
+                                    {isGenerated ? t('invoicing_details.status_generated', 'Generat') : t('invoicing_details.status_missing', 'Lipsă document')}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.proforma_date', 'Dată Proformă')}</p>
+                                <p className="font-medium text-slate-700 dark:text-slate-300">
+                                    {wo.proforma_issued_at ? new Date(wo.proforma_issued_at).toLocaleDateString() : 'N/A'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Totals Preview */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
+                        <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
+                            {t('invoicing_details.financial_summary', 'Rezumat Financiar')}
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-sm font-medium text-slate-600 dark:text-slate-400">
+                                <span>{t('invoicing_details.subtotal_gross', 'Subtotal Brut')}:</span>
+                                <span>€ {subtotal.toFixed(2)}</span>
+                            </div>
+                            {discountVal > 0 && (
+                                <div className="flex justify-between items-center text-sm font-medium text-slate-600 dark:text-slate-400">
+                                    <span>{t('invoicing_details.discount', 'Reducere')} ({clientData.discount}%):</span>
+                                    <span>- € {discountVal.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-xs">{t('invoicing_details.net_total', 'Total Net de Plată')}:</span>
+                                <span className="text-xl font-black text-slate-800 dark:text-slate-100">€ {netTotal.toFixed(2)}</span>
+                            </div>
+                            {clientData.apply_vat && (
+                                <div className="text-[10px] text-right text-slate-500 dark:text-slate-400 mt-1 font-bold">
+                                    {t('invoicing_details.plus_vat', '+ TVA (conform regimului clientului)')}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right side - PDF Viewer */}
+                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
+                    {isGenerated ? (
+                        <iframe 
+                            src={getIframeSrc()} 
+                            className="w-full h-full border-none"
+                            title="Invoice PDF"
+                        />
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-8 text-center bg-slate-50 dark:bg-slate-900/50">
+                            <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 border border-slate-200">
+                                <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">{t('invoicing_details.no_document_issued', 'Niciun document emis')}</h3>
+                            <p className="max-w-md text-sm leading-relaxed">
+                                {t('invoicing_details.no_document_desc', 'Factura sau proforma nu a fost generată încă. Folosește butonul de previzualizare și emitere din pagina de administrare pentru a crea documentul.')}
+                            </p>
+                            <button 
+                                onClick={() => navigate('/admin/invoicing')}
+                                className="mt-6 px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+                            >
+                                {t('invoicing_details.back_to_generation', 'Întoarce-te la generare')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}

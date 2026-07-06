@@ -1258,5 +1258,30 @@
         "speed": "Snelheid",
         "auto_refresh": "Automatisch vernieuwen 30s",
         "loading": "Kaart laden..."
+    },
+    "invoicing_details": {
+        "title": "Fiscale Details",
+        "not_found": "Werk niet gevonden",
+        "back_to_invoicing": "Terug naar facturering",
+        "status_notinvoiced": "Niet gefactureerd / Proforma",
+        "client_data": "Klantgegevens",
+        "name_company": "Naam / Bedrijf",
+        "unspecified": "Niet gespecificeerd",
+        "cui_vat": "Btw-nummer",
+        "issue_details": "Uitgiftegegevens",
+        "invoice_number": "Factuurnummer",
+        "invoice_date": "Factuurdatum",
+        "issue_status": "Uitgiftestatus",
+        "status_generated": "Gegenereerd",
+        "status_missing": "Ontbrekend document",
+        "proforma_date": "Proformadatum",
+        "financial_summary": "Financieel Overzicht",
+        "subtotal_gross": "Bruto Subtotaal",
+        "discount": "Korting",
+        "net_total": "Netto Totaal te Betalen",
+        "plus_vat": "+ Btw (volgens klantregeling)",
+        "no_document_issued": "Geen document uitgegeven",
+        "no_document_desc": "De factuur of proforma is nog niet gegenereerd. Gebruik de voorbeeld- en genereerknop op de administratiepagina om het document te maken.",
+        "back_to_generation": "Terug naar genereren"
     }
 }

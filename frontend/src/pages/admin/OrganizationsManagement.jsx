@@ -294,6 +294,7 @@ export default function OrganizationsManagement() {
         { id: 'expenses', label: 'Deconturi / Cheltuieli' },
         { id: 'reports', label: 'Rapoarte Avansate' },
         { id: 'logistica', label: 'Logistica' },
+        { id: 'invoicing', label: 'Facturare' },
     ]
 
     return (

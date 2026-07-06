@@ -1077,6 +1077,31 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             )}
                         </div>
 
+                        {/* Proforma Status */}
+                        {wo.proforma_path ? (
+                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <FileText className="w-5 h-5 text-blue-600 shrink-0" />
+                                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-400 truncate">Proformă PDF Emisă</span>
+                                </div>
+                                <a href={wo.proforma_path} target="_blank" rel="noreferrer"
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
+                                    Descarcă
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 mb-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+                                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">Fără Proformă</span>
+                                </div>
+                                <button onClick={() => navigate('/admin/invoicing')}
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors shrink-0">
+                                    Generează
+                                </button>
+                            </div>
+                        )}
+
                         {/* Upload PDF */}
                         {wo.final_invoice_path ? (
                             <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-4">

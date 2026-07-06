@@ -103,7 +103,14 @@ export default function EmployeeWorkOrdersPanel() {
                             }}
                         >
                             <div className="flex items-start justify-between gap-2 mb-2">
-                                <h3 className="font-bold text-slate-900 leading-tight">{wo.title}</h3>
+                                <h3 className="font-bold text-slate-900 leading-tight">
+                                    {wo.title}
+                                    {wo.is_robaws && (
+                                        <span className="ml-2 inline-flex items-center text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                            Viitoare (Robaws)
+                                        </span>
+                                    )}
+                                </h3>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${STATUS_COLORS[wo.status] || 'bg-slate-100'}`}>
                                     {t(`work_orders.${STATUS_KEYS[wo.status]}`, wo.status)}
                                 </span>
@@ -192,7 +199,7 @@ export default function EmployeeWorkOrdersPanel() {
                                         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                                             <Package className="w-3.5 h-3.5 text-emerald-500" /> {t('work_orders.consumed_materials', 'Materiale Consumate')}
                                         </h4>
-                                        {!isEditingMat && (
+                                        {!isEditingMat && !wo.is_robaws && (
                                             <button 
                                                 onClick={() => startEditingMaterials(wo)}
                                                 className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg"

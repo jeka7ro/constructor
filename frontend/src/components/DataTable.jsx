@@ -154,8 +154,9 @@ export default function DataTable({
                                     key={col.key}
                                     className={[
                                         'px-4 py-4 text-left whitespace-nowrap select-none',
-                                        col.sortable ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''
-                                    ].join(' ')}
+                                        col.sortable ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : '',
+                                        col.className || ''
+                                    ].filter(Boolean).join(' ')}
                                     onClick={col.sortable ? () => handleSort(col.key) : undefined}
                                 >
                                     <span className="inline-flex items-center">

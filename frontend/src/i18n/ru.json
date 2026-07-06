@@ -1213,5 +1213,30 @@
         "it": "Italy",
         "es": "Spain",
         "gb": "United Kingdom"
+    },
+    "invoicing_details": {
+        "title": "Налоговые данные",
+        "not_found": "Работа не найдена",
+        "back_to_invoicing": "Назад к выставлению счетов",
+        "status_notinvoiced": "Не выставлен счет / Проформа",
+        "client_data": "Данные клиента",
+        "name_company": "Имя / Компания",
+        "unspecified": "Не указано",
+        "cui_vat": "ИНН / НДС",
+        "issue_details": "Сведения о выдаче",
+        "invoice_number": "Номер счета",
+        "invoice_date": "Дата счета",
+        "issue_status": "Статус выдачи",
+        "status_generated": "Сгенерировано",
+        "status_missing": "Отсутствует документ",
+        "proforma_date": "Дата проформы",
+        "financial_summary": "Финансовая сводка",
+        "subtotal_gross": "Предварительный итог",
+        "discount": "Скидка",
+        "net_total": "Итого к оплате (Нетто)",
+        "plus_vat": "+ НДС (согласно режиму клиента)",
+        "no_document_issued": "Документ не выпущен",
+        "no_document_desc": "Счет-фактура или проформа еще не созданы. Используйте кнопку предварительного просмотра и создания на странице администрирования для создания документа.",
+        "back_to_generation": "Вернуться к созданию"
     }
 }

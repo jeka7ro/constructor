@@ -144,7 +144,7 @@ def create_team(
     team = Team(
         name=data.name,
         team_leader_id=data.team_leader_id,
-        organization_id=leader.organization_id,
+        organization_id=current_admin.organization_id,
         site_id=data.site_id,
         color=data.color,
         robaws_email=data.robaws_email,

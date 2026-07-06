@@ -184,6 +184,7 @@ export default function AdminDashboard() {
             items: [
                 { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistică') },
+                { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturare') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Comenzi') },
                 { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Istoric Isoflex') },
                 { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tabel calcul') },
@@ -271,6 +272,7 @@ export default function AdminDashboard() {
         if (path === '/admin/accommodations') return tenantFeatures.includes('accommodations')
         if (['/admin/expenses', '/admin/import-factura'].includes(path)) return tenantFeatures.includes('expenses')
         if (path === '/admin/reports') return tenantFeatures.includes('reports')
+        if (path === '/admin/invoicing') return tenantFeatures.includes('invoicing')
         return true
     }
 
@@ -293,7 +295,7 @@ export default function AdminDashboard() {
         return cat.items.length > 0
     })
 
-    const [expandedCategories, setExpandedCategories] = useState({ general: true, operations: true })
+    const [expandedCategories, setExpandedCategories] = useState({ general: true, operations: true, logistics: true })
 
     // Auto-expand category based on current route
     useEffect(() => {
@@ -341,6 +343,8 @@ export default function AdminDashboard() {
 
     const pageTitle = (() => {
         const p = location.pathname;
+        if (p.match(/\/(invoices|work-orders)\/[a-zA-Z0-9_-]+/)) return null;
+        
         if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
         if (p.includes('/logistica')) return t('nav.logistics', 'Logistică');
         if (p.includes('/isoflex-history')) return t('nav.isoflex_history', 'Istoric Isoflex');
@@ -368,6 +372,7 @@ export default function AdminDashboard() {
         if (p.includes('/settings')) return t('nav.settings', 'Setări');
         if (p.includes('/notifications')) return t('nav.notifications', 'Notificări');
         if (p.includes('/organizations')) return t('nav.organizations', 'Companii');
+        if (p.includes('/invoicing') || p.includes('/invoices')) return t('nav.invoicing', 'Facturare & Proforme');
         return t('nav.planning', 'Planning');
     })();
 
@@ -577,14 +582,16 @@ export default function AdminDashboard() {
                 {/* Main View Outlet */}
                 <main className={`flex-1 overflow-auto relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                     {/* Page Title inside main area */}
-                    <div className="px-4 pt-3 md:px-5 md:pt-4 pb-0 flex items-end gap-3 shrink-0">
-                        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight leading-none">
-                            {pageTitle}
-                        </h1>
-                        <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none mb-[2px]">
-                            {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
-                        </p>
-                    </div>
+                    {pageTitle && (
+                        <div className="px-4 pt-3 md:px-5 md:pt-4 pb-0 flex items-end gap-3 shrink-0">
+                            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight leading-none">
+                                {pageTitle}
+                            </h1>
+                            <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none mb-[2px]">
+                                {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
+                            </p>
+                        </div>
+                    )}
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}

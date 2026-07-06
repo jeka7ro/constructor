@@ -1004,6 +1004,8 @@ class WorkOrder(Base):
     # ── PDF / Facturi ──────────────────────────────────────────────────────────
     pdf_path            = Column(String(500), nullable=True)
     final_invoice_path  = Column(String(500), nullable=True) # PDF cu factura finală
+    proforma_path       = Column(String(500), nullable=True) # PDF cu proforma
+    proforma_issued_at  = Column(DateTime, nullable=True)
 
     # ── Status Facturare ───────────────────────────────────────────────────────
     is_invoiced         = Column(Boolean, default=False, nullable=False)
@@ -1210,3 +1212,38 @@ class LeaveBalance(Base):
 
     organization = relationship("Organization")
     user         = relationship("User", foreign_keys=[user_id])
+
+
+# ── Robaws Work Orders Cache ─────────────────────────────────────────────────
+class RobawsWorkOrderCache(Base):
+    """Cache local al lucrărilor din Robaws — pagina se încarcă instant din DB"""
+    __tablename__ = "robaws_work_orders_cache"
+
+    id                = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id   = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id           = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=True)
+
+    # Robaws data
+    ext_id            = Column(String(100), nullable=False, index=True)    # ID-ul din Robaws
+    robaws_nr         = Column(String(100), nullable=True)                 # Număr lucrare
+    title             = Column(Text, nullable=True)
+    date              = Column(String(20), nullable=True)                  # YYYY-MM-DD
+    client_name       = Column(String(500), nullable=True)
+    address           = Column(Text, nullable=True)
+    status            = Column(String(100), nullable=True)                 # Status real Robaws
+    total_volume      = Column(Float, default=0.0, nullable=True)
+    materials_summary = Column(Text, nullable=True)
+    latitude          = Column(Float, nullable=True)
+    longitude         = Column(Float, nullable=True)
+    notes             = Column(Text, nullable=True)
+
+    # Cache meta
+    team_name         = Column(String(255), nullable=True)
+    in_local_db       = Column(Boolean, default=False, nullable=False)     # Există ca WorkOrder local?
+    synced_at         = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    organization = relationship("Organization")
+    team         = relationship("Team", foreign_keys=[team_id])

@@ -15,6 +15,13 @@ else:
         pool_size=10,
         max_overflow=20,
         pool_recycle=300,  # recycle connections every 5 min
+        connect_args={
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+            "connect_timeout": 10
+        }
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

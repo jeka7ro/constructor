@@ -1,12 +1,15 @@
+import sys
+import os
+sys.path.append(os.path.join(os.getcwd(), 'backend'))
+
 from app.database import SessionLocal
-from app.models import WorkOrder
-import json
+from app.models import Organization
 
 db = SessionLocal()
-wos = db.query(WorkOrder).order_by(WorkOrder.created_at.desc()).limit(5).all()
-for wo in wos:
-    print(f"ID: {wo.id} | Ext: {wo.external_id} | Title: {wo.title}")
-    print("Materials:", wo.materials)
-    print("Volumes:", wo.volumes)
-    print("---")
-db.close()
+try:
+    orgs = db.query(Organization).all()
+    print(f"Success! Found {len(orgs)} organizations.")
+    if len(orgs) > 0:
+        print(f"First org country: {orgs[0].country}")
+except Exception as e:
+    print(f"Error querying organizations: {e}")
