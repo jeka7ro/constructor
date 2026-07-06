@@ -92,9 +92,16 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         const parts = [];
         if (wo.client_email) parts.push(wo.client_email);
         if (wo.client_phone) parts.push(wo.client_phone);
-        if (wo.client_cui || wo.client_company_vat || wo.client?.company_vat) parts.push(`VAT: ${wo.client_cui || wo.client_company_vat || wo.client?.company_vat}`);
-        if (wo.client_reg_com || wo.client?.company_reg_number) parts.push(`Reg: ${wo.client_reg_com || wo.client?.company_reg_number}`);
-        if (wo.client_address || wo.client?.company_address || wo.site_address) parts.push(wo.client_address || wo.client?.company_address || wo.site_address);
+        
+        const cui = wo.client_cui || wo.client_company_vat || wo.client?.cui || wo.client?.company_vat;
+        if (cui) parts.push(`VAT: ${cui}`);
+        
+        const reg = wo.client_reg_com || wo.client?.reg_com || wo.client?.company_reg_number;
+        if (reg) parts.push(`Reg: ${reg}`);
+        
+        const addr = wo.client_address || wo.client?.address || wo.client?.company_address || wo.site_address;
+        if (addr) parts.push(addr);
+        
         cDetails = parts.join('\n');
     }
 
