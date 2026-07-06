@@ -344,7 +344,7 @@ export default function InvoicingManagement() {
             render: (wo) => {
                 if (wo.is_invoiced) {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap w-fit shrink-0">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
                             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                             {t('invoicing.status_invoiced', 'Facturat')}
                         </span>
@@ -352,7 +352,7 @@ export default function InvoicingManagement() {
                 }
                 if (wo.proforma_path) {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-600 w-fit shrink-0">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-blue-600 w-fit shrink-0">
                             <Clock className="w-3.5 h-3.5 shrink-0" />
                             <span className="flex flex-col items-start leading-[1.1]">
                                 {t('invoicing.status_proforma', 'Proformă Emisă').split(' ').map((word, i) => (
