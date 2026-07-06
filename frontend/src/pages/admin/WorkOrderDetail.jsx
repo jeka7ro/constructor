@@ -1079,57 +1079,32 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                         {/* Proforma Status */}
                         {wo.proforma_path ? (
-                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-2">
+                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-4">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-400 truncate">
-                                        {wo.is_invoiced ? 'Factură PDF (Sistem)' : 'Proformă PDF Emisă'}
-                                    </span>
+                                    <a href={`/admin/invoices/${wo.id}`} target="_blank" rel="noreferrer"
+                                        className="text-sm font-bold text-blue-700 dark:text-blue-400 truncate hover:underline cursor-pointer">
+                                        {wo.is_invoiced ? 'Factură PDF (Generată)' : 'Proformă PDF Emisă'}
+                                    </a>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => navigate(`/admin/invoices/${wo.id}`)}
-                                        className="px-3 py-1.5 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shrink-0">
-                                        Vezi Web
-                                    </button>
                                     <a href={wo.proforma_path} target="_blank" rel="noreferrer"
-                                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
-                                        Descarcă
+                                        className="px-4 py-1.5 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shrink-0 shadow-sm">
+                                        Descarcă PDF
                                     </a>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 mb-2">
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 mb-4">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-                                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">Fără Proformă</span>
+                                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">Fără Proformă / Factură</span>
                                 </div>
                                 <button onClick={() => navigate('/admin/invoicing')}
                                     className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors shrink-0">
                                     Generează
                                 </button>
                             </div>
-                        )}
-
-                        {/* Upload PDF */}
-                        {wo.final_invoice_path ? (
-                            <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-4">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
-                                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 truncate">{t('work_order_detail.invoicing.pdf_uploaded', 'PDF Factură Încărcat')}</span>
-                                </div>
-                                <a href={`${API_BASE}${wo.final_invoice_path}`} target="_blank" rel="noreferrer"
-                                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 rounded-lg text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 transition-colors shrink-0">
-                                    {t('work_order_detail.invoicing.view_invoice', 'Vezi PDF')}
-                                </a>
-                            </div>
-                        ) : (
-                            <label className="flex items-center justify-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all mb-4 group">
-                                <FileText className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
-                                <span className="text-sm font-semibold text-slate-500 group-hover:text-blue-600 dark:text-slate-400">
-                                    {uploadingInvoice ? t('work_order_detail.invoicing.uploading', 'Se încarcă...') : t('work_order_detail.invoicing.upload_pdf', 'Upload PDF Factură → marchează automat')}
-                                </span>
-                                <input type="file" className="hidden" accept=".pdf,image/*" onChange={handleInvoiceUpload} disabled={uploadingInvoice} />
-                            </label>
                         )}
 
                         {/* Butoane marcare manual */}
