@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { Loader2, Printer } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
@@ -9,9 +9,23 @@ import i18nGlobal from '../../i18n'
 export default function ProformaView({ workOrderData = null, config = null }) {
     const { t, i18n } = useTranslation()
     const { id } = useParams()
+    const location = useLocation()
+    const navigate = useNavigate()
     const { tenant } = useTenantStore()
+    const searchParams = new URLSearchParams(location.search)
+    const typeParam = searchParams.get('type')
+    
     const [wo, setWo] = useState(workOrderData)
     const [loading, setLoading] = useState(!workOrderData)
+    const [viewMode, setViewMode] = useState(typeParam || 'proforma')
+
+    useEffect(() => {
+        if (wo && !typeParam) {
+            setViewMode(wo.is_invoiced ? 'invoice' : 'proforma')
+        }
+    }, [wo, typeParam])
+
+    const isInvoiceView = viewMode === 'invoice'
     
     // Switch language based on config if provided
     useEffect(() => {
@@ -199,19 +213,19 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     <div className="text-right flex items-center gap-6">
                         <div className="text-right">
                             <h2 className="text-3xl font-light text-slate-800 uppercase tracking-widest leading-tight">
-                                {wo.is_invoiced ? (
+                                {isInvoiceView ? (
                                     tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
                                 ) : (
                                     tL('proforma')
                                 )}
                             </h2>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {wo.is_invoiced ? (wo.invoice_number || '...') : `PF-${wo.id}`}
+                                N° {isInvoiceView ? (wo.invoice_number || '...') : `PF-${wo.id}`}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
                             <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
-                            {wo.is_invoiced && (
+                            {isInvoiceView && (
                                 <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
                             )}
                         </div>
@@ -243,8 +257,8 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <th className="py-3 pr-4 text-left text-xs font-bold text-slate-500 uppercase w-[55%]">{tL('desc')}</th>
                             <th className="py-3 px-4 text-center text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('qty')}</th>
                             <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('price')}</th>
-                            {wo.is_invoiced && <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[10%]">TVA</th>}
-                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{wo.is_invoiced ? 'Sous-total (EUR)' : 'Montant'}</th>
+                            {isInvoiceView && <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[10%]">TVA</th>}
+                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{isInvoiceView ? 'Sous-total (EUR)' : 'Montant'}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -263,7 +277,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 </td>
                                 <td className="py-4 px-4 text-center text-slate-600 align-top">{item.qty}</td>
                                 <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{Number(item.price).toFixed(2)}</td>
-                                {wo.is_invoiced && <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</td>}
+                                {isInvoiceView && <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</td>}
                                 <td className="py-4 pl-4 text-right font-medium text-slate-800 whitespace-nowrap align-top">{(item.qty * item.price).toFixed(2)}</td>
                             </tr>
                         ))}
@@ -272,7 +286,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
                 <div className="flex justify-end mb-12">
                     <div className="w-[450px] print:w-[350px]">
-                        {wo.is_invoiced ? (
+                        {isInvoiceView ? (
                             <>
                                 <div className="flex justify-between mb-2">
                                     <span className="font-bold text-slate-800 text-sm">Sous-total:</span>
@@ -312,7 +326,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </>
                         )}
-                        <div className={`flex justify-between pt-4 ${wo.is_invoiced ? 'border-t border-slate-200' : ''}`}>
+                        <div className={`flex justify-between pt-4 ${isInvoiceView ? 'border-t border-slate-200' : ''}`}>
                             <span className="font-bold text-slate-800 text-base">Total:</span>
                             <span className="font-bold text-slate-800 whitespace-nowrap text-base">{totalAmount.toFixed(2)} EUR</span>
                         </div>
@@ -321,7 +335,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
                 {/* Info Bancaires & Commentaires */}
                 <div className="flex flex-col gap-4 mb-8">
-                    {wo.is_invoiced && (
+                    {isInvoiceView && (
                         <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
                             <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Informations bancaires</div>
                             <div className="p-4 text-sm text-slate-700 leading-relaxed">
@@ -329,15 +343,15 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
                                 <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
                                 <br/>
-                                <p>Référence de Paiement: <span className="font-medium">{wo.is_invoiced ? (wo.invoice_number || '...') : `PF-${wo.id}`}</span></p>
+                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || '...') : `PF-${wo.id}`}</span></p>
                             </div>
                         </div>
                     )}
                     
-                    <div className={`${wo.is_invoiced ? 'border border-slate-200 rounded-xl overflow-hidden print:rounded-none' : ''}`}>
-                        {wo.is_invoiced && <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Commentaires</div>}
-                        <div className={`${wo.is_invoiced ? 'p-4' : 'pt-2'} text-sm text-slate-700 leading-relaxed text-justify`}>
-                            {wo.is_invoiced ? (
+                    <div className={`${isInvoiceView ? 'border border-slate-200 rounded-xl overflow-hidden print:rounded-none' : ''}`}>
+                        {isInvoiceView && <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Commentaires</div>}
+                        <div className={`${isInvoiceView ? 'p-4' : 'pt-2'} text-sm text-slate-700 leading-relaxed text-justify`}>
+                            {isInvoiceView ? (
                                 'Autoliquidation : en l’absence de contestation par écrit, dans un délai d’un mois à compter de la réception de la facture, le client est présumé reconnaître qu’il est un assujetti tenu au dépôt de déclarations périodiques. Si cette condition n’est pas remplie, le client endossera, par rapport à cette condition, la responsabilité quant au paiement de la taxe, des intérêts et des amendes dus (nouvel article 20, §3 AR n° 1).'
                             ) : (
                                 <>
@@ -359,7 +373,23 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             </div>
 
             {!workOrderData && (
-                <div className="fixed bottom-8 right-8 print:hidden">
+                <div className="fixed bottom-8 right-8 flex flex-col items-end gap-3 print:hidden">
+                    {wo?.is_invoiced && (
+                        <div className="flex bg-white rounded-full p-1 shadow-lg border border-slate-200">
+                            <button
+                                onClick={() => setViewMode('proforma')}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode === 'proforma' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                DEVIS (Ofertă)
+                            </button>
+                            <button
+                                onClick={() => setViewMode('invoice')}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode === 'invoice' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                FACTURE (Factură)
+                            </button>
+                        </div>
+                    )}
                     <button 
                         onClick={() => window.print()} 
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"

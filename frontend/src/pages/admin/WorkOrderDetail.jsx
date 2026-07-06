@@ -1057,7 +1057,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                                     <div className="flex items-center gap-2 min-w-0">
                                         <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                                        <a href={`/admin/invoices/${wo.id}`} target="_blank" rel="noreferrer"
+                                        <a href={`/admin/invoices/${wo.id}?type=proforma`} target="_blank" rel="noreferrer"
                                             className="text-sm font-bold text-blue-700 dark:text-blue-400 truncate hover:underline cursor-pointer">
                                             Proformă PDF Emisă
                                         </a>
@@ -1077,7 +1077,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     <div className="flex items-center gap-2 min-w-0">
                                         <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
                                         <div className="flex flex-col">
-                                            <a href={`/admin/invoices/${wo.id}`} target="_blank" rel="noreferrer"
+                                            <a href={`/admin/invoices/${wo.id}?type=invoice`} target="_blank" rel="noreferrer"
                                                 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 truncate hover:underline cursor-pointer">
                                                 Factură PDF (Generată)
                                             </a>
