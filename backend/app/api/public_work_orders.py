@@ -154,6 +154,9 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "client_name": wo.client_name,
         "client_email": wo.client_email,
         "client_phone": wo.client_phone,
+        "client_cui": wo.client.cui if wo.client else None,
+        "client_reg_com": wo.client.reg_com if wo.client else None,
+        "client_address": wo.client.address if wo.client else None,
         "requirements": wo.requirements or [],
         # Hide any material or volume containing 'nisip'/'sand'/'zand' for the public client quote
         "materials": [m for m in (wo.materials or []) if not any(x in str(m.get("name", "")).lower() for x in ["nisip", "sand", "zand", "sable"])],
