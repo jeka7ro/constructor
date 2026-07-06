@@ -130,12 +130,16 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     </div>
                     <div className="text-right">
                         <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-2 leading-tight">
-                            {tL('proforma').split(' ').map((word, i, arr) => (
-                                <React.Fragment key={i}>
-                                    {word}
-                                    {i < arr.length - 1 && <br />}
-                                </React.Fragment>
-                            ))}
+                            {wo.is_invoiced ? (
+                                i18n[lang]?.proforma?.invoice_title || 'FACTURE'
+                            ) : (
+                                tL('proforma').split(' ').map((word, i, arr) => (
+                                    <React.Fragment key={i}>
+                                        {word}
+                                        {i < arr.length - 1 && <br />}
+                                    </React.Fragment>
+                                ))
+                            )}
                         </h2>
                         <div className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg inline-block print:bg-transparent print:p-0">
                             <p>{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
@@ -209,9 +213,11 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     </div>
                 </div>
 
-                <div className="text-xs text-slate-400 text-center mt-16 pt-8 border-t border-slate-100">
-                    <p>{tL('note')}</p>
-                </div>
+                {!wo.is_invoiced && (
+                    <div className="text-xs text-slate-400 text-center mt-16 pt-8 border-t border-slate-100">
+                        <p>{tL('note')}</p>
+                    </div>
+                )}
             </div>
 
             {!workOrderData && (
