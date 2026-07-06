@@ -211,7 +211,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
                             <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
-                            <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
+                            {wo.is_invoiced && (
+                                <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -241,8 +243,8 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <th className="py-3 pr-4 text-left text-xs font-bold text-slate-500 uppercase w-[55%]">{tL('desc')}</th>
                             <th className="py-3 px-4 text-center text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('qty')}</th>
                             <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('price')}</th>
-                            <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[10%]">TVA</th>
-                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">Sous-total (EUR)</th>
+                            {wo.is_invoiced && <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[10%]">TVA</th>}
+                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{wo.is_invoiced ? 'Sous-total (EUR)' : 'Montant'}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -261,7 +263,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 </td>
                                 <td className="py-4 px-4 text-center text-slate-600 align-top">{item.qty}</td>
                                 <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{Number(item.price).toFixed(2)}</td>
-                                <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</td>
+                                {wo.is_invoiced && <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</td>}
                                 <td className="py-4 pl-4 text-right font-medium text-slate-800 whitespace-nowrap align-top">{(item.qty * item.price).toFixed(2)}</td>
                             </tr>
                         ))}
@@ -270,34 +272,47 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
                 <div className="flex justify-end mb-12">
                     <div className="w-[450px] print:w-[350px]">
-                        <div className="flex justify-between mb-2">
-                            <span className="font-bold text-slate-800 text-sm">Sous-total:</span>
-                            <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{priceRaw.toFixed(2)} EUR</span>
-                        </div>
-                        {discountPct > 0 && (
-                            <div className="flex justify-between mb-2 text-green-600">
-                                <span className="font-bold text-sm">Discount ({discountPct}%)</span>
-                                <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
-                            </div>
-                        )}
-                        {useVat && vatRate > 0 ? (
-                            <div className="flex justify-between mb-6">
-                                <span className="font-bold text-slate-800 text-sm">TVA {vatRate}%:</span>
-                                <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{vatAmount.toFixed(2)} EUR</span>
-                            </div>
-                        ) : (
-                            <div className="mb-6">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="font-bold text-slate-800 text-sm">TVA 0,0% Autoliquidation:</span>
-                                    <div className="flex gap-12 items-center">
-                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{subtotal.toFixed(2)} EUR</span>
-                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">0,00 EUR</span>
-                                    </div>
+                        {wo.is_invoiced ? (
+                            <>
+                                <div className="flex justify-between mb-2">
+                                    <span className="font-bold text-slate-800 text-sm">Sous-total:</span>
+                                    <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{priceRaw.toFixed(2)} EUR</span>
                                 </div>
-                                <span className="text-sm text-slate-500 block w-full">Autoliquidation</span>
-                            </div>
+                                {discountPct > 0 && (
+                                    <div className="flex justify-between mb-2 text-green-600">
+                                        <span className="font-bold text-sm">Discount ({discountPct}%)</span>
+                                        <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
+                                    </div>
+                                )}
+                                {useVat && vatRate > 0 ? (
+                                    <div className="flex justify-between mb-6">
+                                        <span className="font-bold text-slate-800 text-sm">TVA {vatRate}%:</span>
+                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{vatAmount.toFixed(2)} EUR</span>
+                                    </div>
+                                ) : (
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="font-bold text-slate-800 text-sm">TVA 0,0% Autoliquidation:</span>
+                                            <div className="flex gap-12 items-center">
+                                                <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{subtotal.toFixed(2)} EUR</span>
+                                                <span className="font-bold text-slate-800 whitespace-nowrap text-sm">0,00 EUR</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-sm text-slate-500 block w-full">Autoliquidation</span>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {discountPct > 0 && (
+                                    <div className="flex justify-between mb-2 text-green-600">
+                                        <span className="font-bold text-sm">Discount ({discountPct}%)</span>
+                                        <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
+                                    </div>
+                                )}
+                            </>
                         )}
-                        <div className="flex justify-between pt-4 border-t border-slate-200">
+                        <div className={`flex justify-between pt-4 ${wo.is_invoiced ? 'border-t border-slate-200' : ''}`}>
                             <span className="font-bold text-slate-800 text-base">Total:</span>
                             <span className="font-bold text-slate-800 whitespace-nowrap text-base">{totalAmount.toFixed(2)} EUR</span>
                         </div>
@@ -306,21 +321,32 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
                 {/* Info Bancaires & Commentaires */}
                 <div className="flex flex-col gap-4 mb-8">
-                    <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
-                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Informations bancaires</div>
-                        <div className="p-4 text-sm text-slate-700 leading-relaxed">
-                            <p>{tenant?.name || 'DAVIDE CHAPE'}</p>
-                            <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
-                            <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
-                            <br/>
-                            <p>Référence de Paiement: <span className="font-medium">{wo.is_invoiced ? (wo.invoice_number || '...') : `PF-${wo.id}`}</span></p>
+                    {wo.is_invoiced && (
+                        <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
+                            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Informations bancaires</div>
+                            <div className="p-4 text-sm text-slate-700 leading-relaxed">
+                                <p>{tenant?.name || 'DAVIDE CHAPE'}</p>
+                                <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
+                                <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
+                                <br/>
+                                <p>Référence de Paiement: <span className="font-medium">{wo.is_invoiced ? (wo.invoice_number || '...') : `PF-${wo.id}`}</span></p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     
-                    <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
-                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Commentaires</div>
-                        <div className="p-4 text-sm text-slate-700 leading-relaxed text-justify">
-                            Autoliquidation : en l’absence de contestation par écrit, dans un délai d’un mois à compter de la réception de la facture, le client est présumé reconnaître qu’il est un assujetti tenu au dépôt de déclarations périodiques. Si cette condition n’est pas remplie, le client endossera, par rapport à cette condition, la responsabilité quant au paiement de la taxe, des intérêts et des amendes dus (nouvel article 20, §3 AR n° 1).
+                    <div className={`${wo.is_invoiced ? 'border border-slate-200 rounded-xl overflow-hidden print:rounded-none' : ''}`}>
+                        {wo.is_invoiced && <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Commentaires</div>}
+                        <div className={`${wo.is_invoiced ? 'p-4' : 'pt-2'} text-sm text-slate-700 leading-relaxed text-justify`}>
+                            {wo.is_invoiced ? (
+                                'Autoliquidation : en l’absence de contestation par écrit, dans un délai d’un mois à compter de la réception de la facture, le client est présumé reconnaître qu’il est un assujetti tenu au dépôt de déclarations périodiques. Si cette condition n’est pas remplie, le client endossera, par rapport à cette condition, la responsabilité quant au paiement de la taxe, des intérêts et des amendes dus (nouvel article 20, §3 AR n° 1).'
+                            ) : (
+                                <>
+                                    <p className="font-medium mb-1">Le devis total exclut la TVA :</p>
+                                    <p>pour les nouvelles constructions TVA 21%</p>
+                                    <p>pour les renouvellements TVA 6%</p>
+                                    <p>pour les entreprises disposant de numéros de TVA, autoliquidation et TVA non appliquée</p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
