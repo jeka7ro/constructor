@@ -1421,7 +1421,7 @@
         "col_price": "Prix estimé",
         "col_status": "Statut",
         "status_invoiced": "Facturé",
-        "status_proforma": "Proforma",
+        "status_proforma": "Proforma Émise",
         "status_notinvoiced": "Non facturé",
         "col_actions": "Actions",
         "preview_title": "APERÇU PROFORMA",

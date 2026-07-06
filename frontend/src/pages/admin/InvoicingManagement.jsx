@@ -215,9 +215,7 @@ export default function InvoicingManagement() {
                     wo.id === woId ? { 
                         ...wo, 
                         proforma_path: res.data.proforma_path, 
-                        proforma_issued_at: new Date().toISOString(),
-                        is_invoiced: true,
-                        invoiced_at: new Date().toISOString()
+                        proforma_issued_at: new Date().toISOString()
                     } : wo
                 ))
             }

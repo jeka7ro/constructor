@@ -1433,12 +1433,6 @@ def generate_proforma(
             wo.client_id = payload.get("client_id")
             if payload.get("clientName"):
                 wo.client_name = payload.get("clientName")
-            
-    wo.is_invoiced = True
-    if not wo.invoiced_at:
-        from datetime import datetime
-        wo.invoiced_at = datetime.utcnow()
-            
     db.commit()
     
     return {

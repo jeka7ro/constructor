@@ -83,14 +83,19 @@ export default function InvoiceDetails() {
                     </h1>
                     <div className="flex items-center gap-3 mt-1 text-sm">
                         {wo.is_invoiced ? (
-                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                 {t('invoicing.status_invoiced', 'Facturat')}
+                            </span>
+                        ) : wo.proforma_path ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 uppercase tracking-wider border border-blue-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                {t('invoicing.status_proforma', 'Proformă Emisă')}
                             </span>
                         ) : (
                             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200">
                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                {t('invoicing_details.status_notinvoiced', 'Nefacturat / Proformă')}
+                                {t('invoicing.status_notinvoiced', 'Nefacturat')}
                             </span>
                         )}
                         <span className="text-slate-500 font-medium">#{wo.id}</span>
