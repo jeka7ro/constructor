@@ -901,11 +901,7 @@ export default function InvoicingManagement() {
                         {/* Right area - Live Preview */}
                         <div className="flex-1 bg-slate-200 dark:bg-slate-900 overflow-y-auto p-4 md:p-8 flex justify-center">
                             <div className="w-full max-w-[800px] h-max bg-white shadow-xl rounded-xl border border-slate-200 overflow-hidden shrink-0">
-                                {previewWo.proforma_path ? (
-                                    <iframe src={previewWo.proforma_path} className="w-full h-[800px] border-none" title="Proforma PDF Preview" />
-                                ) : (
                                     <ProformaView workOrderData={previewWo} config={proformaConfig} />
-                                )}
                             </div>
                         </div>
                     </div>
