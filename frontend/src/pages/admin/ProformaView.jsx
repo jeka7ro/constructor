@@ -132,51 +132,46 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         <div className="w-full min-h-full font-sans bg-slate-50 print:bg-white p-4 md:p-8">
             <div className="max-w-[800px] mx-auto bg-white p-8 md:p-12 shadow-sm rounded-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
                 {/* Header Top: Logo and Invoice Title */}
-                <div className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-3xl p-8 mb-10 print:bg-transparent print:border-none print:p-0">
+                <div className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-2xl px-6 py-4 mb-6 print:bg-transparent print:border-none print:p-0">
                     <div>
                         {tenant?.logo_url ? (
-                            <img src={tenant.logo_url} alt="Logo" className="h-14 object-contain" />
+                            <img src={tenant.logo_url} alt="Logo" className="h-12 object-contain" />
                         ) : (
                             <div className="flex items-baseline gap-2">
-                                <h1 className="text-3xl font-extrabold text-slate-800">{tenant?.name || 'Davide Chape'}</h1>
-                                <span className="text-lg font-bold text-slate-400">(SRL)</span>
+                                <h1 className="text-2xl font-extrabold text-slate-800">{tenant?.name || 'Davide Chape'}</h1>
+                                <span className="text-base font-bold text-slate-400">(SRL)</span>
                             </div>
                         )}
                     </div>
-                    <div className="text-right">
-                        <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-3 leading-tight">
+                    <div className="text-right flex items-center gap-6">
+                        <h2 className="text-3xl font-light text-slate-800 uppercase tracking-widest leading-tight">
                             {wo.is_invoiced ? (
                                 tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
                             ) : (
-                                tL('proforma').split(' ').map((word, i, arr) => (
-                                    <React.Fragment key={i}>
-                                        {word}
-                                        {i < arr.length - 1 && <br />}
-                                    </React.Fragment>
-                                ))
+                                tL('proforma')
                             )}
                         </h2>
-                        <div className="text-sm text-slate-500 flex flex-col gap-1 items-end">
-                            <p className="bg-white/60 px-3 py-1 rounded-full border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
-                            <p className="bg-white/60 px-3 py-1 rounded-full border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
+                        <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
+                            <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
+                            <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>
                         </div>
                     </div>
                 </div>
 
                 {/* Header Middle: Supplier and Client Details (Same Row, Identical Cards) */}
-                <div className="flex gap-6 mb-12">
-                    <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-3xl p-6 print:border-none print:shadow-none print:p-0 print:pr-4">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">FURNIZORI</h3>
-                        <p className="font-bold text-slate-800 text-lg mb-1">{tenant?.name || 'Davide Chape SRL'}</p>
-                        <div className="text-sm text-slate-600 leading-relaxed">
+                <div className="flex gap-6 mb-8">
+                    <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-2xl p-4 print:border-none print:shadow-none print:p-0 print:pr-4">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">FURNIZORI</h3>
+                        <p className="font-bold text-slate-800 text-base mb-1">{tenant?.name || 'Davide Chape SRL'}</p>
+                        <div className="text-sm text-slate-600 leading-snug">
                             <p>VAT: BE 0785.292.895</p>
                             <p>Gemeentehuisstraat 27/5, 1740 Ternat</p>
                         </div>
                     </div>
-                    <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-3xl p-6 text-right print:border-none print:shadow-none print:p-0 print:pl-4">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">À L'ATTENTION DE</h3>
-                        <p className="font-bold text-slate-800 text-lg mb-1">{cName || tL('client_none')}</p>
-                        <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{cDetails}</p>
+                    <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-2xl p-4 text-right print:border-none print:shadow-none print:p-0 print:pl-4">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">À L'ATTENTION DE</h3>
+                        <p className="font-bold text-slate-800 text-base mb-1">{cName || tL('client_none')}</p>
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap leading-snug">{cDetails}</p>
                     </div>
                 </div>
 
