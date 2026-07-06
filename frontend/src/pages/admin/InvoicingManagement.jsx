@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock, Pencil
+    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock, Pencil, MoreVertical, XCircle
 } from 'lucide-react'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
@@ -14,6 +14,114 @@ import AddressAutocomplete from '../../components/AddressAutocomplete'
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 import i18n from '../../i18n'
+
+const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken }) => {
+    const { t } = useTranslation();
+    const [isOpen, setIsOpen] = useState(false);
+    const btnRef = React.useRef(null);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+    const toggle = (e) => {
+        e.stopPropagation();
+        if (!isOpen) {
+            const rect = btnRef.current.getBoundingClientRect();
+            setCoords({ top: rect.bottom + window.scrollY, left: rect.right - 220 }); // align to right edge roughly
+        }
+        setIsOpen(!isOpen);
+    };
+
+    useEffect(() => {
+        const handleClick = () => setIsOpen(false);
+        if (isOpen) window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, [isOpen]);
+
+    return (
+        <>
+            <button 
+                ref={btnRef} 
+                onClick={toggle} 
+                className="p-1.5 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors border border-slate-200 shadow-sm"
+                title="Meniu Acțiuni"
+            >
+                <MoreVertical className="w-4 h-4" />
+            </button>
+            {isOpen && createPortal(
+                <div 
+                    className="absolute z-50 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 flex flex-col gap-0.5"
+                    style={{ top: coords.top + 4, left: coords.left }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {wo.proforma_path ? (
+                        <>
+                            <a 
+                                href={wo.proforma_path} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            >
+                                <FileOutput className="w-4 h-4 text-slate-400" />
+                                Descarcă / Vezi PDF
+                            </a>
+                            <button 
+                                onClick={() => { onEdit(wo); setIsOpen(false); }}
+                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            >
+                                <Pencil className="w-4 h-4 text-slate-400" />
+                                Editează Document
+                            </button>
+                            <button
+                                onClick={() => { onCopyLink(wo); setIsOpen(false); }}
+                                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            >
+                                {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                                Copiază Link Client
+                            </button>
+
+                            {!wo.is_invoiced ? (
+                                <button
+                                    onClick={() => { onMarkInvoiced(wo.id); setIsOpen(false); }}
+                                    className="w-full text-left px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
+                                >
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                    Marchează Facturată
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => { onStorno(wo.id); setIsOpen(false); }}
+                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
+                                >
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                    Storno / Anulează Factura
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <button 
+                            onClick={() => { onEdit(wo); setIsOpen(false); }}
+                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        >
+                            <FileOutput className="w-4 h-4 text-slate-400" />
+                            Generează Proformă
+                        </button>
+                    )}
+                    
+                    <div className="border-t border-slate-100 my-1"></div>
+                    <a 
+                        href={`/admin/work-orders/${wo.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full text-left px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-2"
+                    >
+                        <ExternalLink className="w-4 h-4 text-slate-400" />
+                        Vezi Detalii Lucrare
+                    </a>
+                </div>,
+                document.body
+            )}
+        </>
+    );
+};
 
 export default function InvoicingManagement() {
     const { t } = useTranslation()
@@ -249,6 +357,31 @@ export default function InvoicingManagement() {
         }
     }
 
+    const handleStornoInvoice = async (woId) => {
+        try {
+            await api.patch(`/admin/work-orders/${woId}/invoice-status`, { is_invoiced: false })
+            setWorkOrders(prev => prev.map(wo => 
+                wo.id === woId ? { ...wo, is_invoiced: false } : wo
+            ))
+            showToast('Factura a fost anulată (Storno) și a revenit la stadiul de Proformă.', 'success')
+        } catch (error) {
+            console.error('Failed to storno invoice status:', error)
+            showToast('A apărut o eroare la anularea facturii.', 'error')
+        }
+    }
+
+    const handleCopyLink = (wo) => {
+        if (wo.token) {
+            const link = `${window.location.origin}/public/proforma/${wo.token}`;
+            navigator.clipboard.writeText(link);
+            setCopiedToken(wo.token);
+            setTimeout(() => setCopiedToken(null), 2000);
+            showToast('Link copiat în clipboard!', 'success');
+        } else {
+            showToast("Token indisponibil pentru această lucrare.", 'error');
+        }
+    };
+
     const columns = [
         {
             key: 'date',
@@ -380,75 +513,15 @@ export default function InvoicingManagement() {
             key: 'actions',
             label: t('invoicing.col_actions', 'Acțiuni'),
             render: (wo) => (
-                <div className="flex flex-wrap items-center gap-1.5 w-[90px]">
-                    {wo.proforma_path ? (
-                        <>
-                            {!wo.is_invoiced && (
-                                <button 
-                                    onClick={() => handleOpenPreview(wo)}
-                                    className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
-                                    title={t('invoicing.edit_proforma', 'Editează și regenerează Proforma')}
-                                >
-                                    <Pencil className="w-4 h-4" />
-                                </button>
-                            )}
-                            <a 
-                                href={wo.proforma_path} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
-                                title={t('invoicing.view_proforma', 'Descarcă/Vezi Proformă PDF')}
-                            >
-                                <FileOutput className="w-4 h-4" />
-                            </a>
-                            <button
-                                onClick={() => {
-                                    if (wo.token) {
-                                        const link = `${window.location.origin}/public/proforma/${wo.token}`;
-                                        navigator.clipboard.writeText(link);
-                                        setCopiedToken(wo.token);
-                                        setTimeout(() => setCopiedToken(null), 2000);
-                                        showToast('Link copiat în clipboard!', 'success');
-                                    } else {
-                                        showToast("Token indisponibil pentru această lucrare.", 'error');
-                                    }
-                                }}
-                                className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
-                                title="Copiază link public client"
-                            >
-                                {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-slate-800" /> : <Copy className="w-4 h-4" />}
-                            </button>
-                        </>
-                    ) : (
-                        <button 
-                            onClick={() => handleOpenPreview(wo)}
-                            disabled={wo.is_invoiced}
-                            className={`p-1.5 rounded-full transition-colors border shadow-sm ${wo.is_invoiced ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'}`}
-                            title={t('invoicing.preview_generate', 'Previzualizează & Generează Proformă')}
-                        >
-                            <FileOutput className="w-4 h-4" />
-                        </button>
-                    )}
-
-                    {!wo.is_invoiced && (
-                        <button
-                            onClick={() => handleMarkInvoiced(wo.id)}
-                            className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
-                            title={t('invoicing.mark_final_invoice', 'Marchează ca facturată final (în Billtobox etc.)')}
-                        >
-                            <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                    )}
-                    
-                    <a 
-                        href={`/admin/work-orders/${wo.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
-                        title="Vezi detaliile lucrării (Tab nou)"
-                    >
-                        <ExternalLink className="w-4 h-4" />
-                    </a>
+                <div className="flex justify-end pr-2">
+                    <ActionMenu 
+                        wo={wo} 
+                        onEdit={handleOpenPreview} 
+                        onMarkInvoiced={handleMarkInvoiced} 
+                        onStorno={handleStornoInvoice}
+                        onCopyLink={handleCopyLink}
+                        copiedToken={copiedToken}
+                    />
                 </div>
             )
         }
