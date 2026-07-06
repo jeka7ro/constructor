@@ -105,8 +105,66 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         cDetails = parts.join('\n');
     }
 
+    // Construct fallback items based on Work Order Calculation
+    let defaultFallbackItems = []
+    const surfaceForAuto = parseFloat(wo.sapa_surface || 0)
+    if (surfaceForAuto > 0) {
+        const thickForAuto = parseFloat(wo.sapa_thickness || 0)
+        const extraThickForAuto = Math.max(0, thickForAuto - 5)
+        
+        defaultFallbackItems.push({
+            id: 'base',
+            desc: `Pose de chape ${Math.min(thickForAuto, 5)} cm`,
+            qty: surfaceForAuto,
+            price: parseFloat(wo.prices?.base || 12.5)
+        });
+        
+        if (extraThickForAuto > 0) {
+            defaultFallbackItems.push({
+                id: 'extra',
+                desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`,
+                qty: surfaceForAuto,
+                price: extraThickForAuto * parseFloat(wo.prices?.extra || 1.25)
+            });
+        }
+        
+        if (wo.has_foil) {
+            defaultFallbackItems.push({
+                id: 'foil',
+                desc: `Feuille de plastique (Visqueen)`,
+                qty: surfaceForAuto,
+                price: parseFloat(wo.prices?.foil || 1.2)
+            });
+        }
+        
+        if (wo.has_metal_mesh) {
+            defaultFallbackItems.push({
+                id: 'mesh',
+                desc: `Armature (Paillasse)`,
+                qty: surfaceForAuto,
+                price: parseFloat(wo.prices?.mesh || 2.5)
+            });
+        }
+        
+        if (wo.has_fiber) {
+            defaultFallbackItems.push({
+                id: 'fiber',
+                desc: `Fibre + Duramit`,
+                qty: surfaceForAuto,
+                price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
+            });
+        }
+    } else {
+        defaultFallbackItems = [{
+            id: 'default',
+            desc: `${tL('items.custom_work') || 'Lucrări conform deviz'} (${wo.title || tL('items.labor_materials') || 'Manoperă și materiale'})`,
+            qty: 1,
+            price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0')
+        }]
+    }
+
     // Items array from config or default fallback
-    // Try translating items on the fly if desc isn't hardcoded or uses translation keys (or just re-render when language changes)
+    // Try translating items on the fly if desc isn't hardcoded or uses translation keys
     const items = pData?.items?.length > 0 ? pData.items.map(item => {
         let newDesc = item.desc;
         const match = newDesc?.match(/^(proforma\.items\.[a-zA-Z0-9_]+)(.*)$/);
@@ -115,12 +173,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             newDesc = tL(keyPart) + match[2];
         }
         return { ...item, desc: newDesc };
-    }) : [{
-        id: 'default',
-        desc: `${tL('items.custom_work') || 'Lucrări conform deviz'} (${wo.title || tL('items.labor_materials') || 'Manoperă și materiale'})`,
-        qty: 1,
-        price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0')
-    }]
+    }) : defaultFallbackItems
 
     const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
     const discountAmount = priceRaw * (discountPct / 100)
