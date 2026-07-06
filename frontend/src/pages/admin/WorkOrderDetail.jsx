@@ -1082,12 +1082,20 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-400 truncate">Proformă PDF Emisă</span>
+                                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-400 truncate">
+                                        {wo.is_invoiced ? 'Factură PDF (Sistem)' : 'Proformă PDF Emisă'}
+                                    </span>
                                 </div>
-                                <a href={wo.proforma_path} target="_blank" rel="noreferrer"
-                                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
-                                    Descarcă
-                                </a>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => navigate(`/admin/invoices/${wo.id}`)}
+                                        className="px-3 py-1.5 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shrink-0">
+                                        Vezi Web
+                                    </button>
+                                    <a href={wo.proforma_path} target="_blank" rel="noreferrer"
+                                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg text-xs font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-50 transition-colors shrink-0">
+                                        Descarcă
+                                    </a>
+                                </div>
                             </div>
                         ) : (
                             <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 mb-2">
