@@ -1050,83 +1050,63 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             )}
                         </div>
 
-                        {/* Nr. Factură + dată */}
-                        <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    placeholder={t('work_order_detail.invoicing.invoice_number_placeholder', 'Nr. Factură (ex: 2025-0042)')}
-                                    value={invoiceNumberDraft ?? (wo.invoice_number || '')}
-                                    onChange={e => setInvoiceNumberDraft(e.target.value)}
-                                    className="flex-1 h-9 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 placeholder:font-normal placeholder:text-slate-400"
-                                />
-                                {(invoiceNumberDraft !== null && invoiceNumberDraft !== (wo.invoice_number || '')) && (
-                                    <button
-                                        onClick={handleSaveInvoiceNumber}
-                                        disabled={savingInvoiceStatus}
-                                        className="px-3 h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
-                                    >
-                                        {savingInvoiceStatus ? '...' : t('common.save', 'Salvează')}
-                                    </button>
-                                )}
-                            </div>
-                            {wo.invoiced_at && (
-                                <p className="text-[10px] text-slate-400 font-medium">
-                                    {t('work_order_detail.invoicing.invoiced_at', 'Facturat pe')} {new Date(wo.invoiced_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                </p>
+                        {/* Documente Generate */}
+                        <div className="space-y-3 mt-4 mb-4">
+                            {/* Proforma Block */}
+                            {wo.proforma_path && (
+                                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-5 h-5 text-blue-600 shrink-0" />
+                                        <a href={`/admin/invoices/${wo.id}`} target="_blank" rel="noreferrer"
+                                            className="text-sm font-bold text-blue-700 dark:text-blue-400 truncate hover:underline cursor-pointer">
+                                            Proformă PDF Emisă
+                                        </a>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <a href={wo.proforma_path} target="_blank" rel="noreferrer"
+                                            className="px-4 py-1.5 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shrink-0 shadow-sm">
+                                            Descarcă PDF
+                                        </a>
+                                    </div>
+                                </div>
                             )}
-                        </div>
 
-                        {/* Proforma Status */}
-                        {wo.proforma_path ? (
-                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-4">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                                    <a href={`/admin/invoices/${wo.id}`} target="_blank" rel="noreferrer"
-                                        className="text-sm font-bold text-blue-700 dark:text-blue-400 truncate hover:underline cursor-pointer">
-                                        {wo.is_invoiced ? 'Factură PDF (Generată)' : 'Proformă PDF Emisă'}
-                                    </a>
+                            {/* Invoice Block */}
+                            {wo.is_invoiced && (
+                                <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
+                                        <div className="flex flex-col">
+                                            <a href={`/admin/invoices/${wo.id}`} target="_blank" rel="noreferrer"
+                                                className="text-sm font-bold text-emerald-700 dark:text-emerald-400 truncate hover:underline cursor-pointer">
+                                                Factură PDF (Generată)
+                                            </a>
+                                            {wo.invoice_number && (
+                                                <span className="text-xs text-emerald-600 dark:text-emerald-500 font-medium">N° {wo.invoice_number}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <a href={wo.proforma_path} target="_blank" rel="noreferrer"
+                                            className="px-4 py-1.5 bg-emerald-600 dark:bg-emerald-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shrink-0 shadow-sm">
+                                            Descarcă PDF
+                                        </a>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <a href={wo.proforma_path} target="_blank" rel="noreferrer"
-                                        className="px-4 py-1.5 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shrink-0 shadow-sm">
-                                        Descarcă PDF
-                                    </a>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 mb-4">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-                                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">Fără Proformă / Factură</span>
-                                </div>
-                                <button onClick={() => navigate('/admin/invoicing')}
-                                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors shrink-0">
-                                    Generează
-                                </button>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Butoane marcare manual */}
-                        <div className="flex gap-3 mt-auto">
-                            {!wo.is_invoiced ? (
-                                <button
-                                    onClick={() => handleToggleInvoiced(true)}
-                                    disabled={savingInvoiceStatus}
-                                    className="flex-1 flex items-center justify-center gap-2 h-10 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
-                                >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    {t('work_order_detail.invoicing.mark_invoiced', 'Marchează ca Facturat')}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => handleToggleInvoiced(false)}
-                                    disabled={savingInvoiceStatus}
-                                    className="flex-1 flex items-center justify-center gap-2 h-10 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
-                                >
-                                    <Circle className="w-4 h-4" />
-                                    {t('work_order_detail.invoicing.mark_not_invoiced', 'Marchează ca Nefacturat')}
-                                </button>
+                            {/* Fallback Generate Button */}
+                            {(!wo.proforma_path && !wo.is_invoiced) && (
+                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+                                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">Niciun document emis</span>
+                                    </div>
+                                    <button onClick={() => navigate('/admin/invoicing')}
+                                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors shrink-0">
+                                        Generează
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </Section>
