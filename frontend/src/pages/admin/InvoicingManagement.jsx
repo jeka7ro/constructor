@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock
+    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock, Pencil
 } from 'lucide-react'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
@@ -105,6 +105,12 @@ export default function InvoicingManagement() {
     };
 
     const handleOpenPreview = (wo) => {
+        if (wo.proforma_data) {
+            setProformaConfig(wo.proforma_data);
+            setPreviewWo(wo);
+            return;
+        }
+
         const titleLower = (wo.title || '').toLowerCase();
         const isAuto = wo.work_type === 'sapa_mecanizata' || wo.work_type === 'isoflex' || titleLower.includes('isoflex') || (!wo.estimated_price && (wo.actual_surface_m2 > 0 || wo.surface_m2 > 0));
         
@@ -377,6 +383,15 @@ export default function InvoicingManagement() {
                 <div className="flex flex-wrap items-center gap-1.5 w-[90px]">
                     {wo.proforma_path ? (
                         <>
+                            {!wo.is_invoiced && (
+                                <button 
+                                    onClick={() => handleOpenPreview(wo)}
+                                    className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 rounded-full transition-colors border border-slate-200 shadow-sm"
+                                    title={t('invoicing.edit_proforma', 'Editează și regenerează Proforma')}
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                            )}
                             <a 
                                 href={wo.proforma_path} 
                                 target="_blank" 
