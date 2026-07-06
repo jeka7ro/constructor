@@ -173,7 +173,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <p>Gemeentehuisstraat 27/5, 1740 Ternat</p>
                         </div>
                     </div>
-                    <div className="flex-1 pl-8">
+                    <div className="flex-1 pl-8 text-right">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">À L'ATTENTION DE</h3>
                         <p className="font-bold text-slate-800 text-lg mb-1">{cName || tL('client_none')}</p>
                         <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{cDetails}</p>
