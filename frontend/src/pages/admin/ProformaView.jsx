@@ -131,7 +131,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     <div className="text-right">
                         <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-2 leading-tight">
                             {wo.is_invoiced ? (
-                                i18n[lang]?.proforma?.invoice_title || 'FACTURE'
+                                tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
                             ) : (
                                 tL('proforma').split(' ').map((word, i, arr) => (
                                     <React.Fragment key={i}>
