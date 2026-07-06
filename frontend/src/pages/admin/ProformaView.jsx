@@ -129,7 +129,14 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         </p>
                     </div>
                     <div className="text-right">
-                        <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-2">{tL('proforma')}</h2>
+                        <h2 className="text-4xl font-light text-slate-800 uppercase tracking-widest mb-2 leading-tight">
+                            {tL('proforma').split(' ').map((word, i, arr) => (
+                                <React.Fragment key={i}>
+                                    {word}
+                                    {i < arr.length - 1 && <br />}
+                                </React.Fragment>
+                            ))}
+                        </h2>
                         <div className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg inline-block print:bg-transparent print:p-0">
                             <p>{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
                             <p>{tL('due')} <strong>{new Date(new Date(wo.proforma_issued_at || Date.now()).getTime() + 86400000*14).toLocaleDateString('ro-RO')}</strong></p>

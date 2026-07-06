@@ -230,6 +230,19 @@ export default function InvoicingManagement() {
         }
     }
 
+    const handleMarkInvoiced = async (woId) => {
+        try {
+            await api.patch(`/admin/work-orders/${woId}/invoice-status`, { is_invoiced: true })
+            setWorkOrders(prev => prev.map(wo => 
+                wo.id === woId ? { ...wo, is_invoiced: true, invoiced_at: new Date().toISOString() } : wo
+            ))
+            showToast(t('invoicing.mark_invoiced_success', 'Lucrarea a fost marcată ca facturată!'), 'success')
+        } catch (error) {
+            console.error('Failed to update invoice status:', error)
+            showToast(t('invoicing.mark_invoiced_error', 'A apărut o eroare.'), 'error')
+        }
+    }
+
     const columns = [
         {
             key: 'date',
@@ -395,6 +408,16 @@ export default function InvoicingManagement() {
                             title={t('invoicing.preview_generate', 'Previzualizează & Generează Proformă')}
                         >
                             <FileOutput className="w-4 h-4" />
+                        </button>
+                    )}
+
+                    {!wo.is_invoiced && (
+                        <button
+                            onClick={() => handleMarkInvoiced(wo.id)}
+                            className="p-1.5 bg-white hover:bg-emerald-50 text-emerald-600 rounded-full transition-colors border border-emerald-200 shadow-sm"
+                            title={t('invoicing.mark_final_invoice', 'Marchează ca facturată final (în Billtobox etc.)')}
+                        >
+                            <CheckCircle2 className="w-4 h-4" />
                         </button>
                     )}
                     
