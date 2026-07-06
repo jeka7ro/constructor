@@ -246,9 +246,16 @@ export default function InvoicingManagement() {
         const surfaceForAuto = extractedSurface > 0 ? extractedSurface : parseFloat(wo.actual_surface_m2 || wo.surface_m2 || 0);
         const thicknessForAuto = extractedThickness > 0 ? extractedThickness : parseFloat(wo.actual_thickness_cm || wo.thickness_cm || 5);
 
+        const cDetailsParts = [];
+        if (wo.client_email) cDetailsParts.push(wo.client_email);
+        if (wo.client_phone) cDetailsParts.push(wo.client_phone);
+        if (wo.client_cui || wo.client_company_vat) cDetailsParts.push(`VAT: ${wo.client_cui || wo.client_company_vat}`);
+        if (wo.client_reg_com) cDetailsParts.push(`Reg: ${wo.client_reg_com}`);
+        if (wo.client_address) cDetailsParts.push(wo.client_address);
+
         const config = {
             clientName: wo.client_name || '',
-            clientDetails: wo.client_email || '',
+            clientDetails: cDetailsParts.join('\n'),
             useVat: wo.client_type === 'fizica',
             discountPct: 0,
             lang: localStorage.getItem('proformaLang') || wo.client_language || localStorage.getItem('i18nextLng') || 'ro',
@@ -720,6 +727,16 @@ export default function InvoicingManagement() {
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="mt-2">
+                                        <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.client_details', 'Detalii (Adresă, CIF, Email)')}</label>
+                                        <textarea 
+                                            value={proformaConfig.clientDetails || ''} 
+                                            onChange={e => setProformaConfig(p => ({ ...p, clientDetails: e.target.value }))} 
+                                            rows={3}
+                                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded focus:border-blue-500 outline-none resize-none"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Language selection */}
