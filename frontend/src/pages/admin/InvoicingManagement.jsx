@@ -214,7 +214,15 @@ export default function InvoicingManagement() {
 
     const handleOpenPreview = (wo) => {
         if (wo.proforma_data) {
-            setProformaConfig(wo.proforma_data);
+            let data = { ...wo.proforma_data };
+            let shouldUseFallback = !data.items || data.items.length === 0;
+            if (data.items?.length === 1 && (String(data.items[0].id).includes('default') || String(data.items[0].desc).includes('Lucrări conform deviz') || String(data.items[0].desc).includes('Manoperă'))) {
+                shouldUseFallback = true;
+            }
+            if (shouldUseFallback) {
+                data.items = calculateItems(wo, data);
+            }
+            setProformaConfig(data);
             setPreviewWo(wo);
             return;
         }

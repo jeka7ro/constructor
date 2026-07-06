@@ -225,7 +225,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </h2>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {isInvoiceView ? (wo.invoice_number || '...') : `PF-${wo.id}`}
+                                N° {isInvoiceView ? (wo.invoice_number || `INV${wo.id}`) : `EST${wo.id}`}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
@@ -348,7 +348,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
                                 <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
                                 <br/>
-                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || '...') : `PF-${wo.id}`}</span></p>
+                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || `INV${wo.id}`) : `EST${wo.id}`}</span></p>
                             </div>
                         </div>
                     )}
