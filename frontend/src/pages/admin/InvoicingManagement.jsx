@@ -616,6 +616,14 @@ export default function InvoicingManagement() {
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+            <div className="mb-6">
+                <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                    {t('nav.invoicing', 'Facturation & Proformas')}
+                </h1>
+                <p className="text-sm font-medium text-slate-500 mt-1">{t('invoicing.page_desc', 'Gestion des factures, devis et paiements')}</p>
+            </div>
+
             <div className="bg-white dark:bg-slate-900 border-0 rounded-2xl shadow-sm overflow-hidden flex flex-col">
                 <DataTable 
                     data={workOrders}

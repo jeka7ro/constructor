@@ -212,21 +212,21 @@ export default function ScreedsReports() {
             <div className="mb-6">
                 <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <BarChart3 className="w-6 h-6 text-blue-600" />
-                    Analiză Companie
+                    {t('reports.company_analysis', 'Analyse de l\'Entreprise')}
                 </h1>
-                <p className="text-sm font-medium text-slate-500 mt-1">Sinteză completă volume, rute și materiale consumate pe echipe</p>
+                <p className="text-sm font-medium text-slate-500 mt-1">{t('reports.company_analysis_desc', 'Synthèse complète des volumes, itinéraires et matériaux consommés par équipes')}</p>
             </div>
 
             {/* Filters Card */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-3 sm:p-4 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
-                        <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mr-2 flex items-center gap-1 shrink-0"><Filter className="w-3 h-3" /> Filtre:</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mr-2 flex items-center gap-1 shrink-0"><Filter className="w-3 h-3" /> {t('reports.filters', 'Filtres:')}</span>
                         {[
-                            { label: 'Ultimele 7 Zile', fn: () => setQuickFilter(7) },
-                            { label: 'Ultimele 30 Zile', fn: () => setQuickFilter(30) },
+                            { label: t('reports.last_7_days', '7 Derniers Jours'), fn: () => setQuickFilter(7) },
+                            { label: t('reports.last_30_days', '30 Derniers Jours'), fn: () => setQuickFilter(30) },
                             {
-                                label: 'Luna Curentă', fn: () => {
+                                label: t('reports.current_month', 'Mois en Cours'), fn: () => {
                                     const t = new Date()
                                     setDateFrom(toLocalISO(new Date(t.getFullYear(), t.getMonth(), 1)))
                                     setDateTo(toLocalISO(t))

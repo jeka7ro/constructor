@@ -96,25 +96,25 @@ export default function WorkOrderCalculations() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                        <Activity className="w-6 h-6" />
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-2xl flex items-center justify-center">
+                        <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                            Tabel Calcul (Șape)
-                        </h1>
-                        <p className="text-sm font-medium text-slate-500">
-                            Centralizator comenzi finalizate. Formula: Cantitate Nisip / Suprafață / 16.
+                        <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
+                            {t('analytics.screed_table_title', 'Tableau de Calcul (Chape)')}
+                        </h2>
+                        <p className="text-sm text-slate-500 font-medium mt-1">
+                            {t('analytics.screed_table_desc', 'Commandes terminées. Formule: Quantité de Sable / Surface / 16.')}
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
-                    <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-white" /> Rezultate Analiză Șape
-                    </h2>
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/40 dark:shadow-slate-900/50 border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-4 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2 text-white font-bold tracking-wide text-sm uppercase">
+                        <Activity className="w-4 h-4 text-white" /> {t('analytics.screed_results', 'Résultats d\'Analyse Chape')}
+                    </div>
                 </div>
                 <DataTable 
                     columns={columns}
