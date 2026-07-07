@@ -142,7 +142,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                     <div className="flex items-start gap-1.5 mt-1 pt-2 border-t border-slate-100">
                                                         <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                                                         <span className="text-xs text-slate-500 font-medium leading-tight">
-                                                            {wo.site?.address || wo.address || 'Fără adresă'}
+                                                            {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
                                                         </span>
                                                     </div>
                                                 </div>
