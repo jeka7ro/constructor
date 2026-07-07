@@ -747,7 +747,7 @@ export default function ShortWorksCalendar({
                                                     start_time: targetTime,
                                                     status: 'planning'
                                                 });
-                                                if (onOrderRescheduled) onOrderRescheduled();
+                                                if (onOrderRescheduled) onOrderRescheduled(quoteId, targetDate, targetTime);
                                             } catch (err) {
                                                 console.error('Erreur drop devis:', err);
                                             } finally {
@@ -769,7 +769,7 @@ export default function ShortWorksCalendar({
                                                 start_time: targetTime
                                             });
                                             if (onOrderRescheduled) {
-                                                onOrderRescheduled();
+                                                onOrderRescheduled(woId, targetDate, targetTime);
                                             } else {
                                                 window.location.reload();
                                             }
