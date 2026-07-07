@@ -363,7 +363,7 @@ export default function AdminOverview() {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const end = new Date(now.getFullYear(), now.getMonth() + 1, 28);
-        return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}`;
+        return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}&_t=${Date.now()}`;
     }
 
     const fetchWorkOrdersStats = async () => {
