@@ -230,7 +230,16 @@ def _serialize(wo: WorkOrder) -> dict:
                 "content_type": d.content_type,
                 "file_size": d.file_size
             } for d in wo.documents
-        ] if getattr(wo, "documents", None) else []
+        ] if getattr(wo, "documents", None) else [],
+        "photos": [
+            {
+                "id": str(p.id),
+                "photo_path": p.photo_path,
+                "url": get_file_url(p.photo_path),
+                "description": p.description,
+                "photo_type": p.photo_type
+            } for p in wo.photos
+        ] if getattr(wo, "photos", None) else []
     }
 
 

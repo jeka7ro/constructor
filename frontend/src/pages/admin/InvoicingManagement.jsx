@@ -724,7 +724,7 @@ export default function InvoicingManagement() {
                                     {proformaConfig.client_mode === 'existing' ? (
                                         <div className="space-y-1.5">
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('proforma.select_client', 'Selectează Client')}</label>
+                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('proforma.select_client', 'Sélectionner Client')}</label>
                                                 <SearchableSelect
                                                     value={proformaConfig.client_id}
                                                     onChange={id => {

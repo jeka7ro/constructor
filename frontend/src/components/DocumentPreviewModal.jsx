@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Download, FileText, ImageIcon } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
@@ -34,8 +35,8 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
     const rawUrl = doc.file_url || doc.file_path;
     const fileUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
 
-    return (
-        <div className="fixed inset-0 bg-slate-900/90 z-[9999] flex flex-col backdrop-blur-sm">
+    return createPortal(
+        <div className="fixed inset-0 bg-slate-900/90 z-[99999] flex flex-col backdrop-blur-sm">
             {/* Header */}
             <div className="flex items-center justify-between p-4 text-white">
                 <div>
@@ -135,6 +136,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                     })}
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }

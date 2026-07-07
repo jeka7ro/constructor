@@ -1323,7 +1323,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 </p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {photos.filter(p => p.photo_type === 'machine_computer').map((p, i) => {
-                                        const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
+                                        const rawSrc = p.url || p.file_url || p.path || '';
+                                        const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         return (
                                             <div key={`mc-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border-2 border-indigo-400 cursor-zoom-in hover:shadow-lg transition-all"
@@ -1345,7 +1346,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Poze Finalizare (Către Client)</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {photos.filter(p => p.photo_type === 'completion').map((p, i) => {
-                                        const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
+                                        const rawSrc = p.url || p.file_url || p.path || '';
+                                        const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         return (
                                             <div key={`comp-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:border-blue-400 hover:shadow-md transition-all"
@@ -1367,7 +1369,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Alte Fotografii (Interne)</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').map((p, i) => {
-                                        const src = `${API_BASE}${p.url || p.file_url || p.path || ''}`
+                                        const rawSrc = p.url || p.file_url || p.path || '';
+                                        const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         return (
                                             <div key={`alt-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:shadow-md transition-all"

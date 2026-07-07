@@ -116,7 +116,6 @@ export default function OrganizationsManagement() {
                 has_long_term_sites: true,
                 has_short_term_interventions: false,
                 is_active: true,
-                favicon_url: '',
                 features: []
             })
         }
@@ -299,14 +298,8 @@ export default function OrganizationsManagement() {
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                        <Building2 className="w-6 h-6 text-blue-600" />
-                        Companii (SaaS Tenants)
-                    </h1>
-                </div>
+            {/* Header Actions */}
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="relative flex-1 sm:w-64">
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" />

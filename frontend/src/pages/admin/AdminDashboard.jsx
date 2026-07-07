@@ -180,66 +180,67 @@ export default function AdminDashboard() {
     const categories = [
         {
             id: 'general',
-            label: t('nav.cat_general', 'General'),
+            label: t('nav.cat_general', 'Général'),
             items: [
                 { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
-                { path: '/admin/quotes', icon: FileText, label: t('nav.quotes', 'Devis / Oferte') },
-                { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistică') },
-                { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturare') },
-                { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Comenzi') },
-                { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Istoric Isoflex') },
-                { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tabel calcul') },
+                { path: '/admin/quotes', icon: FileText, label: t('nav.quotes', 'Devis / Offres') },
+                { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistique') },
+                { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturation') },
+                { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Commandes') },
+                { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Historique Isoflex') },
+                { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tableau de calcul') },
                 { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
                 { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
             ]
         },
         {
             id: 'hr',
-            label: t('nav.cat_hr', 'Resurse Umane'),
+            label: t('nav.cat_hr', 'Ressources Humaines'),
             items: [
-                { path: '/admin/employees', icon: HardHat, label: t('nav.employees', 'Angajați') },
+                { path: '/admin/employees', icon: HardHat, label: t('nav.employees', 'Employés') },
                 { path: '/admin/teams', icon: Users, label: t('nav.teams') },
-                { path: '/admin/leaves', icon: CalendarDays, label: t('nav.leaves', 'Concedii & Absențe'), badge: pendingLeavesCount },
-                { path: '/admin/accommodations', icon: BedDouble, label: t('nav.accommodations', 'Cazări') },
+                { path: '/admin/leaves', icon: CalendarDays, label: t('nav.leaves', 'Congés & Absences'), badge: pendingLeavesCount },
+                { path: '/admin/accommodations', icon: BedDouble, label: t('nav.accommodations', 'Hébergements') },
             ]
         },
         {
             id: 'operations',
-            label: t('nav.cat_operations', 'Operațiuni'),
+            label: t('nav.cat_operations', 'Opérations'),
             items: [
                 { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
-                { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clienți') },
-                { path: '/calculator', icon: Calculator, label: t('nav.calculator', 'Calculator Clienți (Public)') },
+                { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clients') },
+                { path: '/calculator', icon: Calculator, label: t('nav.calculator', 'Calculateur Clients (Public)') },
                 { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
                 { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
             ]
         },
         {
             id: 'logistics',
-            label: t('nav.cat_logistics', 'Logistică & Financiar'),
+            label: t('nav.cat_logistics', 'Logistique & Finances'),
             items: [
-                { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Magazie') },
+                { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Entrepôt') },
                 { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
-                { path: '/admin/transport', icon: Navigation, label: t('nav.transport', 'Foi de Parcurs') },
+                { path: '/admin/transport', icon: Navigation, label: t('nav.transport', 'Feuilles de Route') },
                 { path: '/admin/tracking', icon: Radio, label: t('nav.tracking', 'Live Tracking') },
-                { path: '/admin/material-requests', icon: PackageSearch, label: t('nav.material_requests', 'Necesar Materiale') },
-                { path: '/admin/expenses', icon: Wallet, label: t('nav.expenses', 'Deconturi / Cheltuieli') },
+                { path: '/admin/material-requests', icon: PackageSearch, label: t('nav.material_requests', 'Demandes Matériel') },
+                { path: '/admin/expenses', icon: Wallet, label: t('nav.expenses', 'Dépenses / Frais') },
             ]
         },
         {
             id: 'support',
-            label: t('nav.cat_support', 'Suport & Alerte'),
+            label: t('nav.cat_support', 'Support & Alertes'),
             items: [
-                { path: '/admin/alerts', icon: Megaphone, label: t('nav.alerts', 'Avizier (Alerte)') },
-                { path: '/admin/emergencies', icon: AlertTriangle, label: t('nav.emergencies', 'Urgențe') },
-                { path: '/admin/complaints', icon: MessageSquareWarning, label: t('nav.complaints', 'Sesizări'), badge: openComplaintsCount },
+                { path: '/admin/alerts', icon: Megaphone, label: t('nav.alerts', 'Avis (Alertes)') },
+                { path: '/admin/emergencies', icon: AlertTriangle, label: t('nav.emergencies', 'Urgences') },
+                { path: '/admin/complaints', icon: MessageSquareWarning, label: t('nav.complaints', 'Plaintes'), badge: openComplaintsCount },
             ]
         },
         {
             id: 'system',
-            label: t('nav.cat_system', 'Sistem'),
+            label: t('nav.cat_system', 'Système'),
             items: [
-                { path: '/admin/users', icon: Shield, label: t('nav.users', 'Utilizatori') },
+                { path: '/admin/users', icon: Shield, label: t('nav.users', 'Utilisateurs') },
+                { path: '/admin/pricing-settings', icon: Calculator, label: t('nav.pricing_settings', 'Tarifs') },
                 { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
                 { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
             ]
@@ -250,9 +251,9 @@ export default function AdminDashboard() {
     if (admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) {
         categories.push({
             id: 'saas',
-            label: t('nav.cat_saas', 'Platformă SaaS'),
+            label: t('nav.cat_saas', 'Plateforme SaaS'),
             items: [
-                { path: '/admin/organizations', icon: Globe, label: t('nav.organizations', 'Companii (Tenants)') }
+                { path: '/admin/organizations', icon: Globe, label: t('nav.organizations', 'Organisations (Tenants)') }
             ]
         })
     }
@@ -279,7 +280,7 @@ export default function AdminDashboard() {
 
     const filteredCategories = categories.map(cat => {
         let roleFilteredItems = admin?.role === 'LOGISTIC'
-            ? cat.items.filter(item => ['/admin/warehouse', '/admin/import-factura', '/admin/fleet', '/admin/transport', '/admin/settings', '/admin/notifications'].includes(item.path))
+            ? cat.items.filter(item => ['/admin/warehouse', '/admin/import-factura', '/admin/fleet', '/admin/transport', '/admin/settings', '/admin/pricing-settings', '/admin/notifications'].includes(item.path))
             : cat.items
             
         let featureFilteredItems = roleFilteredItems.filter(item => isFeatureEnabled(item.path))
@@ -347,32 +348,33 @@ export default function AdminDashboard() {
         if (p.match(/\/(invoices|work-orders)\/[a-zA-Z0-9_-]+/)) return null;
         
         if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
-        if (p.includes('/logistica')) return t('nav.logistics', 'Logistică');
-        if (p.includes('/isoflex-history')) return t('nav.isoflex_history', 'Istoric Isoflex');
-        if (p.includes('/work-orders')) return t('nav.work_orders', 'Comenzi');
-        if (p.includes('/screed-analytics')) return t('nav.screed_analytics', 'Tabel calcul');
-        if (p.includes('/timesheets')) return t('nav.timesheets', 'Pontaje');
-        if (p.includes('/reports')) return t('nav.reports', 'Rapoarte');
-        if (p.includes('/sites')) return t('nav.sites', 'Șantiere');
-        if (p.includes('/clients')) return t('nav.clients', 'Clienți');
-        if (p.includes('/employees')) return t('nav.employees', 'Angajați');
-        if (p.includes('/teams')) return t('nav.teams', 'Echipe');
-        if (p.includes('/leaves')) return t('nav.leaves', 'Concedii');
-        if (p.includes('/accommodations')) return t('nav.accommodations', 'Cazări');
-        if (p.includes('/activities')) return t('nav.activities', 'Activități');
-        if (p.includes('/site-photos')) return t('nav.site_photos', 'Poze Șantier');
-        if (p.includes('/warehouse')) return t('nav.warehouse', 'Magazie');
-        if (p.includes('/fleet')) return t('nav.fleet', 'Parc Auto');
+        if (p.includes('/logistica')) return t('nav.logistics', 'Logistique');
+        if (p.includes('/isoflex-history')) return t('nav.isoflex_history', 'Historique Isoflex');
+        if (p.includes('/work-orders')) return t('nav.work_orders', 'Commandes');
+        if (p.includes('/screed-analytics')) return t('nav.screed_analytics', 'Tableau de calcul');
+        if (p.includes('/timesheets')) return t('nav.timesheets', 'Pointages');
+        if (p.includes('/reports')) return t('nav.reports', 'Rapports');
+        if (p.includes('/sites')) return t('nav.sites', 'Chantiers');
+        if (p.includes('/clients')) return t('nav.clients', 'Clients');
+        if (p.includes('/employees')) return t('nav.employees', 'Employés');
+        if (p.includes('/teams')) return t('nav.teams', 'Équipes');
+        if (p.includes('/leaves')) return t('nav.leaves', 'Congés');
+        if (p.includes('/accommodations')) return t('nav.accommodations', 'Hébergements');
+        if (p.includes('/activities')) return t('nav.activities', 'Activités');
+        if (p.includes('/site-photos')) return t('nav.site_photos', 'Photos Chantier');
+        if (p.includes('/warehouse')) return t('nav.warehouse', 'Entrepôt');
+        if (p.includes('/fleet')) return t('nav.fleet', 'Flotte');
         if (p.includes('/transport')) return t('nav.transport', 'Transport');
-        if (p.includes('/material-requests')) return t('nav.material_requests', 'Necesar Materiale');
-        if (p.includes('/expenses')) return t('nav.expenses', 'Deconturi / Cheltuieli');
-        if (p.includes('/alerts')) return t('nav.alerts', 'Avizier');
-        if (p.includes('/emergencies')) return t('nav.emergencies', 'Urgențe');
-        if (p.includes('/complaints')) return t('nav.complaints', 'Sesizări');
-        if (p.includes('/users')) return t('nav.users', 'Utilizatori');
-        if (p.includes('/settings')) return t('nav.settings', 'Setări');
-        if (p.includes('/notifications')) return t('nav.notifications', 'Notificări');
-        if (p.includes('/organizations')) return t('nav.organizations', 'Companii');
+        if (p.includes('/material-requests')) return t('nav.material_requests', 'Demandes de matériel');
+        if (p.includes('/expenses')) return t('nav.expenses', 'Dépenses');
+        if (p.includes('/alerts')) return t('nav.alerts', 'Avis');
+        if (p.includes('/emergencies')) return t('nav.emergencies', 'Urgences');
+        if (p.includes('/complaints')) return t('nav.complaints', 'Plaintes');
+        if (p.includes('/users')) return t('nav.users', 'Utilisateurs');
+        if (p.includes('/pricing-settings')) return t('nav.pricing_settings', 'Tarifs');
+        if (p.includes('/settings')) return t('nav.settings', 'Paramètres');
+        if (p.includes('/notifications')) return t('nav.notifications', 'Notifications');
+        if (p.includes('/organizations')) return t('nav.organizations', 'Organisations');
         if (p.includes('/invoicing') || p.includes('/invoices')) return null;
         if (p.includes('/quotes')) return null;
         if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');

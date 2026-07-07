@@ -510,16 +510,7 @@ export default function SitesManagement() {
 
     return (
         <div className="p-4 space-y-6 max-w-7xl mx-auto">
-            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <Building2 className="w-5 h-5" />
-                        </div>
-                        Gestionare Șantiere
-                    </h1>
-                </div>
-            </div>
+
 
             {/* ── Tab Switcher: Standard / Lucrari Scurte — vizibil doar daca tenantul are ambele tipuri activate ── */}
             {hasLongTerm && hasShortTerm && (

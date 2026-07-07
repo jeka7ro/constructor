@@ -119,18 +119,7 @@ export default function ComplaintsManagement() {
     return (
         <>
             <div className="p-4 md:p-8 max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-orange-50 dark:bg-orange-900/30 rounded-xl">
-                            <MessageSquareWarning className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Sesizări și Reclamații</h1>
-                            <p className="text-xs text-slate-400 mt-0.5">{complaints.filter(c => c.status === 'open').length} deschise · {complaints.length} total</p>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
                     {/* Toolbar */}

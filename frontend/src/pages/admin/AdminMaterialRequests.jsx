@@ -121,17 +121,7 @@ export default function AdminMaterialRequests() {
     return (
         <>
             <div className="p-4 md:p-8 max-w-7xl mx-auto">
-                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-orange-50 dark:bg-orange-900/30 rounded-xl">
-                            <PackageSearch className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Necesar Materiale</h1>
-                            <p className="text-xs text-slate-400 mt-0.5">{requests.filter(c => c.status === 'pending').length} în așteptare · {requests.length} total</p>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
                     <div className="p-4 sm:p-5 flex flex-col xl:flex-row flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50">

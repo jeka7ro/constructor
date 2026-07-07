@@ -529,18 +529,7 @@ export default function EmployeesManagement() {
 
     return (
         <div className="p-4 space-y-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <Users className="w-5 h-5" />
-                        </div>
-                        Gestionare Angajați
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Muncitori, șoferi și personal de câmp</p>
-                </div>
-            </div>
+
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
                 {!detailUser && (

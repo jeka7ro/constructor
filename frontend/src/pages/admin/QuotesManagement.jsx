@@ -22,18 +22,18 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 
 const EditablePrice = ({ row, onUpdate }) => {
-    const [price, setPrice] = useState(row.estimated_price || '')
+    const [price, setPrice] = useState(row.estimated_price ?? '')
     const [isSaving, setIsSaving] = useState(false)
     
     const handleBlur = async () => {
-        if (price === (row.estimated_price || '')) return
+        if (price === (row.estimated_price ?? '')) return
         setIsSaving(true)
         try {
             await api.put(`/admin/work-orders/${row.id}`, { estimated_price: price === '' ? null : parseFloat(price) })
             onUpdate()
         } catch (e) {
             console.error(e)
-            setPrice(row.estimated_price || '')
+            setPrice(row.estimated_price ?? '')
         } finally {
             setIsSaving(false)
         }
@@ -56,11 +56,11 @@ const EditablePrice = ({ row, onUpdate }) => {
 }
 
 const EditableUnitPrice = ({ row, onUpdate }) => {
-    const [price, setPrice] = useState(row.volumes?.[0]?.price || '')
+    const [price, setPrice] = useState(row.volumes?.[0]?.price ?? '')
     const [isSaving, setIsSaving] = useState(false)
     
     const handleBlur = async () => {
-        if (price === (row.volumes?.[0]?.price || '')) return
+        if (price === (row.volumes?.[0]?.price ?? '')) return
         setIsSaving(true)
         try {
             const p = price === '' ? null : parseFloat(price);
@@ -80,7 +80,7 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
             onUpdate()
         } catch (e) {
             console.error(e)
-            setPrice(row.volumes?.[0]?.price || '')
+            setPrice(row.volumes?.[0]?.price ?? '')
         } finally {
             setIsSaving(false)
         }
@@ -120,6 +120,7 @@ export default function QuotesManagement() {
     const [quickAddStep, setQuickAddStep] = useState(1) // 1: Info, 'new-client': New Client Form
     const [showQuickAdd, setShowQuickAdd] = useState(false)
     const [isSearchingVies, setIsSearchingVies] = useState(false)
+    const [pricingSettings, setPricingSettings] = useState(null)
     const [isSaving, setIsSaving] = useState(false)
     const [editingId, setEditingId] = useState(null)
     const [form, setForm] = useState({
@@ -172,6 +173,25 @@ export default function QuotesManagement() {
         });
     };
 
+
+    useEffect(() => {
+        const fetchClientPricing = async () => {
+            if (!form.client_id) {
+                try {
+                    const res = await api.get('/admin/pricing-settings');
+                    setPricingSettings(res.data);
+                } catch (e) {}
+                return;
+            }
+            try {
+                const res = await api.get(`/admin/pricing-settings?client_id=${form.client_id}`);
+                setPricingSettings(res.data);
+            } catch (error) {
+                console.error("Failed to fetch client pricing settings", error);
+            }
+        };
+        fetchClientPricing();
+    }, [form.client_id]);
 
     useEffect(() => {
         fetchQuotes()
@@ -246,12 +266,12 @@ export default function QuotesManagement() {
             // Set default volume label if activities exist, preferring 'sapa'
             if (acts.length > 0 && !editingId) {
                 const sapaAct = acts.find(a => {
-                    const n = (a.name || '').toLowerCase()
+                    const n = (a.name ?? '').toLowerCase()
                     return n.includes('sapa') || n.includes('șapă') || n.includes('chape')
                 })
                 setForm(p => ({
                     ...p,
-                    volumes: [{ ...p.volumes[0], label: sapaAct ? sapaAct.name : (acts[0].name || '') }]
+                    volumes: [{ ...p.volumes[0], label: sapaAct ? sapaAct.name : (acts[0].name ?? '') }]
                 }))
             }
         } catch (e) {}
@@ -286,7 +306,7 @@ export default function QuotesManagement() {
                 volumes: form.volumes,
                 prices: form.prices,
                 estimated_price: form.estimated_price ? form.estimated_price.toString() : null,
-                notes: form.notes || ''
+                notes: form.notes ?? ''
             }
 
             if (editingId) {
@@ -472,13 +492,13 @@ export default function QuotesManagement() {
                             setEditingId(row.id)
                             setShowQuickAdd(true)
                             setForm({
-                                client_id: row.client_id || '',
+                                client_id: row.client_id ?? '',
                                 approximate_date: row.approximate_date ? row.approximate_date.split('T')[0] : '',
-                                address: row.site_address || '',
-                                latitude: row.site_latitude || '',
-                                longitude: row.site_longitude || '',
-                                notes: row.notes || '',
-                                estimated_price: row.estimated_price || '',
+                                address: row.site_address ?? '',
+                                latitude: row.site_latitude ?? '',
+                                longitude: row.site_longitude ?? '',
+                                notes: row.notes ?? '',
+                                estimated_price: row.estimated_price ?? '',
                                 vat_enabled: row.vat_enabled || false,
                                 vat_type: row.vat_type || '21',
                                 volumes: row.volumes?.length > 0 ? row.volumes : [{ label: '', quantity: '', unit: 'm²', thickness: '', price: '', has_foil: false, has_mesh: false, has_fiber: false }],
@@ -535,24 +555,43 @@ export default function QuotesManagement() {
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
 
+    let autoExtraCharge = 0;
+
     form.volumes.forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
-        const thickness = parseFloat(vol.thickness) || 0;
-        const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (labelSafe.includes('sapa')) {
-            isAutoRender = true;
             surfaceForAuto += surface;
-            const extraThickness = Math.max(0, thickness - 5);
-            extraThickForAuto = extraThickness;
-            autoBase += (parseFloat(form.prices?.base || 12.5) * surface);
-            autoExtra += extraThickness * parseFloat(form.prices?.extra || 1.25) * surface;
-            autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || 1.2) * surface : 0;
-            autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || 2.5) * surface : 0;
-            autoFiber += vol.has_fiber ? parseFloat(form.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) * surface : 0;
         }
     });
 
-    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
+    form.volumes.forEach(vol => {
+        const surface = parseFloat(vol.quantity) || 0;
+        const thickness = parseFloat(vol.thickness) || 0;
+        const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (labelSafe.includes('sapa')) {
+            isAutoRender = true;
+            const standardThick = pricingSettings?.standard_thickness_cm ?? 5;
+            const extraThickness = Math.max(0, thickness - standardThick);
+            extraThickForAuto += extraThickness;
+            autoBase += (parseFloat(form.prices?.base || pricingSettings?.base_price_sqm || 12.5) * surface);
+            autoExtra += extraThickness * parseFloat(form.prices?.extra || pricingSettings?.extra_thickness_price_per_cm || 1.25) * surface;
+            autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || pricingSettings?.plastic_foil_price_sqm || 1.2) * surface : 0;
+            autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;
+            
+            const fiberPrice = parseFloat(form.prices?.fiber) || (surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0));
+            autoFiber += vol.has_fiber ? fiberPrice * surface : 0;
+        }
+    });
+
+    if (pricingSettings?.surface_thresholds?.length && surfaceForAuto > 0) {
+        const matching = pricingSettings.surface_thresholds.find(t => surfaceForAuto >= t.min_sqm && surfaceForAuto <= t.max_sqm);
+        if (matching) {
+            autoExtraCharge = parseFloat(matching.extra_charge) || 0;
+        }
+    }
+
+    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber + autoExtraCharge;
     const clientForRender = clients.find(c => c.id === form.client_id);
     // TVA = controlled by user toggle, NOT automatic
     const vatRate = form.vat_enabled ? (form.vat_type === '6' ? 0.06 : form.vat_type === '0' ? 0 : 0.21) : 0;
@@ -620,11 +659,53 @@ export default function QuotesManagement() {
                         {t('quotes.quick_add', 'Ajout Rapide Devis')}
                     </h3>
 
-                {quickAddStep === 1 && !editingId && (
+                {!editingId && (
                     <div className="space-y-4">
+                        {quickAddStep === 'new-client' && (
+                            <div className="bg-slate-50 p-4 rounded-xl border border-blue-100 relative mb-2">
+                                <button onClick={() => { setQuickAddStep(1); setForm({...form, client_id: ''}) }} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600 p-1">
+                                    <X className="w-4 h-4" />
+                                </button>
+                                <h4 className="text-sm font-bold text-blue-800 mb-3">{t('quotes.add_new_client', 'Ajouter un Nouveau Client')}</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_type', 'Type de Client')}</label>
+                                        <select className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.client_type} onChange={e => setNewClient({...newClient, client_type: e.target.value})}>
+                                            <option value="fizica">{t('dashboard.quick_create.individual', 'Particulier')}</option>
+                                            <option value="juridica">{t('dashboard.quick_create.legal_entity', 'Entreprise')}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_name', 'Nom / Raison Sociale *')}</label>
+                                        <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">{newClient.client_type === 'juridica' ? t('dashboard.quick_create.cui', 'TVA (Optionnel)') : t('dashboard.quick_create.cnp', 'Numéro National (Optionnel)')}</label>
+                                        <div className="flex gap-1">
+                                            <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.cui} onChange={e => setNewClient({...newClient, cui: e.target.value})} />
+                                            {newClient.client_type === 'juridica' && (
+                                                <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Caută firmă în VIES">
+                                                    {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.phone', 'Téléphone')}</label>
+                                        <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.email', 'Email')}</label>
+                                        <input type="email" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                             {/* Row 1 */}
-                            <div className="md:col-span-2">
+                            {quickAddStep !== 'new-client' && (
+                            <div className="md:col-span-3">
                                 <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.field_client', 'Client')}</label>
                                 <SearchableSelect
                                     value={form.client_id}
@@ -640,8 +721,37 @@ export default function QuotesManagement() {
                                             subLabel: c.phone || c.email || c.address || c.company_address || ''
                                         }))
                                     ]}
-                                    placeholder="- Selectează -"
+                                    placeholder={t('common.select', '- Sélectionner -')}
                                     buttonClassName="rounded-xl h-9 border-slate-200 !text-sm bg-white"
+                                />
+                            </div>
+                            )}
+
+                            <div className={`md:col-span-2 ${quickAddStep === 'new-client' ? 'md:col-start-1' : ''}`}>
+                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Date Aprox.')}</label>
+                                <input 
+                                    type="date"
+                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={form.approximate_date}
+                                    onChange={e => setForm({...form, approximate_date: e.target.value})}
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.total_est', 'Total Est. (€)')}</label>
+                                <input type="number" step="0.01" min="0" placeholder="0.00"
+                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={form.estimated_price ?? ''}
+                                    onChange={e => setForm({...form, estimated_price: e.target.value})}
+                                />
+                            </div>
+
+                            <div className={`md:col-span-${quickAddStep === 'new-client' ? '8' : '5'}`}>
+                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.details_notes', 'Détails / Observations')}</label>
+                                <input type="text" placeholder="..."
+                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={form.notes ?? ''}
+                                    onChange={e => setForm({...form, notes: e.target.value})}
                                 />
                             </div>
 
@@ -649,7 +759,7 @@ export default function QuotesManagement() {
                                 <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">{t('quotes.volumes', 'Travaux / Étages')}</label>
                                 <div className="space-y-3">
                                     {form.volumes.map((vol, index) => {
-                                        const isSapa = (vol.label || '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('sapa');
+                                        const isSapa = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('sapa');
                                         return (
                                         <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-slate-100 relative group">
                                             <div className="md:col-span-4">
@@ -683,7 +793,7 @@ export default function QuotesManagement() {
                                             </div>
 
                                             {isSapa && (
-                                                <div className="md:col-span-12 flex flex-wrap gap-x-3 gap-y-1 items-center mt-1">
+                                                <div className="md:col-span-12 lg:col-span-4 flex flex-wrap gap-x-3 gap-y-1 items-end pb-2">
                                                     <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
                                                         <input type="checkbox" checked={vol.has_foil} onChange={e => updateVolume(index, 'has_foil', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
                                                         {t('quotes.foil', 'Film PVC')}
@@ -694,7 +804,7 @@ export default function QuotesManagement() {
                                                     </label>
                                                     <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
                                                         <input type="checkbox" checked={vol.has_fiber} onChange={e => updateVolume(index, 'has_fiber', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                                        {t('quotes.duramint', 'Fibre (Duramint)')}
+                                                        {t('quotes.duramint', 'Fibre')}
                                                     </label>
                                                 </div>
                                             )}
@@ -706,38 +816,12 @@ export default function QuotesManagement() {
                                             )}
                                         </div>
                                     )})}
-                                    <button type="button" onClick={addVolume} className="flex items-center justify-center gap-1 w-full h-9 border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-xl text-xs font-bold transition-colors">
-                                        <Plus className="w-4 h-4" /> Ajouter un autre travail
-                                    </button>
+                                    <div className="flex justify-end">
+                                        <button type="button" onClick={addVolume} className="flex items-center justify-center gap-1 px-3 h-8 border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-xl text-[11px] font-bold transition-colors w-fit">
+                                            <Plus className="w-3 h-3" /> Ajouter un autre
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Date Aprox.')}</label>
-                                <input 
-                                    type="date"
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.approximate_date}
-                                    onChange={e => setForm({...form, approximate_date: e.target.value})}
-                                />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.total_est', 'Total Est. (€)')}</label>
-                                <input type="number" step="0.01" min="0" placeholder="0.00"
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.estimated_price || ''}
-                                    onChange={e => setForm({...form, estimated_price: e.target.value})}
-                                />
-                            </div>
-
-                            <div className="md:col-span-8">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.details_notes', 'Détails / Observations')}</label>
-                                <input type="text" placeholder="..."
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.notes || ''}
-                                    onChange={e => setForm({...form, notes: e.target.value})}
-                                />
                             </div>
 
                             <div className="md:col-span-12">
@@ -750,7 +834,7 @@ export default function QuotesManagement() {
                                     )}
                                 </label>
                                 <AddressAutocomplete 
-                                    onSelect={({ address, lat, lon }) => setForm(f => ({...f, address: address || '', latitude: lat || '', longitude: lon || ''}))}
+                                    onSelect={({ address, lat, lon }) => setForm(f => ({...f, address: address ?? '', latitude: lat ?? '', longitude: lon ?? ''}))}
                                     value={form.address}
                                     className="h-9 rounded-xl"
                                 />
@@ -762,30 +846,30 @@ export default function QuotesManagement() {
                                         <div className="flex items-center gap-2">
                                             <span className="text-indigo-800 font-black text-[10px] tracking-widest">{t('quotes.calc_label', 'CALCUL:')}</span>
                                             <span className="text-slate-500 font-bold text-[10px] uppercase">{t('quotes.base', 'BASE')}</span>
-                                            <input type="number" step="0.1" value={form.prices?.base || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-14 h-7 px-1 border border-slate-200 rounded shadow-inner text-center font-black text-indigo-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                            <input type="number" step="0.1" value={form.prices?.base ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-14 h-7 px-1 border border-slate-200 rounded shadow-inner text-center font-black text-indigo-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                         </div>
                                         {extraThickForAuto > 0 && (
                                             <div className="flex items-center gap-1.5" title="Grosime suplimentară (>5cm)">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.extra_cm', 'EXTRA CM')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.extra || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                <input type="number" step="0.1" value={form.prices?.extra ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
                                         {form.volumes.some(v => v.has_foil) && (
                                             <div className="flex items-center gap-1.5" title="Folie PVC">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.foil', 'FOLIE')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.foil || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                <input type="number" step="0.1" value={form.prices?.foil ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
                                         {form.volumes.some(v => v.has_mesh) && (
                                             <div className="flex items-center gap-1.5" title="Treillis métallique">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.mesh', 'PLASĂ')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
                                         {form.volumes.some(v => v.has_fiber) && (
                                             <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.duramint', 'FIBRĂ')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.fiber || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
                                     </div>
@@ -859,61 +943,13 @@ export default function QuotesManagement() {
                             <div className="md:col-span-3 flex justify-end gap-2">
                                 <button 
                                     onClick={handleCreateQuote}
-                                    disabled={isSaving}
+                                    disabled={isSaving || (quickAddStep === 'new-client' && (!newClient.name || !form.volumes[0]?.label))}
                                     className="flex-1 h-9 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
                                 >
                                     {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                                    {t('quotes.btn_save', 'Enregistrer le Devis')}
+                                    {quickAddStep === 'new-client' ? t('quotes.btn_save_with_client', 'Créer Client & Enregistrer Devis') : t('quotes.btn_save', 'Enregistrer le Devis')}
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {quickAddStep === 'new-client' && (
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-blue-100 relative mt-4">
-                        <button onClick={() => { setQuickAddStep(1); setForm({...form, client_id: ''}) }} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600 p-1">
-                            <X className="w-4 h-4" />
-                        </button>
-                        <h4 className="text-sm font-bold text-blue-800 mb-3">{t('quotes.add_new_client', 'Ajouter un Nouveau Client')}</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_type', 'Type de Client')}</label>
-                                <select className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.client_type} onChange={e => setNewClient({...newClient, client_type: e.target.value})}>
-                                    <option value="fizica">{t('dashboard.quick_create.individual', 'Particulier')}</option>
-                                    <option value="juridica">{t('dashboard.quick_create.legal_entity', 'Entreprise')}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_name', 'Nom / Raison Sociale *')}</label>
-                                <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{newClient.client_type === 'juridica' ? t('dashboard.quick_create.cui', 'TVA (Optionnel)') : t('dashboard.quick_create.cnp', 'Numéro National (Optionnel)')}</label>
-                                <div className="flex gap-1">
-                                    <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.cui} onChange={e => setNewClient({...newClient, cui: e.target.value})} />
-                                    {newClient.client_type === 'juridica' && (
-                                        <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Caută firmă în VIES">
-                                            {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.phone', 'Téléphone')}</label>
-                                <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.email', 'Email')}</label>
-                                <input type="email" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} />
-                            </div>
-                        </div>
-                        <div className="mt-4 flex justify-between items-center">
-                            <button onClick={() => setQuickAddStep(1)} className="text-sm text-slate-500 hover:text-slate-700 font-medium">{t('quotes.back_to_simple', 'Retour à l\'ajout simple')}</button>
-                            <button onClick={handleCreateQuote} disabled={!newClient.name || !form.volumes[0]?.label} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm flex items-center gap-2">
-                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                {t('quotes.btn_save_with_client', 'Créer Client & Enregistrer Devis')}
-                            </button>
                         </div>
                     </div>
                 )}
@@ -971,7 +1007,7 @@ export default function QuotesManagement() {
                                                 subLabel: c.phone || c.email || c.address || c.company_address || ''
                                             }))
                                         ]}
-                                        placeholder="- Selectează -"
+                                        placeholder={t('common.select', '- Sélectionner -')}
                                         buttonClassName="rounded-xl h-10 border-slate-200 text-sm bg-white"
                                     />
                                 </div>
@@ -995,7 +1031,7 @@ export default function QuotesManagement() {
                                         value={form.volumes[0].quantity}
                                         onChange={e => {
                                             const q = e.target.value;
-                                            const p = form.volumes[0].price || '';
+                                            const p = form.volumes[0].price ?? '';
                                             let est = form.estimated_price;
                                             if (p && q) est = (parseFloat(p) * parseFloat(q)).toFixed(2);
                                             setForm(prev => ({ ...prev, estimated_price: est, volumes: [{ ...prev.volumes[0], quantity: q }] }));
@@ -1027,7 +1063,7 @@ export default function QuotesManagement() {
                                     <label className="block text-xs font-medium text-slate-500 mb-1">Total Est. (€)</label>
                                     <input type="number" step="any" min="0" placeholder="0.00"
                                         className="w-full h-10 border border-slate-200 rounded-xl px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={form.estimated_price || ''}
+                                        value={form.estimated_price ?? ''}
                                         onChange={e => setForm({...form, estimated_price: e.target.value})}
                                     />
                                 </div>
@@ -1043,7 +1079,7 @@ export default function QuotesManagement() {
                                         )}
                                     </label>
                                     <AddressAutocomplete 
-                                        onSelect={({ address, lat, lon }) => setForm(f => ({...f, address: address || '', latitude: lat || '', longitude: lon || ''}))}
+                                        onSelect={({ address, lat, lon }) => setForm(f => ({...f, address: address ?? '', latitude: lat ?? '', longitude: lon ?? ''}))}
                                         value={form.address}
                                         className="h-10 rounded-xl"
                                     />
@@ -1055,14 +1091,14 @@ export default function QuotesManagement() {
                                     <label className="block text-xs font-medium text-slate-500 mb-1">Detalii / Observații</label>
                                     <input type="text" placeholder="..."
                                         className="w-full h-10 border border-slate-200 rounded-xl px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={form.notes || ''}
+                                        value={form.notes ?? ''}
                                         onChange={e => setForm({...form, notes: e.target.value})}
                                     />
                                 </div>
 
                                 {/* Row 3 */}
                                 <div className="md:col-span-12">
-                                    {(form.volumes[0].label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('sapa') && (
+                                    {(form.volumes[0].label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('sapa') && (
                                         <div className="flex flex-wrap gap-x-4 gap-y-2 items-center h-10 bg-slate-50 px-3 rounded-xl border border-slate-100">
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
                                                 <input type="checkbox" checked={form.volumes[0].has_foil} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_foil: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
@@ -1086,30 +1122,30 @@ export default function QuotesManagement() {
                                             <span className="font-extrabold text-indigo-700 uppercase tracking-tight">Calcul:</span>
                                             <div className="flex items-center gap-1.5" title="Chape de base">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">Bază</span>
-                                                <input type="number" step="0.1" value={form.prices?.base || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                <input type="number" step="0.1" value={form.prices?.base ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                             {extraThickForAuto > 0 && (
                                                 <div className="flex items-center gap-1.5" title={`Épaisseur extra ${extraThickForAuto}cm`}>
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Épais.({extraThickForAuto})</span>
-                                                    <input type="number" step="0.1" value={form.prices?.extra || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                    <input type="number" step="0.1" value={form.prices?.extra ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                             {form.volumes.some(v => v.has_foil) && (
                                                 <div className="flex items-center gap-1.5" title="Film plastique">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Folie</span>
-                                                    <input type="number" step="0.1" value={form.prices?.foil || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                    <input type="number" step="0.1" value={form.prices?.foil ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                             {form.volumes.some(v => v.has_mesh) && (
                                                 <div className="flex items-center gap-1.5" title="Treillis métallique">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Plasă</span>
-                                                    <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                    <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                             {form.volumes.some(v => v.has_fiber) && (
                                                 <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Fibră</span>
-                                                    <input type="number" step="0.1" value={form.prices?.fiber || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
+                                                    <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                         </div>

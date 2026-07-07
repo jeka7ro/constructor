@@ -48,6 +48,27 @@ class Organization(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+class PricingSetting(Base):
+    __tablename__ = "pricing_settings"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    client_id = Column(String(36), ForeignKey("clients.id", ondelete="CASCADE"), nullable=True)
+    
+    base_price_sqm = Column(Float, default=12.5)
+    extra_thickness_price_per_cm = Column(Float, default=1.25)
+    standard_thickness_cm = Column(Float, default=5.0)
+    plastic_foil_price_sqm = Column(Float, default=1.2)
+    metal_mesh_price_sqm = Column(Float, default=2.5)
+    fiber_price_sqm = Column(Float, default=2.5)
+    fiber_price_sqm_large = Column(Float, default=2.0)
+    fiber_large_threshold_sqm = Column(Float, default=200.0)
+    
+    surface_thresholds = Column(JSON, default=list) 
+    
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
 class Role(Base):
     __tablename__ = "roles"
     

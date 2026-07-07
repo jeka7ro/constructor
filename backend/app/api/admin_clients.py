@@ -56,6 +56,7 @@ class ClientCreate(ClientBase):
 
 class ClientUpdate(BaseModel):
     client_type: Optional[str] = Field(None, max_length=20)
+    country: Optional[str] = Field(None, max_length=2)
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     cui: Optional[str] = Field(None, max_length=50)
     reg_com: Optional[str] = Field(None, max_length=50)
@@ -145,11 +146,23 @@ def update_client(
         raise HTTPException(status_code=404, detail="Client not found")
         
     update_data = client_in.dict(exclude_unset=True)
+    name_changed = False
+    old_name = None
+    
+    if "name" in update_data and update_data["name"] != client.name:
+        name_changed = True
+        
     for field, value in update_data.items():
         setattr(client, field, value)
         
     client.updated_at = datetime.utcnow()
     
+    if name_changed:
+        from app.models import WorkOrder
+        db.query(WorkOrder).filter(WorkOrder.client_id == client_id).update({
+            "client_name": client.name
+        })
+        
     db.commit()
     db.refresh(client)
     
@@ -171,15 +184,15 @@ def delete_client(
         raise HTTPException(status_code=404, detail="Client not found")
         
     # Check if client is used by any construction sites
-    from app.models import ConstructionSite
+    from app.models import ConstructionSite, WorkOrder
     sites_using_client = db.query(ConstructionSite).filter(ConstructionSite.client_id == client_id).first()
+    wos_using_client = db.query(WorkOrder).filter(WorkOrder.client_id == client_id).first()
     
-    if sites_using_client:
-        # Instead of deleting, just deactivate
-        client.is_active = False
-        client.updated_at = datetime.utcnow()
-        db.commit()
-        return None
+    if sites_using_client or wos_using_client:
+        raise HTTPException(
+            status_code=400, 
+            detail="Impossible de supprimer le client: il est utilisé dans des devis, chantiers ou commandes existantes."
+        )
         
     db.delete(client)
     db.commit()

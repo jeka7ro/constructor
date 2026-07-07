@@ -523,16 +523,8 @@ export default function FleetManagement() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            {/* Page Header */}
-            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <CalendarClock className="w-5 h-5" />
-                        </div>
-                        {t('fleet.title')}
-                    </h1>
-                </div>
+            {/* Page Header Actions */}
+            <div className="flex flex-col md:flex-row flex-wrap items-center justify-start md:justify-end gap-3 mb-6 w-full">
 
                 {/* Main Tabs */}
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">

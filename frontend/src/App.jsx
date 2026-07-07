@@ -34,6 +34,7 @@ const TimesheetsPage = lazy(() => import('./pages/employee/TimesheetsPage'))
 const TimesheetForm = lazy(() => import('./pages/employee/TimesheetForm'))
 const ClockInPage = lazy(() => import('./pages/employee/ClockInPage'))
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
+const PricingSettingsPage = lazy(() => import('./pages/admin/PricingSettingsPage'))
 const SitePhotosPage = lazy(() => import('./pages/admin/SitePhotosPage'))
 const TeamsManagement = lazy(() => import('./pages/admin/TeamsManagement'))
 const NotificationsPage = lazy(() => import('./pages/admin/NotificationsPage'))
@@ -288,6 +289,7 @@ function App() {
                         <Route path="screed-analytics" element={<WorkOrderCalculations />} />
                             <Route path="activities" element={<ActivitiesManagement />} />
                             <Route path="settings" element={<SettingsPage />} />
+                            <Route path="pricing-settings" element={<PricingSettingsPage />} />
                             <Route path="site-photos" element={<SitePhotosPage />} />
                             <Route path="invoicing" element={<InvoicingManagement />} />
                             <Route path="invoices/:id" element={<InvoiceDetails />} />

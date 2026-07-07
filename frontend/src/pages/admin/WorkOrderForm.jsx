@@ -13,7 +13,7 @@ import { reverseGeocode, geocodeAddress } from '../../lib/geocode'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? ''
 
 const VOLUME_UNITS = ['m²', 'm³', 'm liniar', 'buc', 'ore', 'kg', 'tone', 'saci', 'pal', 'set']
 
@@ -105,7 +105,7 @@ export default function WorkOrderForm() {
             } catch (e) {}
         }
         if (!initial.prices) {
-            initial.prices = { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 };
+            initial.prices = { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: '' };
         }
         return initial;
     })
@@ -115,11 +115,13 @@ export default function WorkOrderForm() {
     const [vehicles, setVehicles] = useState([])
     const [activities, setActivities] = useState([])
     const [warehouseItems, setWarehouseItems] = useState([])
+    const [pricingSettings, setPricingSettings] = useState(null)
     const [saving, setSaving] = useState(false)
     const [sending, setSending] = useState(false)
     const [detecting, setDetecting] = useState(false)
     const [error, setError] = useState(null)
     const [previewDocs, setPreviewDocs] = useState(null)
+    const [existingPhotos, setExistingPhotos] = useState([]) // from backend
     const [instructionPhotos, setInstructionPhotos] = useState([]) // { file, preview }
     const [currentStep, setCurrentStep] = useState(1)
     const [savedId, setSavedId] = useState(null)
@@ -145,15 +147,30 @@ export default function WorkOrderForm() {
     }, [form, isEdit]);
 
     useEffect(() => {
+        const fetchClientPricing = async () => {
+            if (!form.client_id) return;
+            try {
+                const res = await api.get(`/admin/pricing-settings?client_id=${form.client_id}`);
+                setPricingSettings(res.data);
+            } catch (error) {
+                console.error("Failed to fetch client pricing settings", error);
+            }
+        };
+        // We only want to refetch if we actually have a client
+        fetchClientPricing();
+    }, [form.client_id]);
+
+    useEffect(() => {
         const load = async () => {
             try {
-                const [cRes, sRes, tRes, vRes, aRes, wRes] = await Promise.all([
+                const [cRes, sRes, tRes, vRes, aRes, wRes, pRes] = await Promise.all([
                     api.get('/admin/clients'),
                     api.get('/admin/sites/'),
                     api.get('/admin/teams/'),
                     api.get('/admin/vehicles').catch(() => ({ data: [] })),
                     api.get('/activities/?is_active=true').catch(() => ({ data: [] })),
-                    api.get('/warehouse/items').catch(() => ({ data: [] }))
+                    api.get('/warehouse/items').catch(() => ({ data: [] })),
+                    api.get('/admin/pricing-settings').catch(() => ({ data: null }))
                 ])
                 setClients(Array.isArray(cRes.data) ? cRes.data : (cRes.data?.items || []))
                 const sd = sRes.data
@@ -165,6 +182,9 @@ export default function WorkOrderForm() {
                 setActivities(acts)
                 
                 setWarehouseItems(Array.isArray(wRes.data) ? wRes.data : (wRes.data?.items || []))
+                
+                const pSet = pRes?.data;
+                if (pSet) setPricingSettings(pSet);
 
                 if (!isEdit) {
                     const today = new Date();
@@ -182,7 +202,14 @@ export default function WorkOrderForm() {
                             start_date: initialDate,
                             start_time: paramTime || prev.start_time || '07:00',
                             deadline_date: prev.deadline_date || initialDate,
-                            volumes: !hasDraftVolumes && acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes
+                            volumes: !hasDraftVolumes && acts.length === 1 ? [{ label: acts[0].name, quantity: '', unit: 'm²', thickness: '' }] : prev.volumes,
+                            prices: pSet ? {
+                                base: prev.prices?.base !== 12.5 ? prev.prices.base : pSet.base_price_sqm,
+                                extra: prev.prices?.extra !== 1.25 ? prev.prices.extra : pSet.extra_thickness_price_per_cm,
+                                foil: prev.prices?.foil !== 1.2 ? prev.prices.foil : pSet.plastic_foil_price_sqm,
+                                mesh: prev.prices?.mesh !== 2.5 ? prev.prices.mesh : pSet.metal_mesh_price_sqm,
+                                fiber: prev.prices?.fiber
+                            } : prev.prices
                         };
                     })
 
@@ -210,32 +237,33 @@ export default function WorkOrderForm() {
                     const wo = res.data
                     setForm(prev => ({
                         ...prev,
-                        title: wo.title || '',
+                        title: wo.title ?? '',
                         status: wo.status || 'scheduled',
-                        access_notes: wo.access_notes || '',
-                        start_date: wo.start_date || '',
+                        access_notes: wo.access_notes ?? '',
+                        start_date: wo.start_date ?? '',
                         start_time: wo.start_time || '07:00',
-                        deadline_date: wo.deadline_date || '',
+                        deadline_date: wo.deadline_date ?? '',
                         client_mode: wo.client_id ? 'existing' : 'new',
-                        client_id: wo.client_id || '',
-                        client_name: wo.client_name || '',
-                        client_email: wo.client_email || '',
-                        client_phone: wo.client_phone || '',
+                        client_id: wo.client_id ?? '',
+                        client_name: wo.client_name ?? '',
+                        client_email: wo.client_email ?? '',
+                        client_phone: wo.client_phone ?? '',
                         client_language: wo.client_language || 'ro',
                         site_mode: wo.site_id ? 'existing' : 'new',
-                        site_id: wo.site_id || '',
-                        site_address: wo.site_address || '',
-                        site_latitude: wo.site_latitude || '',
-                        site_longitude: wo.site_longitude || '',
+                        site_id: wo.site_id ?? '',
+                        site_address: wo.site_address ?? '',
+                        site_latitude: wo.site_latitude ?? '',
+                        site_longitude: wo.site_longitude ?? '',
                         site_geofence_radius: wo.site_geofence_radius || 100,
-                        assigned_team_id: wo.assigned_team_id || '',
-                        assigned_vehicle_id: wo.assigned_vehicle_id || '',
-                        estimated_price: wo.estimated_price || '',
+                        assigned_team_id: wo.assigned_team_id ?? '',
+                        assigned_vehicle_id: wo.assigned_vehicle_id ?? '',
+                        estimated_price: wo.estimated_price ?? '',
                         prices: wo.prices || { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 },
                         volumes: wo.volumes?.length ? wo.volumes : [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
                         documents: wo.documents || []
                     }))
+                    setExistingPhotos(wo.photos || [])
                     
                     if (wo.estimated_price) {
                         const match = wo.estimated_price.match(/^([\d.,]+)\s*([a-zA-Z]+)?$/)
@@ -319,6 +347,17 @@ export default function WorkOrderForm() {
             URL.revokeObjectURL(p[idx].preview)
             return p.filter((_, i) => i !== idx)
         })
+    }
+
+    const deleteExistingPhoto = async (photoId) => {
+        if (!confirm(t('common.confirm_delete', 'Etes-vous sûr de vouloir supprimer cette photo ?'))) return
+        try {
+            await api.delete(`/admin/work-orders/${id}/photos/${photoId}`)
+            setExistingPhotos(p => p.filter(x => x.id !== photoId))
+            showToast(t('common.deleted', 'Photo supprimée'), 'success')
+        } catch {
+            showToast(t('common.error', 'Erreur lors de la suppression de la photo'), 'error')
+        }
     }
 
     const buildPayload = () => {
@@ -438,25 +477,45 @@ export default function WorkOrderForm() {
     let isAutoRender = false;
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
+    let autoExtraCharge = 0;
+    let appliedThresholdLabel = '';
+
+    form.volumes.forEach(vol => {
+        const surface = parseFloat(vol.quantity) || 0;
+        const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (labelSafe.includes('sapa')) {
+            surfaceForAuto += surface;
+        }
+    });
 
     form.volumes.forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
-        const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (labelSafe.includes('sapa')) {
             isAutoRender = true;
-            surfaceForAuto += surface;
-            const extraThickness = Math.max(0, thickness - 5);
-            extraThickForAuto = extraThickness;
-            autoBase += (parseFloat(form.prices?.base || 12.5) * surface);
-            autoExtra += extraThickness * parseFloat(form.prices?.extra || 1.25) * surface;
-            autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || 1.2) * surface : 0;
-            autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || 2.5) * surface : 0;
-            autoFiber += vol.has_fiber ? parseFloat(form.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) * surface : 0;
+            const standardThick = pricingSettings?.standard_thickness_cm ?? 5;
+            const extraThickness = Math.max(0, thickness - standardThick);
+            extraThickForAuto += extraThickness;
+            autoBase += (parseFloat(form.prices?.base || pricingSettings?.base_price_sqm || 12.5) * surface);
+            autoExtra += extraThickness * parseFloat(form.prices?.extra || pricingSettings?.extra_thickness_price_per_cm || 1.25) * surface;
+            autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || pricingSettings?.plastic_foil_price_sqm || 1.2) * surface : 0;
+            autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;
+            
+            const fiberPrice = parseFloat(form.prices?.fiber) || (surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0));
+            autoFiber += vol.has_fiber ? fiberPrice * surface : 0;
         }
     });
 
-    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
+    if (pricingSettings?.surface_thresholds?.length && surfaceForAuto > 0) {
+        const matching = pricingSettings.surface_thresholds.find(t => surfaceForAuto >= t.min_sqm && surfaceForAuto <= t.max_sqm);
+        if (matching) {
+            autoExtraCharge = parseFloat(matching.extra_charge) || 0;
+            appliedThresholdLabel = `Taxă extra suprafață (${matching.min_sqm}-${matching.max_sqm}m²)`;
+        }
+    }
+
+    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber + autoExtraCharge;
     let autoVat = 0;
     let totalGross = autoNet;
     const clientForRender = clients.find(c => c.id === form.client_id);
@@ -607,9 +666,9 @@ export default function WorkOrderForm() {
                                                         setForm(p => ({
                                                             ...p,
                                                             client_id: e.target.value,
-                                                            client_name: cl?.name || '',
-                                                            client_email: cl?.email || '',
-                                                            client_phone: cl?.phone || '',
+                                                            client_name: cl?.name ?? '',
+                                                            client_email: cl?.email ?? '',
+                                                            client_phone: cl?.phone ?? '',
                                                             client_language: cl?.preferred_language || 'ro',
                                                         }))
                                                     }} className={SELECT}>
@@ -947,15 +1006,20 @@ export default function WorkOrderForm() {
                             className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all resize-none"
                         />
                         <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Photos ({instructionPhotos.length})</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Photos ({existingPhotos.length + instructionPhotos.length})</span>
                             <button type="button" onClick={() => fileRef.current?.click()}
                                 className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                                 <Plus className="w-3 h-3" /> Ajouter photo
                             </button>
                             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoAdd} />
                         </div>
-                        {instructionPhotos.length > 0 && (
+                        {(existingPhotos.length > 0 || instructionPhotos.length > 0) && (
                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                {existingPhotos.map(p => (
+                                    <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
+                                        <img src={p.url || p.file_path} alt="" className="w-full h-full object-cover" />
+                                    </div>
+                                ))}
                                 {instructionPhotos.map((p, i) => (
                                     <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
                                         <img src={p.preview} alt="" className="w-full h-full object-cover" />
@@ -980,30 +1044,36 @@ export default function WorkOrderForm() {
                             <div className="space-y-2.5 text-sm">
                                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                     <span className="font-medium">{t('work_order_form.base_screed', 'Chape de base')} (≤5cm)</span>
-                                    <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.base || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoBase.toFixed(2)} EUR</b></span>
+                                    <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.base ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoBase.toFixed(2)} EUR</b></span>
                                 </div>
                                 {autoExtra > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span className="font-medium">{t('work_order_form.extra_thickness', 'Épaisseur supplémentaire')} ({extraThickForAuto} cm)</span>
-                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × {extraThickForAuto} cm × <input type="number" step="0.1" value={form.prices?.extra || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoExtra.toFixed(2)} EUR</b></span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × {extraThickForAuto} cm × <input type="number" step="0.1" value={form.prices?.extra ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoExtra.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 {autoFoil > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span className="font-medium">{t('work_order_form.plastic_foil', 'Film plastique')}</span>
-                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.foil || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFoil.toFixed(2)} EUR</b></span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.foil ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFoil.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 {autoMesh > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span className="font-medium">{t('work_order_form.metal_mesh', 'Treillis métallique')}</span>
-                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoMesh.toFixed(2)} EUR</b></span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoMesh.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 {autoFiber > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span className="font-medium">Duramint (Fibră)</span>
-                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.fiber || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFiber.toFixed(2)} EUR</b></span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} placeholder={(surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0)).toFixed(1)} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFiber.toFixed(2)} EUR</b></span>
+                                    </div>
+                                )}
+                                {autoExtraCharge > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="font-medium">{appliedThresholdLabel}</span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end"><b className="text-slate-800 dark:text-slate-200 ml-1">{autoExtraCharge.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>

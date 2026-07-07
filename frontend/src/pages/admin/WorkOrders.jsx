@@ -413,17 +413,8 @@ export default function WorkOrders() {
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30">
-                        <ClipboardList className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white">{t('work_orders.page_title', 'Comenzi de Lucru')}</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('work_orders.page_subtitle', 'Gestionare comenzi B2B cu clienții')}</p>
-                    </div>
-                </div>
+            {/* Header Actions */}
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-4 w-full">
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative">
                         <select

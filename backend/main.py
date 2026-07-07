@@ -18,7 +18,7 @@ from app.api import (
     admin_teams, admin_vehicles, warehouse, admin_clients, admin_vehicle_categories,
     admin_material_requests, user_material_requests, user_warehouse, user_notifications,
     alerts, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
-    public_tenant, admin_work_orders, admin_organizations, admin_transport,
+    public_tenant, admin_work_orders, admin_pricing, admin_organizations, admin_transport,
     admin_leaves, calendar_sync, public_work_orders, worker_orders,
     admin_logistics
 )
@@ -377,6 +377,7 @@ app.include_router(user_notifications.router, prefix="/api")
 app.include_router(alerts.router, prefix="/api", tags=["alerts"])
 app.include_router(public_tenant.router)
 app.include_router(admin_work_orders.router, prefix="/api/admin", tags=["admin-work-orders"])
+app.include_router(admin_pricing.router, prefix="/api/admin", tags=["admin-pricing"])
 app.include_router(admin_invoices.router, prefix="/api")
 app.include_router(admin_organizations.router, prefix="/api")
 app.include_router(admin_transport.router, prefix="/api")

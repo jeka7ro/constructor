@@ -20,6 +20,16 @@
     scroll-behavior: smooth;
   }
 
+  /* Hide number input arrows */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
   /* ─── Dark Mode: Global text color overrides ─── */
   /* Only text colors — backgrounds are handled per-component with dark: classes */
   .dark .text-slate-900 { color: #f1f5f9 !important; }

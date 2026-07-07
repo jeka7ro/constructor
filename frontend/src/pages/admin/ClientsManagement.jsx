@@ -6,9 +6,11 @@ import MiniMapSelector from '../../components/MiniMapSelector'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import { reverseGeocode } from '../../lib/geocode'
 import api from '../../lib/api'
+import { useUIStore } from '../../store/uiStore'
 
 export default function ClientsManagement() {
     const { t } = useTranslation()
+    const showToast = useUIStore(state => state.showToast)
     const [clients, setClients] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
@@ -153,15 +155,15 @@ export default function ClientsManagement() {
     const handleDetectGPS = () => {
         setDetecting(true)
         if (!navigator.geolocation) {
-            alert(t('clients.gps_not_supported', 'Geolocatia nu este suportata de browser.'));
-            setDetecting(false);
-            return;
+            showToast(t('clients.gps_not_supported', "La géolocalisation n'est pas supportée par ce navigateur."), 'error')
+            setDetecting(false)
+            return
         }
 
         const gpsTimeout = setTimeout(() => {
-            setDetecting(false);
-            alert(t('clients.gps_timeout', 'Timpul a expirat. Verifică dacă browser-ul are permisiunea de a accesa locația (GPS) în setările telefonului.'));
-        }, 8000);
+            setDetecting(false)
+            showToast(t('clients.gps_timeout', "Le délai d'attente a expiré. Vérifiez les autorisations GPS."), 'error')
+        }, 8000)
 
         navigator.geolocation.getCurrentPosition(
             async pos => {
@@ -178,9 +180,9 @@ export default function ClientsManagement() {
                 setDetecting(false)
             },
             (err) => {
-                clearTimeout(gpsTimeout);
-                setDetecting(false);
-                alert(t('clients.gps_error', 'Eroare detectare GPS: ') + err.message);
+                clearTimeout(gpsTimeout)
+                setDetecting(false)
+                showToast(t('clients.gps_error', 'Erreur de détection GPS: ') + err.message, 'error')
             },
             { enableHighAccuracy: true, timeout: 8000 }
         )
@@ -223,13 +225,14 @@ export default function ClientsManagement() {
             }
             fetchClients()
             handleCloseModal()
+            showToast(t('common.saved_successfully', 'Client enregistré avec succès!'), 'success')
         } catch (error) {
             console.error('Failed to save client', error)
             const detail = error.response?.data?.detail
             if (Array.isArray(detail)) {
-                alert(detail.map(d => `${d.loc[d.loc.length - 1]}: ${d.msg}`).join(', '))
+                showToast(detail.map(d => `${d.loc[d.loc.length - 1]}: ${d.msg}`).join(', '), 'error')
             } else {
-                alert(detail || t('clients.save_error', 'Eroare la salvarea clientului.'))
+                showToast(detail || t('clients.save_error', "Erreur lors de l'enregistrement du client."), 'error')
             }
         } finally {
             setIsSubmitting(false)
@@ -242,9 +245,12 @@ export default function ClientsManagement() {
             await api.delete(`/admin/clients/${deleteModal.id}`)
             fetchClients()
             setDeleteModal({ show: false, id: null, name: '' })
+            showToast(t('common.deleted_successfully', 'Client supprimé avec succès!'), 'success')
         } catch (error) {
             console.error('Failed to delete client', error)
-            alert(t('clients.delete_error', 'Eroare la ștergerea clientului.'))
+            const detail = error.response?.data?.detail
+            showToast(detail || t('clients.delete_error', 'Erreur lors de la suppression du client.'), 'error')
+            setDeleteModal({ show: false, id: null, name: '' })
         }
     }
 
@@ -264,18 +270,6 @@ export default function ClientsManagement() {
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl">
-                        <Briefcase className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('clients.title', 'Clienți')}</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('clients.subtitle', 'Gestionează companiile pentru care lucrezi')}</p>
-                    </div>
-                </div>
-            </div>
 
             {/* Main Content Wrapper */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
