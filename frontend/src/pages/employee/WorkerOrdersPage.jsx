@@ -310,7 +310,7 @@ function Lightbox({ url, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
-function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations }) {
+function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
     const [showStation, setShowStation] = useState(false)
 
@@ -411,7 +411,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                     });
                                 }
 
-                                return (
+                                return isDriver ? (
                                     <>
                                         <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
                                             <span className="text-sm text-amber-700 font-bold">Necesar Nisip (estimat)</span>
@@ -1222,6 +1222,7 @@ export default function WorkerOrdersPage() {
     const [lightboxUrl, setLightboxUrl]               = useState(null)
 
     const isLeader = ['TEAM_LEADER', 'TEAM_LEAD', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN'].includes(user?.role?.code)
+    const isDriver = ['DRIVER', 'SOFER'].includes(user?.role?.code)
 
     // GPS watch
     useEffect(() => {
@@ -1613,6 +1614,7 @@ export default function WorkerOrdersPage() {
                         acknowledging={acknowledging}
                         onPhotoClick={setLightboxUrl}
                         sandStations={sandStations}
+                        isDriver={isDriver}
                     />
                 )}
                 {activeTab === 'ore' && (
