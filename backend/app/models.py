@@ -963,6 +963,7 @@ class WorkOrder(Base):
     title           = Column(String(255), nullable=False)
     notes           = Column(Text, nullable=True)           # Note interne
     documents       = relationship("WorkOrderDocument", cascade="all, delete-orphan")
+    photos          = relationship("WorkOrderPhoto", cascade="all, delete-orphan")
     start_date      = Column(Date, nullable=True)           # Data de start planificată
     start_time      = Column(String(5), nullable=True)      # HH:MM ora de start (ex: "07:00")
     deadline_date   = Column(Date, nullable=True)           # Termen limită
@@ -1155,6 +1156,7 @@ class WorkOrderDocument(Base):
     file_path       = Column(String(1000), nullable=False)
     file_size       = Column(Integer, nullable=True)  # in bytes
     content_type    = Column(String(100), nullable=True) # e.g. application/pdf, image/png
+    source          = Column(String(50), default="admin", nullable=False) # 'admin', 'client', 'robaws'
     
     uploaded_at     = Column(DateTime, default=datetime.utcnow, nullable=False)
 

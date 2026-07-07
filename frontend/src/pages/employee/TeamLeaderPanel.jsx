@@ -240,7 +240,7 @@ export default function TeamLeaderPanel() {
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-2xl p-8 text-center">
                     <Users className="w-16 h-16 text-blue-300 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-slate-900 mb-2">{t('teams.no_team_yet')}</h2>
-                    <p className="text-slate-600 text-sm mb-6">{t('common.create')} o echipă și adaugă muncitorii tăi</p>
+                    <p className="text-slate-600 text-sm mb-6">{t('common.create')} {t('team.create_desc', 'une équipe et ajoutez vos ouvriers')}</p>
 
                     {!showCreateForm ? (
                         <button
@@ -263,7 +263,7 @@ export default function TeamLeaderPanel() {
 
                             {/* Search & select workers */}
                             <div className="mb-4">
-                                <label className="text-sm font-semibold text-slate-700 block mb-2">{t('common.add')} muncitori:</label>
+                                <label className="text-sm font-semibold text-slate-700 block mb-2">{t('common.add')} {t('team.workers_label', 'ouvriers')}:</label>
                                 <div className="relative mb-2">
                                     <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                                     <input
@@ -296,11 +296,11 @@ export default function TeamLeaderPanel() {
                                         </label>
                                     ))}
                                     {filteredWorkers.length === 0 && (
-                                        <p className="text-xs text-slate-400 text-center py-3">Niciun muncitor disponibil</p>
+                                        <p className="text-xs text-slate-400 text-center py-3">{t('team.no_worker_available', 'Aucun ouvrier disponible')}</p>
                                     )}
                                 </div>
                                 {selectedWorkers.length > 0 && (
-                                    <p className="text-xs text-blue-600 mt-2 font-medium">{selectedWorkers.length} muncitor(i) selectat(i)</p>
+                                    <p className="text-xs text-blue-600 mt-2 font-medium">{selectedWorkers.length} {t('team.workers_selected', 'ouvrier(s) sélectionné(s)')}</p>
                                 )}
                             </div>
 
@@ -425,7 +425,7 @@ export default function TeamLeaderPanel() {
                             </div>
                         ))}
                         {filteredWorkers.length === 0 && (
-                            <p className="text-xs text-slate-400 text-center py-3">Niciun muncitor disponibil</p>
+                            <p className="text-xs text-slate-400 text-center py-3">{t('team.no_worker_available', 'Aucun ouvrier disponible')}</p>
                         )}
                     </div>
                 </div>

@@ -973,24 +973,28 @@ export default function ShortWorksCalendar({
                                                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                         : <CheckCircle2 className="w-3.5 h-3.5" />}
                                                 </button>
-                                                <button 
-                                                    onClick={(e) => { 
-                                                        e.stopPropagation(); 
-                                                        if (onOrderEdit) onOrderEdit(wo);
-                                                        else navigate(`/admin/work-orders/${wo.id}/edit`, { state: { from: '/admin/planning' } }); 
-                                                    }}
-                                                    className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
-                                                    title={t('common.edit', 'Editează')}
-                                                >
-                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); setOrderToDelete(wo); }}
-                                                    className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
-                                                    title={t('common.delete', 'Șterge')}
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                                {!isCompleted && (
+                                                    <>
+                                                        <button 
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                if (onOrderEdit) onOrderEdit(wo);
+                                                                else navigate(`/admin/work-orders/${wo.id}/edit`, { state: { from: '/admin/planning' } }); 
+                                                            }}
+                                                            className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
+                                                            title={t('common.edit', 'Editează')}
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setOrderToDelete(wo); }}
+                                                            className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
+                                                            title={t('common.delete', 'Șterge')}
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </>
+                                                )}
                                         </div>
 
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.client_name || wo.title}>

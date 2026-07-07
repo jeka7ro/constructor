@@ -163,6 +163,15 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                                     <div className="w-full">
                                         {signatureElement}
                                     </div>
+                                ) : (wo?.final_client_signature || wo?.client_signature) ? (
+                                    <div className="w-full flex flex-col">
+                                        <div className="w-full aspect-[3.5/1] border-2 border-emerald-200 bg-emerald-50/50 rounded-2xl flex items-center justify-center p-2">
+                                            <img src={wo.final_client_signature || wo.client_signature} alt="Signature" className="max-h-full object-contain" />
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 font-bold mt-2">
+                                            Date: {new Date(wo.final_confirmed_at || wo.confirmed_at).toLocaleString('fr-BE')}
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="w-full">
                                         <div className="w-full aspect-[3.5/1] border-2 border-dashed border-slate-200 rounded-2xl"></div>

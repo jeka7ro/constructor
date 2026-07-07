@@ -777,6 +777,7 @@ async def upload_instruction_photo(
     wo_id: str,
     file: UploadFile = File(...),
     description: Optional[str] = Form(None),
+    photo_type: str = Form("instruction"),
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -816,7 +817,7 @@ async def upload_instruction_photo(
         photo_path=storage_path,
         description=description,
         file_size=len(content),
-        photo_type="instruction"
+        photo_type=photo_type
     )
     db.add(photo)
     db.commit()
@@ -824,8 +825,8 @@ async def upload_instruction_photo(
     return {
         "photo_id": photo.id,
         "photo_url": file_url,
-        "photo_type": "instruction",
-        "message": "Poza de instructiuni adaugata cu succes."
+        "photo_type": photo_type,
+        "message": "Poza a fost adaugata cu succes."
     }
 
 

@@ -3,14 +3,17 @@ public_work_orders.py — Endpoint-uri publice (fără autentificare) pentru con
 Clientul accesează pagina cu tokenul unic, vede detaliile și confirmă.
 """
 
+import os
+import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, List
 
 from app.database import get_db
-from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember, Team
+from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember, Team, WorkOrderDocument
+from app.storage import get_file_url, upload_file, get_content_type
 from app.api.auth import get_current_user
 import requests as _req
 
@@ -175,16 +178,25 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "estimated_price": wo.estimated_price,
         "prices": wo.prices,
         "quote_number": wo.quote_number,
-        "final_invoice_path": wo.final_invoice_path,
+        "final_invoice_path": get_file_url(wo.final_invoice_path) if wo.final_invoice_path else None,
         "completion_photos": [
             {
                 "id": p.id,
-                "photo_path": p.photo_path,
+                "photo_url": get_file_url(p.photo_path),
                 "description": p.description,
                 "uploaded_at": p.uploaded_at.isoformat()
             }
             for p in wo.photos if p.photo_type == "completion"
-        ] if wo.status == "completed" and getattr(wo, "photos", None) else []
+        ] if wo.status == "completed" and getattr(wo, "photos", None) else [],
+        "client_documents": [
+            {
+                "id": d.id,
+                "filename": d.filename,
+                "file_url": get_file_url(d.file_path),
+                "uploaded_at": d.uploaded_at.isoformat()
+            }
+            for d in wo.documents if d.source == "client"
+        ] if getattr(wo, "documents", None) else []
     }
 
 
@@ -280,3 +292,61 @@ def confirm_work_order(
 
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     return _public_serialize(wo, org)
+
+@router.post("/public/work-orders/{token}/documents")
+async def upload_public_documents(
+    token: str,
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db)
+):
+    import os
+    import uuid
+    from app.storage import upload_file, get_content_type
+
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost gasita sau link-ul este invalid.")
+
+    if len(files) > 10:
+        raise HTTPException(status_code=400, detail="Poti incarca maxim 10 fisiere odata.")
+
+    uploaded_docs = []
+    
+    for file in files:
+        allowed = {"image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"}
+        if file.content_type not in allowed:
+            continue
+            
+        content = await file.read()
+        if len(content) > 20 * 1024 * 1024:
+            continue
+
+        ext = os.path.splitext(file.filename or "doc.pdf")[1].lower() or ".pdf"
+        safe_filename = f"{uuid.uuid4().hex[:8]}{ext}"
+        storage_path = f"work_orders/{wo.id}/{safe_filename}"
+        
+        try:
+            file_url = upload_file(content, storage_path, get_content_type(safe_filename))
+            doc = WorkOrderDocument(
+                id=str(uuid.uuid4()),
+                work_order_id=wo.id,
+                filename=file.filename or safe_filename,
+                file_path=storage_path,
+                file_size=len(content),
+                content_type=file.content_type,
+                source="client"
+            )
+            db.add(doc)
+            uploaded_docs.append({
+                "id": doc.id,
+                "filename": doc.filename,
+                "url": file_url,
+                "size": doc.file_size,
+                "uploaded_at": datetime.utcnow().isoformat()
+            })
+        except Exception as e:
+            print(f"Eroare upload fisier {file.filename}: {str(e)}")
+
+    db.commit()
+    return {"message": f"{len(uploaded_docs)} documente incarcate cu succes.", "documents": uploaded_docs}
+

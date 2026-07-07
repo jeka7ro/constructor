@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw } from 'lucide-react'
+import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip } from 'lucide-react'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import DevisView from '../admin/DevisView'
@@ -139,13 +139,13 @@ const LANG_DICT = {
         digitalSignature: 'Semnătură Digitală *',
         signatureRequired: 'Semnătura este obligatorie',
         terms: 'Am citit și sunt de acord cu toate cerințele, condițiile și prețurile estimate specificate în acest deviz.',
-        termsFinal: 'Am verificat lucrările executate, inclusiv pozele atașate, și confirm că lucrarea a fost finalizată corespunzător.',
+        termsFinal: 'J\'ai vérifié les travaux exécutés, y compris les photos jointes, et je confirme que le travail a été correctement terminé.',
         confirmBtn: 'Confirm și Semnez',
         confirmingBtn: 'Se confirmă...',
         estimatedPrice: 'Preț Estimativ',
         finalInvoice: 'Factură Finală (PDF)',
         downloadPdf: 'Descarcă PDF',
-        completionPhotos: 'Poze Finalizare',
+        completionPhotos: 'Photos de Fin de Travaux',
         signHere: 'Semnați aici cu mouse-ul sau degetul',
         clearSignature: 'Șterge semnătura',
         loadingOrder: 'Se încarcă comanda...',
@@ -221,7 +221,10 @@ const LANG_DICT = {
         loadingOrder: 'Chargement de la commande...',
         orderNotFound: 'Commande introuvable',
         errorLoading: 'Impossible d\'accéder à la commande. Vérifiez votre connexion Internet.',
-        errorConfirming: 'Erreur de confirmation. Réessayez.'
+        errorConfirming: 'Erreur de confirmation. Réessayez.',
+        clientDocuments: 'Documents Client (Plans / Photos)',
+        addDocument: 'Ajouter un Document',
+        noDocuments: 'Aucun document chargé.'
     },
     de: {
         workOrder: 'Arbeitsauftrag',
@@ -413,6 +416,46 @@ export default function WorkOrderConfirm() {
         }
     }
 
+    const docInputRef = useRef(null)
+    const [isUploadingDoc, setIsUploadingDoc] = useState(false)
+    const [toast, setToast] = useState(null)
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type })
+        setTimeout(() => setToast(null), 4000)
+    }
+    const handleDocumentUpload = async (e) => {
+        const selectedFiles = Array.from(e.target.files || [])
+        if (!selectedFiles.length) return
+        
+        if (selectedFiles.length > 10) {
+            showToast('Vous pouvez charger au maximum 10 fichiers à la fois.', 'error')
+            if (docInputRef.current) docInputRef.current.value = ''
+            return
+        }
+
+        setIsUploadingDoc(true)
+        const formData = new FormData()
+        selectedFiles.forEach(f => formData.append('files', f))
+
+        try {
+            const res = await api.post(`/public/work-orders/${token}/documents`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            // Update order with the new document(s)
+            setOrder(prev => ({
+                ...prev,
+                client_documents: [...(prev.client_documents || []), ...(res.data.documents || [])]
+            }))
+            showToast(res.data.message || 'Documents chargés avec succès !')
+        } catch (err) {
+            console.error(err)
+            showToast(err.response?.data?.detail || 'Erreur lors du chargement des documents.', 'error')
+        } finally {
+            setIsUploadingDoc(false)
+            if (docInputRef.current) docInputRef.current.value = ''
+        }
+    }
+
     const primaryColor = order?.org_primary_color || '#3b82f6'
     const canConfirm = checkedTerms && !!signature && !confirming
 
@@ -479,24 +522,12 @@ export default function WorkOrderConfirm() {
                                 {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
                             </p>
                         )}
-                        {order?.client_signature && mode === 'quote' && (
-                            <div className="mt-4 pt-4 border-t border-emerald-200">
-                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{t.signature}</p>
-                                <img src={order.client_signature} alt="Semnătură" className="max-h-20 mx-auto opacity-80" />
-                            </div>
-                        )}
                         
                         {order?.final_confirmed_at && mode === 'final' && (
                             <p className="text-emerald-600 text-sm">
                                 {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
                                 {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
                             </p>
-                        )}
-                        {order?.final_client_signature && mode === 'final' && (
-                            <div className="mt-4 pt-4 border-t border-emerald-200">
-                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{t.signature}</p>
-                                <img src={order.final_client_signature} alt="Semnătură" className="max-h-20 mx-auto opacity-80" />
-                            </div>
                         )}
                     </div>
                 )}
@@ -586,7 +617,16 @@ export default function WorkOrderConfirm() {
                                         </p>
                                     )}
                                 </div>
-                            ) : null
+                            ) : (
+                                <div className="w-full flex flex-col">
+                                    <div className="w-full aspect-[3.5/1] border-2 border-emerald-200 bg-emerald-50/50 rounded-2xl flex items-center justify-center p-2">
+                                        <img src={mode === 'final' ? order?.final_client_signature : order?.client_signature} alt="Signature" className="max-h-full object-contain" />
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-bold mt-2">
+                                        Date: {new Date(mode === 'final' ? order?.final_confirmed_at : order?.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                    </div>
+                                </div>
+                            )
                         } 
                     />
                 </div>
@@ -628,6 +668,79 @@ export default function WorkOrderConfirm() {
                     </div>
                 )}
 
+                {/* Client Documents (Upload & List) */}
+                <div className="mt-8 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm print:hidden w-full max-w-2xl mx-auto">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                            <Paperclip className="w-4 h-4 text-slate-500" />
+                            {t.clientDocuments || 'Documents Client (Plans / Photos)'}
+                        </h3>
+                        <input type="file" ref={docInputRef} onChange={handleDocumentUpload} accept="image/*,application/pdf" className="hidden" multiple max="10" />
+                        <button 
+                            onClick={() => docInputRef.current?.click()}
+                            disabled={isUploadingDoc}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors"
+                        >
+                            {isUploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
+                            {t.addDocument || 'Ajouter un Document'}
+                        </button>
+                    </div>
+
+                    {order?.client_documents?.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                            {order.client_documents.map((d, i) => (
+                                <a key={i} href={d.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                        <FileText className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-semibold text-slate-700 truncate">{d.filename}</p>
+                                        <p className="text-[10px] text-slate-400">
+                                            {new Date(d.uploaded_at).toLocaleDateString('ro-RO')}
+                                        </p>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-400 text-center py-4">
+                            {t.noDocuments || 'Aucun document chargé.'}
+                        </p>
+                    )}
+                </div>
+
+                {/* Invoice Download */}
+                {order?.final_invoice_path && (
+                    <div className="mt-6 print:hidden w-full max-w-2xl mx-auto">
+                        <a 
+                            href={order.final_invoice_path} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-center gap-2 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <FileText className="w-5 h-5" />
+                            {t.finalInvoice || 'Facture finale (PDF)'}
+                        </a>
+                    </div>
+                )}
+
+                {/* Completion Photos */}
+                {order?.completion_photos?.length > 0 && (
+                    <div className="mt-8 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm print:hidden w-full max-w-2xl mx-auto">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Camera className="w-4 h-4 text-slate-500" />
+                            {t.completionPhotos || 'Photos de réalisation'} ({order.completion_photos.length})
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {order.completion_photos.map((p, i) => (
+                                <a key={i} href={p.photo_url} target="_blank" rel="noopener noreferrer" className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                    <img src={p.photo_url} alt="Lucrare" className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex justify-center pb-8 mt-4">
                     <a href="https://www.getapp.ro" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors group">
                         <div className="flex items-center gap-2">
@@ -640,6 +753,14 @@ export default function WorkOrderConfirm() {
                     </a>
                 </div>
             </div>
+            {toast && (
+                <div className="fixed bottom-4 right-4 z-[9999]">
+                    <div className={`px-4 py-2 rounded-full shadow-lg text-[11px] font-bold uppercase tracking-wide border 
+                        ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                        {toast.msg}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

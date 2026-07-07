@@ -1,12 +1,13 @@
 // v2 - with delete button
 import { useState, useEffect } from 'react'
-import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import DataTable from '../../components/DataTable'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import SearchableSelect from '../../components/SearchableSelect'
 import ConfirmModal from '../../components/ConfirmModal'
+import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import api from '../../lib/api'
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -107,6 +108,7 @@ export default function QuotesManagement() {
     const [quotes, setQuotes] = useState([])
     const [clients, setClients] = useState([])
     const [activities, setActivities] = useState([])
+    const [previewDocs, setPreviewDocs] = useState(null)
     const [loading, setLoading] = useState(true)
     const [sentToPlanningIds, setSentToPlanningIds] = useState(new Set())
     const [teams, setTeams] = useState([])
@@ -145,6 +147,31 @@ export default function QuotesManagement() {
     }
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: 'danger', title: '', message: '', confirmText: '', action: null })
+
+    const updateVolume = (index, key, value) => {
+        setForm(prev => {
+            const newVolumes = [...prev.volumes];
+            newVolumes[index] = { ...newVolumes[index], [key]: value };
+            return { ...prev, volumes: newVolumes };
+        });
+    };
+
+    const addVolume = () => {
+        setForm(prev => ({
+            ...prev,
+            volumes: [...prev.volumes, { label: activities.length > 0 ? activities[0].name : '', quantity: '', unit: 'm²', thickness: '', has_foil: false, has_mesh: false, has_fiber: false }]
+        }));
+    };
+
+    const removeVolume = (index) => {
+        setForm(prev => {
+            if (prev.volumes.length <= 1) return prev;
+            const newVolumes = [...prev.volumes];
+            newVolumes.splice(index, 1);
+            return { ...prev, volumes: newVolumes };
+        });
+    };
+
 
     useEffect(() => {
         fetchQuotes()
@@ -301,7 +328,7 @@ export default function QuotesManagement() {
     const columns = [
         {
             key: 'approximate_date',
-            label: t('quotes.approx_date', 'Dată Aprox.'),
+            label: t('quotes.approx_date', 'Date Aprox.'),
             render: (row) => {
                 let display = '-'
                 if (row.approximate_date) {
@@ -348,7 +375,7 @@ export default function QuotesManagement() {
         },
         {
             key: 'site_address',
-            label: t('quotes.address', 'Adresă'),
+            label: t('quotes.address', 'Adresse'),
             render: (row) => {
                 const addr = row.site_address;
                 if (!addr) return <span className="text-slate-400 italic text-xs">—</span>;
@@ -404,6 +431,18 @@ export default function QuotesManagement() {
                             <Link className="w-4 h-4" />
                         </button>
                     )}
+                    {row.documents && row.documents.length > 0 && (
+                        <button 
+                            title="Voir les documents client"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewDocs(row.documents);
+                            }}
+                            className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition-colors"
+                        >
+                            <Paperclip className="w-4 h-4" />
+                        </button>
+                    )}
                     <button 
                         title="Voir Devis PDF"
                         onClick={(e) => {
@@ -454,13 +493,13 @@ export default function QuotesManagement() {
                         <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                        title="Șterge devis"
+                        title="Supprimer le devis"
                         onClick={(e) => {
                             e.stopPropagation();
                             setConfirmModal({
                                 isOpen: true,
-                                title: 'Ștergere Deviz',
-                                message: 'Ești sigur că vrei să ștergi definitiv acest devis? Acțiunea este ireversibilă.',
+                                title: 'Supprimer le devis',
+                                message: 'Êtes-vous sûr de vouloir supprimer définitivement ce devis ? Cette action est irréversible.',
                                 confirmText: 'Șterge Deviz',
                                 type: 'danger',
                                 action: async () => {
@@ -527,7 +566,7 @@ export default function QuotesManagement() {
     }, [totalGross, isAutoRender]);
 
     const handleSendToCalendar = async () => {
-        if (!planningForm.date) return showToast('Selectează o dată!', 'error')
+        if (!planningForm.date) return showToast('Sélectionnez une date !', 'error')
         setIsSendingPlanning(true)
         try {
             await api.put(`/admin/work-orders/${planningModal.id}`, {
@@ -557,7 +596,7 @@ export default function QuotesManagement() {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">{t('quotes.title_main', 'Devis / Oferte')}</h2>
-                    <p className="text-slate-500 text-sm">{t('quotes.subtitle', 'Gestionează cererile de oferte înainte de planificare')}</p>
+                    <p className="text-slate-500 text-sm">{t('quotes.subtitle', 'Gérer les demandes de devis avant la planification')}</p>
                 </div>
                 {!showQuickAdd && (
                     <button 
@@ -565,7 +604,7 @@ export default function QuotesManagement() {
                         className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-sm flex items-center gap-2 transition-colors"
                     >
                         <Plus className="w-4 h-4" />
-                        {t('quotes.quick_add', 'Adăugare Rapidă Devis')}
+                        {t('quotes.quick_add', 'Ajout Rapide Devis')}
                     </button>
                 )}
             </div>
@@ -578,7 +617,7 @@ export default function QuotesManagement() {
                     </button>
                     <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
                         <Plus className="w-4 h-4 text-emerald-600" />
-                        {t('quotes.quick_add', 'Adăugare Rapidă Devis')}
+                        {t('quotes.quick_add', 'Ajout Rapide Devis')}
                     </h3>
 
                 {quickAddStep === 1 && !editingId && (
@@ -594,10 +633,10 @@ export default function QuotesManagement() {
                                         else setForm({...form, client_id: val})
                                     }}
                                     options={[
-                                        { value: 'NEW', label: `+ ${t('quotes.new_client', 'Client Nou')}` },
+                                        { value: 'NEW', label: `+ ${t('quotes.new_client', 'Nouveau Client')}` },
                                         ...clients.map(c => ({
                                             value: c.id,
-                                            label: c.name || c.company_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || t('quotes.unknown', 'Necunoscut'),
+                                            label: c.name || c.company_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || t('quotes.unknown', 'Inconnu'),
                                             subLabel: c.phone || c.email || c.address || c.company_address || ''
                                         }))
                                     ]}
@@ -606,44 +645,75 @@ export default function QuotesManagement() {
                                 />
                             </div>
 
-                            <div className="md:col-span-2">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.field_title', 'Tip Lucrare')}</label>
-                                <select 
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.volumes[0].label}
-                                    onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], label: e.target.value }] }))}
-                                >
-                                    <option value="">- {t('common.activities', 'Activitate')} -</option>
-                                    {activities.map(a => <option key={a.id || a.name} value={a.name}>{a.name}</option>)}
-                                </select>
+                            <div className="md:col-span-12">
+                                <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">{t('quotes.volumes', 'Travaux / Étages')}</label>
+                                <div className="space-y-3">
+                                    {form.volumes.map((vol, index) => {
+                                        const isSapa = (vol.label || '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('sapa');
+                                        return (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-slate-100 relative group">
+                                            <div className="md:col-span-4">
+                                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.field_title', 'Type de Travail')}</label>
+                                                <select 
+                                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                                    value={vol.label}
+                                                    onChange={e => updateVolume(index, 'label', e.target.value)}
+                                                >
+                                                    <option value="">- {t('common.activities', 'Activité')} -</option>
+                                                    {activities.map(a => <option key={a.id || a.name} value={a.name}>{a.name}</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[11px] font-medium text-slate-500 mb-1">M²</label>
+                                                <input type="number" min="0" placeholder="150"
+                                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={vol.quantity}
+                                                    onChange={e => updateVolume(index, 'quantity', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="block text-[11px] font-medium text-slate-500 mb-1">Cm</label>
+                                                <input type="number" step="any" min="0" placeholder="5.5"
+                                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={vol.thickness}
+                                                    onChange={e => updateVolume(index, 'thickness', e.target.value)}
+                                                />
+                                            </div>
+
+                                            {isSapa && (
+                                                <div className="md:col-span-12 flex flex-wrap gap-x-3 gap-y-1 items-center mt-1">
+                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
+                                                        <input type="checkbox" checked={vol.has_foil} onChange={e => updateVolume(index, 'has_foil', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
+                                                        {t('quotes.foil', 'Film PVC')}
+                                                    </label>
+                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
+                                                        <input type="checkbox" checked={vol.has_mesh} onChange={e => updateVolume(index, 'has_mesh', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
+                                                        {t('quotes.mesh', 'Treillis')}
+                                                    </label>
+                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
+                                                        <input type="checkbox" checked={vol.has_fiber} onChange={e => updateVolume(index, 'has_fiber', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
+                                                        {t('quotes.duramint', 'Fibre (Duramint)')}
+                                                    </label>
+                                                </div>
+                                            )}
+
+                                            {index > 0 && (
+                                                <button type="button" onClick={() => removeVolume(index)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )})}
+                                    <button type="button" onClick={addVolume} className="flex items-center justify-center gap-1 w-full h-9 border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-xl text-xs font-bold transition-colors">
+                                        <Plus className="w-4 h-4" /> Ajouter un autre travail
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="md:col-span-1">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">M²</label>
-                                <input type="number" min="0" placeholder="150"
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.volumes[0].quantity}
-                                    onChange={e => {
-                                        const q = e.target.value;
-                                        const p = form.volumes[0].price || '';
-                                        let est = form.estimated_price;
-                                        if (p && q) est = (parseFloat(p) * parseFloat(q)).toFixed(2);
-                                        setForm(prev => ({ ...prev, estimated_price: est, volumes: [{ ...prev.volumes[0], quantity: q }] }));
-                                    }}
-                                />
-                            </div>
-
-                            <div className="md:col-span-1">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">Cm</label>
-                                <input type="number" step="any" min="0" placeholder="5.5"
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.volumes[0].thickness}
-                                    onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], thickness: e.target.value }] }))}
-                                />
-                            </div>
-                            
                             <div className="md:col-span-2">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Dată Aprox.')}</label>
+                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Date Aprox.')}</label>
                                 <input 
                                     type="date"
                                     className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -651,7 +721,6 @@ export default function QuotesManagement() {
                                     onChange={e => setForm({...form, approximate_date: e.target.value})}
                                 />
                             </div>
-
 
                             <div className="md:col-span-2">
                                 <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.total_est', 'Total Est. (€)')}</label>
@@ -662,8 +731,8 @@ export default function QuotesManagement() {
                                 />
                             </div>
 
-                            <div className="md:col-span-3">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.details_notes', 'Detalii / Observații')}</label>
+                            <div className="md:col-span-8">
+                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.details_notes', 'Détails / Observations')}</label>
                                 <input type="text" placeholder="..."
                                     className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={form.notes || ''}
@@ -671,13 +740,12 @@ export default function QuotesManagement() {
                                 />
                             </div>
 
-                            {/* Row 2 */}
-                            <div className="md:col-span-5">
+                            <div className="md:col-span-12">
                                 <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
-                                    <span>{t('quotes.field_address', 'Adresă')}</span>
+                                    <span>{t('quotes.field_address', 'Adresse')}</span>
                                     {form.latitude && form.longitude && (
                                         <span className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded text-[9px] font-bold">
-                                            Dus: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude))).toFixed(1)}km | Întors: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude)) * 2).toFixed(1)}km
+                                            Aller: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude))).toFixed(1)}km | Retour: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude)) * 2).toFixed(1)}km
                                         </span>
                                     )}
                                 </label>
@@ -688,31 +756,12 @@ export default function QuotesManagement() {
                                 />
                             </div>
 
-                            <div className="md:col-span-4">
-                                {(form.volumes[0].label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('sapa') && (
-                                    <div className="flex flex-wrap gap-x-3 gap-y-1 items-center h-9">
-                                        <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                            <input type="checkbox" checked={form.volumes[0].has_foil} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_foil: e.target.checked }] }))} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                            {t('quotes.foil', 'Folie')}
-                                        </label>
-                                        <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                            <input type="checkbox" checked={form.volumes[0].has_mesh} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_mesh: e.target.checked }] }))} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                            {t('quotes.mesh', 'Plasă')}
-                                        </label>
-                                        <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                            <input type="checkbox" checked={form.volumes[0].has_fiber} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_fiber: e.target.checked }] }))} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                            {t('quotes.duramint', 'Duramint')}
-                                        </label>
-                                    </div>
-                                )}
-                            </div>
-
                             {isAutoRender && (
                                 <div className="md:col-span-12 bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 text-[11px] shadow-sm">
                                     <div className="flex items-center gap-4 border-r border-indigo-200 pr-3">
                                         <div className="flex items-center gap-2">
                                             <span className="text-indigo-800 font-black text-[10px] tracking-widest">{t('quotes.calc_label', 'CALCUL:')}</span>
-                                            <span className="text-slate-500 font-bold text-[10px] uppercase">{t('quotes.base', 'BAZĂ')}</span>
+                                            <span className="text-slate-500 font-bold text-[10px] uppercase">{t('quotes.base', 'BASE')}</span>
                                             <input type="number" step="0.1" value={form.prices?.base || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-14 h-7 px-1 border border-slate-200 rounded shadow-inner text-center font-black text-indigo-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                         </div>
                                         {extraThickForAuto > 0 && (
@@ -721,19 +770,19 @@ export default function QuotesManagement() {
                                                 <input type="number" step="0.1" value={form.prices?.extra || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
-                                        {form.volumes[0].has_foil && (
+                                        {form.volumes.some(v => v.has_foil) && (
                                             <div className="flex items-center gap-1.5" title="Folie PVC">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.foil', 'FOLIE')}</span>
                                                 <input type="number" step="0.1" value={form.prices?.foil || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
-                                        {form.volumes[0].has_mesh && (
-                                            <div className="flex items-center gap-1.5" title="Plasă metalică">
+                                        {form.volumes.some(v => v.has_mesh) && (
+                                            <div className="flex items-center gap-1.5" title="Treillis métallique">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.mesh', 'PLASĂ')}</span>
                                                 <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
-                                        {form.volumes[0].has_fiber && (
+                                        {form.volumes.some(v => v.has_fiber) && (
                                             <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.duramint', 'FIBRĂ')}</span>
                                                 <input type="number" step="0.1" value={form.prices?.fiber || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
@@ -814,7 +863,7 @@ export default function QuotesManagement() {
                                     className="flex-1 h-9 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
                                 >
                                     {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                                    {t('quotes.btn_save', 'Salvează Devis')}
+                                    {t('quotes.btn_save', 'Enregistrer le Devis')}
                                 </button>
                             </div>
                         </div>
@@ -826,21 +875,21 @@ export default function QuotesManagement() {
                         <button onClick={() => { setQuickAddStep(1); setForm({...form, client_id: ''}) }} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600 p-1">
                             <X className="w-4 h-4" />
                         </button>
-                        <h4 className="text-sm font-bold text-blue-800 mb-3">{t('quotes.add_new_client', 'Adaugă Client Nou')}</h4>
+                        <h4 className="text-sm font-bold text-blue-800 mb-3">{t('quotes.add_new_client', 'Ajouter un Nouveau Client')}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_type', 'Tip Client')}</label>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_type', 'Type de Client')}</label>
                                 <select className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.client_type} onChange={e => setNewClient({...newClient, client_type: e.target.value})}>
-                                    <option value="fizica">{t('dashboard.quick_create.individual', 'Persoană Fizică')}</option>
-                                    <option value="juridica">{t('dashboard.quick_create.legal_entity', 'Companie')}</option>
+                                    <option value="fizica">{t('dashboard.quick_create.individual', 'Particulier')}</option>
+                                    <option value="juridica">{t('dashboard.quick_create.legal_entity', 'Entreprise')}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_name', 'Nume / Denumire *')}</label>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_name', 'Nom / Raison Sociale *')}</label>
                                 <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{newClient.client_type === 'juridica' ? t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)') : t('dashboard.quick_create.cnp', 'CNP (Opțional)')}</label>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">{newClient.client_type === 'juridica' ? t('dashboard.quick_create.cui', 'TVA (Optionnel)') : t('dashboard.quick_create.cnp', 'Numéro National (Optionnel)')}</label>
                                 <div className="flex gap-1">
                                     <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.cui} onChange={e => setNewClient({...newClient, cui: e.target.value})} />
                                     {newClient.client_type === 'juridica' && (
@@ -851,7 +900,7 @@ export default function QuotesManagement() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.phone', 'Telefon')}</label>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.phone', 'Téléphone')}</label>
                                 <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} />
                             </div>
                             <div>
@@ -860,10 +909,10 @@ export default function QuotesManagement() {
                             </div>
                         </div>
                         <div className="mt-4 flex justify-between items-center">
-                            <button onClick={() => setQuickAddStep(1)} className="text-sm text-slate-500 hover:text-slate-700 font-medium">{t('quotes.back_to_simple', 'Înapoi la adăugare simplă')}</button>
+                            <button onClick={() => setQuickAddStep(1)} className="text-sm text-slate-500 hover:text-slate-700 font-medium">{t('quotes.back_to_simple', 'Retour à l\'ajout simple')}</button>
                             <button onClick={handleCreateQuote} disabled={!newClient.name || !form.volumes[0]?.label} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm flex items-center gap-2">
                                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                {t('quotes.btn_save_with_client', 'Creează Client & Salvează Devis')}
+                                {t('quotes.btn_save_with_client', 'Créer Client & Enregistrer Devis')}
                             </button>
                         </div>
                     </div>
@@ -874,7 +923,7 @@ export default function QuotesManagement() {
             {/* Table */}
             <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[300px]">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                    <h2 className="font-bold text-slate-700">{t('quotes.list_title', 'Lista Devis-uri Așteptare')} - DEBUG</h2>
+                    <h2 className="font-bold text-slate-700">{t('quotes.list_title', 'Liste des Devis en Attente')}</h2>
                     <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-full">
                         {quotes.length} {t('quotes.total', 'total')}
                     </span>
@@ -886,8 +935,8 @@ export default function QuotesManagement() {
                     loading={loading}
                     defaultPageSize={25}
                     searchable={true}
-                    searchPlaceholder={t('quotes.search', 'Caută devis...')}
-                    emptyText={t('quotes.empty', 'Nu există oferte în așteptare.')}
+                    searchPlaceholder={t('quotes.search', 'Rechercher un devis...')}
+                    emptyText={t('quotes.empty', 'Aucun devis en attente.')}
                     onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes' } })}
                     rowClassName={() => 'cursor-pointer hover:bg-blue-50/40 transition-colors'}
                 />
@@ -900,7 +949,7 @@ export default function QuotesManagement() {
                         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-xl">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <Pencil className="w-5 h-5 text-blue-600" />
-                                Editare Devis
+                                Modifier le Devis
                             </h3>
                             <button onClick={handleCancelEdit} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
@@ -918,7 +967,7 @@ export default function QuotesManagement() {
                                         options={[
                                             ...clients.map(c => ({
                                                 value: c.id,
-                                                label: c.name || c.company_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || t('quotes.unknown', 'Necunoscut'),
+                                                label: c.name || c.company_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || t('quotes.unknown', 'Inconnu'),
                                                 subLabel: c.phone || c.email || c.address || c.company_address || ''
                                             }))
                                         ]}
@@ -964,7 +1013,7 @@ export default function QuotesManagement() {
                                 </div>
                                 
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Dată Aprox.')}</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Date Aprox.')}</label>
                                     <input 
                                         type="date"
                                         className="w-full h-10 border border-slate-200 rounded-xl px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -986,7 +1035,7 @@ export default function QuotesManagement() {
                                 {/* Row 2 */}
                                 <div className="md:col-span-5">
                                     <label className="block text-xs font-medium text-slate-500 mb-1 flex items-center justify-between">
-                                        <span>{t('quotes.field_address', 'Adresă')}</span>
+                                        <span>{t('quotes.field_address', 'Adresse')}</span>
                                         {form.latitude && form.longitude && (
                                             <span className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded text-[10px] font-bold">
                                                 Dus: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude))).toFixed(1)}km | Întors: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude)) * 2).toFixed(1)}km
@@ -1017,15 +1066,15 @@ export default function QuotesManagement() {
                                         <div className="flex flex-wrap gap-x-4 gap-y-2 items-center h-10 bg-slate-50 px-3 rounded-xl border border-slate-100">
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
                                                 <input type="checkbox" checked={form.volumes[0].has_foil} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_foil: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                                                Include Folie plastic
+                                                Inclure Film plastique
                                             </label>
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
                                                 <input type="checkbox" checked={form.volumes[0].has_mesh} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_mesh: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                                                Include Plasă metalică
+                                                Inclure Treillis métallique
                                             </label>
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
                                                 <input type="checkbox" checked={form.volumes[0].has_fiber} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_fiber: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                                                Include Duramint (Fibră)
+                                                Inclure Fibre (Duramint)
                                             </label>
                                         </div>
                                     )}
@@ -1035,29 +1084,29 @@ export default function QuotesManagement() {
                                     <div className="md:col-span-12 bg-indigo-50/50 rounded-lg p-2.5 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 text-[11px] shadow-sm">
                                         <div className="flex items-center gap-4 flex-wrap">
                                             <span className="font-extrabold text-indigo-700 uppercase tracking-tight">Calcul:</span>
-                                            <div className="flex items-center gap-1.5" title="Șapă de bază">
+                                            <div className="flex items-center gap-1.5" title="Chape de base">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">Bază</span>
                                                 <input type="number" step="0.1" value={form.prices?.base || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                             {extraThickForAuto > 0 && (
-                                                <div className="flex items-center gap-1.5" title={`Grosime extra ${extraThickForAuto}cm`}>
-                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">Gros.({extraThickForAuto})</span>
+                                                <div className="flex items-center gap-1.5" title={`Épaisseur extra ${extraThickForAuto}cm`}>
+                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">Épais.({extraThickForAuto})</span>
                                                     <input type="number" step="0.1" value={form.prices?.extra || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
-                                            {form.volumes[0].has_foil && (
-                                                <div className="flex items-center gap-1.5" title="Folie plastic">
+                                            {form.volumes.some(v => v.has_foil) && (
+                                                <div className="flex items-center gap-1.5" title="Film plastique">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Folie</span>
                                                     <input type="number" step="0.1" value={form.prices?.foil || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
-                                            {form.volumes[0].has_mesh && (
-                                                <div className="flex items-center gap-1.5" title="Plasă metalică">
+                                            {form.volumes.some(v => v.has_mesh) && (
+                                                <div className="flex items-center gap-1.5" title="Treillis métallique">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Plasă</span>
                                                     <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
-                                            {form.volumes[0].has_fiber && (
+                                            {form.volumes.some(v => v.has_fiber) && (
                                                 <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Fibră</span>
                                                     <input type="number" step="0.1" value={form.prices?.fiber || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
@@ -1139,7 +1188,7 @@ export default function QuotesManagement() {
                                 disabled={isSaving}
                                 className="h-10 px-6 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-lg shadow-sm transition-colors"
                             >
-                                Anulează
+                                Annuler
                             </button>
                             <button 
                                 onClick={handleCreateQuote}
@@ -1147,7 +1196,7 @@ export default function QuotesManagement() {
                                 className="h-10 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                             >
                                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                Salvează Modificările
+                                Enregistrer les modifications
                             </button>
                         </div>
                     </div>
@@ -1238,6 +1287,13 @@ export default function QuotesManagement() {
                         </div>
                     </div>
                 </div>
+            )}
+            
+            {previewDocs && (
+                <DocumentPreviewModal 
+                    documents={previewDocs} 
+                    onClose={() => setPreviewDocs(null)} 
+                />
             )}
         </div>
     )

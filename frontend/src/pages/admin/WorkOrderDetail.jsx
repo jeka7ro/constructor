@@ -7,6 +7,7 @@ import {
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
     Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link
 } from 'lucide-react'
+import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import {
@@ -87,12 +88,15 @@ function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
     )
 }
 
-function Section({ className = '', contentClassName = '', icon: Icon, title, children }) {
+function Section({ className = '', contentClassName = '', icon: Icon, title, children, headerRight }) {
     return (
         <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden ${className}`}>
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2.5 shrink-0">
-                <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <h2 className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide">{title}</h2>
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <h2 className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide">{title}</h2>
+                </div>
+                {headerRight && <div>{headerRight}</div>}
             </div>
             <div className={`p-5 flex-1 ${contentClassName}`}>{children}</div>
         </div>
@@ -183,6 +187,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     // TVA toggle — NOT automatic, user controls it
     const [vatEnabled, setVatEnabled] = useState(false)
     const [vatType, setVatType] = useState('21') // '21', '6', '0'
+    const [signatureConfirm, setSignatureConfirm] = useState(false)
+    const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showCamera, setShowCamera] = useState(false)
     const [toastMessage, setToastMessage] = useState(null)
 
@@ -239,6 +245,34 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             alert(err.response?.data?.detail || 'Eroare la salvare număr factură.')
         } finally {
             setSavingInvoiceStatus(false)
+        }
+    }
+
+    const fileInputRef = useRef(null)
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        
+        setIsUploadingPhoto(true)
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('photo_type', 'completion')
+
+        try {
+            const res = await api.post(`/admin/work-orders/${id}/photos`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            const photosRes = await api.get(`/admin/work-orders/${id}/photos`)
+            setPhotos(Array.isArray(photosRes.data) ? photosRes.data : (photosRes.data?.photos || []))
+            showToast('Poza a fost încărcată cu succes!')
+        } catch (err) {
+            console.error(err)
+            alert(err.response?.data?.detail || 'Eroare la încărcarea pozei.')
+        } finally {
+            setIsUploadingPhoto(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
         }
     }
 
@@ -537,21 +571,25 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </button>
                         </>
                     )}
-                    <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
-                        className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                        <Edit2 className="w-3.5 h-3.5" /> {t('work_order_detail.edit', 'Editează')}
-                    </button>
-                    <button 
-                        onClick={() => {
-                            if(window.confirm('Ștergeți definitiv acest devis/comandă?')) {
-                                api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
-                                   .then(() => navigate('/admin/quotes'))
-                                   .catch(console.error)
-                            }
-                        }}
-                        className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" /> Șterge
-                    </button>
+                    {wo.status !== 'completed' && (
+                        <>
+                            <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
+                                className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                <Edit2 className="w-3.5 h-3.5" /> {t('work_order_detail.edit', 'Editează')}
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    if(window.confirm('Ștergeți definitiv acest devis/comandă?')) {
+                                        api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
+                                           .then(() => navigate('/admin/quotes'))
+                                           .catch(console.error)
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors">
+                                <Trash2 className="w-3.5 h-3.5" /> Șterge
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -1010,24 +1048,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 const isImg = doc.content_type?.startsWith('image/');
                                 const Icon = isImg ? ImageIcon : FileText;
                                 return (
-                                    <a
+                                    <button
                                         key={doc.id || idx}
-                                        href={`${API_BASE}${doc.file_path}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
+                                        onClick={() => setPreviewDocIndex(idx)}
+                                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group text-left w-full"
                                     >
                                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
                                             <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
+                                                {doc.source === 'client' && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-widest shrink-0 border border-blue-200">
+                                                        De la Client
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                 {doc.file_size ? (doc.file_size / 1024).toFixed(0) + ' KB' : 'Atașament'}
                                             </p>
                                         </div>
-                                        <Download className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0" />
-                                    </a>
+                                        <Download 
+                                            className="w-4 h-4 text-slate-400 hover:text-blue-500 shrink-0 cursor-pointer" 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(`${API_BASE}${doc.file_path}`, '_blank');
+                                            }}
+                                        />
+                                    </button>
                                 );
                             })}
                             </div>
@@ -1247,7 +1296,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             )}
 
 {/* ── Fotografii ──────────────────────────────────────────────────── */}
-            <Section icon={Camera} title={`${t('work_order_detail.photos.title', 'Fotografii')} (${photos.length})`}>
+            <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
+            <Section 
+                icon={Camera} 
+                title={`${t('work_order_detail.photos.title', 'Fotografii')} (${photos.length})`}
+                headerRight={
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingPhoto}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-lg text-xs font-bold transition-colors"
+                    >
+                        {isUploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                        {t('common.add_photo', 'Adaugă Poză')}
+                    </button>
+                }
+            >
                 {photos.length > 0 ? (
                     <div className="space-y-6">
                         {/* Poze Calculator Masina (OCR) */}
@@ -1341,6 +1404,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     <span className="font-bold text-sm">{toastMessage}</span>
                 </div>
+            )}
+
+            {previewDocIndex !== null && wo?.documents && (
+                <DocumentPreviewModal 
+                    documents={wo.documents} 
+                    initialIndex={previewDocIndex}
+                    onClose={() => setPreviewDocIndex(null)} 
+                />
             )}
         </div>
     )

@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams, useLocation } from 'react-rout
 import {
     ChevronLeft, Plus, Trash2, ClipboardList, Check,
     User, MapPin, Calendar, FileText, Loader2,
-    Users, Truck, Image, X, Clock, Save, Send, Banknote, Info, Edit2
+    Users, Truck, Image, X, Clock, Save, Send, Banknote, Info, Edit2, Paperclip, ImageIcon, Download
 } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,9 @@ import MiniMapSelector from '../../components/MiniMapSelector'
 import SearchableSelect from '../../components/SearchableSelect'
 import { reverseGeocode, geocodeAddress } from '../../lib/geocode'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
+import DocumentPreviewModal from '../../components/DocumentPreviewModal'
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 const VOLUME_UNITS = ['m²', 'm³', 'm liniar', 'buc', 'ore', 'kg', 'tone', 'saci', 'pal', 'set']
 
@@ -45,8 +48,11 @@ const EMPTY_FORM = {
     start_time: '07:00',
     deadline_date: '',
     // Cantitati
-    volumes: [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
-    prices: { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5 },
+    vat_enabled: false,
+    vat_type: '21',
+    volumes: [{ label: '', quantity: '', unit: 'm²', thickness: '', has_foil: false, has_mesh: false, has_fiber: false }],
+    prices: { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 },
+    documents: [],
     // Materiale
     materials: [{ name: '', quantity: '', unit: '' }],
     // Echipa + vehicul
@@ -99,7 +105,7 @@ export default function WorkOrderForm() {
             } catch (e) {}
         }
         if (!initial.prices) {
-            initial.prices = { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5 };
+            initial.prices = { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 };
         }
         return initial;
     })
@@ -113,6 +119,7 @@ export default function WorkOrderForm() {
     const [sending, setSending] = useState(false)
     const [detecting, setDetecting] = useState(false)
     const [error, setError] = useState(null)
+    const [previewDocs, setPreviewDocs] = useState(null)
     const [instructionPhotos, setInstructionPhotos] = useState([]) // { file, preview }
     const [currentStep, setCurrentStep] = useState(1)
     const [savedId, setSavedId] = useState(null)
@@ -166,7 +173,7 @@ export default function WorkOrderForm() {
                     const getStr = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                     const paramDate = searchParams.get('date');
                     const paramTime = searchParams.get('time');
-                    const initialDate = paramDate || prev.start_date || getStr(today);
+                    const initialDate = paramDate || today.start_date || getStr(today);
                     
                     setForm(prev => {
                         const hasDraftVolumes = prev.volumes && (prev.volumes.length > 1 || prev.volumes[0].label !== '' || prev.volumes[0].quantity !== '');
@@ -227,6 +234,7 @@ export default function WorkOrderForm() {
                         prices: wo.prices || { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 },
                         volumes: wo.volumes?.length ? wo.volumes : [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
+                        documents: wo.documents || []
                     }))
                     
                     if (wo.estimated_price) {
@@ -425,6 +433,7 @@ export default function WorkOrderForm() {
     let autoBase = 0;
     let autoExtra = 0;
     let autoFoil = 0;
+    let autoMesh = 0;
     let autoFiber = 0;
     let isAutoRender = false;
     let surfaceForAuto = 0;
@@ -501,8 +510,6 @@ export default function WorkOrderForm() {
                 </div>
             )}
 
-
-            {/* Stepper UI Removed */}
 
             <div className="w-full max-w-6xl xl:max-w-7xl">
 
@@ -785,7 +792,7 @@ export default function WorkOrderForm() {
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.volumes_works', 'Lucrari / Volume')}</span>
-                        <button onClick={() => addRow('volumes', { label: '', quantity: '', unit: 'm²' })}
+                        <button onClick={() => addRow('volumes', { label: '', quantity: '', unit: 'm²', thickness: '' })}
                             className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
                             <Plus className="w-3 h-3" /> {t('common.add', 'Adauga')}
                         </button>
@@ -1029,6 +1036,46 @@ export default function WorkOrderForm() {
             </Section>
             </div>
 
+            {/* Fisiere Client */}
+            {(form.documents && form.documents.length > 0) && (
+                <div className="mt-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 p-6 w-full max-w-6xl xl:max-w-7xl">
+                    <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
+                        <Paperclip className="w-5 h-5 text-blue-500" />
+                        Documente încărcate de Client
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {form.documents.map((doc, idx) => {
+                            const isImg = doc.content_type?.startsWith('image/');
+                            const Icon = isImg ? ImageIcon : FileText;
+                            return (
+                                <button
+                                    key={doc.id || idx}
+                                    type="button"
+                                    onClick={() => setPreviewDocs({docs: form.documents, index: idx})}
+                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-left"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+                                        <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
+                                        </div>
+                                    </div>
+                                    <Download 
+                                        className="w-4 h-4 text-slate-400 hover:text-blue-500 shrink-0" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(`${API_BASE}${doc.file_path}`, '_blank');
+                                        }}
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Actions Bottom */}
             <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800 w-full max-w-6xl xl:max-w-7xl">
                 <button
@@ -1050,6 +1097,14 @@ export default function WorkOrderForm() {
                 </div>
             </div>
         </div>
+
+            {previewDocs && (
+                <DocumentPreviewModal
+                    documents={previewDocs.docs}
+                    initialIndex={previewDocs.index}
+                    onClose={() => setPreviewDocs(null)}
+                />
+            )}
         </div>
     )
 }

@@ -17,6 +17,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
+import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import {
     MapPin, Calendar as CalendarIcon, Clock, Users, Truck, Phone, Mail,
@@ -1168,6 +1169,7 @@ export default function WorkerOrdersPage() {
     const tenant = useTenantStore(s => s.tenant)
     const showToast = useUIStore(s => s.showToast)
     const navigate = useNavigate()
+    const { t } = useTranslation()
 
     const handleLogout = async () => {
         try {
@@ -1208,7 +1210,7 @@ export default function WorkerOrdersPage() {
     const [closing, setClosing]                       = useState(false)
     const [lightboxUrl, setLightboxUrl]               = useState(null)
 
-    const isLeader = ['TEAM_LEADER', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN'].includes(user?.role?.code)
+    const isLeader = ['TEAM_LEADER', 'TEAM_LEAD', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN'].includes(user?.role?.code)
 
     // GPS watch
     useEffect(() => {
@@ -1539,7 +1541,7 @@ export default function WorkerOrdersPage() {
                             </div>
                             <div>
                                 <h2 className="font-bold text-lg leading-tight">{user?.full_name}</h2>
-                                <p className="text-blue-200 text-sm">{isLeader ? 'Șef Echipă' : 'Muncitor'}</p>
+                                <p className="text-blue-200 text-sm">{isLeader ? t('roles.team_leader', "Chef d'équipe") : t('roles.worker', 'Ouvrier')}</p>
                             </div>
                         </div>
                         <button onClick={handleLogout} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
