@@ -18,6 +18,7 @@ from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, Wo
 from app.api.admin_auth import get_current_admin
 from app.services.billtobox import send_invoice_to_billtobox
 from app.services.pdf_generator import generate_invoice_pdf
+from app.storage import get_file_url
 from datetime import date as date_today_import
 from sqlalchemy import func
 
@@ -839,7 +840,6 @@ def list_work_order_photos(
     current_admin: Admin = Depends(get_current_admin)
 ):
     """Lista pozelor unei comenzi. Adminul vede toate tipurile."""
-    from app.storage import get_file_url
     wo = db.query(WorkOrder).filter(
         WorkOrder.id == wo_id,
         WorkOrder.organization_id == current_admin.organization_id
