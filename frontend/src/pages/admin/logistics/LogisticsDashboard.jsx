@@ -188,7 +188,7 @@ const SAND_STATIONS = [
 export default function LogisticsDashboard() {
     const { t } = useTranslation()
     const tenant = useTenantStore(s => s.tenant)
-    const isDavideChape = tenant?.slug === 'davidechape'
+    const isDavideChape = !tenant || (tenant?.slug || '').toLowerCase().includes('davide') || (tenant?.name || '').toLowerCase().includes('davide')
     const [targetDate, setTargetDate] = useState(() => {
         const d = new Date();
         return d.toISOString().split('T')[0];
@@ -501,18 +501,20 @@ export default function LogisticsDashboard() {
                                     }
                                 </button>
                                 {/* Sand Stations toggle */}
-                                <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                    <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                        <input
-                                            type="checkbox"
-                                            className="sr-only"
-                                            checked={showSandStations}
-                                            onChange={(e) => setShowSandStations(e.target.checked)}
-                                        />
-                                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
-                                    </div>
-                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Staţii Nisip')}</span>
-                                </label>
+                                {isDavideChape && (
+                                    <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                        <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only"
+                                                checked={showSandStations}
+                                                onChange={(e) => setShowSandStations(e.target.checked)}
+                                            />
+                                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('logistics.sand_stations', 'Staţii Nisip')}</span>
+                                    </label>
+                                )}
                             </div>
                         </MapContainer>
                         );
