@@ -39,7 +39,8 @@
         "history": "History",
         "work_orders_full": "Work Orders",
         "inventory": "Inventory",
-        "tracking": "Live Tracking"
+        "tracking": "Live Tracking",
+        "quotes": "Quotes / Devis"
     },
     "logistics": {
         "title": "Logistics",
@@ -1069,7 +1070,7 @@
         "extra_thickness": "Extra thickness",
         "plastic_foil": "Plastic foil",
         "metal_mesh": "Metal mesh",
-        "fibers_duramit": "Fibers + Duramit",
+        "fibers_duramit": "Fibers + Duramint",
         "total_net": "Total Net",
         "vat_physical": "VAT (21% Individual)",
         "vat_juridical": "VAT: 0% (Company)",
@@ -1359,5 +1360,33 @@
         "no_document_issued": "No document issued",
         "no_document_desc": "The invoice or proforma has not been generated yet. Use the preview and generate button from the administration page to create the document.",
         "back_to_generation": "Back to generation"
+    },
+    "quotes": {
+        "title_main": "Quotes / Devis",
+        "subtitle": "Manage quote requests before scheduling",
+        "quick_add": "Quick Add Quote",
+        "field_title": "Job Type / Title",
+        "ex_sapa": "e.g., New Screed",
+        "field_client": "Client",
+        "new_client": "New Client",
+        "approx_date": "Approx. Date",
+        "ex_date": "e.g., End of August",
+        "field_address": "Address (Google Maps)",
+        "btn_save": "Save Quote",
+        "add_new_client": "Add New Client",
+        "list_title": "Waiting Quotes List",
+        "total": "total",
+        "search": "Search quotes...",
+        "empty": "No quotes waiting.",
+        "title": "Job / Title",
+        "client": "Client",
+        "view_details": "Quote Details",
+        "btn_convert": "Convert to Order",
+        "confirm_convert": "Are you sure you want to convert this quote to a work order?",
+        "req_start_date": "You must select a start date (via Edit) before converting.",
+        "success_convert": "Quote successfully converted!",
+        "err_convert": "Conversion error.",
+        "req_title": "Title is required",
+        "err_create": "Error creating quote"
     }
 }

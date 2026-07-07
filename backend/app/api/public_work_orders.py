@@ -149,8 +149,11 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "notes": wo.notes,
         "start_date": str(wo.start_date) if wo.start_date else None,
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
+        "approximate_date": str(wo.approximate_date) if wo.approximate_date else None,
         "site_name": site_name,
         "site_address": site_address,
+        "site_lat": wo.site.latitude if wo.site else None,
+        "site_lon": wo.site.longitude if wo.site else None,
         "client_name": wo.client_name,
         "client_email": wo.client_email,
         "client_phone": wo.client_phone,
@@ -166,7 +169,12 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
         "client_signature": wo.client_signature,
+        "final_confirmed_at": wo.final_confirmed_at.isoformat() if wo.final_confirmed_at else None,
+        "final_confirmed_by_name": wo.final_confirmed_by_name,
+        "final_client_signature": wo.final_client_signature,
         "estimated_price": wo.estimated_price,
+        "prices": wo.prices,
+        "quote_number": wo.quote_number,
         "final_invoice_path": wo.final_invoice_path,
         "completion_photos": [
             {
@@ -192,9 +200,8 @@ def get_public_work_order(token: str, db: Session = Depends(get_db)):
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită sau link-ul este invalid.")
-    if wo.status == "draft":
-        raise HTTPException(status_code=403, detail="Această comandă nu a fost încă trimisă.")
-
+    # Permitem vizualizarea și pentru draft (Deviz)
+    
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     return _public_serialize(wo, org)
 
@@ -223,6 +230,7 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
 class ConfirmPayload(BaseModel):
     confirmed_by_name: Optional[str] = None
     client_signature: Optional[str] = None   # Base64 PNG din canvas
+    mode: Optional[str] = "quote" # "quote" sau "final"
 
 @router.post("/public/work-orders/{token}/confirm")
 def confirm_work_order(
@@ -232,31 +240,40 @@ def confirm_work_order(
     db: Session = Depends(get_db)
 ):
     """
-    Clientul confirmă comanda de lucru.
-    Se setează: confirmed_at, confirmed_by_name, confirmed_ip, status = confirmed.
+    Clientul confirmă oferta (Deviz) sau lucrarea finalizată.
     """
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
-    if wo.status == "draft":
-        raise HTTPException(status_code=403, detail="Această comandă nu a fost încă trimisă.")
-    if wo.status == "confirmed":
-        raise HTTPException(status_code=400, detail="Comanda a fost deja confirmată.")
-    if wo.status == "cancelled":
-        raise HTTPException(status_code=400, detail="Comanda a fost anulată și nu mai poate fi confirmată.")
-
-    # Obține IP-ul clientului
+        
     client_ip = request.client.host if request.client else None
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         client_ip = forwarded.split(",")[0].strip()
 
-    wo.status = "confirmed"
-    wo.confirmed_at = datetime.utcnow()
-    wo.confirmed_by_name = payload.confirmed_by_name or wo.client_name
-    wo.confirmed_ip = client_ip
-    if payload.client_signature:
-        wo.client_signature = payload.client_signature
+    if payload.mode == "final":
+        if wo.final_confirmed_at:
+            raise HTTPException(status_code=400, detail="Lucrarea finalizată a fost deja confirmată.")
+        
+        wo.final_confirmed_at = datetime.utcnow()
+        wo.final_confirmed_by_name = payload.confirmed_by_name or wo.client_name
+        wo.final_confirmed_ip = client_ip
+        if payload.client_signature:
+            wo.final_client_signature = payload.client_signature
+    else:
+        # Mod "quote"
+        if wo.status == "cancelled":
+            raise HTTPException(status_code=400, detail="Comanda a fost anulată.")
+        if wo.status not in ["draft", "sent"]:
+            # Dacă e deja confirmed, in_progress, completed, nu mai dăm eroare dacă vrea doar să o vadă confirmată
+            pass
+        else:
+            wo.status = "confirmed"
+            wo.confirmed_at = datetime.utcnow()
+            wo.confirmed_by_name = payload.confirmed_by_name or wo.client_name
+            wo.confirmed_ip = client_ip
+            if payload.client_signature:
+                wo.client_signature = payload.client_signature
 
     db.commit()
     db.refresh(wo)

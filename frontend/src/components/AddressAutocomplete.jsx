@@ -105,23 +105,73 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         }
     };
 
+    const [isLocating, setIsLocating] = useState(false);
+
+    const handleLocateMe = () => {
+        if (!navigator.geolocation) {
+            alert(t('quotes.geo_unsupported', 'Geolocația nu este suportată de browser.'));
+            return;
+        }
+        setIsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                try {
+                    const res = await fetch(`/api/places/reverse?lat=${lat}&lng=${lon}`);
+                    const data = await res.json();
+                    if (data.status === 'OK' && data.results?.length > 0) {
+                        const addr = data.results[0].formatted_address;
+                        setQuery(addr);
+                        if (onChange) onChange(addr, lat.toFixed(6), lon.toFixed(6));
+                        if (onSelect) onSelect({ address: addr, lat: lat.toFixed(6), lon: lon.toFixed(6) });
+                    } else {
+                        const fallback = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
+                        setQuery(fallback);
+                        if (onChange) onChange(fallback, lat.toFixed(6), lon.toFixed(6));
+                        if (onSelect) onSelect({ address: fallback, lat: lat.toFixed(6), lon: lon.toFixed(6) });
+                    }
+                } catch (err) {
+                    console.error('[AddressAutocomplete] reverse geocode error:', err);
+                } finally {
+                    setIsLocating(false);
+                }
+            },
+            (err) => {
+                console.error(err);
+                alert(t('quotes.geo_error', 'Nu am putut prelua locația. Verifică permisiunile.'));
+                setIsLocating(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
     return (
         <div className="relative" ref={wrapperRef}>
-            <div className="relative">
+            <div className="relative flex items-center">
                 <input
                     type="text"
                     value={query}
                     onChange={handleInputChange}
                     onFocus={() => { if (suggestions.length > 0) setIsOpen(true); }}
                     placeholder={placeholder || t('common.search_address', 'Caută o adresă...')}
-                    className={className}
+                    className={`w-full border border-slate-200 px-3 pr-20 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${className || ''}`}
                     autoComplete="off"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    {loading
-                        ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                        : <Search className="w-4 h-4" />
-                    }
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button 
+                        type="button"
+                        onClick={handleLocateMe}
+                        title="Identifică Locația Curentă"
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                        disabled={isLocating}
+                    >
+                        {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                    </button>
+                    <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
+                    <div className="p-1.5 text-slate-400">
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <Search className="w-4 h-4" />}
+                    </div>
                 </div>
             </div>
 

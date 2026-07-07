@@ -224,6 +224,7 @@ export default function WorkOrderForm() {
                         assigned_team_id: wo.assigned_team_id || '',
                         assigned_vehicle_id: wo.assigned_vehicle_id || '',
                         estimated_price: wo.estimated_price || '',
+                        prices: wo.prices || { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 },
                         volumes: wo.volumes?.length ? wo.volumes : [{ label: 'Montaj sapa', quantity: '', unit: 'm²', thickness: '' }],
                         materials: wo.materials?.length ? wo.materials : [{ name: '', quantity: '', unit: '' }],
                     }))
@@ -334,6 +335,7 @@ export default function WorkOrderForm() {
         assigned_vehicle_id: form.assigned_vehicle_id || null,
         volumes: form.volumes.filter(v => v.label),
         materials: form.materials.filter(m => m.name),
+        prices: form.prices,
     }
 }
 
@@ -423,7 +425,7 @@ export default function WorkOrderForm() {
     let autoBase = 0;
     let autoExtra = 0;
     let autoFoil = 0;
-    let autoMesh = 0;
+    let autoFiber = 0;
     let isAutoRender = false;
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
@@ -432,7 +434,7 @@ export default function WorkOrderForm() {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
         const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (labelSafe.includes('sapa') && surface > 0) {
+        if (labelSafe.includes('sapa')) {
             isAutoRender = true;
             surfaceForAuto += surface;
             const extraThickness = Math.max(0, thickness - 5);
@@ -441,10 +443,11 @@ export default function WorkOrderForm() {
             autoExtra += extraThickness * parseFloat(form.prices?.extra || 1.25) * surface;
             autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || 1.2) * surface : 0;
             autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || 2.5) * surface : 0;
+            autoFiber += vol.has_fiber ? parseFloat(form.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) * surface : 0;
         }
     });
 
-    autoNet = autoBase + autoExtra + autoFoil + autoMesh;
+    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
     let autoVat = 0;
     let totalGross = autoNet;
     const clientForRender = clients.find(c => c.id === form.client_id);
@@ -846,6 +849,15 @@ export default function WorkOrderForm() {
                                         />
                                         {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
                                     </label>
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={!!vol.has_fiber}
+                                            onChange={e => updateRow('volumes', i, 'has_fiber', e.target.checked)}
+                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                        />
+                                        Include Duramint (Fibră)
+                                    </label>
                                 </div>
                             )}
 
@@ -979,6 +991,12 @@ export default function WorkOrderForm() {
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                                         <span className="font-medium">{t('work_order_form.metal_mesh', 'Treillis métallique')}</span>
                                         <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.mesh || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoMesh.toFixed(2)} EUR</b></span>
+                                    </div>
+                                )}
+                                {autoFiber > 0 && (
+                                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                                        <span className="font-medium">Duramint (Fibră)</span>
+                                        <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.fiber || ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFiber.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}
                                 <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>

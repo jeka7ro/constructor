@@ -5,7 +5,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link
 } from 'lucide-react'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
@@ -180,6 +180,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [uploadingInvoice, setUploadingInvoice] = useState(false)
     const [invoiceNumberDraft, setInvoiceNumberDraft] = useState(null)
     const [savingInvoiceStatus, setSavingInvoiceStatus] = useState(false)
+    // TVA toggle — NOT automatic, user controls it
+    const [vatEnabled, setVatEnabled] = useState(false)
+    const [vatType, setVatType] = useState('21') // '21', '6', '0'
+    const [showCamera, setShowCamera] = useState(false)
+    const [toastMessage, setToastMessage] = useState(null)
+
+    const showToast = (msg) => {
+        setToastMessage(msg)
+        setTimeout(() => setToastMessage(null), 3000)
+    }
 
     const handleInvoiceUpload = async (e) => {
         const file = e.target.files?.[0]
@@ -229,6 +239,27 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             alert(err.response?.data?.detail || 'Eroare la salvare număr factură.')
         } finally {
             setSavingInvoiceStatus(false)
+        }
+    }
+
+    const [isConverting, setIsConverting] = useState(false)
+    const handleConvertToOrder = async () => {
+        if (!wo?.start_date) {
+            alert(t('quotes.req_start_date', 'Trebuie să selectați o dată de start (din Editează) înainte de conversie.'))
+            return
+        }
+        if (!window.confirm(t('quotes.confirm_convert', 'Sigur transformați acest devis într-o comandă de lucru?'))) return
+        setIsConverting(true)
+        try {
+            const res = await api.post(`/admin/work-orders/${id}/convert-to-order`, {
+                start_date: wo.start_date
+            })
+            setWo(res.data.work_order)
+            alert(t('quotes.success_convert', 'Devisul a fost transformat cu succes!'))
+        } catch (err) {
+            alert(err.response?.data?.detail || t('quotes.err_convert', 'Eroare la conversie.'))
+        } finally {
+            setIsConverting(false)
         }
     }
 
@@ -411,12 +442,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     });
 
     autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
-    let autoVat = 0;
-    let totalGross = autoNet;
-    if (isAuto && wo.client_type === 'fizica') {
-        autoVat = autoNet * 0.21;
-        totalGross = autoNet + autoVat;
-    }
+    // TVA is controlled by user toggle, NOT automatic
+    const vatRate = vatEnabled ? (vatType === '21' ? 0.21 : vatType === '6' ? 0.06 : 0) : 0;
+    let autoVat = autoNet * vatRate;
+    let totalGross = autoNet + autoVat;
 
     const rawVolumeTotal = (wo.volumes || []).reduce((a, v) => a + (parseFloat(v.quantity) || 0), 0)
     const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
@@ -479,9 +508,49 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     </div>
                 </div>
                 <div className="flex gap-2 sm:ml-auto shrink-0">
+                    {wo.token && (
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/confirm/${wo.token}`)
+                                showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'))
+                            }}
+                            className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition-colors shadow-sm shrink-0"
+                            title={t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
+                        >
+                            <Link className="w-3.5 h-3.5" />
+                            {t('quotes.copy_link', 'Copier le lien client')}
+                        </button>
+                    )}
+                    {wo.is_quote && (
+                        <>
+                            <button
+                                onClick={() => navigate(`/admin/quotes/${id}/pdf`)}
+                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-purple-600 text-white text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm"
+                            >
+                                <FileText className="w-3.5 h-3.5" />
+                                Devis PDF
+                            </button>
+                            <button onClick={handleConvertToOrder} disabled={isConverting}
+                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
+                                {isConverting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />} 
+                                {t('quotes.btn_convert', 'Conversie în Comandă')}
+                            </button>
+                        </>
+                    )}
                     <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
                         className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                         <Edit2 className="w-3.5 h-3.5" /> {t('work_order_detail.edit', 'Editează')}
+                    </button>
+                    <button 
+                        onClick={() => {
+                            if(window.confirm('Ștergeți definitiv acest devis/comandă?')) {
+                                api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
+                                   .then(() => navigate('/admin/quotes'))
+                                   .catch(console.error)
+                            }
+                        }}
+                        className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" /> Șterge
                     </button>
                 </div>
             </div>
@@ -709,6 +778,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-700 uppercase tracking-wider">
                                                         {cfg?.label || wo.status}
                                                     </span>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
+                                                <div>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Dată Aprox.')}</p>
+                                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                        <span>{wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : '—'}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.price', 'Preț Est. (€)')}</p>
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                                        {wo.estimated_price ? `${wo.estimated_price} €` : '—'}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1005,29 +1089,64 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
                                     <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                                        <span>{t('work_order_detail.invoicing.net', 'Total Net:')}</span>
+                                        <span>{t('work_order_detail.invoicing.net', 'Net:')}</span>
                                         <span>{autoNet.toFixed(2)} EUR</span>
                                     </div>
-                                    {wo.client_type === 'fizica' ? (
-                                        <div className="flex justify-between font-bold text-amber-600 dark:text-amber-500">
-                                            <span>{t('work_order_detail.invoicing.vat', 'TVA (21%)')}:</span>
-                                            <span>{autoVat.toFixed(2)} EUR</span>
+
+                                    {/* TVA Toggle */}
+                                    <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">{t('quotes.tva_toggle', 'Appliquer TVA')}</span>
+                                            <button
+                                                onClick={() => setVatEnabled(v => !v)}
+                                                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
+                                                    vatEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'
+                                                }`}
+                                            >
+                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                                                    vatEnabled ? 'translate-x-5' : 'translate-x-1'
+                                                }`} />
+                                            </button>
                                         </div>
-                                    ) : (
-                                        <div className="flex justify-between text-slate-500 text-xs">
-                                            <span>{t('work_order_detail.invoicing.vat', 'TVA')}: 0%</span>
-                                            <span>0.00 EUR</span>
-                                        </div>
-                                    )}
+                                        {vatEnabled && (
+                                            <div className="flex flex-col gap-1.5 mt-2">
+                                                {[
+                                                    { val: '21', label: t('quotes.tva_type_new', 'Construction neuve (21%)') },
+                                                    { val: '6',  label: t('quotes.tva_type_renov', 'Rénovation (6%)') },
+                                                    ...(wo.client_type === 'juridica' ? [{ val: '0', label: t('quotes.tva_type_zero', '0% TVA (Entreprise)') }] : []),
+                                                ].map(opt => (
+                                                    <label key={opt.val} className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="vatType"
+                                                            value={opt.val}
+                                                            checked={vatType === opt.val}
+                                                            onChange={() => setVatType(opt.val)}
+                                                            className="text-amber-500 focus:ring-amber-400"
+                                                        />
+                                                        <span className="text-xs text-amber-800 dark:text-amber-300 font-medium">{opt.label}</span>
+                                                    </label>
+                                                ))}
+                                                <div className="flex justify-between font-bold text-amber-700 dark:text-amber-400 mt-1 pt-1 border-t border-amber-200 dark:border-amber-700">
+                                                    <span>TVA ({vatType}%):</span>
+                                                    <span>{autoVat.toFixed(2)} EUR</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!vatEnabled && (
+                                            <p className="text-xs text-slate-400 dark:text-slate-500">{t('quotes.tva_disabled', 'TVA non appliquée / 0%')}</p>
+                                        )}
+                                    </div>
+
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
                                     <div className="flex justify-between text-base font-black text-blue-600 dark:text-blue-400">
-                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL DE PLATĂ:')}</span>
+                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
                                         <span>{totalGross.toFixed(2)} EUR</span>
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            !wo.estimated_price && <p className="text-sm text-slate-400 py-4">{t('work_order_detail.invoicing.no_calc', 'Niciun calcul disponibil.')}</p>
+                            !wo.estimated_price && <p className="text-sm text-slate-400 py-4">{t('work_order_detail.invoicing.no_calc', 'Aucun calcul disponible.')}</p>
                         )}
                     </Section>
                 </div>
@@ -1087,7 +1206,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <a href={wo.proforma_path} target="_blank" rel="noreferrer"
+                                        <a href={wo.final_invoice_path || `/admin/invoices/${wo.id}?type=invoice`} target="_blank" rel="noreferrer"
                                             className="px-4 py-1.5 bg-emerald-600 dark:bg-emerald-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shrink-0 shadow-sm">
                                             Descarcă PDF
                                         </a>
@@ -1113,6 +1232,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
 
                 </div>
+
+            {/* ── Devis PDF Preview ── */}
+            {wo.is_quote && (
+                <Section icon={FileText} title={t('work_order_detail.pdf_preview', 'Previzualizare Devis PDF')}>
+                    <div className="w-full h-[800px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white">
+                        <iframe
+                            src={`/admin/quotes/${wo.id}/pdf`}
+                            className="w-full h-full border-none"
+                            title="Devis PDF"
+                        />
+                    </div>
+                </Section>
+            )}
 
 {/* ── Fotografii ──────────────────────────────────────────────────── */}
             <Section icon={Camera} title={`${t('work_order_detail.photos.title', 'Fotografii')} (${photos.length})`}>
@@ -1202,6 +1334,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold transition-colors">
                         ✕
                     </button>
+                </div>
+            )}
+            {toastMessage && (
+                <div className="fixed bottom-4 right-4 z-[9999] bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <span className="font-bold text-sm">{toastMessage}</span>
                 </div>
             )}
         </div>

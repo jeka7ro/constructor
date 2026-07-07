@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, FileText, Loader2, User, MapPin, Calendar, Receipt, Building2, Phone, Mail } from 'lucide-react'
+import { ChevronLeft, FileText, Download, Printer, User, Receipt, MapPin, Loader2, CreditCard, Save, Send, Trash2, Link, Building2, Phone, Mail, CalendarDays, CheckCircle2, Calendar } from 'lucide-react'
 import api from '../../lib/api'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -12,12 +12,25 @@ export default function InvoiceDetails() {
     const { t } = useTranslation()
     const [wo, setWo] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [activeTab, setActiveTab] = useState('proforma')
+    const [toastMessage, setToastMessage] = useState(null)
+    const [isSendingToBilltobox, setIsSendingToBilltobox] = useState(false)
+
+    const showToast = (msg) => {
+        setToastMessage(msg)
+        setTimeout(() => setToastMessage(null), 3000)
+    }
 
     useEffect(() => {
         const fetchWo = async () => {
             try {
                 const res = await api.get(`/admin/work-orders/${id}`)
                 setWo(res.data)
+                if (res.data.final_invoice_path) {
+                    setActiveTab('invoice')
+                } else if (res.data.proforma_path) {
+                    setActiveTab(res.data.is_invoiced ? 'invoice' : 'proforma')
+                }
             } catch (err) {
                 console.error("Error fetching work order:", err)
             } finally {
@@ -26,6 +39,49 @@ export default function InvoiceDetails() {
         }
         fetchWo()
     }, [id])
+
+    useEffect(() => {
+        if (wo) {
+            const originalTitle = document.title;
+            const num = activeTab === 'invoice' ? (wo.invoice_number || 'N/A') : (wo.quote_number || 'N/A');
+            const dateStr = new Date(wo.proforma_issued_at || wo.approximate_date || Date.now()).toLocaleDateString('ro-RO');
+            const cName = wo.client_name || wo.client?.company_name || wo.client?.first_name || 'Client';
+            const typeStr = activeTab === 'invoice' ? 'Facture' : 'Devis';
+            document.title = `${typeStr} ${num} - ${dateStr} - ${cName}`;
+            
+            return () => {
+                document.title = originalTitle;
+            }
+        }
+    }, [wo, activeTab])
+
+    const handleMarkInvoiced = async () => {
+        try {
+            await api.patch(`/admin/work-orders/${wo.id}/invoice-status`, { is_invoiced: true })
+            setWo(prev => ({ ...prev, is_invoiced: true, invoiced_at: new Date().toISOString() }))
+            setActiveTab('invoice')
+            alert('Lucrarea a fost marcată ca facturată! Numărul de factură a fost generat.')
+        } catch (error) {
+            console.error('Failed to update invoice status:', error)
+            alert('A apărut o eroare la emiterea facturii.')
+        }
+    }
+
+    const handleSendToBilltobox = async () => {
+        try {
+            setIsSendingToBilltobox(true)
+            const res = await api.post(`/admin/work-orders/${wo.id}/billtobox`)
+            setWo(prev => ({ ...prev, billtobox_status: res.data.status }))
+            alert('Factura a fost trimisă cu succes către Billtobox!')
+        } catch (error) {
+            console.error('Failed to send invoice to Billtobox:', error)
+            const msg = error.response?.data?.detail || 'A apărut o eroare la trimiterea facturii.'
+            alert(msg)
+            setWo(prev => ({ ...prev, billtobox_status: 'error', billtobox_error: msg }))
+        } finally {
+            setIsSendingToBilltobox(false)
+        }
+    }
 
     if (loading) {
         return (
@@ -62,8 +118,10 @@ export default function InvoiceDetails() {
     const netTotal = subtotal - discountVal
 
     const getIframeSrc = () => {
+        if (activeTab === 'invoice' && wo.final_invoice_path) return `${API_BASE}${wo.final_invoice_path}#toolbar=0`
+        if (activeTab === 'proforma' && wo.proforma_path) return `${window.location.origin}${wo.proforma_path}?type=proforma`
         if (wo.final_invoice_path) return `${API_BASE}${wo.final_invoice_path}#toolbar=0`
-        if (wo.proforma_path) return `${window.location.origin}${wo.proforma_path}`
+        if (wo.proforma_path) return `${window.location.origin}${wo.proforma_path}?type=${activeTab}`
         return ''
     }
 
@@ -76,7 +134,7 @@ export default function InvoiceDetails() {
                 >
                     <ChevronLeft className="w-5 h-5 text-slate-500" />
                 </button>
-                <div>
+                <div className="flex-1">
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <FileText className="w-6 h-6 text-slate-800 dark:text-slate-200" />
                         {t('invoicing_details.title', 'Detalii Fiscale')}: {wo.title || t('invoicing.no_title', 'Fără titlu')}
@@ -86,6 +144,11 @@ export default function InvoiceDetails() {
                             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                 {t('invoicing.status_invoiced', 'Facturat')}
+                            </span>
+                        ) : wo.is_quote && wo.status === 'planning' ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 uppercase tracking-wider border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                Devis Planifié
                             </span>
                         ) : wo.proforma_path ? (
                             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 uppercase tracking-wider border border-blue-200">
@@ -100,6 +163,30 @@ export default function InvoiceDetails() {
                         )}
                         <span className="text-slate-500 font-medium">#{wo.id}</span>
                     </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {wo.token && (
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/confirm/${wo.token}`)
+                                showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'));
+                            }}
+                            className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition-colors shadow-sm shrink-0"
+                            title={t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
+                        >
+                            <Link className="w-3.5 h-3.5" />
+                            {t('quotes.copy_link', 'Copier le lien client')}
+                        </button>
+                    )}
+                    {wo.is_quote && (
+                        <button
+                            onClick={() => navigate(`/admin/quotes/${wo.id}/pdf`)}
+                            className="flex items-center gap-2 px-4 h-9 rounded-full bg-purple-600 text-white text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm shrink-0"
+                        >
+                            <FileText className="w-3.5 h-3.5" />
+                            Devis PDF
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -192,13 +279,75 @@ export default function InvoiceDetails() {
                 </div>
 
                 {/* Right side - PDF Viewer */}
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
-                    {isGenerated ? (
-                        <iframe 
-                            src={getIframeSrc()} 
+                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full overflow-hidden">
+                    {wo.is_quote ? (
+                        /* DEVIS — afișează PDF-ul devisului direct în iframe */
+                        <iframe
+                            src={`/admin/quotes/${wo.id}/pdf`}
                             className="w-full h-full border-none"
-                            title="Invoice PDF"
+                            title="Devis PDF"
                         />
+                    ) : isGenerated ? (
+                        <div className="flex flex-col h-full w-full">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 p-3 px-6 flex justify-between items-center shrink-0">
+                                {wo.is_invoiced ? (
+                                    <div className="bg-white dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
+                                        <button
+                                            onClick={() => setActiveTab('proforma')}
+                                            className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeTab === 'proforma' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                                        >
+                                            {t('invoicing.devis', 'DEVIS')}
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('invoice')}
+                                            className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeTab === 'invoice' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                                        >
+                                            {t('invoicing.facture', 'FACTURE')}
+                                        </button>
+                                    </div>
+                                ) : <div />}
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={() => {
+                                            const iframe = document.getElementById('invoice-iframe');
+                                            if (iframe) {
+                                                iframe.contentWindow.focus();
+                                                iframe.contentWindow.print();
+                                            }
+                                        }} 
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full shadow-sm font-bold text-sm transition-transform hover:scale-105"
+                                    >
+                                        <Printer className="w-4 h-4" />
+                                        {t('invoicing.print_pdf', 'Imprimer le PDF')}
+                                    </button>
+                                    {!wo.is_invoiced && !wo.is_quote && wo.proforma_path && (
+                                        <button
+                                            onClick={handleMarkInvoiced}
+                                            className="flex items-center gap-2 px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm shrink-0 transition-transform hover:scale-105"
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            {t('invoicing.issue_invoice', 'Émettre la Facture')}
+                                        </button>
+                                    )}
+                                    {wo.is_invoiced && (
+                                        <button
+                                            onClick={handleSendToBilltobox}
+                                            disabled={isSendingToBilltobox || wo.billtobox_status === 'sent'}
+                                            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold shadow-sm shrink-0 transition-transform hover:scale-105 ${wo.billtobox_status === 'sent' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'}`}
+                                        >
+                                            {isSendingToBilltobox ? <Loader2 className="w-4 h-4 animate-spin" /> : (wo.billtobox_status === 'sent' ? <CheckCircle2 className="w-4 h-4" /> : <Send className="w-4 h-4" />)}
+                                            {wo.billtobox_status === 'sent' ? t('invoicing.sent_to_billtobox', 'Envoyé à Billtobox') : t('invoicing.send_to_billtobox', 'Envoyer à Billtobox')}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            <iframe 
+                                id="invoice-iframe"
+                                src={getIframeSrc()} 
+                                className="w-full flex-1 border-none bg-slate-100 dark:bg-slate-900"
+                                title="Invoice PDF"
+                            />
+                        </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-8 text-center bg-slate-50 dark:bg-slate-900/50">
                             <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 border border-slate-200">
@@ -218,6 +367,13 @@ export default function InvoiceDetails() {
                     )}
                 </div>
             </div>
+
+            {toastMessage && (
+                <div className="fixed bottom-4 right-4 z-[9999] bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <span className="font-bold text-sm">{toastMessage}</span>
+                </div>
+            )}
         </div>
     )
 }

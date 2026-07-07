@@ -183,6 +183,7 @@ export default function AdminDashboard() {
             label: t('nav.cat_general', 'General'),
             items: [
                 { path: '/admin/planning', icon: LayoutDashboard, label: t('nav.planning', 'Planning') },
+                { path: '/admin/quotes', icon: FileText, label: t('nav.quotes', 'Devis / Oferte') },
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistică') },
                 { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturare') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Comenzi') },
@@ -372,8 +373,10 @@ export default function AdminDashboard() {
         if (p.includes('/settings')) return t('nav.settings', 'Setări');
         if (p.includes('/notifications')) return t('nav.notifications', 'Notificări');
         if (p.includes('/organizations')) return t('nav.organizations', 'Companii');
-        if (p.includes('/invoicing') || p.includes('/invoices')) return t('nav.invoicing', 'Facturare & Proforme');
-        return t('nav.planning', 'Planning');
+        if (p.includes('/invoicing') || p.includes('/invoices')) return null;
+        if (p.includes('/quotes')) return null;
+        if (p.includes('/planning') || p === '/admin') return t('nav.planning', 'Planning');
+        return null;
     })();
 
     return (
@@ -575,6 +578,11 @@ export default function AdminDashboard() {
                              <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-10 h-10 object-contain opacity-70 scale-110" />
                         )}
                     </div>
+                    {sidebarOpen && (
+                        <div className="text-[10px] font-mono text-slate-500 dark:text-slate-600 opacity-50 select-none text-center mt-0.5">
+                            v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+                        </div>
+                    )}
                 </div>
             </aside>
 

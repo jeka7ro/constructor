@@ -39,7 +39,8 @@
         "history": "Geschiedenis",
         "work_orders_full": "Werkorders",
         "inventory": "Inventaris",
-        "tracking": "Live Tracking"
+        "tracking": "Live Tracking",
+        "quotes": "Offertes / Devis"
     },
     "logistics": {
         "title": "Logistiek",
@@ -1069,7 +1070,7 @@
         "extra_thickness": "Extra dikte",
         "plastic_foil": "Plastic folie",
         "metal_mesh": "Metalen gaas",
-        "fibers_duramit": "Vezels + Duramit",
+        "fibers_duramit": "Vezels + Duramint",
         "total_net": "Totaal Netto",
         "vat_physical": "BTW (21% Particulier)",
         "vat_juridical": "BTW: 0% (Bedrijf)",
@@ -1283,5 +1284,33 @@
         "no_document_issued": "Geen document uitgegeven",
         "no_document_desc": "De factuur of proforma is nog niet gegenereerd. Gebruik de voorbeeld- en genereerknop op de administratiepagina om het document te maken.",
         "back_to_generation": "Terug naar genereren"
+    },
+    "quotes": {
+        "title_main": "Offertes / Devis",
+        "subtitle": "Beheer offerteaanvragen voor planning",
+        "quick_add": "Snel Offerte Toevoegen",
+        "field_title": "Type / Titel",
+        "ex_sapa": "bijv. Nieuwe Dekvloer",
+        "field_client": "Klant",
+        "new_client": "Nieuwe Klant",
+        "approx_date": "Geschatte Datum",
+        "ex_date": "bijv. Eind Augustus",
+        "field_address": "Adres (Google Maps)",
+        "btn_save": "Offerte Opslaan",
+        "add_new_client": "Nieuwe Klant Toevoegen",
+        "list_title": "Wachtlijst Offertes",
+        "total": "totaal",
+        "search": "Zoek offertes...",
+        "empty": "Geen wachtende offertes.",
+        "title": "Titel",
+        "client": "Klant",
+        "view_details": "Offerte Details",
+        "btn_convert": "Zet om in Bestelling",
+        "confirm_convert": "Weet u zeker dat u deze offerte wilt omzetten in een bestelling?",
+        "req_start_date": "U moet een startdatum selecteren voordat u kunt converteren.",
+        "success_convert": "Offerte succesvol omgezet!",
+        "err_convert": "Conversiefout.",
+        "req_title": "Titel is verplicht",
+        "err_create": "Fout bij aanmaken offerte"
     }
 }

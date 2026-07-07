@@ -50,7 +50,9 @@ const AdminMaterialRequests = lazy(() => import('./pages/admin/AdminMaterialRequ
 const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
 const InvoicingManagement = lazy(() => import('./pages/admin/InvoicingManagement'))
 const InvoiceDetails = lazy(() => import('./pages/admin/InvoiceDetails'))
+const QuotesManagement = lazy(() => import('./pages/admin/QuotesManagement'))
 const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
+const DevisView = lazy(() => import('./pages/admin/DevisView'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
@@ -271,6 +273,7 @@ function App() {
                     <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>}>
                         <Route index element={<Navigate to="/admin/planning" replace />} />
                         <Route path="planning" element={<AdminOverview />} />
+                        <Route path="quotes" element={<QuotesManagement />} />
                         <Route path="users" element={<UsersManagement />} />
                         <Route path="employees" element={<EmployeesManagement />} />
                         <Route path="employees/:id" element={<EmployeesManagement />} />
@@ -310,6 +313,7 @@ function App() {
 
                     {/* Public Order Routes */}
                     <Route path="/confirm/:token" element={<WorkOrderConfirm />} />
+                    <Route path="/public/quotes/:token/pdf" element={<DevisView />} />
                     <Route path="/calculator" element={<QuoteCalculator />} />
 
                     {/* Public Routes */}
@@ -336,6 +340,15 @@ function App() {
                             <Route path="/comenzi" element={<WorkerOrdersPage />} />
                         </Route>
                     ) : null}
+
+                    <Route 
+                        path="/admin/quotes/:id/pdf" 
+                        element={
+                            <Suspense fallback={<PageLoader />}>
+                                <DevisView />
+                            </Suspense>
+                        } 
+                    />
 
                     {/* Print-only routes */}
                     <Route 

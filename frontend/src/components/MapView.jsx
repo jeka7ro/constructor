@@ -28,11 +28,17 @@ const getSandStationSvg = (letter) => `data:image/svg+xml;charset=UTF-8,${encode
 </svg>
 `)}`;
 
+const getPinSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40">
+    <path d="M15 0C6.716 0 0 6.716 0 15c0 10 15 25 15 25s15-15 15-25c0-8.284-6.716-15-15-15zm0 21.5c-3.59 0-6.5-2.91-6.5-6.5s2.91-6.5 6.5-6.5 6.5 2.91 6.5 6.5-2.91 6.5-6.5 6.5z" fill="#ef4444" stroke="white" stroke-width="1"/>
+</svg>
+`)}`;
+
 /**
  * MapView — hartă read-only folosind Google Maps.
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Google Geocoder.
  */
-const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb' }) => {
+const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb', markerType = 'truck' }) => {
     const mapRef = useRef(null);
     const detailMapRef = useRef(null);
     const mapInstance = useRef(null);
@@ -122,11 +128,17 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         elementsRef.current.marker = new window.google.maps.Marker({
             position: center,
             map: mapInstance.current,
-            icon: {
-                url: getTruckSvg(teamColor),
-                scaledSize: new window.google.maps.Size(36, 36),
-                anchor: new window.google.maps.Point(18, 18)
-            },
+            icon: markerType === 'pin' 
+                ? {
+                    url: getPinSvg(),
+                    scaledSize: new window.google.maps.Size(30, 40),
+                    anchor: new window.google.maps.Point(15, 40)
+                  }
+                : {
+                    url: getTruckSvg(teamColor),
+                    scaledSize: new window.google.maps.Size(36, 36),
+                    anchor: new window.google.maps.Point(18, 18)
+                  },
             title: popupLabel || 'Destinație'
         });
 
@@ -142,11 +154,17 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             elementsRef.current.detailMarker = new window.google.maps.Marker({
                 position: center,
                 map: detailMapInstance.current,
-                icon: {
-                    url: getTruckSvg(teamColor),
-                    scaledSize: new window.google.maps.Size(36, 36),
-                    anchor: new window.google.maps.Point(18, 18)
-                }
+                icon: markerType === 'pin'
+                    ? {
+                        url: getPinSvg(),
+                        scaledSize: new window.google.maps.Size(30, 40),
+                        anchor: new window.google.maps.Point(15, 40)
+                      }
+                    : {
+                        url: getTruckSvg(teamColor),
+                        scaledSize: new window.google.maps.Size(36, 36),
+                        anchor: new window.google.maps.Point(18, 18)
+                      }
             });
         }
 
@@ -380,27 +398,29 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             className={`flex flex-col md:flex-row gap-3 w-full ${isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-900/95 p-4 backdrop-blur-sm' : ''}`}
             style={{ height: isFullScreen ? '100vh' : height, zIndex: isFullScreen ? 9999 : 1 }}
         >
-            <div className={`hidden md:flex flex-col gap-2 h-full relative ${isFullScreen ? 'w-[32%] max-w-[420px]' : 'w-1/3'}`}>
-                <div className={`relative rounded-xl overflow-hidden shadow-inner w-full shrink-0 ${isFullScreen && leftPanelContent ? 'h-[120px] min-h-[120px] border-2 border-slate-700' : 'h-full border border-slate-200 dark:border-slate-700'}`}>
-                    <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
-                    <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                        DESTINAȚIE
+            {markerType !== 'pin' && (
+                <div className={`hidden md:flex flex-col gap-2 h-full relative ${isFullScreen ? 'w-[32%] max-w-[420px]' : 'w-1/3'}`}>
+                    <div className={`relative rounded-xl overflow-hidden shadow-inner w-full shrink-0 ${isFullScreen && leftPanelContent ? 'h-[120px] min-h-[120px] border-2 border-slate-700' : 'h-full border border-slate-200 dark:border-slate-700'}`}>
+                        <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
+                        <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                            DESTINAȚIE
+                        </div>
+                        {navButtons && !isFullScreen && (
+                            <div className="absolute top-2 right-2 z-[400] flex gap-2">
+                                {navButtons}
+                            </div>
+                        )}
                     </div>
-                    {navButtons && !isFullScreen && (
-                        <div className="absolute top-2 right-2 z-[400] flex gap-2">
-                            {navButtons}
+
+                    {isFullScreen && leftPanelContent && (
+                        <div className="flex-1 w-full flex flex-col gap-2 overflow-y-auto pr-1 pb-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+                            {leftPanelContent}
                         </div>
                     )}
                 </div>
-
-                {isFullScreen && leftPanelContent && (
-                    <div className="flex-1 w-full flex flex-col gap-2 overflow-y-auto pr-1 pb-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
-                        {leftPanelContent}
-                    </div>
-                )}
-            </div>
+            )}
             
-            <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'flex-1 border-2 border-slate-700' : 'w-full md:w-2/3 border border-slate-200 dark:border-slate-700'}`}>
+            <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'flex-1 border-2 border-slate-700' : `w-full ${markerType === 'pin' ? '' : 'md:w-2/3'} border border-slate-200 dark:border-slate-700`}`}>
                 <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
                 
                 {/* UI Controls */}

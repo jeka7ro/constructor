@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction
 from app.api.admin_auth import get_current_admin
+from app.services.billtobox import send_invoice_to_billtobox
+from app.services.pdf_generator import generate_invoice_pdf
 from datetime import date as date_today_import
 from sqlalchemy import func
 
@@ -97,6 +99,8 @@ class WorkOrderCreate(BaseModel):
     client_company_bank: Optional[str] = None
     client_company_iban: Optional[str] = None
     client_company_swift: Optional[str] = None
+    is_quote: Optional[bool] = False
+    
     # Conținut
     requirements: Optional[list] = []
     materials: Optional[list] = []
@@ -111,6 +115,10 @@ class WorkOrderCreate(BaseModel):
     estimated_price: Optional[str] = None
     is_auto_calculated: Optional[bool] = None
     route_distance_km: Optional[float] = None
+    # Devis / Quote
+    is_quote: Optional[bool] = False
+    approximate_date: Optional[str] = None
+    prices: Optional[dict] = {}
 
     @model_validator(mode='before')
     @classmethod
@@ -148,6 +156,8 @@ def _serialize(wo: WorkOrder) -> dict:
         "start_date": str(wo.start_date) if wo.start_date else None,
         "start_time": wo.start_time,
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
+        "is_quote": bool(wo.is_quote),
+        "approximate_date": wo.approximate_date,
         "site_id": wo.site_id,
         "site_name": site_name,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
@@ -171,6 +181,7 @@ def _serialize(wo: WorkOrder) -> dict:
         "actual_surface_m2": wo.actual_surface_m2,
         "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
+        "prices": wo.prices or {},
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
         "client_signature": wo.client_signature,
@@ -229,6 +240,7 @@ def list_work_orders(
     status: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    is_quote: Optional[bool] = Query(None),
     limit: Optional[int] = None,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
@@ -274,6 +286,17 @@ def list_work_orders(
     from sqlalchemy.orm import selectinload
 
     q = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id)
+    
+    if is_quote is not None:
+        q = q.filter(WorkOrder.is_quote == is_quote)
+    else:
+        # Default: comenzile normale (is_quote=False) + devisele trimise in planning (is_quote=True + status=planning)
+        from sqlalchemy import or_
+        q = q.filter(or_(
+            WorkOrder.is_quote == False,
+            (WorkOrder.is_quote == True) & (WorkOrder.status == 'planning')
+        ))
+
     q = q.options(
         joinedload(WorkOrder.site),
         joinedload(WorkOrder.client),
@@ -413,16 +436,31 @@ def create_work_order(
         requirements=payload.requirements or [],
         materials=payload.materials or [],
         volumes=payload.volumes or [],
+        prices=getattr(payload, 'prices', {}),
         assigned_team_id=payload.assigned_team_id,
         assigned_vehicle_id=payload.assigned_vehicle_id,
         min_photos_required=payload.min_photos_required or 2,
         access_notes=payload.access_notes,
         estimated_price=getattr(payload, 'estimated_price', None),
         status="draft",
+        is_quote=getattr(payload, 'is_quote', False),
+        approximate_date=getattr(payload, 'approximate_date', None),
         created_by=current_admin.id,
     )
     db.add(wo)
-    
+    db.flush()  # obtine ID-ul
+
+    # Auto-generate quote_number (IST0001, IST0002...) sau invoice_number (INV001...)
+    if wo.is_quote:
+        count = db.query(WorkOrder).filter(WorkOrder.is_quote == True).count()
+        wo.quote_number = f"IST {str(838 + count).zfill(4)}"
+    else:
+        count = db.query(WorkOrder).filter(
+            WorkOrder.organization_id == current_admin.organization_id,
+            WorkOrder.is_quote == False
+        ).count()
+        wo.invoice_number = f"INV{str(count).zfill(3)}"
+
     if payload.materials:
         sync_work_order_reservations(db, current_admin.organization_id, [], payload.materials)
         
@@ -561,11 +599,11 @@ def update_work_order(
     old_materials = list(wo.materials) if wo.materials else []
 
     fields = [
-        "title", "notes", "start_date", "start_time", "deadline_date",
+        "title", "notes", "start_date", "start_time", "deadline_date", "approximate_date",
         "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
-        "client_email", "client_phone", "client_language", "requirements", "materials", "volumes",
+        "client_email", "client_phone", "client_language", "requirements", "materials", "volumes", "prices",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
-        "estimated_price", "status"
+        "estimated_price", "status", "is_quote"
     ]
     
     update_data = payload.dict(exclude_unset=True)
@@ -938,7 +976,7 @@ class InvoiceStatusUpdate(BaseModel):
     invoice_notes: Optional[str] = None
 
 @router.patch("/work-orders/{wo_id}/invoice-status")
-def update_invoice_status(
+async def update_invoice_status(
     wo_id: str,
     payload: InvoiceStatusUpdate,
     db: Session = Depends(get_db),
@@ -958,6 +996,19 @@ def update_invoice_status(
         wo.invoice_number = payload.invoice_number or None
     if payload.invoice_notes is not None:
         wo.invoice_notes = payload.invoice_notes or None
+
+    # Generate PDF automatically if invoiced
+    if wo.is_invoiced and not wo.pdf_path:
+        from app.models import Client
+        client = None
+        if wo.client_id:
+            client = db.query(Client).filter(Client.id == wo.client_id).first()
+        try:
+            new_pdf_path = await generate_invoice_pdf(wo, client)
+            if new_pdf_path:
+                wo.pdf_path = new_pdf_path
+        except Exception as e:
+            print(f"Eroare generare PDF auto: {e}")
 
     db.commit()
     db.refresh(wo)
@@ -993,7 +1044,7 @@ def change_status(
         sync_work_order_reservations(db, current_admin.organization_id, wo.materials or [], [])
     elif old_status == "cancelled" and new_status not in ("completed", "cancelled"):
         sync_work_order_reservations(db, current_admin.organization_id, [], wo.materials or [])
-        
+
     db.commit()
     db.refresh(wo)
     return _serialize(wo)
@@ -1443,3 +1494,64 @@ def generate_proforma(
         "proforma_path": wo.proforma_path,
         "proforma_issued_at": wo.proforma_issued_at.isoformat()
     }
+
+@router.post("/work-orders/{wo_id}/convert-to-order")
+def convert_quote_to_order(
+    wo_id: str,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Quote not found")
+        
+    start_date_str = payload.get("start_date")
+    if not start_date_str:
+        raise HTTPException(status_code=400, detail="start_date is required")
+        
+    from datetime import datetime
+    try:
+        wo.start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+    wo.is_quote = False
+    wo.status = "draft"
+    db.commit()
+    
+    return {"message": "Quote converted to Work Order", "work_order": _serialize(wo)}
+
+@router.post("/work-orders/{wo_id}/billtobox")
+def send_to_billtobox_endpoint(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """
+    Trimite o factură finalizată către Billtobox via e-FFF XML format.
+    """
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    if not wo.is_invoiced:
+        raise HTTPException(status_code=400, detail="Doar facturile finale pot fi trimise către Billtobox.")
+        
+    client = None
+    if wo.client_id:
+        client = db.query(Client).filter(Client.id == wo.client_id).first()
+        
+    success, message = send_invoice_to_billtobox(wo, client)
+    
+    if success:
+        wo.billtobox_status = "sent"
+        wo.billtobox_sent_at = datetime.utcnow()
+        wo.billtobox_error = None
+        db.commit()
+        return {"message": "Factura a fost trimisă cu succes către Billtobox.", "status": "sent"}
+    else:
+        wo.billtobox_status = "error"
+        wo.billtobox_error = message
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Eroare la trimiterea către Billtobox: {message}")

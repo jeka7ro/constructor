@@ -141,7 +141,7 @@ export default function DataTable({
             )}
 
             {/* Table */}
-            <div className={`overflow-x-auto ${mobileCard ? 'hidden md:block' : ''}`}>
+            <div className={`overflow-x-auto pb-4 ${mobileCard ? 'hidden md:block' : ''}`}>
                 <table className="w-full text-sm text-left">
                     <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>

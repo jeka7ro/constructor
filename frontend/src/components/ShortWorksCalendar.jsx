@@ -737,8 +737,25 @@ export default function ShortWorksCalendar({
                                             return;
                                         }
 
-                                        const woId = e.dataTransfer.getData("text/plain");
-                                        if (!woId || type === "team") return;
+                                        if (type === "quote") {
+                                            const quoteId = e.dataTransfer.getData("id");
+                                            if (!quoteId) return;
+                                            setSyncing(true);
+                                            try {
+                                                await api.put(`/admin/work-orders/${quoteId}`, {
+                                                    start_date: targetDate,
+                                                    start_time: targetTime,
+                                                    status: 'planning'
+                                                });
+                                                if (onOrderRescheduled) onOrderRescheduled();
+                                            } catch (err) {
+                                                console.error('Erreur drop devis:', err);
+                                            } finally {
+                                                setSyncing(false);
+                                            }
+                                            return;
+                                        }
+
 
                                         const wo = workOrders.find(o => o.id === woId);
                                         if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;

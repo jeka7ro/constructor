@@ -966,6 +966,10 @@ class WorkOrder(Base):
     start_date      = Column(Date, nullable=True)           # Data de start planificată
     start_time      = Column(String(5), nullable=True)      # HH:MM ora de start (ex: "07:00")
     deadline_date   = Column(Date, nullable=True)           # Termen limită
+    
+    # ── Tipizare: Devis vs Work Order ─────────────────────────────────────────
+    is_quote         = Column(Boolean, default=False, nullable=False, index=True)
+    approximate_date = Column(String(255), nullable=True)    # Dată cerută de client pe devis
 
     # ── Locație ──────────────────────────────────────────────────────────────
     site_id              = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)
@@ -990,6 +994,8 @@ class WorkOrder(Base):
     materials_consumed  = Column(JSON, default=list, nullable=False)
     # volumes: [{"label": "...", "quantity": "...", "unit": "...", "price": "..."}]
     volumes             = Column(JSON, default=list, nullable=False)
+    # prices: {"base": "12.5", "extra": "1.25", "foil": "1.2", "mesh": "2.5", "fiber": "2.0"}
+    prices              = Column(JSON, default=dict, nullable=True)
 
     # ── Status & Workflow ─────────────────────────────────────────────────────
     # draft | sent | confirmed | in_progress | completed | cancelled
@@ -999,7 +1005,13 @@ class WorkOrder(Base):
     confirmed_at        = Column(DateTime, nullable=True)
     confirmed_by_name   = Column(String(255), nullable=True)
     confirmed_ip        = Column(String(45), nullable=True)
-    client_signature    = Column(Text, nullable=True)   # Base64 PNG semnătură client
+    client_signature    = Column(Text, nullable=True)   # Base64 PNG semnătură client (pentru DEVIZ)
+    
+    # ── Confirmare Finală Lucrare ───────────────────────────────────────────────
+    final_confirmed_at       = Column(DateTime, nullable=True)
+    final_confirmed_by_name  = Column(String(200), nullable=True)
+    final_confirmed_ip       = Column(String(50), nullable=True)
+    final_client_signature   = Column(Text, nullable=True)   # Base64 PNG semnătură client (pentru LUCRARE)
 
     # ── PDF / Facturi ──────────────────────────────────────────────────────────
     pdf_path            = Column(String(500), nullable=True)
@@ -1010,8 +1022,15 @@ class WorkOrder(Base):
     # ── Status Facturare ───────────────────────────────────────────────────────
     is_invoiced         = Column(Boolean, default=False, nullable=False)
     invoiced_at         = Column(DateTime, nullable=True)
-    invoice_number      = Column(String(100), nullable=True)  # Ex: "2025-0042"
+    invoice_number      = Column(String(100), nullable=True)  # Ex: "INV001"
+    quote_number        = Column(String(100), nullable=True)  # Ex: "EST001"
     invoice_notes       = Column(Text, nullable=True)
+
+    # ── Integrare Billtobox ────────────────────────────────────────────────────
+    billtobox_status    = Column(String(50), default="none", nullable=True) # none, pending, sent, error
+    billtobox_sent_at   = Column(DateTime, nullable=True)
+    billtobox_error     = Column(Text, nullable=True)
+
 
     # ── Preț Estimativ ─────────────────────────────────────────────────────────
     estimated_price     = Column(String(100), nullable=True) # Ex: "1500 EUR"

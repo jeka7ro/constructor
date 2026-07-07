@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw } from 'lucide-react'
+import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw } from 'lucide-react'
 import api from '../../lib/api'
+import MapView from '../../components/MapView'
+import DevisView from '../admin/DevisView'
 
 // ─── Signature Pad ────────────────────────────────────────────────────────────
 function SignaturePad({ onChange, disabled, t }) {
@@ -114,9 +116,10 @@ function SignaturePad({ onChange, disabled, t }) {
 
 const LANG_DICT = {
     ro: {
-        workOrder: 'Comandă de Lucru',
-        confirmed: 'Comandă Confirmată!',
-        confirmedBy: 'Confirmată de',
+        workOrder: 'Comandă de Lucru / Deviz',
+        finalWorkOrder: 'Lucrare Finalizată',
+        confirmed: 'Confirmat!',
+        confirmedBy: 'Confirmat de',
         onDate: 'pe',
         signature: 'Semnătură înregistrată',
         start: 'Start',
@@ -127,14 +130,17 @@ const LANG_DICT = {
         volumes: 'Volume Estimate',
         materials: 'Materiale',
         notes: 'Observații',
-        confirmOrder: 'Confirmare Comandă',
+        approxDate: 'Dată (Aproximativă)',
+        confirmOrder: 'Confirmare Deviz',
+        confirmOrderFinal: 'Confirmare Lucrare Finalizată',
         confirmDesc: 'Completați datele, aplicați semnătura digitală și confirmați.',
         confirmedByLabel: 'Confirmat de *',
         namePlaceholder: 'Nume și prenume / Companie',
         digitalSignature: 'Semnătură Digitală *',
         signatureRequired: 'Semnătura este obligatorie',
-        terms: 'Am citit și sunt de acord cu toate cerințele, condițiile și termenele specificate în această comandă de lucru.',
-        confirmBtn: 'Confirm și Semnez Comanda',
+        terms: 'Am citit și sunt de acord cu toate cerințele, condițiile și prețurile estimate specificate în acest deviz.',
+        termsFinal: 'Am verificat lucrările executate, inclusiv pozele atașate, și confirm că lucrarea a fost finalizată corespunzător.',
+        confirmBtn: 'Confirm și Semnez',
         confirmingBtn: 'Se confirmă...',
         estimatedPrice: 'Preț Estimativ',
         finalInvoice: 'Factură Finală (PDF)',
@@ -161,6 +167,7 @@ const LANG_DICT = {
         volumes: 'Estimated Volumes',
         materials: 'Materials',
         notes: 'Notes',
+        approxDate: 'Date (Approx.)',
         confirmOrder: 'Order Confirmation',
         confirmDesc: 'Fill in your details, apply your digital signature, and confirm.',
         confirmedByLabel: 'Confirmed by *',
@@ -195,6 +202,7 @@ const LANG_DICT = {
         volumes: 'Volumes estimés',
         materials: 'Matériaux',
         notes: 'Remarques',
+        approxDate: 'Date (Approximative)',
         confirmOrder: 'Confirmation de commande',
         confirmDesc: 'Remplissez vos coordonnées, appliquez votre signature numérique et confirmez.',
         confirmedByLabel: 'Confirmé par *',
@@ -263,6 +271,7 @@ const LANG_DICT = {
         volumes: 'Geschatte volumes',
         materials: 'Materialen',
         notes: 'Opmerkingen',
+        approxDate: 'Datum (Geschat)',
         confirmOrder: 'Orderbevestiging',
         confirmDesc: 'Vul uw gegevens in, plaats uw digitale handtekening en bevestig.',
         confirmedByLabel: 'Bevestigd door *',
@@ -319,12 +328,37 @@ const LANG_DICT = {
     }
 }
 
+// ─── Dynamic Terms Translation (Regex based) ──────────────────────────────────
+const translateDynamic = (text, lang) => {
+    if (!text) return text;
+    // Don't translate if Romanian
+    if (lang === 'ro') return text;
+
+    let t = text.toString();
+    
+    const rules = [
+        { regex: /montaj[ \-]*[sșş]ap[aăâ]/i, fr: 'Chape', nl: 'Chape', en: 'Screed' },
+        { regex: /^[sșş]ap[aăâ]$/i, fr: 'Chape', nl: 'Chape', en: 'Screed' },
+        { regex: /manoper[aăâ]/i, fr: "Main-d'œuvre", nl: 'Arbeid', en: 'Labor' }
+    ];
+
+    for (const rule of rules) {
+        if (rule.regex.test(t)) {
+            // Replace the matched part or the whole string if it's a direct match
+            // For simplicity, if it matches, we'll replace the regex match with the translation
+            t = t.replace(rule.regex, rule[lang] || rule.en);
+        }
+    }
+    return t;
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WorkOrderConfirm() {
     const { token } = useParams()
-    const [searchParams] = useSearchParams()
-    const lang = searchParams.get('lang') || 'ro'
-    const t = LANG_DICT[lang] || LANG_DICT['ro']
+    const [searchParams, setSearchParams] = useSearchParams()
+    const urlLang = searchParams.get('lang')
+    const [lang, setLang] = useState(urlLang || 'fr')
+    const t = LANG_DICT[lang] || LANG_DICT['fr']
     
     const [order, setOrder] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -334,6 +368,7 @@ export default function WorkOrderConfirm() {
     const [checkedTerms, setCheckedTerms] = useState(false)
     const [confirmedByName, setConfirmedByName] = useState('')
     const [signature, setSignature] = useState(null)
+    const [mode, setMode] = useState('quote')
 
     useEffect(() => {
         const load = async () => {
@@ -342,7 +377,15 @@ export default function WorkOrderConfirm() {
                 const data = res.data
                 setOrder(data)
                 if (data.client_name) setConfirmedByName(data.client_name)
-                if (data.status === 'confirmed') setConfirmed(true)
+                
+                const isFinal = data.status === 'completed' || data.final_confirmed_at;
+                setMode(isFinal ? 'final' : 'quote');
+                
+                if (isFinal) {
+                    if (data.final_confirmed_at) setConfirmed(true)
+                } else {
+                    if (data.confirmed_at) setConfirmed(true)
+                }
             } catch (err) {
                 setError(err.response?.data?.detail || t.errorLoading)
             } finally {
@@ -358,7 +401,8 @@ export default function WorkOrderConfirm() {
         try {
             const res = await api.post(`/public/work-orders/${token}/confirm`, {
                 confirmed_by_name: confirmedByName,
-                client_signature: signature
+                client_signature: signature,
+                mode: mode
             })
             setOrder(res.data)
             setConfirmed(true)
@@ -423,206 +467,143 @@ export default function WorkOrderConfirm() {
                 </div>
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 py-8 space-y-5">
+            <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
                 {/* Confirmed banner */}
                 {confirmed && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
                         <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto mb-3" />
                         <h2 className="text-xl font-black text-emerald-800 mb-1">{t.confirmed}</h2>
-                        {order?.confirmed_at && (
+                        {order?.confirmed_at && mode === 'quote' && (
                             <p className="text-emerald-600 text-sm">
                                 {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
                                 {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
                             </p>
                         )}
-                        {order?.client_signature && (
+                        {order?.client_signature && mode === 'quote' && (
                             <div className="mt-4 pt-4 border-t border-emerald-200">
                                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{t.signature}</p>
                                 <img src={order.client_signature} alt="Semnătură" className="max-h-20 mx-auto opacity-80" />
                             </div>
                         )}
+                        
+                        {order?.final_confirmed_at && mode === 'final' && (
+                            <p className="text-emerald-600 text-sm">
+                                {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
+                                {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                            </p>
+                        )}
+                        {order?.final_client_signature && mode === 'final' && (
+                            <div className="mt-4 pt-4 border-t border-emerald-200">
+                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">{t.signature}</p>
+                                <img src={order.final_client_signature} alt="Semnătură" className="max-h-20 mx-auto opacity-80" />
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {/* Order Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="h-2" style={{ backgroundColor: primaryColor }} />
-                    <div className="p-6 border-b border-slate-100">
-                        <h1 className="text-2xl font-black text-slate-900 leading-tight mb-2">{order?.title}</h1>
-                        <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-                            {order?.start_date && (
-                                <span className="flex items-center gap-1.5">
-                                    <Calendar className="w-4 h-4 text-blue-500" />
-                                    {t.start}: <strong>{formatDate(order.start_date)}</strong>
-                                </span>
-                            )}
-                            {order?.deadline_date && (
-                                <span className="flex items-center gap-1.5">
-                                    <Calendar className="w-4 h-4 text-red-500" />
-                                    {t.deadline}: <strong>{formatDate(order.deadline_date)}</strong>
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <div className="divide-y divide-slate-100">
-                        {order?.client_name && (
-                            <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-                                    <User className="w-3.5 h-3.5" /> {t.client}
-                                </h3>
-                                <p className="font-bold text-slate-900">{order.client_name}</p>
-                                {order.client_email && <p className="text-sm text-slate-600 mt-0.5">✉️ {order.client_email}</p>}
-                                {order.client_phone && <p className="text-sm text-slate-600 mt-0.5">📞 {order.client_phone}</p>}
-                            </div>
-                        )}
-                        {(order?.site_name || order?.site_address) && (
-                            <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-                                    <MapPin className="w-3.5 h-3.5" /> {t.location}
-                                </h3>
-                                {order.site_name && <p className="font-bold text-slate-900">{order.site_name}</p>}
-                                {order.site_address && <p className="text-sm text-slate-600 mt-0.5">{order.site_address}</p>}
-                            </div>
-                        )}
-                        {order?.estimated_price && (
-                            <div className="px-6 py-4 border-b border-slate-100">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-                                    💰 {t.estimatedPrice}
-                                </h3>
-                                <p className="font-bold text-slate-900 text-lg">{order.estimated_price}</p>
-                            </div>
-                        )}
-                        {order?.requirements?.filter(r => r.description)?.length > 0 && (
-                            <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.requirements}</h3>
-                                <div className="space-y-2">
-                                    {order.requirements.filter(r => r.description).map((r, i) => (
-                                        <div key={i} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
-                                                    style={{ borderColor: primaryColor }}>
-                                                    <span className="text-[9px] font-black" style={{ color: primaryColor }}>{i + 1}</span>
-                                                </div>
-                                                <span className="text-sm font-semibold text-slate-800">{r.description}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0 ml-3">
-                                                {r.category && <span className="px-2 py-0.5 bg-slate-100 rounded-full">{r.category}</span>}
-                                                {r.qty && <span className="font-bold text-slate-700">{r.qty}</span>}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {order?.volumes?.filter(v => v.label)?.length > 0 && (
-                            <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.volumes}</h3>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {order.volumes.filter(v => v.label).map((v, i) => (
-                                        <div key={i} className="p-3 bg-slate-50 rounded-xl">
-                                            <p className="text-xs text-slate-500 mb-0.5">{v.label}</p>
-                                            <p className="font-black text-slate-900 text-lg">
-                                                {v.quantity} <span className="text-sm font-normal text-slate-600">{v.unit}</span>
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {order?.materials?.filter(m => m.name)?.length > 0 && (
-                            <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.materials}</h3>
-                                <div className="space-y-1.5">
-                                    {order.materials.filter(m => m.name).map((m, i) => (
-                                        <div key={i} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
-                                            <span className="font-semibold text-slate-800">{m.name}</span>
-                                            <span className="text-slate-600 font-medium">{m.quantity} {m.unit}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {order?.notes && (
-                            <div className="px-6 py-4">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">{t.notes}</h3>
-                                <p className="text-sm text-slate-700 bg-amber-50 rounded-xl p-3 border border-amber-100 leading-relaxed">{order.notes}</p>
-                            </div>
-                        )}
-                        
-                        {/* Download Final Invoice - Public view */}
-                        {order?.final_invoice_path && (
-                            <div className="px-6 py-5 bg-blue-50/50">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-blue-500 mb-3 flex items-center gap-1.5">
-                                    <ClipboardList className="w-3.5 h-3.5" /> {t.finalInvoice}
-                                </h3>
-                                <a href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${order.final_invoice_path}`} target="_blank" rel="noreferrer"
-                                    className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-xl shadow-sm hover:border-blue-400 hover:shadow-md transition-all group">
-                                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">{t.finalInvoice}</span>
-                                    <span className="text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-full">{t.downloadPdf}</span>
-                                </a>
-                            </div>
-                        )}
-                        
-                        {/* Completion Photos - Public view */}
-                        {order?.completion_photos && order.completion_photos.length > 0 && (
-                            <div className="px-6 py-5">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">{t.completionPhotos}</h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {order.completion_photos.map((p, i) => (
-                                        <div key={i} className="aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group">
-                                            <img src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${p.photo_path}`} alt="Poza" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                {/* Action Bar & Language Switcher */}
+                <div className="flex justify-between items-center mb-4 print:hidden">
+                    <button 
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg shadow hover:bg-slate-700 transition-colors"
+                    >
+                        <FileText className="w-3.5 h-3.5" />
+                        {t.downloadPdf || 'PDF'}
+                    </button>
+                    
+                    <div className="flex gap-1.5">
+                        {[
+                            { code: 'fr', label: '🇫🇷 FR' },
+                            { code: 'nl', label: '🇳🇱 NL' },
+                            { code: 'en', label: '🇬🇧 EN' }
+                        ].map(l => (
+                            <button
+                                key={l.code}
+                                onClick={() => {
+                                    setLang(l.code);
+                                    setSearchParams({ lang: l.code }, { replace: true });
+                                }}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-colors flex items-center gap-1 ${lang === l.code ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                            >
+                                {l.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {/* Signature + Confirm section */}
-                {!confirmed && (
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-                        <div>
-                            <h3 className="font-extrabold text-slate-900 text-lg mb-1">{t.confirmOrder}</h3>
-                            <p className="text-sm text-slate-500 leading-relaxed">
-                                {t.confirmDesc}
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                                {t.confirmedByLabel}
-                            </label>
-                            <input
-                                type="text"
-                                value={confirmedByName}
-                                onChange={e => setConfirmedByName(e.target.value)}
-                                placeholder={t.namePlaceholder}
-                                className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 focus:ring-2 focus:ring-blue-500 bg-white outline-none transition-all shadow-sm"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
-                                <Pen className="w-3.5 h-3.5" /> {t.digitalSignature}
-                            </label>
-                            <SignaturePad onChange={setSignature} t={t} />
-                            {!signature && (
-                                <p className="text-xs text-amber-600 font-medium mt-1.5 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" /> {t.signatureRequired}
-                                </p>
-                            )}
-                        </div>
-
-                        <label className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${checkedTerms ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
-                            <div className="relative shrink-0 mt-0.5">
-                                <input type="checkbox" className="sr-only" checked={checkedTerms} onChange={e => setCheckedTerms(e.target.checked)} />
-                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${checkedTerms ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'}`}>
-                                    {checkedTerms && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                {/* Location Map Container */}
+                {/* Location Map Container */}
+                {(order?.site_name || order?.site_address || order?.site_lat) && (() => {
+                    const getLocalizedAddress = (addr) => {
+                        if (!addr) return '';
+                        let str = addr;
+                        if (lang === 'fr') {
+                            str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
+                        } else if (lang === 'nl') {
+                            str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
+                        } else if (lang === 'en') {
+                            str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
+                        }
+                        return str;
+                    };
+                    const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
+                    
+                    return (
+                        <div className="bg-transparent rounded-2xl border-0 overflow-hidden mb-6 flex flex-col print:hidden">
+                            <div className="px-1 py-2 flex items-center gap-2 mb-2">
+                                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                                <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">
+                                    {displayAddr}
                                 </div>
                             </div>
-                            <span className="text-sm font-semibold text-slate-700 leading-relaxed">
-                                {t.terms}
+                            <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full h-[220px]">
+                                <MapView
+                                    latitude={order.site_lat}
+                                    longitude={order.site_lon}
+                                    address={displayAddr}
+                                    height="100%"
+                                    zoom={15}
+                                    markerType="pin"
+                                />
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Embed the PDF with integrated Signature */}
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
+                    <DevisView 
+                        embeddedToken={token} 
+                        signatureElement={
+                            !confirmed ? (
+                                <div className="w-full relative h-full flex flex-col">
+                                    <div className="flex-1 flex flex-col">
+                                        <SignaturePad onChange={setSignature} disabled={confirming} t={t} />
+                                    </div>
+                                    {!signature && (
+                                        <p className="text-[10px] text-red-500 font-bold mt-1.5 flex items-center gap-1 absolute -bottom-6 left-0">
+                                            <AlertCircle className="w-3 h-3" /> {t.signatureRequired}
+                                        </p>
+                                    )}
+                                </div>
+                            ) : null
+                        } 
+                    />
+                </div>
+
+                {/* Confirm section (integrated immediately below PDF) */}
+                {!confirmed && (
+                    <div className="flex flex-col gap-3 mt-2 print:hidden w-full max-w-2xl mx-auto">
+                        <label className="flex items-start gap-3 p-3 rounded-xl bg-blue-50/50 border border-blue-100 cursor-pointer group transition-colors hover:bg-blue-50">
+                            <input
+                                type="checkbox"
+                                checked={checkedTerms}
+                                onChange={e => setCheckedTerms(e.target.checked)}
+                                disabled={confirming}
+                                className="mt-0.5 w-5 h-5 rounded text-blue-600 focus:ring-blue-500 shadow-sm"
+                            />
+                            <span className="text-sm text-blue-900 font-bold group-hover:text-blue-950 transition-colors leading-relaxed">
+                                {mode === 'final' ? t.termsFinal : t.terms}
                             </span>
                         </label>
 
@@ -631,9 +612,10 @@ export default function WorkOrderConfirm() {
                         )}
 
                         <button
+                            type="button"
                             onClick={handleConfirm}
                             disabled={!canConfirm}
-                            className={`w-full h-12 rounded-full text-white font-black text-base shadow-lg transition-all flex items-center justify-center gap-2 ${
+                            className={`w-full h-14 rounded-2xl text-white font-black text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${
                                 canConfirm ? 'hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]' : 'opacity-40 cursor-not-allowed'
                             }`}
                             style={{ backgroundColor: primaryColor }}
@@ -646,8 +628,16 @@ export default function WorkOrderConfirm() {
                     </div>
                 )}
 
-                <div className="text-center pb-8">
-                    <p className="text-xs text-slate-400">Powered by <strong>Smart Timesheet</strong></p>
+                <div className="flex justify-center pb-8 mt-4">
+                    <a href="https://www.getapp.ro" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors group">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold tracking-wide">Powered by</span>
+                            <div className="bg-slate-800 px-3 py-2 rounded-xl shadow-md group-hover:bg-slate-900 transition-all group-hover:scale-105">
+                                <img src="https://getapp.ro/logo_getapp_original.png" alt="GetApp" className="h-3.5 object-contain" />
+                            </div>
+                        </div>
+                        <span className="font-extrabold tracking-widest text-[11px] uppercase">www.getapp.ro</span>
+                    </a>
                 </div>
             </div>
         </div>

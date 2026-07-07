@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock, Pencil, MoreVertical, XCircle
+    FileText, Search, ExternalLink, FileOutput, CheckCircle2, CircleDot, AlertTriangle, Loader2, X, User, Copy, Clock, Pencil, MoreVertical, XCircle, CalendarDays, Send
 } from 'lucide-react'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
@@ -15,7 +15,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 import i18n from '../../i18n'
 
-const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken }) => {
+const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken, onSendToBilltobox }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const btnRef = React.useRef(null);
@@ -25,15 +25,21 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
         e.stopPropagation();
         if (!isOpen) {
             const rect = btnRef.current.getBoundingClientRect();
-            setCoords({ top: rect.bottom + window.scrollY, left: rect.right - 220 }); // align to right edge roughly
+            setCoords({ top: rect.bottom, left: rect.right - 220 }); 
         }
         setIsOpen(!isOpen);
     };
 
     useEffect(() => {
-        const handleClick = () => setIsOpen(false);
-        if (isOpen) window.addEventListener('click', handleClick);
-        return () => window.removeEventListener('click', handleClick);
+        const handleScrollOrClick = () => setIsOpen(false);
+        if (isOpen) {
+            window.addEventListener('click', handleScrollOrClick);
+            window.addEventListener('scroll', handleScrollOrClick, true);
+        }
+        return () => {
+            window.removeEventListener('click', handleScrollOrClick);
+            window.removeEventListener('scroll', handleScrollOrClick, true);
+        };
     }, [isOpen]);
 
     return (
@@ -48,7 +54,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
             </button>
             {isOpen && createPortal(
                 <div 
-                    className="absolute z-50 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 flex flex-col gap-0.5"
+                    className="fixed z-50 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-1.5 flex flex-col gap-0.5"
                     style={{ top: coords.top + 4, left: coords.left }}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -78,22 +84,23 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                                 {t('invoicing.copy_link', 'Copiază Link Client')}
                             </button>
 
-                            {!wo.is_invoiced ? (
-                                <button
-                                    onClick={() => { onMarkInvoiced(wo.id); setIsOpen(false); }}
-                                    className="w-full text-left px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
-                                >
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                    {t('invoicing.mark_invoiced', 'Marchează Facturată')}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => { onStorno(wo.id); setIsOpen(false); }}
-                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
-                                >
-                                    <XCircle className="w-4 h-4 text-red-500" />
-                                    {t('invoicing.storno', 'Storno / Anulează Factura')}
-                                </button>
+                            {wo.is_invoiced && (
+                                <>
+                                    <button
+                                        onClick={() => { onSendToBilltobox(wo.id); setIsOpen(false); }}
+                                        className="w-full text-left px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
+                                    >
+                                        {wo.billtobox_status === 'sent' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Send className="w-4 h-4 text-emerald-500" />}
+                                        {wo.billtobox_status === 'sent' ? 'Retrimite la Billtobox' : 'Trimite la Billtobox'}
+                                    </button>
+                                    <button
+                                        onClick={() => { onStorno(wo.id); setIsOpen(false); }}
+                                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
+                                    >
+                                        <XCircle className="w-4 h-4 text-red-500" />
+                                        {t('invoicing.storno', 'Storno / Anulează Factura')}
+                                    </button>
+                                </>
                             )}
                         </>
                     ) : (
@@ -106,6 +113,16 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                         </button>
                     )}
                     
+                    {!wo.is_invoiced && (
+                        <button 
+                            onClick={() => { onMarkInvoiced(wo.id); setIsOpen(false); }}
+                            className="w-full text-left px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2 font-bold"
+                        >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            {t('invoicing.mark_invoiced', 'Emite Factură Fiscală')}
+                        </button>
+                    )}
+
                     <div className="border-t border-slate-100 my-1"></div>
                     <a 
                         href={`/admin/work-orders/${wo.id}`}
@@ -295,10 +312,11 @@ export default function InvoicingManagement() {
         setLoading(true)
         try {
             const [woRes, clRes] = await Promise.all([
-                api.get('/admin/work-orders?limit=50'),
+                api.get('/admin/work-orders?limit=200'),
                 api.get('/admin/clients')
             ])
-            setWorkOrders(woRes.data)
+            // Backend returns is_quote=False orders + is_quote=True with status=planning
+            setWorkOrders(Array.isArray(woRes.data) ? woRes.data : (woRes.data?.items || woRes.data || []))
             setClients(Array.isArray(clRes.data) ? clRes.data : (clRes.data?.items || []))
         } catch (error) {
             console.error('Error fetching data for invoicing:', error)
@@ -396,6 +414,30 @@ export default function InvoicingManagement() {
             showToast("Token indisponibil pentru această lucrare.", 'error');
         }
     };
+
+    const handleSendToBilltobox = async (woId) => {
+        try {
+            setWorkOrders(prev => prev.map(wo => 
+                wo.id === woId ? { ...wo, billtobox_status: 'pending' } : wo
+            ))
+            showToast('Se trimite factura către Billtobox...', 'success')
+            
+            const res = await api.post(`/admin/work-orders/${woId}/billtobox`)
+            
+            setWorkOrders(prev => prev.map(wo => 
+                wo.id === woId ? { ...wo, billtobox_status: res.data.status } : wo
+            ))
+            showToast('Factura a fost trimisă cu succes către Billtobox!', 'success')
+        } catch (error) {
+            console.error('Failed to send invoice to Billtobox:', error)
+            const msg = error.response?.data?.detail || 'A apărut o eroare la trimiterea facturii.'
+            showToast(msg, 'error')
+            
+            setWorkOrders(prev => prev.map(wo => 
+                wo.id === woId ? { ...wo, billtobox_status: 'error', billtobox_error: msg } : wo
+            ))
+        }
+    }
 
     const columns = [
         {
@@ -496,6 +538,14 @@ export default function InvoicingManagement() {
             key: 'status',
             label: t('invoicing.col_status', 'Status'),
             render: (wo) => {
+                if (wo.is_quote && wo.status === 'planning') {
+                    return (
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
+                            <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                            Devis Planifié
+                        </span>
+                    )
+                }
                 if (wo.is_invoiced) {
                     return (
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
@@ -536,6 +586,7 @@ export default function InvoicingManagement() {
                         onStorno={handleStornoInvoice}
                         onCopyLink={handleCopyLink}
                         copiedToken={copiedToken}
+                        onSendToBilltobox={handleSendToBilltobox}
                     />
                 </div>
             )

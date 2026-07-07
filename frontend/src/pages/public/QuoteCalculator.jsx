@@ -57,7 +57,7 @@ const T = {
     continue: "Continuer",
     generate: "Générer",
     secureFooter: "Données sécurisées.",
-    fibers: "Fibres + Duramit",
+    fibers: "Fibres + Duramint",
     fibersSub: "Pour une résistance maximale",
     withFibers: "Avec Fibres",
     included: "Inclus"
@@ -101,7 +101,7 @@ const T = {
     continue: "Doorgaan",
     generate: "Genereer",
     secureFooter: "Gegevens zijn veilig.",
-    fibers: "Vezels + Duramit",
+    fibers: "Vezels + Duramint",
     fibersSub: "Voor maximale weerstand",
     withFibers: "Met Vezels",
     included: "Inbegrepen"
@@ -145,7 +145,7 @@ const T = {
     continue: "Continue",
     generate: "Generate",
     secureFooter: "Data is completely secure.",
-    fibers: "Fibers + Duramit",
+    fibers: "Fibers + Duramint",
     fibersSub: "For maximum resistance",
     withFibers: "With Fibers",
     included: "Included"
@@ -228,7 +228,7 @@ export default function QuoteCalculator() {
             total += sqMeters * PRICING.mesh;
         }
 
-        // 5. Fibers + Duramit (OBLIGATORIU)
+        // 5. Fibers + Duramint (OBLIGATORIU)
         const fiberRate = sqMeters <= 200 ? 2.5 : 2.0;
         total += sqMeters * fiberRate;
 
@@ -442,7 +442,7 @@ export default function QuoteCalculator() {
                                     </label>
                                 </div>
 
-                                {/* Fibers + Duramit (Mandatory) */}
+                                {/* Fibers + Duramint (Mandatory) */}
                                 <div>
                                     <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl border-2 border-slate-100 bg-slate-50 opacity-90 shadow-sm">
                                         <div className="flex items-center gap-3">

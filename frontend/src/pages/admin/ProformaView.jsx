@@ -121,54 +121,72 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
     // Construct fallback items based on Work Order Calculation
     let defaultFallbackItems = []
-    const surfaceForAuto = parseFloat(wo.sapa_surface || 0)
-    if (surfaceForAuto > 0) {
-        const thickForAuto = parseFloat(wo.sapa_thickness || 0)
-        const extraThickForAuto = Math.max(0, thickForAuto - 5)
-        
-        defaultFallbackItems.push({
-            id: 'base',
-            desc: `Pose de chape ${Math.min(thickForAuto, 5)} cm`,
-            qty: surfaceForAuto,
-            price: parseFloat(wo.prices?.base || 12.5)
+    
+    if (wo.volumes && wo.volumes.length > 0) {
+        wo.volumes.forEach((vol, idx) => {
+            const surfaceForAuto = parseFloat(vol.quantity || 0)
+            const thickForAuto = parseFloat(vol.thickness || 0)
+            
+            if (surfaceForAuto > 0) {
+                if (vol.label?.toLowerCase()?.includes('sapa')) {
+                    const extraThickForAuto = Math.max(0, thickForAuto - 5)
+                    
+                    defaultFallbackItems.push({
+                        id: `base_${idx}`,
+                        desc: `Pose de chape ${Math.min(thickForAuto, 5)} cm`,
+                        qty: surfaceForAuto,
+                        price: parseFloat(wo.prices?.base || 12.5)
+                    });
+                    
+                    if (extraThickForAuto > 0) {
+                        defaultFallbackItems.push({
+                            id: `extra_${idx}`,
+                            desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`,
+                            qty: surfaceForAuto,
+                            price: extraThickForAuto * parseFloat(wo.prices?.extra || 1.25)
+                        });
+                    }
+                    
+                    if (vol.has_foil) {
+                        defaultFallbackItems.push({
+                            id: `foil_${idx}`,
+                            desc: `Feuille de plastique (Visqueen)`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(wo.prices?.foil || 1.2)
+                        });
+                    }
+                    
+                    if (vol.has_mesh) {
+                        defaultFallbackItems.push({
+                            id: `mesh_${idx}`,
+                            desc: `Armature (Paillasse)`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(wo.prices?.mesh || 2.5)
+                        });
+                    }
+                    
+                    if (vol.has_fiber) {
+                        defaultFallbackItems.push({
+                            id: `fiber_${idx}`,
+                            desc: `Fibre + Duramint`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
+                        });
+                    }
+                } else {
+                    defaultFallbackItems.push({
+                        id: `vol_${idx}`,
+                        desc: vol.label || `Volume ${idx+1}`,
+                        qty: surfaceForAuto,
+                        price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surfaceForAuto || 1) // rough estimate
+                    });
+                }
+            }
         });
-        
-        if (extraThickForAuto > 0) {
-            defaultFallbackItems.push({
-                id: 'extra',
-                desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`,
-                qty: surfaceForAuto,
-                price: extraThickForAuto * parseFloat(wo.prices?.extra || 1.25)
-            });
-        }
-        
-        if (wo.has_foil) {
-            defaultFallbackItems.push({
-                id: 'foil',
-                desc: `Feuille de plastique (Visqueen)`,
-                qty: surfaceForAuto,
-                price: parseFloat(wo.prices?.foil || 1.2)
-            });
-        }
-        
-        if (wo.has_metal_mesh) {
-            defaultFallbackItems.push({
-                id: 'mesh',
-                desc: `Armature (Paillasse)`,
-                qty: surfaceForAuto,
-                price: parseFloat(wo.prices?.mesh || 2.5)
-            });
-        }
-        
-        if (wo.has_fiber) {
-            defaultFallbackItems.push({
-                id: 'fiber',
-                desc: `Fibre + Duramit`,
-                qty: surfaceForAuto,
-                price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
-            });
-        }
-    } else {
+    }
+
+    // Fallback if no volumes
+    if (defaultFallbackItems.length === 0) {
         defaultFallbackItems = [{
             id: 'default',
             desc: `${tL('items.custom_work') || 'Lucrări conform deviz'} (${wo.title || tL('items.labor_materials') || 'Manoperă și materiale'})`,
@@ -190,6 +208,23 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         if (match) {
             const keyPart = match[1].replace('proforma.', '');
             newDesc = tL(keyPart) + match[2];
+        } else if (newDesc) {
+            const dLower = newDesc.toLowerCase().trim();
+            const lang = pData?.lang || tenant?.invoice_language || 'fr';
+            if (lang === 'fr' || i18n.language === 'fr') {
+                const normalizedDesc = newDesc.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                
+                if (normalizedDesc === 'sapa') {
+                    newDesc = 'Chape';
+                } else if (normalizedDesc === 'manopera') {
+                    newDesc = "Main-d'œuvre";
+                } else if (normalizedDesc === 'sapa + manopera') {
+                    newDesc = "Chape + Main-d'œuvre";
+                } else {
+                    newDesc = newDesc.replace(/[sșş]ap[aăâ]/gi, 'Chape');
+                    newDesc = newDesc.replace(/manoper[aăâ]/gi, "Main-d'œuvre");
+                }
+            }
         }
         return { ...item, desc: newDesc };
     }) : defaultFallbackItems
@@ -202,6 +237,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
     return (
         <div className="w-full min-h-full font-sans bg-slate-50 print:bg-white p-4 md:p-8">
+
             <div className="max-w-[800px] mx-auto bg-white p-8 md:p-12 shadow-sm rounded-xl border border-slate-200 print:shadow-none print:border-none print:p-0">
                 {/* Header Top: Logo and Invoice Title */}
                 <div className="flex justify-between items-center bg-slate-50/70 border border-slate-100 rounded-2xl px-6 py-4 mb-6 print:bg-transparent print:border-none print:p-0">
@@ -225,7 +261,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </h2>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {isInvoiceView ? (wo.invoice_number || `INV${wo.id}`) : `EST${wo.id}`}
+                                N° {isInvoiceView ? (wo.invoice_number || 'N/A') : (wo.quote_number || 'N/A')}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
@@ -377,33 +413,6 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 </div>
             </div>
 
-            {!workOrderData && (
-                <div className="fixed bottom-8 right-8 flex flex-col items-end gap-3 print:hidden">
-                    {wo?.is_invoiced && (
-                        <div className="flex bg-white rounded-full p-1 shadow-lg border border-slate-200">
-                            <button
-                                onClick={() => setViewMode('proforma')}
-                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode === 'proforma' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                            >
-                                DEVIS (Ofertă)
-                            </button>
-                            <button
-                                onClick={() => setViewMode('invoice')}
-                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode === 'invoice' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                            >
-                                FACTURE (Factură)
-                            </button>
-                        </div>
-                    )}
-                    <button 
-                        onClick={() => window.print()} 
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-xl font-bold transition-transform hover:scale-105"
-                    >
-                        <Printer className="w-5 h-5" />
-                        Printează PDF
-                    </button>
-                </div>
-            )}
         </div>
     )
 }

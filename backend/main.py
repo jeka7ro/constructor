@@ -330,6 +330,23 @@ def place_details(place_id: str):
     except Exception as e:
         return {"status": "ERROR", "error": str(e)}
 
+@app.get("/api/places/reverse")
+def place_reverse_geocode(lat: float, lng: float):
+    """Proxy to Google Geocoding API — gets address from lat/lng"""
+    try:
+        resp = _requests.get(
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={
+                "latlng": f"{lat},{lng}",
+                "key": GOOGLE_MAPS_API_KEY,
+                "language": "ro",
+            },
+            timeout=5.0
+        )
+        return resp.json()
+    except Exception as e:
+        return {"status": "ERROR", "error": str(e)}
+
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

@@ -249,6 +249,15 @@ export default function AdminOverview() {
     }, [quickCreateForm.latitude, quickCreateForm.longitude, quickCreateStep])
 
     const [clients, setClients] = useState([])
+    const [pendingQuotes, setPendingQuotes] = useState([])
+
+    const fetchPendingQuotes = async () => {
+        try {
+            const res = await api.get('/admin/work-orders?is_quote=true')
+            // Panelul arata DOAR devisele INCA netrimise — cele cu status=planning au mers deja in calendar
+            setPendingQuotes((res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning'))
+        } catch (e) { console.error('fetchPendingQuotes', e) }
+    }
 
     // Live clock — use ref to avoid re-rendering charts every second
     const nowRef = useRef(Date.now())
@@ -287,6 +296,7 @@ export default function AdminOverview() {
             await Promise.allSettled([
                 fetchTeams(),
                 fetchClients(),
+                fetchPendingQuotes(),
                 isShortTerm ? fetchWorkOrdersStats() : Promise.resolve()
             ])
             
@@ -905,55 +915,59 @@ export default function AdminOverview() {
                         />
                     </div>
                     {!isCalendarFull && (
-                        <div className="flex flex-col gap-4 h-[800px]">
-                            {/* Drag and Drop Clients Module */}
+                        <div className="flex flex-col gap-4">
+                            {/* Panel DEVIS — draggable pe calendar */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
-                                <div className="px-4 py-3 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                <div className="px-4 py-3 shrink-0" style={{ backgroundColor: '#059669' }}>
                                     <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
-                                    <Building2 className="w-3.5 h-3.5 text-white" />
-                                    {t('admin_overview.frequent_clients', 'Clienți Frecvenți')}
-                                </h3>
-                                <p className="text-[10px] text-amber-100">
-                                    {t('admin_overview.drag_client_calendar', 'Trage clientul pe calendar.')}
-                                </p>
+                                        <ClipboardList className="w-3.5 h-3.5 text-white" />
+                                        Devis en attente
+                                    </h3>
+                                    <p className="text-[10px] text-emerald-100">
+                                        Glisse un devis sur le calendrier.
+                                    </p>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
+                                    {pendingQuotes.length === 0 && (
+                                        <p className="text-xs text-slate-400 p-2 text-center italic">Aucun devis en attente</p>
+                                    )}
+                                    {pendingQuotes.map(quote => (
+                                        <div 
+                                            key={quote.id}
+                                            draggable
+                                            onDragStart={(e) => {
+                                                e.dataTransfer.setData("type", "quote")
+                                                e.dataTransfer.setData("id", String(quote.id))
+                                                e.dataTransfer.setData("name", quote.client_name || quote.title || 'Devis')
+                                                e.dataTransfer.setData("address", quote.site_address || '')
+                                                e.dataTransfer.setData("latitude", String(quote.site_latitude || ''))
+                                                e.dataTransfer.setData("longitude", String(quote.site_longitude || ''))
+                                                e.dataTransfer.setData("clientId", String(quote.client_id || ''))
+                                                e.currentTarget.classList.add('opacity-50', 'scale-95')
+                                            }}
+                                            onDragEnd={(e) => {
+                                                e.currentTarget.classList.remove('opacity-50', 'scale-95')
+                                            }}
+                                            className="p-2 rounded-xl border border-emerald-200 dark:border-emerald-800 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-emerald-50 dark:bg-emerald-900/20 shadow-sm"
+                                        >
+                                            <div className="font-bold text-xs text-emerald-800 dark:text-emerald-300 truncate">
+                                                {quote.client_name || quote.title || 'Devis'}
+                                            </div>
+                                            {quote.site_address && (
+                                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 truncate mt-0.5">{quote.site_address}</div>
+                                            )}
+                                            {quote.volumes?.[0]?.quantity && (
+                                                <div className="text-[10px] text-slate-500 mt-0.5">{quote.volumes[0].quantity} m² · {quote.volumes[0].thickness || '?'} cm</div>
+                                            )}
+                                            {quote.estimated_price && (
+                                                <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">{parseFloat(quote.estimated_price).toFixed(0)} €</div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            
-                            <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
-                                {clients.filter(c => c.is_favorite).map(client => (
-                                    <div 
-                                        key={`fav-${client.id}`}
-                                        draggable
-                                        onDragStart={(e) => {
-                                            e.dataTransfer.setData("type", "client")
-                                            e.dataTransfer.setData("id", String(client.id))
-                                            e.dataTransfer.setData("name", client.name)
-                                        }}
-                                        className="p-1.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] shadow-sm flex items-center justify-between"
-                                        style={{
-                                            backgroundColor: `${tenant?.primary_color || '#2563eb'}18`,
-                                            borderColor: tenant?.primary_color || '#2563eb',
-                                            color: tenant?.primary_color || '#2563eb'
-                                        }}
-                                    >
-                                        <div className="font-bold text-xs truncate" style={{ color: tenant?.primary_color || '#2563eb' }}>⭐️ {client.name}</div>
-                                    </div>
-                                ))}
-                                {clients.filter(c => !c.name.toLowerCase().includes('isoflex')).slice(0, 15).map(client => (
-                                    <div 
-                                        key={client.id}
-                                        draggable
-                                        onDragStart={(e) => {
-                                            e.dataTransfer.setData("type", "client")
-                                            e.dataTransfer.setData("id", String(client.id))
-                                            e.dataTransfer.setData("name", client.name)
-                                        }}
-                                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-white dark:bg-slate-800 flex items-center justify-between shadow-sm"
-                                    >
-                                        <div className="font-medium text-slate-700 dark:text-slate-300 text-xs truncate">{client.name}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+
 
                         {/* Drag and Drop Teams Module */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
