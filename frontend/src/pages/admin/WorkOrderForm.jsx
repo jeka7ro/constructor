@@ -503,7 +503,7 @@ export default function WorkOrderForm() {
             autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;
             
             const fiberPrice = parseFloat(form.prices?.fiber) || (surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0));
-            autoFiber += vol.has_fiber ? fiberPrice * surface : 0;
+            autoFiber += fiberPrice * surface;
         }
     });
 
@@ -511,7 +511,7 @@ export default function WorkOrderForm() {
         const matching = pricingSettings.surface_thresholds.find(t => surfaceForAuto >= t.min_sqm && surfaceForAuto <= t.max_sqm);
         if (matching) {
             autoExtraCharge = parseFloat(matching.extra_charge) || 0;
-            appliedThresholdLabel = `Taxă extra suprafață (${matching.min_sqm}-${matching.max_sqm}m²)`;
+            appliedThresholdLabel = t('work_order_form.extra_charge_surface', 'Taxe supplémentaire surface ({{min}}-{{max}}m²)', { min: matching.min_sqm, max: matching.max_sqm });
         }
     }
 
@@ -915,15 +915,6 @@ export default function WorkOrderForm() {
                                         />
                                         {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
                                     </label>
-                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={!!vol.has_fiber}
-                                            onChange={e => updateRow('volumes', i, 'has_fiber', e.target.checked)}
-                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                        />
-                                        Include Duramint (Fibră)
-                                    </label>
                                 </div>
                             )}
 
@@ -1066,7 +1057,7 @@ export default function WorkOrderForm() {
                                 )}
                                 {autoFiber > 0 && (
                                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                                        <span className="font-medium">Duramint (Fibră)</span>
+                                        <span className="font-medium">{t('work_order_form.duramint', 'Duramint (Fibre)')}</span>
                                         <span className="text-right whitespace-nowrap flex items-center gap-2 justify-end">{surfaceForAuto} m² × <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} placeholder={(surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0)).toFixed(1)} className="w-16 px-1 h-6 text-xs rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-center" /> = <b className="text-slate-800 dark:text-slate-200 ml-1">{autoFiber.toFixed(2)} EUR</b></span>
                                     </div>
                                 )}

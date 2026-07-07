@@ -17,6 +17,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
+import MobileAgenda from '../../components/MobileAgenda'
+import MapView from '../../components/MapView'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import {
@@ -28,10 +30,8 @@ import {
     FileText, ExternalLink, Loader2
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
-import ShortWorksCalendar from '../../components/ShortWorksCalendar'
-import MapView from '../../components/MapView'
-import { isToday, isFuture, format, startOfDay } from 'date-fns'
-import { ro } from 'date-fns/locale'
+import { isToday, isFuture, format, startOfDay, startOfWeek, addWeeks, subWeeks, isSameWeek, isSameDay, addDays, parseISO } from 'date-fns'
+import { ro, fr } from 'date-fns/locale'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -748,16 +748,22 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
 // ─────────────────────────────────────────────────────────────────────────────
 function TabMateriale({ order, onSaveConsumed }) {
     let totalKg = 0;
+    let hasSapa = false;
     (order.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
+        const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
+        if (surface > 0 && labelSafe.includes('sapa')) hasSapa = true;
     });
     const sandTons = totalKg / 1000;
 
     const estMaterials = [...(order.materials || [])];
     if (sandTons > 0 && !estMaterials.find(m => m.name.toLowerCase().includes('nisip'))) {
         estMaterials.unshift({ name: 'Nisip (Necesar calculat)', quantity: sandTons.toFixed(1), unit: 'T' });
+    }
+    if (hasSapa && !estMaterials.find(m => m.name.toLowerCase().includes('duramint') || m.name.toLowerCase().includes('fibr'))) {
+        estMaterials.push({ name: 'Duramint (Fibră)', quantity: '', unit: '' });
     }
 
     const [rows, setRows] = useState(
@@ -1165,6 +1171,7 @@ import { useNavigate } from 'react-router-dom'
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function WorkerOrdersPage() {
+    const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
     const { user, logout } = useAuthStore()
     const tenant = useTenantStore(s => s.tenant)
     const showToast = useUIStore(s => s.showToast)
@@ -1556,12 +1563,11 @@ export default function WorkerOrdersPage() {
                     </div>
                 ) : (
                     <div className="p-4 space-y-4">
-                        <ShortWorksCalendar 
-                            workOrders={orders} 
-                            onOrderRescheduled={fetchOrders} 
-                            onOrderClick={(wo) => {
-                                openOrder(wo);
-                            }} 
+                        <MobileAgenda
+                            orders={orders}
+                            onOrderClick={(wo) => openOrder(wo)}
+                            currentWeek={currentWeek}
+                            setCurrentWeek={setCurrentWeek}
                         />
                         
                         {/* Eliminat lista duplicată de comenzi, deoarece ShortWorksCalendar afiseaza deja comenzile */}

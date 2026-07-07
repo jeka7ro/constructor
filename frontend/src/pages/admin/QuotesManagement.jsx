@@ -580,7 +580,7 @@ export default function QuotesManagement() {
             autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;
             
             const fiberPrice = parseFloat(form.prices?.fiber) || (surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0));
-            autoFiber += vol.has_fiber ? fiberPrice * surface : 0;
+            autoFiber += fiberPrice * surface;
         }
     });
 
@@ -1107,10 +1107,6 @@ export default function QuotesManagement() {
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
                                                 <input type="checkbox" checked={form.volumes[0].has_mesh} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_mesh: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
                                                 Inclure Treillis métallique
-                                            </label>
-                                            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
-                                                <input type="checkbox" checked={form.volumes[0].has_fiber} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_fiber: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                                                Inclure Fibre (Duramint)
                                             </label>
                                         </div>
                                     )}
