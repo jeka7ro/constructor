@@ -448,10 +448,10 @@ export default function LogisticsDashboard() {
 
                             {/* Sand Stations Rendering */}
                             {isDavideChape && showSandStations && SAND_STATIONS.map((station, idx) => {
-                                const _letter = 'D'
-                                const _bg = station.type === 'theirs' ? '#ef4444' : '#3b82f6'
-                                const bgColor = station.type === 'theirs' ? '#ef4444' : '#3b82f6'
-                                const borderColor = station.type === 'theirs' ? '#dc2626' : '#2563eb'
+                                const _letter = station.type === 'theirs' ? 'I' : 'D'
+                                const _bg = '#ef4444'
+                                const bgColor = '#ef4444'
+                                const borderColor = '#dc2626'
                                 return (
                                     <Marker
                                         key={`sand-${idx}`}
