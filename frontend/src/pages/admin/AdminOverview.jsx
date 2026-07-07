@@ -803,6 +803,12 @@ export default function AdminOverview() {
         return tenant.timezone
     }
 
+    const [nowTimer, setNowTimer] = useState(new Date())
+    useEffect(() => {
+        const t = setInterval(() => setNowTimer(new Date()), 1000)
+        return () => clearInterval(t)
+    }, [])
+
 
     return (
         <div className="p-3 lg:p-4 bg-slate-50 dark:bg-slate-950 min-h-screen">
@@ -812,6 +818,13 @@ export default function AdminOverview() {
                     <div className="h-full bg-blue-500 animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ width: '40%', animation: 'moveRight 1.5s linear infinite', background: 'linear-gradient(90deg, #3b82f6, #6366f1)' }} />
                 </div>
             )}
+            
+            {/* Page Date/Time (Top Right) */}
+            <div className="flex justify-end mb-2">
+                <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none">
+                    {nowTimer.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {nowTimer.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
+                </p>
+            </div>
             {/* Header removed as it duplicates the top navbar title */}
 
             {/* KPI Row */}

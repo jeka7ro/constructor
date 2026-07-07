@@ -591,12 +591,6 @@ export default function AdminDashboard() {
             {/* Main Content Area */}
                 {/* Main View Outlet */}
                 <main className={`flex-1 overflow-auto relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                    {/* Page Date inside main area */}
-                    <div className="px-4 pt-3 md:px-5 md:pt-4 pb-0 flex items-center justify-end shrink-0">
-                        <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none mb-[2px]">
-                            {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
-                        </p>
-                    </div>
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}
