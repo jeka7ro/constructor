@@ -597,6 +597,9 @@ export default function AdminDashboard() {
                             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight leading-none">
                                 {pageTitle}
                             </h1>
+                            <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none mb-[2px]">
+                                {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
+                            </p>
                         </div>
                     )}
                     {/* Page Content with smooth fade transition */}

@@ -819,12 +819,6 @@ export default function AdminOverview() {
                 </div>
             )}
             
-            {/* Page Date/Time (Top Right) */}
-            <div className="flex justify-end mb-2">
-                <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none">
-                    {nowTimer.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {nowTimer.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
-                </p>
-            </div>
             {/* Header removed as it duplicates the top navbar title */}
 
             {/* KPI Row */}
