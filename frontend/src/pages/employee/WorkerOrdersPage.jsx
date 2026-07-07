@@ -749,12 +749,16 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
 function TabMateriale({ order, onSaveConsumed }) {
     let totalKg = 0;
     let hasSapa = false;
+    let totalSapaM2 = 0;
     (order.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
         const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
-        if (surface > 0 && labelSafe.includes('sapa')) hasSapa = true;
+        if (surface > 0 && labelSafe.includes('sapa')) {
+            hasSapa = true;
+            totalSapaM2 += surface;
+        }
     });
     const sandTons = totalKg / 1000;
 
@@ -763,7 +767,7 @@ function TabMateriale({ order, onSaveConsumed }) {
         estMaterials.unshift({ name: 'Nisip (Necesar calculat)', quantity: sandTons.toFixed(1), unit: 'T' });
     }
     if (hasSapa && !estMaterials.find(m => m.name.toLowerCase().includes('duramint') || m.name.toLowerCase().includes('fibr'))) {
-        estMaterials.push({ name: 'Duramint (Fibră)', quantity: '', unit: '' });
+        estMaterials.push({ name: 'Duramint (Fibră)', quantity: totalSapaM2.toString(), unit: 'm²' });
     }
 
     const [rows, setRows] = useState(
