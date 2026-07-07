@@ -756,6 +756,8 @@ export default function ShortWorksCalendar({
                                             return;
                                         }
 
+                                        const woId = e.dataTransfer.getData("text/plain");
+                                        if (!woId) return;
 
                                         const wo = workOrders.find(o => o.id === woId);
                                         if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
