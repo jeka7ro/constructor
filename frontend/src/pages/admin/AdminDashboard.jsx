@@ -591,6 +591,14 @@ export default function AdminDashboard() {
             {/* Main Content Area */}
                 {/* Main View Outlet */}
                 <main className={`flex-1 overflow-auto relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                    {/* Page Title & Date inside main area - ONLY FOR PLANNING */}
+                    {location.pathname === '/admin/planning' && pageTitle && (
+                        <div className="px-4 pt-3 md:px-5 md:pt-4 pb-0 flex items-end justify-between shrink-0">
+                            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight leading-none">
+                                {pageTitle}
+                            </h1>
+                        </div>
+                    )}
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}
