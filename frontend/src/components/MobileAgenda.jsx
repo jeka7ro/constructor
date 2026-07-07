@@ -28,8 +28,8 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
         // Sort orders inside each day by time
         Object.values(grouped).forEach(dayOrders => {
             dayOrders.sort((a, b) => {
-                const tA = (a.start_date || '').split('T')[1] || '00:00';
-                const tB = (b.start_date || '').split('T')[1] || '00:00';
+                const tA = a.start_time || '00:00';
+                const tB = b.start_time || '00:00';
                 return tA.localeCompare(tB);
             });
         });
@@ -111,7 +111,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                             {dayOrders.length > 0 ? (
                                 <div className="space-y-3">
                                     {dayOrders.map(wo => {
-                                        const time = wo.start_date ? format(parseISO(wo.start_date), 'HH:mm') : '--:--';
+                                        const time = wo.start_time || '--:--';
                                         
                                         return (
                                             <button

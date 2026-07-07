@@ -82,6 +82,7 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "title": wo.title,
         "notes": wo.notes,
         "start_date": str(wo.start_date) if wo.start_date else None,
+        "start_time": wo.start_time,
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
         "site_lat": (wo.site.latitude if wo.site else None) or wo.site_latitude,
