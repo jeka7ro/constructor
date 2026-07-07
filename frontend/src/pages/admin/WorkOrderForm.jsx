@@ -1063,10 +1063,12 @@ export default function WorkOrderForm() {
                                         </div>
                                     </div>
                                     <Download 
-                                        className="w-4 h-4 text-slate-400 hover:text-blue-500 shrink-0" 
+                                        className="w-4 h-4 text-slate-400 hover:text-blue-500 shrink-0 cursor-pointer" 
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            window.open(`${API_BASE}${doc.file_path}`, '_blank');
+                                            const rawUrl = doc.file_url || doc.file_path;
+                                            const finalUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
+                                            window.open(finalUrl, '_blank');
                                         }}
                                     />
                                 </button>

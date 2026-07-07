@@ -225,6 +225,7 @@ def _serialize(wo: WorkOrder) -> dict:
                 "id": str(d.id),
                 "filename": d.filename,
                 "file_path": d.file_path,
+                "file_url": get_file_url(d.file_path),
                 "content_type": d.content_type,
                 "file_size": d.file_size
             } for d in wo.documents

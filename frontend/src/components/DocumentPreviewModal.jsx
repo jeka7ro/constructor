@@ -31,7 +31,8 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
 
     const doc = documents[currentIndex];
     const isImg = doc.content_type?.startsWith('image/');
-    const fileUrl = `${API_BASE}${doc.file_path}`;
+    const rawUrl = doc.file_url || doc.file_path;
+    const fileUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
 
     return (
         <div className="fixed inset-0 bg-slate-900/90 z-[9999] flex flex-col backdrop-blur-sm">
@@ -123,7 +124,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                                 className={`w-16 h-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${currentIndex === idx ? 'border-blue-500 scale-110 shadow-lg shadow-blue-500/50' : 'border-transparent opacity-50 hover:opacity-100'}`}
                             >
                                 {isImg ? (
-                                    <img src={`${API_BASE}${d.file_path}`} alt="thumbnail" className="w-full h-full object-cover" />
+                                    <img src={d.file_url?.startsWith('http') ? d.file_url : `${API_BASE}${d.file_url?.startsWith('/') || d.file_path?.startsWith('/') ? '' : '/'}${d.file_url || d.file_path}`} alt="thumbnail" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                                         <FileText className="w-6 h-6 text-slate-400" />
