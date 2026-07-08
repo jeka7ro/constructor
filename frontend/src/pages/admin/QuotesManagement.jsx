@@ -203,7 +203,8 @@ export default function QuotesManagement() {
     const fetchTeams = async () => {
         try {
             const res = await api.get('/admin/teams')
-            setTeams(res.data || [])
+            const data = res.data
+            setTeams(Array.isArray(data) ? data : (data?.teams || data?.items || []))
         } catch (e) { console.error('fetchTeams', e) }
     }
 
