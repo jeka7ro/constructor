@@ -1383,7 +1383,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     <Section icon={FileText} title={t('work_order_detail.invoicing.title', 'Facturare')} className="h-full">
                         {/* Status + Tabs + Badge — totul pe un singur rând */}
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
-                            {/* Tabs DEVIS / FACTURE */}
+                            {/* Tabs DEVIS / FACTURE — schimbă preview, click pe PDF deschide full page */}
                             {(wo.proforma_path || wo.is_invoiced) && (
                                 <div className="bg-white dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
                                     <button
@@ -1402,7 +1402,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                 </div>
                             )}
-                            {/* Badge FACTURAT / NEFACTURAT — push to right */}
+                            {/* Badge FACTURAT / NEFACTURAT */}
                             <div className="ml-auto">
                                 {wo.is_invoiced ? (
                                     <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
@@ -1418,33 +1418,29 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </div>
                         </div>
 
-                        {/* Viewer iframe */}
-                        {(wo.proforma_path || wo.is_invoiced) ? (
-                            <div>
-
-                                {/* Viewer iframe — MEREU acelasi template ProformaView */}
-                                {activeDocTab === 'devis' && (
-                                    <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
-                                        <iframe
-                                            src={`${window.location.origin}/proforma/${wo.id}?type=proforma`}
-                                            className="w-full h-full border-none"
-                                            title="Devis PDF"
-                                        />
-                                    </div>
-                                )}
-                                {activeDocTab === 'facture' && wo.is_invoiced && (
-                                    <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
-                                        <iframe
-                                            src={`${window.location.origin}/proforma/${wo.id}?type=invoice`}
-                                            className="w-full h-full border-none"
-                                            title="Facture PDF"
-                                        />
-                                    </div>
-                                )}
+                        {/* Preview iframe cu click-to-fullpage */}
+                        {(wo.proforma_path || wo.is_invoiced) && (
+                            <div
+                                className="relative w-full h-[500px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
+                                onClick={() => navigate(`/admin/invoices/${wo.id}?tab=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`)}
+                            >
+                                {/* Overlay click hint */}
+                                <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                                    <span className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-slate-700 shadow-lg">
+                                        Ouvrir en plein écran
+                                    </span>
+                                </div>
+                                <iframe
+                                    src={`${window.location.origin}/proforma/${wo.id}?type=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`}
+                                    className="w-full h-full border-none pointer-events-none"
+                                    title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
+                                />
                             </div>
-                        ) : (
-                            /* Fallback: nicio documentatie inca */
-                            <div className="flex items-center justify-between p-3 mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        )}
+
+                        {/* Fallback: nicio documentatie */}
+                        {(!wo.proforma_path && !wo.is_invoiced) && (
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <FileText className="w-5 h-5 text-slate-400 shrink-0" />
                                     <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">{t('work_order_detail.invoicing.no_doc', 'Aucun document émis')}</span>

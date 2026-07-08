@@ -26,7 +26,11 @@ export default function InvoiceDetails() {
             try {
                 const res = await api.get(`/admin/work-orders/${id}`)
                 setWo(res.data)
-                if (res.data.final_invoice_path) {
+                // Citeste ?tab= din URL daca exista (de la WorkOrderDetail navigate)
+                const urlTab = new URLSearchParams(window.location.search).get('tab')
+                if (urlTab === 'invoice' || urlTab === 'proforma') {
+                    setActiveTab(urlTab)
+                } else if (res.data.final_invoice_path) {
                     setActiveTab('invoice')
                 } else if (res.data.proforma_path) {
                     setActiveTab(res.data.is_invoiced ? 'invoice' : 'proforma')
