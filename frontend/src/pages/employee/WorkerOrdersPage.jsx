@@ -2,7 +2,7 @@
  * WorkerOrdersPage.jsx
  *
  * Interfata muncitorului / sefului de echipa pentru Comenzi de Lucru.
- * Design mobil-first, tab-uri: Info | Ore | Materiale | Extra | Trimite
+ * Design mobil-first, tab-uri: Info | Heures | Matériaux | Extra | Trimite
  *
  * Reguli UI respectate:
  *  - Fara emoji
@@ -11,7 +11,7 @@
  *  - Culori: verde #16a34a primar (brand consistent cu ClockInPage)
  *  - Adresa cu link de navigatie catre Google Maps
  *  - Documente/poze instructiuni admin vizibile si descarcabile
- *  - Poze interne (sef echipa) separate de poze client
+ *  - Photos interne (sef echipa) separate de poze client
  */
 
 import { useState, useEffect, useRef } from 'react'
@@ -41,9 +41,9 @@ import { ro, fr } from 'date-fns/locale'
 
 const TABS = [
     { id: 'info',       label: 'Info',       icon: Info },
-    { id: 'materiale',  label: 'Materiale',  icon: Package },
-    { id: 'poze',       label: 'Poze',       icon: Camera },
-    { id: 'trimite',    label: 'Finalizare Lucrare',    icon: Send },
+    { id: 'materiale',  label: 'Matériaux',  icon: Package },
+    { id: 'poze',       label: 'Photos',       icon: Camera },
+    { id: 'trimite',    label: 'Finaliser',    icon: Send },
 ]
 
 const STATUS_LABEL = {
@@ -200,7 +200,7 @@ function OrderCard({ order, onClick }) {
                             <WeatherWidget lat={order.site_latitude || 50.8503} lon={order.site_longitude || 4.3517} dateStr={order.start_date} />
                         )}
                         {sandTons > 0 && (
-                            <span className="text-[10px] font-bold text-slate-500">{sandTons.toFixed(1)} T Nisip</span>
+                            <span className="text-[10px] font-bold text-slate-500">{sandTons.toFixed(1)} T Sable</span>
                         )}
                         {durmitePlastic && (
                             <span className="text-[10px] font-bold text-slate-500">{durmitePlastic} Plastic</span>
@@ -380,7 +380,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-bold text-slate-800 truncate">{doc.filename}</p>
                                     <p className="text-[10px] text-slate-500 uppercase mt-0.5">
-                                        Fisier Descarcat • {Math.round(doc.file_size / 1024)} KB
+                                        Fichier téléchargé • {Math.round(doc.file_size / 1024)} KB
                                     </p>
                                 </div>
                                 <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
@@ -390,15 +390,9 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                 </Section>
             )}
 
-            {/* Titlu */}
-            <div className="px-4 pt-4 pb-3">
-                <h2 className="text-base font-bold text-slate-900 leading-snug">{order.title}</h2>
-                {order.client_name && (
-                    <p className="text-xs text-green-700 font-semibold mt-0.5">{order.client_name}</p>
-                )}
-            </div>
 
-            {/* Suprafata si Grosime + Nisip */}
+
+            {/* Suprafata si Épaisseur + Sable */}
             {order.volumes && order.volumes.length > 0 && (
                 <Section label="Detalii Lucrare">
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 space-y-2">
@@ -407,13 +401,29 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                             const th = parseFloat(v.thickness);
                             if (!sq && !th) return null;
                             return (
-                                <div key={idx} className="flex items-center justify-between">
-                                    <span className="text-sm text-slate-600 font-medium">{v.label || `Zonă ${idx + 1}`}</span>
-                                    <span className="text-sm font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-                                        {sq > 0 ? `${sq} m²` : ''}
-                                        {sq > 0 && th > 0 ? ' × ' : ''}
-                                        {th > 0 ? `${th} cm` : ''}
-                                    </span>
+                                <div key={idx} className="flex flex-col gap-1 pb-1">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-slate-900 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-blue-800">
+                                                {sq > 0 ? `${sq} m²` : ''}
+                                                {sq > 0 && th > 0 ? ' × ' : ''}
+                                                {th > 0 ? `${th} cm` : ''}
+                                            </span>
+                                            <span className="text-xs text-slate-500 font-medium">{v.label || `Zonă ${idx + 1}`}</span>
+                                        </div>
+                                        {idx === 0 && order.start_date && (
+                                            <span className="text-sm font-semibold text-slate-800 capitalize whitespace-nowrap text-right">
+                                                {fmtDate(order.start_date)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {idx === 0 && order.deadline_date && (
+                                        <div className="text-right mt-1">
+                                            <span className="text-xs text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                                                Termen: {fmtDate(order.deadline_date)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -454,7 +464,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                 return isDriver ? (
                                     <>
                                         <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
-                                            <span className="text-sm text-amber-700 font-bold">Necesar Nisip (estimat)</span>
+                                            <span className="text-sm text-amber-700 font-bold">Necesar Sable (estimat)</span>
                                             <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
                                                 {sandTons.toFixed(1)} T
                                             </span>
@@ -466,7 +476,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                                     onClick={() => setShowStation(!showStation)}
                                                 >
                                                     <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-1.5 m-0">
-                                                        <MapPin className="w-3 h-3" /> Sugestie Stație Nisip
+                                                        <MapPin className="w-3 h-3" /> Sugestie Stație Sable
                                                     </p>
                                                     <button className="px-2.5 py-1 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-lg transition-colors shadow-sm">
                                                         {showStation ? 'Ascunde' : 'Vezi Recomandare'}
@@ -518,15 +528,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                 </Section>
             )}
 
-            {/* Planificat */}
-            {order.start_date && (
-                <Section label="Planificat">
-                    <Row label="Data" value={<span className="capitalize font-semibold text-slate-800">{fmtDate(order.start_date)}</span>} />
-                    {order.deadline_date && (
-                        <Row label="Termen" value={<span className="text-red-600 font-semibold">{fmtDate(order.deadline_date)}</span>} />
-                    )}
-                </Section>
-            )}
+
 
             {/* Adresa */}
             {order.site_address && (
@@ -635,7 +637,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
             {/* Documente/poze admin (instruction) */}
             {instPhotos.length > 0 && (
-                <Section label="Documente & Poze Instructiuni">
+                <Section label="Documente & Photos Instructiuni">
                     <div className="space-y-2">
                         {instPhotos.map(p => (
                             <button
@@ -648,7 +650,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-slate-800 truncate">
-                                        {p.description || 'Poza instructiuni'}
+                                        {p.description || 'Photo instruction'}
                                     </p>
                                     <p className="text-xs text-slate-400">{fmtTime(p.uploaded_at)}</p>
                                 </div>
@@ -675,9 +677,9 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                         <div className="flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                             <div>
-                                <p className="text-sm font-bold text-amber-900">Comanda necesita confirmare</p>
+                                <p className="text-sm font-bold text-amber-900">Le chantier nécessite une confirmation</p>
                                 <p className="text-xs text-amber-700 mt-0.5">
-                                    Confirma ca ai luat la cunostinta detaliile comenzii.
+                                    Confirmez que vous avez pris connaissance des détails.
                                 </p>
                             </div>
                         </div>
@@ -687,7 +689,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                             className="mt-3 w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                         >
                             <CheckCircle2 className="w-4 h-4" />
-                            {acknowledging ? 'Se confirma...' : 'Am luat la cunostinta'}
+                            {acknowledging ? 'Confirmation...' : "J'ai pris connaissance"}
                         </button>
                     </div>
                 </div>
@@ -699,18 +701,18 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: ORE (Check-in / Check-out)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingAction }) {
+function TabHeures({ order, checkins, onCheckin, onCheckout, location, loadingAction }) {
     const openCheckin = checkins.find(c => !c.checkout_at)
     const hasOpenCheckin = Boolean(openCheckin)
 
     return (
         <div className="pb-28 px-4 pt-4 space-y-4">
 
-            {/* Status GPS */}
+            {/* Statut GPS */}
             {location ? (
                 <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <p className="text-xs text-green-700 font-semibold">GPS activ</p>
+                    <p className="text-xs text-green-700 font-semibold">GPS actif</p>
                     <span className="text-xs text-green-600 ml-auto">
                         {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
                     </span>
@@ -718,7 +720,7 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
             ) : (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
                     <AlertCircle className="w-4 h-4 text-red-500" />
-                    <p className="text-xs text-red-700 font-semibold">GPS indisponibil — permite accesul la locatie</p>
+                    <p className="text-xs text-red-700 font-semibold">GPS indisponible — autoriser l'accès</p>
                 </div>
             )}
 
@@ -776,7 +778,7 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
             {checkins.length === 0 && !hasOpenCheckin && (
                 <div className="text-center py-8 text-slate-400">
                     <Timer className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Niciun check-in inregistrat.</p>
+                    <p className="text-sm">Aucun check-in enregistré.</p>
                 </div>
             )}
         </div>
@@ -786,7 +788,7 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: MATERIALE
 // ─────────────────────────────────────────────────────────────────────────────
-function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, actualThickness, setActualThickness, actualSand, setActualSand }) {
+function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface, actualThickness, setActualThickness, actualSand, setActualSand }) {
     let totalKg = 0;
     let hasSapa = false;
     let totalSapaM2 = 0;
@@ -804,14 +806,14 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
 
     const estMaterials = [...(order.materials || [])];
     if (sandTons > 0 && !estMaterials.find(m => m.name.toLowerCase().includes('nisip'))) {
-        estMaterials.unshift({ name: 'Nisip (Necesar calculat)', quantity: sandTons.toFixed(1), unit: 'T' });
+        estMaterials.unshift({ name: 'Sable (Nécessaire calculé)', quantity: sandTons.toFixed(1), unit: 'T' });
     }
     // removed automatic duramit fallback
 
     const [rows, setRows] = useState(
         order.materials_consumed?.length > 0
             ? order.materials_consumed.map(m => ({ ...m }))
-            : (sandTons > 0 ? [{ name: 'Nisip', quantity: '', unit: 'T', note: '' }] : [{ name: '', quantity: '', unit: '', note: '' }])
+            : (sandTons > 0 ? [{ name: 'Sable', quantity: '', unit: 'T', note: '' }] : [{ name: '', quantity: '', unit: '', note: '' }])
     )
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
@@ -830,9 +832,9 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
     return (
         <div className="pb-28 px-4 pt-4 space-y-4">
 
-            {/* Materiale estimate (admin) */}
+            {/* Matériaux estimate (admin) */}
             {estMaterials.length > 0 && (
-                <Section label="Materiale Estimate">
+                <Section label="Matériaux Estimate">
                     <div className="space-y-2">
                         {estMaterials.map((m, i) => (
                             <div key={i} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2.5">
@@ -850,7 +852,7 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
             <Section label="Date Reale Șantier (Completate de Șef)">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4 mb-4">
                     <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Suprafața reală turnată (m²)</label>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Surface coulée réelle (m²)</label>
                         <input 
                             type="number" min="0" step="0.01" value={actualSurface} onChange={(e) => setActualSurface(e.target.value)}
                             placeholder="Ex: 120.5"
@@ -858,7 +860,7 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Grosimea reală (cm)</label>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Épaisseur réelle (cm)</label>
                         <input 
                             type="number" min="0" step="0.01" value={actualThickness} onChange={(e) => setActualThickness(e.target.value)}
                             placeholder="Ex: 5"
@@ -866,7 +868,7 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip reală (kg)</label>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Quantité de sable réelle (kg)</label>
                         <input 
                             type="number" min="0" step="0.01" value={actualSand} onChange={(e) => setActualSand(e.target.value)}
                             placeholder="Ex: 8500"
@@ -876,8 +878,8 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                 </div>
             </Section>
 
-            {/* Materiale suplimentare */}
-            <Section label="Alte Materiale Consumate">
+            {/* Matériaux suplimentare */}
+            <Section label="Alte Matériaux Consumate">
                 <div className="space-y-2">
                     {rows.map((row, i) => (
                         <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
@@ -924,7 +926,7 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                     className="w-full mt-2 py-3 border-2 border-dashed border-green-200 rounded-xl text-sm text-green-600 font-semibold hover:bg-green-50 flex items-center justify-center gap-2 transition-colors"
                 >
                     <Plus className="w-4 h-4" />
-                    Adauga material
+                    Ajouter du matériel
                 </button>
 
                 <button
@@ -936,7 +938,7 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                             : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
                     } disabled:opacity-60`}
                 >
-                    {saved ? <><Check className="w-4 h-4" /> Salvat</> : saving ? 'Se salveaza...' : <><Check className="w-4 h-4" /> Salveaza consumul</>}
+                    {saved ? <><Check className="w-4 h-4" /> Salvat</> : saving ? 'Enregistrement...' : <><Check className="w-4 h-4" /> Enregistrer la consommation</>}
                 </button>
             </Section>
 
@@ -947,10 +949,10 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                         <Row key={i} label={v.label || `Pozitia ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
                     ))}
                     
-                    {/* Necesar Materiale Calculat automat */}
+                    {/* Necesar Matériaux Calculat automat */}
                     {sandTons > 0 && (
                         <div className="flex items-center justify-between py-2 border-t border-slate-100 mt-2">
-                            <span className="text-sm font-semibold text-slate-700">Nisip (Necesar estimat)</span>
+                            <span className="text-sm font-semibold text-slate-700">Sable (Necesar estimat)</span>
                             <span className="text-sm font-bold text-slate-900">{sandTons.toFixed(1)} T</span>
                         </div>
                     )}
@@ -966,13 +968,13 @@ function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, 
                             <>
                                 {plasticM2 > 0 && (
                                     <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                                        <span className="text-sm font-semibold text-slate-700">Durmit Plastic (Fibră)</span>
+                                        <span className="text-sm font-semibold text-slate-700">Duramit Plastic (Fibră)</span>
                                         <span className="text-sm font-bold text-slate-900">{plasticM2} m²</span>
                                     </div>
                                 )}
                                 {metalicM2 > 0 && (
                                     <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                                        <span className="text-sm font-semibold text-slate-700">Durmit Metalic (Plasă)</span>
+                                        <span className="text-sm font-semibold text-slate-700">Duramit Metalic (Plasă)</span>
                                         <span className="text-sm font-bold text-slate-900">{metalicM2} m²</span>
                                     </div>
                                 )}
@@ -1000,11 +1002,11 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                     <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
                         <Eye className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                         <p className="text-xs text-blue-800">
-                            Pozele adaugate aici sunt <strong>interne</strong>. Nu apar in link-ul clientului si nu sunt poze de finalizare.
+                            Photosle adaugate aici sunt <strong>interne</strong>. Nu apar in link-ul clientului si nu sunt poze de finalizare.
                         </p>
                     </div>
 
-                    <Section label="Poze Interne (Consum Materiale, Situatie Teren)">
+                    <Section label="Photos Interne (Consum Matériaux, Situatie Teren)">
                         {internalPhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {internalPhotos.map(p => (
@@ -1053,7 +1055,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: POZE
 // ─────────────────────────────────────────────────────────────────────────────
-function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto, onPhotoClick }) {
+function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion, onUploadMachine, uploadingCompletion, uploadingMachine, ocrData, onDeletePhoto, onPhotoClick }) {
     const fileRef = useRef(null)
     const machineFileRef = useRef(null)
     const isCompleted = order.status === 'completed'
@@ -1062,7 +1064,7 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
         <div className="pb-28 px-4 pt-4 space-y-4">
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                 <p className="text-xs text-slate-600">
-                    Poze de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
+                    Photos de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
                         {completionPhotos.length} / {order.min_photos_required}
                     </strong>
                 </p>
@@ -1074,7 +1076,7 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
                 </div>
             </div>
 
-            <Section label="Poze Finalizare (merg la client)">
+            <Section label="Photos Finalizare (merg la client)">
                 {completionPhotos.length > 0 && (
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {completionPhotos.map(p => (
@@ -1118,7 +1120,7 @@ function TabPoze({ order, completionPhotos, machinePhotos, onUploadCompletion, o
                 
                 {ocrData && ocrData.status === 'success' && (
                     <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
-                        ✅ Verificat AI: <strong>Nisip: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
+                        ✅ Verificat AI: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
                     </div>
                 )}
 
@@ -1160,7 +1162,7 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                         <div className="text-xs space-y-1">
                             <div className="flex items-center gap-1.5">
                                 {completionPhotos.length >= order.min_photos_required ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-red-500" />}
-                                <span className={completionPhotos.length >= order.min_photos_required ? 'text-slate-600' : 'text-red-600'}>Poze lucrare ({completionPhotos.length}/{order.min_photos_required})</span>
+                                <span className={completionPhotos.length >= order.min_photos_required ? 'text-slate-600' : 'text-red-600'}>Photos lucrare ({completionPhotos.length}/{order.min_photos_required})</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 {machinePhotos.length > 0 ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-red-500" />}
@@ -1550,7 +1552,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             const res = await api.post(`/worker/orders/${selected.id}/close`, {
                 materials_consumed: [
                     ...(selected.materials_consumed || []),
-                    ...(actualSandM3 ? [{ name: 'Nisip (m³)', quantity: parseFloat(actualSandM3), unit: 'm³' }] : []),
+                    ...(actualSandM3 ? [{ name: 'Sable (m³)', quantity: parseFloat(actualSandM3), unit: 'm³' }] : []),
                     ...(actualCement ? [{ name: 'Ciment', quantity: parseFloat(actualCement), unit: 'kg' }] : [])
                 ],
                 volumes: selected.volumes || [],
@@ -1572,7 +1574,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const handleReopen = async () => {
         setConfirmDialog({
             title: 'Redeschide Comanda',
-            message: 'Ești sigur că vrei să redeschizi comanda? Statusul se va schimba din nou în „În lucru”.',
+            message: 'Ești sigur că vrei să redeschizi comanda? Statutul se va schimba din nou în „În lucru”.',
             onConfirm: async () => {
                 try {
                     const res = await api.post(`/worker/orders/${selected.id}/reopen`)
@@ -1739,7 +1741,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     />
                 )}
                 {activeTab === 'ore' && (
-                    <TabOre
+                    <TabHeures
                         order={selected}
                         checkins={checkins}
                         onCheckin={handleCheckin}
@@ -1749,7 +1751,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     />
                 )}
                 {activeTab === 'materiale' && (
-                    <TabMateriale
+                    <TabMatériaux
                         order={selected}
                         onSaveConsumed={handleSaveConsumed}
                     />
@@ -1765,7 +1767,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     />
                 )}
                 {activeTab === 'poze' && (
-                    <TabPoze
+                    <TabPhotos
                         order={selected}
                         completionPhotos={completionPhotos}
                         machinePhotos={machinePhotos}

@@ -19,6 +19,43 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+
+const distanceCache = {};
+
+function GoogleMapsDistance({ lat1, lon1, lat2, lon2, label }) {
+    const [distance, setDistance] = React.useState(null);
+    
+    React.useEffect(() => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return;
+        if (!window.google || !window.google.maps) return;
+        
+        const key = `${lat1},${lon1}|${lat2},${lon2}`;
+        if (distanceCache[key]) {
+            setDistance(distanceCache[key]);
+            return;
+        }
+
+        const service = new window.google.maps.DistanceMatrixService();
+        service.getDistanceMatrix(
+            {
+                origins: [{ lat: parseFloat(lat1), lng: parseFloat(lon1) }],
+                destinations: [{ lat: parseFloat(lat2), lng: parseFloat(lon2) }],
+                travelMode: 'DRIVING',
+            },
+            (response, status) => {
+                if (status === 'OK' && response.rows[0].elements[0].status === 'OK') {
+                    const distStr = response.rows[0].elements[0].distance.text;
+                    distanceCache[key] = distStr;
+                    setDistance(distStr);
+                }
+            }
+        );
+    }, [lat1, lon1, lat2, lon2]);
+
+    if (!distance) return null;
+    return <span>• {distance} {label}</span>;
+}
+
 export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCurrentWeek, isHistory = false }) {
     const { t, i18n } = useTranslation();
     const isFrench = i18n.language === 'fr';
@@ -118,7 +155,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                     {isTodayFlag ? t('general.today', 'Azi') + ' • ' + formatDayName(day) : formatDayName(day)}
                                 </h3>
                                 <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
-                                    {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'comandă') : t('general.orders', 'comenzi')}
+                                    {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
                                 </span>
                             </div>
 
@@ -142,15 +179,9 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                         }
 
                                         
-                                        let distanceStr = '';
+                                        let prevWo = null;
                                         if (index > 0) {
-                                            const prevWo = dayOrders[index - 1];
-                                            const dist = haversineDistance(prevWo.site_lat, prevWo.site_lng, wo.site_lat, wo.site_lng);
-                                            if (dist !== null) {
-                                                distanceStr = `• ${dist.toFixed(1)} km de la lucrarea anterioară`;
-                                            }
-                                        } else {
-                                            distanceStr = `• Din Bază`;
+                                            prevWo = dayOrders[index - 1];
                                         }
 
                                         const color = wo.assigned_team_color || '#3b82f6';
@@ -177,7 +208,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                         <div className="flex-1 text-right">
                                                             {sandTons > 0 && (
                                                                 <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
-                                                                    {sandTons.toFixed(1)} T Nisip
+                                                                    {sandTons.toFixed(1)} T {t('general.sand', 'Sable')}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -198,9 +229,21 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                             <span className="text-xs font-medium leading-tight opacity-80">
                                                                 {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
                                                             </span>
-                                                            {distanceStr && (
+                                                            {prevWo ? (
                                                                 <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
-                                                                    {distanceStr}
+                                                                    <GoogleMapsDistance 
+                                                                        lat1={prevWo.site_lat} lon1={prevWo.site_lng} 
+                                                                        lat2={wo.site_lat} lon2={wo.site_lng} 
+                                                                        label={t("general.from_prev", "du chantier précédent")} 
+                                                                    />
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
+                                                                    <GoogleMapsDistance 
+                                                                        lat1={50.88243} lon1={4.39343} 
+                                                                        lat2={wo.site_lat} lon2={wo.site_lng} 
+                                                                        label={t('general.from_base', 'de la base')}
+                                                                    />
                                                                 </span>
                                                             )}
                                                         </div>
@@ -209,7 +252,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                                                                         <div className="flex justify-end items-end pt-0 mt-0">
                                                         <div className="text-right flex-shrink-0 -mr-2 -mb-2">
                                                             {(wo.site_lat && wo.site_lng) ? (
-                                                                <div className="scale-75 origin-bottom-right">
+                                                                <div className="scale-100 origin-bottom-right">
                                                                     <WeatherWidget lat={wo.site_lat} lon={wo.site_lng} dateStr={wo.start_date || dateStr} />
                                                                 </div>
                                                             ) : null}
@@ -223,7 +266,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                             ) : (
                                 <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-2xl p-4 flex items-center justify-center">
                                     <span className="text-xs font-medium text-slate-400">
-                                        {t('general.no_orders_day', 'Nu ai comenzi pentru această zi.')}
+                                        {t('general.no_orders_day', 'Aucun chantier pour ce jour.')}
                                     </span>
                                 </div>
                             )}
