@@ -656,30 +656,30 @@ export default function InvoicingManagement() {
                 <p className="text-sm font-medium text-slate-500 mt-1">{t('invoicing.page_desc', 'Gestion des factures, devis et paiements')}</p>
             </div>
 
-            {/* Filtre rapide */}
+            {/* Filtre rapide — stil consistent cu restul aplicatiei */}
             <div className="flex flex-wrap items-center gap-2">
-                {/* Status */}
+                {/* Filtre Status */}
                 {STATUS_FILTERS.map(sf => (
                     <button key={sf.key}
                         onClick={() => setStatusFilter(prev => prev === sf.key ? null : sf.key)}
-                        className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border transition-colors ${
+                        className={`h-8 px-3 rounded-xl text-xs font-bold border transition-all ${
                             statusFilter === sf.key
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-300 hover:text-blue-600'
                         }`}>
                         {sf.label}
                     </button>
                 ))}
                 {/* Separator */}
                 {allTeamNames.length > 0 && <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />}
-                {/* Echipe */}
+                {/* Filtre Echipe */}
                 {allTeamNames.map(name => (
                     <button key={name}
                         onClick={() => toggleTeam(name)}
-                        className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+                        className={`h-8 px-3 rounded-xl text-xs font-bold border transition-all ${
                             selectedTeams.includes(name)
-                                ? 'bg-violet-600 text-white border-violet-600'
-                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-violet-400'
+                                ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-violet-300 hover:text-violet-600'
                         }`}>
                         {name}
                     </button>
@@ -687,8 +687,8 @@ export default function InvoicingManagement() {
                 {/* Reset */}
                 {(selectedTeams.length > 0 || statusFilter) && (
                     <button onClick={() => { setSelectedTeams([]); setStatusFilter(null) }}
-                        className="px-3 py-1 rounded-full text-[11px] font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-colors">
-                        Reset
+                        className="h-8 px-3 rounded-xl text-xs font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-all">
+                        ✕ Reset
                     </button>
                 )}
             </div>
