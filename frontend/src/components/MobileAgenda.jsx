@@ -4,7 +4,7 @@ import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks
 import { ro, fr } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 
-export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCurrentWeek }) {
+export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCurrentWeek, isHistory = false }) {
     const { t, i18n } = useTranslation();
     const isFrench = i18n.language === 'fr';
     const locale = isFrench ? fr : ro;
@@ -89,7 +89,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
 
             {/* Zilele Saptamanii */}
             <div className="space-y-4">
-                {days.map(day => {
+                {days.filter(day => isHistory || new Date(format(day, "yyyy-MM-dd") + "T00:00:00") >= new Date(format(new Date(), "yyyy-MM-dd") + "T00:00:00")).map(day => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const dayOrders = ordersByDay[dateStr] || [];
                     const isTodayFlag = isSameDay(day, new Date());

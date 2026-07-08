@@ -1659,6 +1659,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                             onOrderClick={(wo) => openOrder(wo)}
                             currentWeek={currentWeek}
                             setCurrentWeek={setCurrentWeek}
+                            isHistory={isHistory}
                         />
                         
                         {/* Eliminat lista duplicată de comenzi, deoarece ShortWorksCalendar afiseaza deja comenzile */}

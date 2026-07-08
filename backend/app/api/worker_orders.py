@@ -125,20 +125,94 @@ def get_my_orders(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Returneaza comenzile alocate echipei mele (ca membru sau lider de echipa).
-    """
     team_ids = _get_user_team_ids(db, current_user.id, current_user.organization_id)
     if not team_ids:
         return []
 
+    # Get recent orders (last 60 days) to avoid fetching thousands.
+    from datetime import datetime, timedelta
+    sixty_days_ago = datetime.utcnow() - timedelta(days=60)
+
     orders = db.query(WorkOrder).filter(
         WorkOrder.organization_id == current_user.organization_id,
         WorkOrder.assigned_team_id.in_(team_ids),
-        WorkOrder.status.notin_(["cancelled"])
+        WorkOrder.status.notin_(["cancelled"]),
+        WorkOrder.start_date >= sixty_days_ago.date()
     ).order_by(WorkOrder.start_date.asc()).all()
 
-    return [_serialize_order(wo, current_user.id, db) for wo in orders]
+    # Bulk fetch associations to avoid N+1 queries
+    order_ids = [wo.id for wo in orders]
+    
+    photo_counts = {}
+    if order_ids:
+        from sqlalchemy import func
+        counts = db.query(WorkOrderPhoto.work_order_id, func.count(WorkOrderPhoto.id)).filter(
+            WorkOrderPhoto.work_order_id.in_(order_ids)
+        ).group_by(WorkOrderPhoto.work_order_id).all()
+        photo_counts = {r[0]: r[1] for r in counts}
+        
+    my_acks = {}
+    if order_ids:
+        acks = db.query(WorkOrderAcknowledgement).filter(
+            WorkOrderAcknowledgement.work_order_id.in_(order_ids),
+            WorkOrderAcknowledgement.user_id == current_user.id
+        ).all()
+        my_acks = {a.work_order_id: a for a in acks}
+
+    my_checkins = {}
+    if order_ids:
+        checkins = db.query(WorkOrderCheckin).filter(
+            WorkOrderCheckin.work_order_id.in_(order_ids),
+            WorkOrderCheckin.user_id == current_user.id,
+            WorkOrderCheckin.checkout_at == None
+        ).all()
+        my_checkins = {c.work_order_id: c for c in checkins}
+
+    def _fast_serialize(wo):
+        photo_count = photo_counts.get(wo.id, 0)
+        my_ack = my_acks.get(wo.id)
+        my_checkin = my_checkins.get(wo.id)
+        return {
+            "id": wo.id,
+            "token": wo.token,
+            "title": wo.title,
+            "notes": wo.notes,
+            "start_date": str(wo.start_date) if wo.start_date else None,
+            "start_time": wo.start_time,
+            "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
+            "site_address": wo.site_address or (wo.site.address if wo.site else None),
+            "site_lat": (wo.site.latitude if wo.site else None) or wo.site_latitude,
+            "site_lng": (wo.site.longitude if wo.site else None) or wo.site_longitude,
+            "client_name": wo.client_name,
+            "client_phone": wo.client_phone,
+            "client_language": wo.client_language,
+            "requirements": wo.requirements or [],
+            "materials": wo.materials or [],
+            "materials_consumed": wo.materials_consumed or [],
+            "volumes": wo.volumes or [],
+            "actual_surface_m2": wo.actual_surface_m2,
+            "actual_sand_quantity": wo.actual_sand_quantity,
+            "status": wo.status,
+            "assigned_team_id": wo.assigned_team_id,
+            "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
+            "assigned_vehicle_name": wo.assigned_vehicle.name if wo.assigned_vehicle else None,
+            "assigned_vehicle_plate": wo.assigned_vehicle.plate_number if wo.assigned_vehicle else None,
+            "min_photos_required": wo.min_photos_required,
+            "photo_count": photo_count,
+            "team_leader_accepted_at": wo.team_leader_accepted_at.isoformat() if wo.team_leader_accepted_at else None,
+            "team_leader_confirmed_at": wo.team_leader_confirmed_at.isoformat() if wo.team_leader_confirmed_at else None,
+            "team_leader_confirmation_note": wo.team_leader_confirmation_note,
+            "checkin_at": wo.checkin_at.isoformat() if wo.checkin_at else None,
+            "checkout_at": wo.checkout_at.isoformat() if wo.checkout_at else None,
+            "my_acknowledged": my_ack is not None,
+            "my_acknowledged_at": my_ack.acknowledged_at.isoformat() if my_ack else None,
+            "my_checkin_id": my_checkin.id if my_checkin else None,
+            "my_checkin_at": my_checkin.checkin_at.isoformat() if my_checkin else None,
+            "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
+            "route_segments": wo.route_segments or [],
+        }
+
+    return [_fast_serialize(wo) for wo in orders]
 
 @router.get("/sand-stations")
 def get_worker_sand_stations(
