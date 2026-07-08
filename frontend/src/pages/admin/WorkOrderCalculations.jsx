@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Activity, Search, AlertCircle, FileText } from 'lucide-react'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
 
 export default function WorkOrderCalculations() {
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
 
