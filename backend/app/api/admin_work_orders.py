@@ -14,7 +14,7 @@ from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction
+from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction, PricingSetting
 from app.api.admin_auth import get_current_admin
 from app.services.billtobox import send_invoice_to_billtobox
 from app.services.pdf_generator import generate_invoice_pdf
@@ -139,8 +139,22 @@ class WorkOrderUpdate(WorkOrderCreate):
     status: Optional[str] = None
 
 
-def _serialize(wo: WorkOrder) -> dict:
+def _serialize(wo: WorkOrder, db: Session = None) -> dict:
     """Serializează un WorkOrder pentru răspuns JSON."""
+    # Incarca surface_thresholds live din pricing settings (nu sunt stocate pe WO)
+    wo_prices = dict(wo.prices or {})
+    if db is not None and 'surface_thresholds' not in wo_prices:
+        pricing = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == wo.organization_id,
+            PricingSetting.client_id == (wo.client_id if wo.client_id else None)
+        ).first()
+        if not pricing:
+            pricing = db.query(PricingSetting).filter(
+                PricingSetting.organization_id == wo.organization_id,
+                PricingSetting.client_id == None
+            ).first()
+        if pricing and pricing.surface_thresholds:
+            wo_prices['surface_thresholds'] = pricing.surface_thresholds
     site_name = None
     client_display = wo.client_name
     
@@ -183,7 +197,7 @@ def _serialize(wo: WorkOrder) -> dict:
         "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
-        "prices": wo.prices or {},
+        "prices": wo_prices,
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
         "client_signature": wo.client_signature,
@@ -337,7 +351,7 @@ def list_work_orders(
     if limit:
         q = q.limit(limit)
     wos = q.all()
-    return [_serialize(wo) for wo in wos]
+    return [_serialize(wo, db) for wo in wos]
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -570,7 +584,7 @@ def create_work_order(
 
     db.commit()
     db.refresh(wo)
-    return _serialize(wo)
+    return _serialize(wo, db)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -588,7 +602,7 @@ def get_work_order(
     ).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
-    return _serialize(wo)
+    return _serialize(wo, db)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -750,7 +764,7 @@ def update_work_order(
 
     db.commit()
     db.refresh(wo)
-    return _serialize(wo)
+    return _serialize(wo, db)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -931,7 +945,7 @@ def send_work_order(
     
     confirm_url = f"{base_url}/confirm/{wo.token}"
     
-    return {**_serialize(wo), "confirm_url": confirm_url}
+    return {**_serialize(wo, db), "confirm_url": confirm_url}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -977,7 +991,7 @@ async def upload_final_invoice(
     db.commit()
     db.refresh(wo)
 
-    return _serialize(wo)
+    return _serialize(wo, db)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1025,7 +1039,7 @@ async def update_invoice_status(
 
     db.commit()
     db.refresh(wo)
-    return _serialize(wo)
+    return _serialize(wo, db)
 
 
 @router.post("/work-orders/{wo_id}/status")
@@ -1060,7 +1074,7 @@ def change_status(
 
     db.commit()
     db.refresh(wo)
-    return _serialize(wo)
+    return _serialize(wo, db)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1533,7 +1547,7 @@ def convert_quote_to_order(
     wo.status = "draft"
     db.commit()
     
-    return {"message": "Quote converted to Work Order", "work_order": _serialize(wo)}
+    return {"message": "Quote converted to Work Order", "work_order": _serialize(wo, db)}
 
 @router.post("/work-orders/{wo_id}/billtobox")
 def send_to_billtobox_endpoint(
