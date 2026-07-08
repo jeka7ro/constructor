@@ -199,11 +199,14 @@ export default function InvoiceDetails() {
                     {wo.token && (
                         <button
                             onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/confirm/${wo.token}`)
+                                const clientLink = wo.is_invoiced 
+                                    ? `${window.location.origin}/public/proforma/${wo.token}?type=invoice`
+                                    : `${window.location.origin}/confirm/${wo.token}`;
+                                navigator.clipboard.writeText(clientLink)
                                 showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'));
                             }}
                             className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition-colors shadow-sm shrink-0"
-                            title={t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
+                            title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
                         >
                             <Link className="w-3.5 h-3.5" />
                             {t('quotes.copy_link', 'Copier le lien client')}

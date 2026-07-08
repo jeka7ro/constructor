@@ -654,11 +654,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     {wo.token && (
                         <button
                             onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/confirm/${wo.token}`)
+                                const clientLink = wo.is_invoiced 
+                                    ? `${window.location.origin}/public/proforma/${wo.token}?type=invoice`
+                                    : `${window.location.origin}/confirm/${wo.token}`;
+                                navigator.clipboard.writeText(clientLink)
                                 showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'))
                             }}
                             className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition-colors shadow-sm shrink-0"
-                            title={t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
+                            title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
                         >
                             <Link className="w-3.5 h-3.5" />
                             {t('quotes.copy_link', 'Copier le lien client')}
@@ -1042,9 +1045,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         
                         return (
                             <Section className="flex-1" icon={Wrench} title={sectionTitle} contentClassName="!p-3">
-                                            <div className="flex flex-col xl:flex-row gap-3">
+                                            <div className="flex flex-col gap-3">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center flex-nowrap gap-2 overflow-x-auto no-scrollbar">
+                                                    <div className="flex items-center flex-wrap gap-2">
                                                         <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                                             <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
@@ -1085,8 +1088,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 </div>
                                                 {hasConsumed ? (
                                                     <>
-                                                        <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 hidden xl:block self-center mx-2"></div>
-                                                        <div className="flex items-center flex-nowrap gap-2 overflow-x-auto no-scrollbar pt-2 xl:pt-0">
+                                                        <div className="w-full h-px bg-slate-100 dark:bg-slate-700/50 my-1"></div>
+                                                        <div className="flex items-center flex-wrap gap-2 pt-1">
                                                             <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'RÉELLEMENT CONSOMMÉ')}</p>
@@ -1422,7 +1425,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {(wo.proforma_path || wo.is_invoiced) && (
                             <div
                                 className="relative w-full h-[500px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
-                                onClick={() => navigate(`/admin/invoices/${wo.id}?tab=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`)}
+                                onClick={() => window.open(`${window.location.origin}/proforma/${wo.id}?type=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`, 'pdfPopup', 'width=1000,height=800,menubar=no,toolbar=no,location=no')}
                             >
                                 {/* Overlay click hint */}
                                 <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
