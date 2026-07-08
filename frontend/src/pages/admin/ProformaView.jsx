@@ -184,21 +184,8 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         });
                     }
 
-                    // Seuil de surface
-                    if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
-                        wo.prices.surface_thresholds.forEach(thresh => {
-                            const minS = parseFloat(thresh.min_sqm || 0)
-                            const maxS = parseFloat(thresh.max_sqm || 999999)
-                            if (surfaceForAuto >= minS && surfaceForAuto < maxS) {
-                                defaultFallbackItems.push({
-                                    id: `thresh_${thresh.id || idx}`,
-                                    desc: `Seuil de surface (${minS}–${maxS < 99999 ? maxS : '∞'} m²)`,
-                                    qty: 1,
-                                    price: parseFloat(thresh.extra_charge || 0)
-                                })
-                            }
-                        })
-                    }
+                    // Seuil de surface — calcul intern ASCUNS (nu apare ca linie in PDF)
+                    // Se adauga la totalul final prin hiddenExtra (mai jos)
                 } else {
                     defaultFallbackItems.push({
                         id: `vol_${idx}`,
@@ -256,7 +243,20 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         return { ...item, desc: newDesc };
     }) : defaultFallbackItems
 
-    const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
+    // Calcul seuil de surface — ascuns din linii, adaugat la total
+    let hiddenExtra = 0
+    if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
+        const surfCheck = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : parseFloat(wo.volumes?.[0]?.quantity || 0)
+        wo.prices.surface_thresholds.forEach(thresh => {
+            const minS = parseFloat(thresh.min_sqm || 0)
+            const maxS = parseFloat(thresh.max_sqm || 999999)
+            if (surfCheck >= minS && surfCheck < maxS) {
+                hiddenExtra += parseFloat(thresh.extra_charge || 0)
+            }
+        })
+    }
+
+    const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0) + hiddenExtra
     const discountAmount = priceRaw * (discountPct / 100)
     const subtotal = priceRaw - discountAmount
     const vatAmount = subtotal * (vatRate / 100)

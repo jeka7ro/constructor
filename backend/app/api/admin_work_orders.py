@@ -208,6 +208,7 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
         "is_invoiced": bool(wo.is_invoiced),
         "invoiced_at": wo.invoiced_at.isoformat() if wo.invoiced_at else None,
         "invoice_number": wo.invoice_number,
+        "quote_number": wo.quote_number,
         "invoice_notes": wo.invoice_notes,
         "proforma_path": wo.proforma_path,
         "proforma_issued_at": wo.proforma_issued_at.isoformat() if wo.proforma_issued_at else None,
