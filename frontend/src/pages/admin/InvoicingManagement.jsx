@@ -157,6 +157,8 @@ export default function InvoicingManagement() {
     const [generatingId, setGeneratingId] = useState(null)
     const [copiedToken, setCopiedToken] = useState(null)
     const [isSearchingVies, setIsSearchingVies] = useState(false)
+    const [selectedTeams, setSelectedTeams] = useState([])   // array de team names
+    const [statusFilter, setStatusFilter] = useState(null)    // null | 'unfactured' | 'proforma' | 'invoiced' | 'quote'
     const [proformaConfig, setProformaConfig] = useState({ 
         useVat: true, 
         discountPct: 0, 
@@ -451,7 +453,7 @@ export default function InvoicingManagement() {
                     </span>
                     {wo.assigned_team_name && (
                         <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 leading-tight">
-                            👥 {wo.assigned_team_name}
+                            {wo.assigned_team_name}
                         </span>
                     )}
                 </div>
@@ -486,46 +488,29 @@ export default function InvoicingManagement() {
         },
         {
             key: 'details',
-            label: t('invoicing.col_details', 'Cantități & Materiale'),
+            label: t('invoicing.col_details', 'Suprafată / Grosime'),
             render: (wo) => {
-                const hasVolumes = wo.volumes && Array.isArray(wo.volumes) && wo.volumes.length > 0;
-                const hasMaterials = wo.materials && Array.isArray(wo.materials) && wo.materials.length > 0;
-                const hasRealSurface = wo.actual_surface_m2 > 0;
-                const hasRealThickness = wo.actual_thickness_cm > 0;
+                const vol = wo.volumes?.[0]
+                const estSurf = parseFloat(vol?.quantity || wo.surface_m2 || 0)
+                const estThick = parseFloat(vol?.thickness || wo.thickness_cm || 0)
+                const realSurf = parseFloat(wo.actual_surface_m2 || 0)
+                const realThick = parseFloat(wo.actual_thickness_cm || 0)
 
-                // Translate sapa label → Chape (regex acoperind toate diacriticele)
-                const translateLabel = (label) => {
-                    if (!label) return label;
-                    return label
-                        .replace(/[sșş]ap[aăâ]/gi, 'Chape')
-                        .replace(/manoper[aăâ]/gi, "Main-d'\u0153uvre");
-                };
-
-                if (!hasVolumes && !hasMaterials) return <span className="text-slate-400">-</span>;
+                if (!estSurf && !realSurf) return <span className="text-slate-400">-</span>
 
                 return (
-                    <div className="flex flex-col gap-0.5 max-w-[220px]">
+                    <div className="flex flex-col gap-0.5">
                         {/* Estimatif */}
-                        {hasVolumes && wo.volumes.map((v, i) => (
-                            <div key={`v-${i}`} className="text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
-                                <span className="font-bold">{v.quantity} {v.unit}</span> {translateLabel(v.label)} {v.thickness ? `(gr. ${v.thickness} cm)` : ''}
-                            </div>
-                        ))}
-                        {/* Real (daca exista) */}
-                        {(hasRealSurface || hasRealThickness) && (
-                            <div className="flex items-center gap-1 mt-0.5 pt-0.5 border-t border-slate-200 dark:border-slate-700">
-                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Réel:</span>
-                                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-                                    {hasRealSurface ? `${wo.actual_surface_m2} m²` : ''}
-                                    {hasRealSurface && hasRealThickness ? ' / ' : ''}
-                                    {hasRealThickness ? `${wo.actual_thickness_cm} cm` : ''}
-                                </span>
-                            </div>
-                        )}
-                        {hasMaterials && (
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-1 border-t border-slate-200 dark:border-slate-700 pt-1">
-                                <span className="font-semibold">{t('invoicing.materials_abbr', 'Mat: ')}</span>
-                                {wo.materials.map(m => `${m.name} ${m.quantity}${m.unit}`).join(', ')}
+                        <div className="flex items-baseline gap-1">
+                            {estSurf > 0 && <span className="font-bold text-slate-800 dark:text-slate-200 text-[13px]">{estSurf} m²</span>}
+                            {estThick > 0 && <span className="text-[11px] text-slate-500">{estThick} cm</span>}
+                        </div>
+                        {/* Real */}
+                        {(realSurf > 0 || realThick > 0) && (
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Réel</span>
+                                {realSurf > 0 && <span className="text-[12px] font-bold text-emerald-700 dark:text-emerald-400">{realSurf} m²</span>}
+                                {realThick > 0 && <span className="text-[11px] text-emerald-600">{realThick} cm</span>}
                             </div>
                         )}
                     </div>
@@ -643,6 +628,24 @@ export default function InvoicingManagement() {
         }))
     }
 
+    // Filtrare dupa echipa si status
+    const allTeamNames = [...new Set(workOrders.map(w => w.assigned_team_name).filter(Boolean))]
+    const toggleTeam = (name) => setSelectedTeams(prev => prev.includes(name) ? prev.filter(t => t !== name) : [...prev, name])
+    const STATUS_FILTERS = [
+        { key: 'unfactured', label: 'Non Facturé', color: 'slate' },
+        { key: 'proforma', label: 'Devis PDF', color: 'blue' },
+        { key: 'invoiced', label: 'Facturé', color: 'emerald' },
+        { key: 'quote', label: 'Devis Planifié', color: 'violet' },
+    ]
+    const filteredOrders = workOrders.filter(wo => {
+        if (selectedTeams.length > 0 && !selectedTeams.includes(wo.assigned_team_name)) return false
+        if (statusFilter === 'unfactured' && (wo.is_invoiced || wo.proforma_path || (wo.is_quote && wo.status === 'planning'))) return false
+        if (statusFilter === 'proforma' && !wo.proforma_path) return false
+        if (statusFilter === 'invoiced' && !wo.is_invoiced) return false
+        if (statusFilter === 'quote' && !(wo.is_quote && wo.status === 'planning')) return false
+        return true
+    })
+
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
             <div className="mb-6">
@@ -653,9 +656,46 @@ export default function InvoicingManagement() {
                 <p className="text-sm font-medium text-slate-500 mt-1">{t('invoicing.page_desc', 'Gestion des factures, devis et paiements')}</p>
             </div>
 
+            {/* Filtre rapide */}
+            <div className="flex flex-wrap items-center gap-2">
+                {/* Status */}
+                {STATUS_FILTERS.map(sf => (
+                    <button key={sf.key}
+                        onClick={() => setStatusFilter(prev => prev === sf.key ? null : sf.key)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border transition-colors ${
+                            statusFilter === sf.key
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                        }`}>
+                        {sf.label}
+                    </button>
+                ))}
+                {/* Separator */}
+                {allTeamNames.length > 0 && <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />}
+                {/* Echipe */}
+                {allTeamNames.map(name => (
+                    <button key={name}
+                        onClick={() => toggleTeam(name)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+                            selectedTeams.includes(name)
+                                ? 'bg-violet-600 text-white border-violet-600'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-violet-400'
+                        }`}>
+                        {name}
+                    </button>
+                ))}
+                {/* Reset */}
+                {(selectedTeams.length > 0 || statusFilter) && (
+                    <button onClick={() => { setSelectedTeams([]); setStatusFilter(null) }}
+                        className="px-3 py-1 rounded-full text-[11px] font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-colors">
+                        Reset
+                    </button>
+                )}
+            </div>
+
             <div className="bg-white dark:bg-slate-900 border-0 rounded-2xl shadow-sm overflow-hidden flex flex-col">
                 <DataTable 
-                    data={workOrders}
+                    data={filteredOrders}
                     columns={columns}
                     loading={loading}
                     searchable
