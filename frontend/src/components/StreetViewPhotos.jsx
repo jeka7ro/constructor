@@ -11,9 +11,10 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
     // Handle escape key to close modal
     useEffect(() => {
         const handleKeyDown = (e) => {
+            const max = headings.length;
             if (e.key === 'Escape') setSelectedIndex(null);
-            if (e.key === 'ArrowRight' && selectedIndex !== null) setSelectedIndex(prev => (prev + 1) % 3);
-            if (e.key === 'ArrowLeft' && selectedIndex !== null) setSelectedIndex(prev => (prev - 1 + 3) % 3);
+            if (e.key === 'ArrowRight' && selectedIndex !== null) setSelectedIndex(prev => (prev + 1) % max);
+            if (e.key === 'ArrowLeft' && selectedIndex !== null) setSelectedIndex(prev => (prev - 1 + max) % max);
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -21,8 +22,8 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
 
     if (!lat || !lng || !apiKey) return null;
 
-    // Folosim un arc de cerc mai strâns (315°, 0°, 45°) pentru a menține focusul spre clădire
-    const headings = [315, 0, 45];
+    // Pozele cerute de utilizator: 315, 330, 0, 30, 60
+    const headings = [315, 330, 0, 30, 60];
 
     const getImageUrl = (heading, isLarge = false) => {
         const size = isLarge ? '1200x800' : '400x300';
@@ -39,7 +40,7 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
                     </h4>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
                     {headings.map((heading, index) => (
                         <div 
                             key={heading} 
@@ -74,7 +75,7 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
                     </button>
 
                     <button 
-                        onClick={(e) => { e.stopPropagation(); setSelectedIndex((prev) => (prev - 1 + 3) % 3); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedIndex((prev) => (prev - 1 + headings.length) % headings.length); }}
                         className="absolute left-2 sm:left-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white backdrop-blur-md z-10"
                     >
                         <ChevronLeft className="w-8 h-8" />
@@ -87,12 +88,12 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
                             className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
                         />
                         <div className="text-white mt-4 font-semibold tracking-wider text-sm bg-black/50 px-4 py-1.5 rounded-full">
-                            Unghi {headings[selectedIndex]}° ({selectedIndex + 1} / 3)
+                            Unghi {headings[selectedIndex]}° ({selectedIndex + 1} / {headings.length})
                         </div>
                     </div>
 
                     <button 
-                        onClick={(e) => { e.stopPropagation(); setSelectedIndex((prev) => (prev + 1) % 3); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedIndex((prev) => (prev + 1) % headings.length); }}
                         className="absolute right-2 sm:right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white backdrop-blur-md z-10"
                     >
                         <ChevronRight className="w-8 h-8" />
