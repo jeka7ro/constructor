@@ -21,6 +21,7 @@ import LanguageSelector from '../../components/LanguageSelector'
 import MobileAgenda from '../../components/MobileAgenda'
 import MapView from '../../components/MapView'
 import WeatherWidget from '../../components/WeatherWidget'
+import StreetViewPhotos from '../../components/StreetViewPhotos'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import {
@@ -74,6 +75,18 @@ function haversine(lat1, lon1, lat2, lon2) {
     const dl = (lon2 - lon1) * Math.PI / 180
     const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: translate dynamic labels
+// ─────────────────────────────────────────────────────────────────────────────
+function translateDynamicLabel(text) {
+    if (!text) return '—';
+    let res = text;
+    if (/^[sșş]ap[aăâ]$/i.test(res)) return 'Chape';
+    if (/[sșş]ap[aăâ]/i.test(res)) res = res.replace(/[sșş]ap[aăâ]/ig, 'Chape');
+    if (/manoper[aă]/i.test(res)) res = res.replace(/manoper[aă]/ig, "Main-d'œuvre");
+    return res;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -540,6 +553,11 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                 src={`https://maps.google.com/maps?q=${encodeURIComponent(order.site_address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`} 
                                 allowFullScreen
                             />
+                        </div>
+                    )}
+                    {(order.site_lat && (order.site_lon || order.site_lng)) && (
+                        <div className="mb-2">
+                            <StreetViewPhotos lat={order.site_lat} lng={order.site_lon || order.site_lng} />
                         </div>
                     )}
                     <NavButtons lat={order.site_lat} lon={order.site_lon || order.site_lng} address={order.site_address} />
