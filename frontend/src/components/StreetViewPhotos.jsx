@@ -57,9 +57,9 @@ export default function StreetViewPhotos({ lat, lng, address, className = "" }) 
                                 loading="lazy"
                             />
                             {heading === 'auto' && (
-                                <div className="absolute top-2 left-2 z-10 pointer-events-none">
-                                    <span className="bg-emerald-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest px-2 sm:px-3 py-1 rounded-md shadow-lg border border-emerald-400 flex items-center gap-1.5">
-                                        <MapPin className="w-3 h-3" />
+                                <div className="absolute top-1 left-1 z-10 pointer-events-none">
+                                    <span className="bg-emerald-500 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shadow-lg border border-emerald-400 flex items-center gap-1">
+                                        <MapPin className="w-2.5 h-2.5" />
                                         {t('street_view.exact_address', 'ADRESSE EXACTE')}
                                     </span>
                                 </div>

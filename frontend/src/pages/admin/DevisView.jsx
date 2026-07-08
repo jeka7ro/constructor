@@ -63,7 +63,7 @@ export default function DevisView({ embeddedToken, signatureElement }) {
 
     const items = buildItems()
     const total = items.reduce((s, i) => s + i.qty * i.price, 0)
-    const devisNum = wo.quote_number || 'IST 0000'
+    const devisNum = wo.quote_number || ''
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-BE') : new Date().toLocaleDateString('fr-BE')
     const primaryColor = tenant?.primary_color || '#059669'
 
@@ -98,7 +98,7 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                             </div>
                             <div className="text-right">
                                 <div className="text-sm text-slate-700 font-bold uppercase tracking-wider">DEVIS</div>
-                                <div className="text-sm text-slate-500 font-bold mt-0.5 uppercase tracking-wider">N° {devisNum}</div>
+                                {devisNum && <div className="text-sm text-slate-500 font-bold mt-0.5 uppercase tracking-wider">N° {devisNum}</div>}
                                 <div className="mt-3 text-xs text-slate-500 space-y-0.5">
                                     <div>Date: <strong>{dateStr}</strong></div>
                                     <div>Valable 30 jours</div>
