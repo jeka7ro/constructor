@@ -671,19 +671,18 @@ export default function AdminOverview() {
 
     const handleOrderRescheduled = async (woId, newDate, newTime, revert = false) => {
         if (woId && newDate && newTime) {
-            setAllWorkOrders(prev => prev.map(wo => wo.id === String(woId) ? { ...wo, start_date: newDate, start_time: newTime } : wo));
+            setAllWorkOrders(prev => prev.map(wo => wo.id === String(woId) ? { 
+                ...wo, 
+                start_date: newDate, 
+                start_time: newTime,
+                ...(wo.status === 'draft' ? { status: 'planning' } : {}) 
+            } : wo));
         }
         if (revert || !woId) {
             fetchWorkOrdersStats();
-        } else {
-            // Background update
-            api.get(`/admin/work-orders${getDateParams()}`).then(res => {
-                const all = res.data?.items || res.data || [];
-                if (Array.isArray(all)) {
-                    setAllWorkOrders(all);
-                }
-            }).catch(e => {})
         }
+        // Eliminat api.get imediat pentru a preveni race-conditions in care DB-ul returneaza data veche. 
+        // Se va actualiza oricum prin timer-ul de 15 secunde.
     }
 
     const fetchChartData = async () => {

@@ -483,7 +483,7 @@ export default function WorkOrderForm() {
     form.volumes.forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (labelSafe.includes('sapa')) {
+        if (labelSafe.includes('sapa') || labelSafe.includes('chape')) {
             surfaceForAuto += surface;
         }
     });
@@ -492,7 +492,7 @@ export default function WorkOrderForm() {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
         const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (labelSafe.includes('sapa')) {
+        if (labelSafe.includes('sapa') || labelSafe.includes('chape')) {
             isAutoRender = true;
             const standardThick = pricingSettings?.standard_thickness_cm ?? 5;
             const extraThickness = Math.max(0, thickness - standardThick);
@@ -895,7 +895,7 @@ export default function WorkOrderForm() {
                                     </div>
                                 </div>
                             </div>
-                            {vol.label?.toLowerCase()?.includes('sapa') && (
+                            {(vol.label?.toLowerCase()?.includes('sapa') || vol.label?.toLowerCase()?.includes('chape')) && (
                                 <div className="flex flex-wrap gap-4 mt-2 px-1">
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
                                         <input 
@@ -914,6 +914,24 @@ export default function WorkOrderForm() {
                                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                         />
                                         {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={!!vol.has_fiber}
+                                            onChange={e => updateRow('volumes', i, 'has_fiber', e.target.checked)}
+                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                        />
+                                        {t('dashboard.quick_create.include_fiber', 'Include Fibre')}
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={!!vol.has_duramint}
+                                            onChange={e => updateRow('volumes', i, 'has_duramint', e.target.checked)}
+                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                        />
+                                        {t('dashboard.quick_create.include_duramint', 'Include Duramint')}
                                     </label>
                                 </div>
                             )}

@@ -560,7 +560,7 @@ export default function QuotesManagement() {
     form.volumes.forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (labelSafe.includes('sapa')) {
+        if (labelSafe.includes('sapa') || labelSafe.includes('chape')) {
             surfaceForAuto += surface;
         }
     });
@@ -569,7 +569,7 @@ export default function QuotesManagement() {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
         const labelSafe = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (labelSafe.includes('sapa')) {
+        if (labelSafe.includes('sapa') || labelSafe.includes('chape')) {
             isAutoRender = true;
             const standardThick = pricingSettings?.standard_thickness_cm ?? 5;
             const extraThickness = Math.max(0, thickness - standardThick);
@@ -759,7 +759,8 @@ export default function QuotesManagement() {
                                 <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">{t('quotes.volumes', 'Travaux / Étages')}</label>
                                 <div className="space-y-3">
                                     {form.volumes.map((vol, index) => {
-                                        const isSapa = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('sapa');
+                                        const isSapa = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('sapa') || (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('chape');
+                                        
                                         return (
                                         <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-slate-100 relative group">
                                             <div className="md:col-span-4">
@@ -805,6 +806,10 @@ export default function QuotesManagement() {
                                                     <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
                                                         <input type="checkbox" checked={vol.has_fiber} onChange={e => updateVolume(index, 'has_fiber', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
                                                         {t('quotes.duramint', 'Fibre')}
+                                                    </label>
+                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
+                                                        <input type="checkbox" checked={vol.has_duramint} onChange={e => updateVolume(index, 'has_duramint', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
+                                                        {t('quotes.duramint', 'Duramint')}
                                                     </label>
                                                 </div>
                                             )}
@@ -866,7 +871,7 @@ export default function QuotesManagement() {
                                                 <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                         )}
-                                        {form.volumes.some(v => v.has_fiber) && (
+                                        {form.volumes.some(v => v.has_fiber || v.has_duramint) && (
                                             <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
                                                 <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.duramint', 'FIBRĂ')}</span>
                                                 <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
@@ -1098,15 +1103,23 @@ export default function QuotesManagement() {
 
                                 {/* Row 3 */}
                                 <div className="md:col-span-12">
-                                    {(form.volumes[0].label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('sapa') && (
+                                    {((form.volumes[0].label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('sapa') || (form.volumes[0].label ?? '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('chape')) && (
                                         <div className="flex flex-wrap gap-x-4 gap-y-2 items-center h-10 bg-slate-50 px-3 rounded-xl border border-slate-100">
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
-                                                <input type="checkbox" checked={form.volumes[0].has_foil} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_foil: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                                <input type="checkbox" checked={!!form.volumes[0].has_foil} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_foil: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
                                                 Inclure Film plastique
                                             </label>
                                             <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
-                                                <input type="checkbox" checked={form.volumes[0].has_mesh} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_mesh: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                                <input type="checkbox" checked={!!form.volumes[0].has_mesh} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_mesh: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
                                                 Inclure Treillis métallique
+                                            </label>
+                                            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                                <input type="checkbox" checked={!!form.volumes[0].has_fiber} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_fiber: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                                Inclure Fibre
+                                            </label>
+                                            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                                <input type="checkbox" checked={!!form.volumes[0].has_duramint} onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], has_duramint: e.target.checked }] }))} className="rounded border-slate-300 w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                                Inclure Duramint
                                             </label>
                                         </div>
                                     )}
@@ -1138,7 +1151,7 @@ export default function QuotesManagement() {
                                                     <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
-                                            {form.volumes.some(v => v.has_fiber) && (
+                                            {form.volumes.some(v => v.has_fiber || v.has_duramint) && (
                                                 <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
                                                     <span className="text-slate-500 font-medium text-[10px] uppercase">Fibră</span>
                                                     <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
