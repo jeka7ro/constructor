@@ -234,6 +234,19 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                 className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800 dark:text-slate-100"
                                                 style={bgStyle}
                                             >
+                                                {staticMapLoc && (
+                                                    <div 
+                                                        className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 dark:opacity-20 mix-blend-multiply dark:mix-blend-lighten" 
+                                                        style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
+                                                    >
+                                                        <img 
+                                                            src={`https://maps.googleapis.com/maps/api/staticmap?center=${staticMapLoc}&zoom=14&size=400x300&maptype=roadmap&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
+                                                            alt="Map" 
+                                                            className="w-full h-full object-cover" 
+                                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                                        />
+                                                    </div>
+                                                )}
                                                 <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
                                                     <div className="flex items-start justify-between w-full">
                                                         <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg shrink-0" style={{ backgroundColor: color + '26' }}>
@@ -259,22 +272,6 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                             {wo.client?.name || wo.client_name || 'Client Necunoscut'}
                                                         </h4>
                                                     </div>
-
-                                                    {staticMapLoc && (
-                                                        <div className="mt-1 mb-1 rounded-xl overflow-hidden h-[120px] relative border border-slate-200 shadow-inner">
-                                                            <img 
-                                                                src={`https://maps.googleapis.com/maps/api/staticmap?center=${staticMapLoc}&zoom=14&size=600x300&maptype=roadmap&markers=color:blue%7C${staticMapLoc}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
-                                                                alt="Map" 
-                                                                className="w-full h-full object-cover" 
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {((lat && lng) || address) && (
-                                                        <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                                                            <StreetViewPhotos lat={lat} lng={lng} address={address} />
-                                                        </div>
-                                                    )}
 
                                                     <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
                                                         <MapPin className="w-4 h-4 shrink-0 opacity-70" />

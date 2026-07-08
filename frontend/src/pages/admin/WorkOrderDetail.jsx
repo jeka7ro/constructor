@@ -213,7 +213,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [syncingPrices, setSyncingPrices] = useState(false)
     const [showSyncConfirm, setShowSyncConfirm] = useState(false)
 
-    const showToast = (msg) => {
+    const showToast = (msg, type = 'success') => {
+        if (typeof msg === 'object' && msg !== null) {
+            msg = JSON.stringify(msg);
+        }
         setToastMessage(msg)
         setTimeout(() => setToastMessage(null), 3000)
     }
@@ -389,10 +392,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     // ESC key — close lightbox
     useEffect(() => {
-        const handler = (e) => { if (e.key === 'Escape') setLightbox(null); };
+        const handler = (e) => { 
+            if (e.key === 'Escape') {
+                setLightbox(null); 
+                setPreviewDocIndex(null);
+            }
+            if (lightbox !== null && typeof lightbox === 'number') {
+                if (e.key === 'ArrowRight') setLightbox(prev => (prev + 1) % photos.length);
+                if (e.key === 'ArrowLeft') setLightbox(prev => (prev - 1 + photos.length) % photos.length);
+            }
+        };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, []);
+    }, [lightbox, photos.length]);
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -1588,7 +1600,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         return (
                                             <div key={`mc-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border-2 border-indigo-400 cursor-zoom-in hover:shadow-lg transition-all"
-                                                onClick={() => setLightbox(src)}>
+                                                onClick={() => {
+                                                    const idx = photos.findIndex(px => px.id === p.id || px === p);
+                                                    setLightbox(idx >= 0 ? idx : 0);
+                                                }}>
                                                 <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt="Ecran Masina" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <div className="absolute bottom-0 left-0 right-0 bg-indigo-900/80 backdrop-blur-sm p-1.5 text-center">
                                                     <span className="text-white text-[10px] font-bold">ECRAN MAȘINĂ</span>
@@ -1612,7 +1627,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         return (
                                             <div key={`comp-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:border-blue-400 hover:shadow-md transition-all"
-                                                onClick={() => setLightbox(src)}>
+                                                onClick={() => {
+                                                    const idx = photos.findIndex(px => px.id === p.id || px === p);
+                                                    setLightbox(idx >= 0 ? idx : 0);
+                                                }}>
                                                 <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt={`Finalizare ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <span className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-xl shadow-sm">
                                                     FINAL
@@ -1636,7 +1654,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         return (
                                             <div key={`alt-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:shadow-md transition-all"
-                                                onClick={() => setLightbox(src)}>
+                                                onClick={() => {
+                                                    const idx = photos.findIndex(px => px.id === p.id || px === p);
+                                                    setLightbox(idx >= 0 ? idx : 0);
+                                                }}>
                                                 <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt={`Interna ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-bold rounded uppercase">
                                                     {p.photo_type || 'intern'}
@@ -1767,23 +1788,48 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             )}
 
             {/* ── Lightbox ────────────────────────────────────────────────────── */}
-            {lightbox && createPortal(
-                <div className="fixed inset-0 bg-black/90 z-[99999] flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightbox(null)}>
-                    <img 
-                        src={lightbox} 
-                        onError={(e) => { 
-                            if (lightbox.includes('/api/uploads/')) {
-                                const fb = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${lightbox.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
-                                if (e.target.src !== fb) e.target.src = fb;
-                            }
-                        }} 
-                        alt="Preview" 
-                        className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
-                    />
-                    <button onClick={() => setLightbox(null)}
-                        className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold transition-colors">
-                        ✕
+            {lightbox !== null && typeof lightbox === 'number' && photos[lightbox] && createPortal(
+                <div className="fixed inset-0 bg-black/95 z-[99999] flex flex-col items-center justify-center p-4 cursor-zoom-out backdrop-blur-sm" onClick={() => setLightbox(null)}>
+                    
+                    <button onClick={(e) => { e.stopPropagation(); setLightbox(null) }}
+                        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-12 h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-colors z-50">
+                        <X className="w-6 h-6" />
                     </button>
+
+                    {photos.length > 1 && (
+                        <button onClick={(e) => { e.stopPropagation(); setLightbox(prev => (prev - 1 + photos.length) % photos.length) }}
+                            className="absolute left-2 sm:left-6 w-12 h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-colors z-50">
+                            <ChevronLeft className="w-8 h-8" />
+                        </button>
+                    )}
+
+                    <div className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                            const p = photos[lightbox];
+                            const rawSrc = p.url || p.file_url || p.path || '';
+                            const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
+                            const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
+                            return (
+                                <img 
+                                    src={src} 
+                                    onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} 
+                                    alt="Preview" 
+                                    className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" 
+                                />
+                            );
+                        })()}
+                        
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm font-bold tracking-widest">
+                            {lightbox + 1} / {photos.length}
+                        </div>
+                    </div>
+
+                    {photos.length > 1 && (
+                        <button onClick={(e) => { e.stopPropagation(); setLightbox(prev => (prev + 1) % photos.length) }}
+                            className="absolute right-2 sm:right-6 w-12 h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-colors z-50">
+                            <ChevronRight className="w-8 h-8" />
+                        </button>
+                    )}
                 </div>,
                 document.body
             )}
