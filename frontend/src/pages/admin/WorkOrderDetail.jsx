@@ -1385,7 +1385,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                             {/* Tabs DEVIS / FACTURE */}
                             {(wo.proforma_path || wo.is_invoiced) && (
-                                <div className="flex gap-1">
+                                <div className="bg-white dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
                                     <button
                                         onClick={() => setActiveDocTab('devis')}
                                         className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
