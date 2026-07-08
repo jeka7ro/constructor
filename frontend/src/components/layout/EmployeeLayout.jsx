@@ -99,7 +99,13 @@ export default function EmployeeLayout() {
                         <span className="text-xs font-bold">{t('nav.history', 'Istoric')}</span>
                     </NavLink>
                 ) : (
-                    <div className="w-[80px]" />
+                    <NavLink
+                        to="/istoric"
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-blue-700 scale-110 drop-shadow-md' : (isHome ? 'text-blue-600/90' : 'text-slate-400')}`}
+                    >
+                        <Calendar className="w-7 h-7 mb-1.5" />
+                        <span className="text-[10px] font-bold text-center leading-tight">{t('nav.history', 'Istoric')}</span>
+                    </NavLink>
                 )}
 
                 {/* Slot 2: For LongTerm it's Comenzi, for ShortWorks it's Acasa (Middle) */}

@@ -7,93 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../store/uiStore';
 import { useTenantStore } from '../store/tenantStore';
 import api from '../lib/api';
-
-const weatherCache = {};
-
-function WeatherWidget({ lat, lon, dateStr }) {
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (!lat || !lon || !dateStr) return;
-        
-        const cacheKey = `${parseFloat(lat).toFixed(2)}_${parseFloat(lon).toFixed(2)}`;
-        const targetDate = dateStr.split('T')[0];
-
-        const processData = (daily) => {
-            const index = daily.time.findIndex(t => t === targetDate);
-            if (index !== -1) {
-                setData({
-                    code: daily.weather_code[index],
-                    maxTemp: Math.round(daily.temperature_2m_max[index]),
-                    minTemp: Math.round(daily.temperature_2m_min[index])
-                });
-            } else {
-                setData({ error: true });
-            }
-        };
-
-        if (weatherCache[cacheKey]) {
-            // Skip if cached error is less than 10 minutes old
-            if (weatherCache[cacheKey]?._error && (Date.now() - weatherCache[cacheKey]._ts) < 600000) {
-                return;
-            }
-            if (weatherCache[cacheKey] instanceof Promise) {
-                setLoading(true);
-                weatherCache[cacheKey].then(daily => {
-                    if (daily) processData(daily);
-                    setLoading(false);
-                });
-            } else if (!weatherCache[cacheKey]?._error) {
-                processData(weatherCache[cacheKey]);
-            }
-            return;
-        }
-
-        setLoading(true);
-        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=30`)
-            .then(res => res.json())
-            .then(resData => {
-                const daily = resData?.daily;
-                weatherCache[cacheKey] = daily;
-                return daily;
-            })
-            .catch(() => {
-                weatherCache[cacheKey] = { _error: true, _ts: Date.now() };
-                return null;
-            });
-            
-        weatherCache[cacheKey] = promise;
-        
-        promise.then(daily => {
-            if (daily) processData(daily);
-            setLoading(false);
-        });
-    }, [lat, lon, dateStr]);
-
-    if (!lat || !lon || !dateStr) return null;
-    if (loading && !data) return <Loader2 className="w-3 h-3 animate-spin opacity-50 text-slate-500" />;
-    if (!data || data.error) return null;
-
-    const getIcon = (code) => {
-        if (code === 0) return <Sun className="w-3 h-3 text-orange-500" />;
-        if ([1, 2].includes(code)) return <CloudSun className="w-3 h-3 text-blue-500" />;
-        if (code === 3) return <Cloud className="w-3 h-3 text-slate-500" />;
-        if ([45, 48].includes(code)) return <CloudFog className="w-3 h-3 text-slate-400" />;
-        if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className="w-3 h-3 text-blue-400" />;
-        if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className="w-3 h-3 text-blue-600" />;
-        if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className="w-3 h-3 text-sky-300" />;
-        if ([95, 96, 99].includes(code)) return <CloudLightning className="w-3 h-3 text-purple-600" />;
-        return <Cloud className="w-3 h-3 text-slate-500" />;
-    };
-
-    return (
-        <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
-            {getIcon(data.code)}
-            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
-        </div>
-    );
-}
+import WeatherWidget from './WeatherWidget';
 
 const calculateOrderSand = (wo) => {
     // 1. Check materials for explicit sand
@@ -956,7 +870,7 @@ export default function ShortWorksCalendar({
                                                 setSyncing(false);
                                             }
                                         }}
-                                        title={`${wo.client_name || wo.title} — trageți pentru a muta`}
+                                        title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
                                     >
                                         {!isCompleted && (
                                             <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 opacity-100 group-hover:opacity-0`}>
@@ -999,14 +913,14 @@ export default function ShortWorksCalendar({
                                                 )}
                                         </div>
 
-                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={wo.client_name || wo.title}>
+                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
                                             {wo.status === 'draft' && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
-                                            <span className="truncate">{wo.client_name || wo.title}</span>
+                                            <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                         </div>
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1">
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                            <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
+                                            <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
                                         <div className="mt-1 flex items-center justify-between">
                                             <div className="flex items-center gap-1.5 truncate bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-full shadow-sm">
@@ -1078,7 +992,7 @@ export default function ShortWorksCalendar({
                                             <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10 flex items-center gap-1.5">
                                                 {wo.status === 'draft' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                                 {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" title="Finalizată" />}
-                                                <span>{wo.client_name || wo.title}</span>
+                                                <span>{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                             </div>
                                             {!isCompleted && (
                                                 <div className="absolute top-2 right-2">
@@ -1108,7 +1022,7 @@ export default function ShortWorksCalendar({
                                         </div>
                                         <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                            <span className="truncate">{wo.client_name || wo.site_name || wo.site_address || t('common.no_location', 'Fără locație')}</span>
+                                            <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Fără locație')}</span>
                                         </div>
                                         <div className="mt-1.5">
                                             <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-full shadow-sm max-w-full">

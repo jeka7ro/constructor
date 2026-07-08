@@ -30,3 +30,7 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - Acesta este un proiect **100% în limba Franceză** pentru utilizatorul final și administrator.
 - Niciun text static (ex: "Copiază Link", "Vezi", "Suprafață") nu trebuie lăsat "hardcodat" în limba română în fișierele Frontend.
 - Toate textele trebuie traduse prin sistemul i18next `t('cheie', 'Traducere în Franceză')`! Nu este acceptat nici măcar pentru texte ajutătoare (tooltip).
+
+## 7. Portul Frontend (Vite)
+- Frontend-ul rulează întotdeauna pe portul **5678**.
+- Nu rula comenzi sau teste vizuale presupunând portul default 5173 sau alt port.

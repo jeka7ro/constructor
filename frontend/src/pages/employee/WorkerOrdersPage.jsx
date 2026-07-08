@@ -19,6 +19,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
 import MobileAgenda from '../../components/MobileAgenda'
 import MapView from '../../components/MapView'
+import WeatherWidget from '../../components/WeatherWidget'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import {
@@ -150,6 +151,30 @@ function OrderCard({ order, onClick }) {
     const hasCheckin = order.my_checkin_at != null
     const isActive = order.status === 'in_progress'
 
+    let totalKg = 0;
+    if (order.volumes && Array.isArray(order.volumes)) {
+        order.volumes.forEach(vol => {
+            const surface = parseFloat(vol.quantity) || 0;
+            const thickness = parseFloat(vol.thickness) || 0;
+            if (surface > 0 && thickness > 0) {
+                totalKg += surface * thickness * 16;
+            }
+        });
+    }
+    const sandTons = totalKg / 1000;
+    let durmitePlastic = '';
+    let durmiteMetalic = '';
+    if (order.materials && Array.isArray(order.materials)) {
+        order.materials.forEach(m => {
+            const name = (m.name || '').toLowerCase();
+            if (name.includes('plastic')) {
+                durmitePlastic = m.quantity + ' ' + (m.unit || 'Kg');
+            } else if (name.includes('metal') || name.includes('métal')) {
+                durmiteMetalic = m.quantity + ' ' + (m.unit || 'Kg');
+            }
+        });
+    }
+
     return (
         <button
             onClick={onClick}
@@ -160,18 +185,32 @@ function OrderCard({ order, onClick }) {
 
             <div className="p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="font-bold text-slate-900 leading-snug text-sm flex-1">{order.title}</h3>
-                    <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_COLOR[order.status] || STATUS_COLOR.draft}`}>
-                        {STATUS_LABEL[order.status] || order.status}
-                    </span>
+                    <h3 className="font-bold text-slate-900 leading-snug text-sm flex-1">
+                        {order.title}
+                        {order.start_date && (
+                            <span className="text-xs font-semibold text-blue-600 ml-2 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 whitespace-nowrap">
+                                {fmtDate(order.start_date)} {order.start_time ? ` - ${order.start_time}` : ''}
+                            </span>
+                        )}
+                    </h3>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                        
+                        {order.start_date && (
+                            <WeatherWidget lat={order.site_latitude || 50.8503} lon={order.site_longitude || 4.3517} dateStr={order.start_date} />
+                        )}
+                        {sandTons > 0 && (
+                            <span className="text-[10px] font-bold text-slate-500">{sandTons.toFixed(1)} T Nisip</span>
+                        )}
+                        {durmitePlastic && (
+                            <span className="text-[10px] font-bold text-slate-500">{durmitePlastic} Plastic</span>
+                        )}
+                        {durmiteMetalic && (
+                            <span className="text-[10px] font-bold text-slate-500">{durmiteMetalic} Metalic</span>
+                        )}
+                    </div>
                 </div>
 
-                {order.start_date && (
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                        <CalendarIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="capitalize">{fmtDate(order.start_date)}</span>
-                    </div>
-                )}
+                
 
                 {order.site_address && (
                     <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
@@ -470,7 +509,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                             </div>
                                         )}
                                     </>
-                                );
+                                ) : null;
                             }
                             return null;
                         })()}
@@ -878,6 +917,39 @@ function TabMateriale({ order, onSaveConsumed }) {
                     {order.volumes.map((v, i) => (
                         <Row key={i} label={v.label || `Pozitia ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
                     ))}
+                    
+                    {/* Necesar Materiale Calculat automat */}
+                    {sandTons > 0 && (
+                        <div className="flex items-center justify-between py-2 border-t border-slate-100 mt-2">
+                            <span className="text-sm font-semibold text-slate-700">Nisip (Necesar estimat)</span>
+                            <span className="text-sm font-bold text-slate-900">{sandTons.toFixed(1)} T</span>
+                        </div>
+                    )}
+                    {(() => {
+                        let plasticM2 = 0;
+                        let metalicM2 = 0;
+                        order.volumes.forEach(v => {
+                            const surface = parseFloat(v.quantity) || 0;
+                            if (v.has_duramint || v.has_fiber) plasticM2 += surface;
+                            if (v.has_mesh) metalicM2 += surface;
+                        });
+                        return (
+                            <>
+                                {(plasticM2 > 0 || hasSapa) && (
+                                    <div className="flex items-center justify-between py-2 border-t border-slate-100">
+                                        <span className="text-sm font-semibold text-slate-700">Durmit Plastic (Fibră)</span>
+                                        <span className="text-sm font-bold text-slate-900">{Math.max(plasticM2, totalSapaM2)} m²</span>
+                                    </div>
+                                )}
+                                {metalicM2 > 0 && (
+                                    <div className="flex items-center justify-between py-2 border-t border-slate-100">
+                                        <span className="text-sm font-semibold text-slate-700">Durmit Metalic (Plasă)</span>
+                                        <span className="text-sm font-bold text-slate-900">{metalicM2} m²</span>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
                 </Section>
             )}
         </div>
@@ -1174,7 +1246,7 @@ import { useNavigate } from 'react-router-dom'
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-export default function WorkerOrdersPage() {
+export default function WorkerOrdersPage({ isHistory = false }) {
     const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
     const { user, logout } = useAuthStore()
     const tenant = useTenantStore(s => s.tenant)
@@ -1257,7 +1329,21 @@ export default function WorkerOrdersPage() {
         if (!silent) setLoading(true)
         try {
             const res = await api.get('/worker/orders')
-            setOrders(res.data || [])
+            let fetchedOrders = res.data || [];
+            
+            // Filtram comenzi
+            const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Bucharest' }); // yyyy-mm-dd local
+            
+            fetchedOrders = fetchedOrders.filter(o => {
+                const isPast = o.start_date && o.start_date < todayStr;
+                if (isHistory) {
+                    return isPast; // in history, show ONLY past orders
+                } else {
+                    return !isPast || o.status === "in_progress"; // in main view, hide past orders EXCEPT if they are currently active
+                }
+            });
+
+            setOrders(fetchedOrders);
         } catch {
             if (!silent) showToast('Eroare la incarcarea comenzilor.', 'error')
         } finally {

@@ -618,6 +618,7 @@ def update_work_order(
     ]
     
     update_data = payload.dict(exclude_unset=True)
+    print("DEBUG update_data:", update_data)
     for f in fields:
         if f in update_data:
             setattr(wo, f, update_data[f])

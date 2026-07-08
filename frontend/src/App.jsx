@@ -340,6 +340,7 @@ function App() {
                             <Route path="/my-inventory" element={<EmployeeInventory />} />
                             <Route path="/emergencies" element={<EmployeeEmergencies />} />
                             <Route path="/comenzi" element={<WorkerOrdersPage />} />
+                            <Route path="/istoric" element={<WorkerOrdersPage isHistory={true} />} />
                         </Route>
                     ) : null}
 
