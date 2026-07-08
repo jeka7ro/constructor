@@ -1429,7 +1429,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 {activeDocTab === 'devis' && wo.proforma_path && (
                                     <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
                                         <iframe
-                                            src={`${window.location.origin}/admin/invoices/${wo.id}?type=proforma`}
+                                            src={`${window.location.origin}${wo.proforma_path}?type=proforma`}
                                             className="w-full h-full border-none"
                                             title="Devis PDF"
                                         />
@@ -1440,7 +1440,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <iframe
                                             src={wo.final_invoice_path
                                                 ? `${API_BASE}${wo.final_invoice_path}#toolbar=0`
-                                                : `${window.location.origin}/admin/invoices/${wo.id}?type=invoice`
+                                                : `${window.location.origin}${wo.proforma_path}?type=invoice`
                                             }
                                             className="w-full h-full border-none"
                                             title="Facture PDF"
