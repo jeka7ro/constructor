@@ -173,9 +173,9 @@ export default function ShortWorksCalendar({
     };
     const dateLocale = getLocale();
 
-    // Generate week days (Monday to Sunday)
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+    // Generate week days (Monday to Sunday) - MEMOIZED to prevent weeklyOrders recalculation loop
+    const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+    const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)), [weekStart]);
 
     const isCurrentWeek = isSameWeek(currentDate, new Date(), { weekStartsOn: 1 });
     const weekEnd = addDays(weekStart, 6);
@@ -184,24 +184,34 @@ export default function ShortWorksCalendar({
         : `${format(weekStart, 'dd MMM', { locale: dateLocale })} - ${format(weekEnd, 'dd MMM', { locale: dateLocale })}`;
 
     // Filter work orders that fall in this week
+    const weekDayStrings = useMemo(() => weekDays.map(d => format(d, 'yyyy-MM-dd')), [weekDays]);
+
+    // Filter work orders that fall in this week - highly optimized string matching
     const weeklyOrders = useMemo(() => {
         return workOrders.filter(wo => {
             const dateStr = wo.start_date || wo.deadline_date;
             if (!dateStr) return false;
-            try {
-                const datePart = dateStr.split('T')[0];
-                const [year, month, day] = datePart.split('-').map(Number);
-                const woDate = new Date(year, month - 1, day, 12, 0, 0);
-                return weekDays.some(d => isSameDay(d, woDate));
-            } catch (e) {
-                return false;
-            }
+            const ds = dateStr.split('T')[0];
+            return weekDayStrings.includes(ds);
         });
-    }, [workOrders, weekDays]);
+    }, [workOrders, weekDayStrings]);
 
     const navigateWeek = (dir) => {
         setCurrentDate(prev => addDays(prev, dir * 7));
     };
+
+    const sandPerDay = useMemo(() => {
+        const sandMap = {};
+        weeklyOrders.forEach(wo => {
+            const dateStr = wo.start_date || wo.deadline_date;
+            if (!dateStr) return;
+            try {
+                const datePart = dateStr.split('T')[0];
+                sandMap[datePart] = (sandMap[datePart] || 0) + calculateOrderSand(wo);
+            } catch (e) {}
+        });
+        return sandMap;
+    }, [weeklyOrders]);
 
     const dynamicStartHour = useMemo(() => {
         let earliest = 24;
@@ -540,19 +550,8 @@ export default function ShortWorksCalendar({
                     <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30">
                         {weekDays.map((day, i) => {
                             const isToday = isSameDay(day, new Date());
-                            let dailySand = 0;
-                            weeklyOrders.forEach(wo => {
-                                const dateStr = wo.start_date || wo.deadline_date;
-                                if (!dateStr) return;
-                                try {
-                                    const datePart = dateStr.split('T')[0];
-                                    const [year, month, d] = datePart.split('-').map(Number);
-                                    const woDate = new Date(year, month - 1, d, 12, 0, 0);
-                                    if (isSameDay(day, woDate)) {
-                                        dailySand += calculateOrderSand(wo);
-                                    }
-                                } catch (e) {}
-                            });
+                            const dayStr = format(day, 'yyyy-MM-dd');
+                            const dailySand = sandPerDay[dayStr] || 0;
                             const sandDisplay = dailySand > 0 ? `${dailySand.toFixed(1)}T` : '';
 
                             return (
@@ -575,7 +574,6 @@ export default function ShortWorksCalendar({
                                         </span>
                                     )}
                                     {hoveredDay === i && (() => {
-                                        const dayStr = format(day, 'yyyy-MM-dd');
                                         const dayOrders = weeklyOrders.filter(wo => {
                                             const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
                                             return ds === dayStr;
