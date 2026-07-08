@@ -990,6 +990,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                     </div>
                                                                 )}
                                                                 
+                                                                {wo.actual_thickness_cm && (
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('work_order_detail.materials_volumes.confirmed_thickness', 'Épaisseur confirmée')}</span>
+                                                                        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{wo.actual_thickness_cm} cm</span>
+                                                                    </div>
+                                                                )}
+                                                                
                                                                 {wo.actual_sand_quantity && (
                                                                     <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
                                                                         <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('work_order_detail.materials_volumes.confirmed_sand', 'Sable')}</span>

@@ -970,31 +970,6 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                             <span className="text-sm font-bold text-slate-900">{sandTons.toFixed(1)} T</span>
                         </div>
                     )}
-                    {(() => {
-                        let plasticM2 = 0;
-                        let metalicM2 = 0;
-                        order.volumes.forEach(v => {
-                            const surface = parseFloat(v.quantity) || 0;
-                            if (v.has_duramint || v.has_fiber) plasticM2 += surface;
-                            if (v.has_mesh) metalicM2 += surface;
-                        });
-                        return (
-                            <>
-                                {plasticM2 > 0 && (
-                                    <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                                        <span className="text-sm font-semibold text-slate-700">Duramit Plastique (Fibre)</span>
-                                        <span className="text-sm font-bold text-slate-900">{plasticM2} m²</span>
-                                    </div>
-                                )}
-                                {metalicM2 > 0 && (
-                                    <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                                        <span className="text-sm font-semibold text-slate-700">Duramit Métallique (Grille)</span>
-                                        <span className="text-sm font-bold text-slate-900">{metalicM2} m²</span>
-                                    </div>
-                                )}
-                            </>
-                        );
-                    })()}
                 </Section>
             )}
         </div>

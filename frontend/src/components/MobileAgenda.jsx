@@ -258,15 +258,24 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <a 
-                                                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
-                                                        >
-                                                            <Navigation className="w-4 h-4" />
-                                                        </a>
+                                                        {wo.status === 'completed' || wo.status === 'done' ? (
+                                                            <div 
+                                                                className="ml-auto w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
+                                                                title={t('status.completed', 'Terminé')}
+                                                            >
+                                                                <CheckCircle2 className="w-5 h-5" />
+                                                            </div>
+                                                        ) : (
+                                                            <a 
+                                                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
+                                                            >
+                                                                <Navigation className="w-4 h-4" />
+                                                            </a>
+                                                        )}
                                                     </div>
 
                                 
