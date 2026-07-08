@@ -6,7 +6,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight
 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import ConfirmModal from '../../components/ConfirmModal'
