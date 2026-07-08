@@ -353,7 +353,6 @@ export default function QuotesManagement() {
                 let display = '-'
                 if (row.approximate_date) {
                     try {
-                        // Tratează atât formatul YYYY-MM-DD cât și string-uri libere
                         const d = new Date(row.approximate_date)
                         if (!isNaN(d.getTime())) {
                             display = d.toLocaleDateString('ro-RO')
@@ -364,10 +363,24 @@ export default function QuotesManagement() {
                         display = row.approximate_date
                     }
                 }
+                const isPlanning = row.status === 'planning'
                 return (
-                    <div className="flex items-center gap-2 text-slate-600">
-                        <CalendarDays className="w-4 h-4 text-slate-400" />
-                        <span>{display}</span>
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-slate-600">
+                            <CalendarDays className="w-4 h-4 text-slate-400" />
+                            <span>{display}</span>
+                        </div>
+                        {isPlanning ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide border border-emerald-200 whitespace-nowrap w-fit">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                En Planning
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wide border border-amber-200 whitespace-nowrap w-fit">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                                En attente
+                            </span>
+                        )}
                     </div>
                 )
             }
@@ -413,26 +426,7 @@ export default function QuotesManagement() {
                 <EditablePrice row={row} onUpdate={fetchQuotes} />
             )
         },
-        {
-            key: 'status_badge',
-            label: 'Statut',
-            render: (row) => {
-                if (row.status === 'planning') {
-                    return (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide border border-emerald-200 whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                            En Planning
-                        </span>
-                    )
-                }
-                return (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wide border border-amber-200 whitespace-nowrap">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
-                        En attente
-                    </span>
-                )
-            }
-        },
+
         {
             key: 'actions',
             label: '',
