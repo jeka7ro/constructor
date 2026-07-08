@@ -113,9 +113,37 @@ export default function InvoiceDetails() {
         }]
     }
 
+    // Total DEVIS (estimatif — din proforma_data)
     const subtotal = items.reduce((sum, it) => sum + (it.qty * it.price), 0)
     const discountVal = (subtotal * (clientData.discount || 0)) / 100
     const netTotal = subtotal - discountVal
+    const vatRate = clientData.useVat !== false ? parseFloat(clientData.vatRate || wo.prices?.vat_rate || 21) : 0
+    const devisTotalWithVat = netTotal * (1 + vatRate / 100)
+
+    // Total FACTURA (real — pe baza suprafetelor reale introduse de sef echipa)
+    const realSurf  = parseFloat(wo.actual_surface_m2 || 0)
+    const realThick = parseFloat(wo.actual_thickness_cm || 0)
+    let invoiceTotal = 0
+    let hasRealData = false
+    if (realSurf > 0 && wo.volumes?.length > 0) {
+        hasRealData = true
+        const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
+        const extraThick = Math.max(0, realThick - stdThick)
+        invoiceTotal += realSurf * parseFloat(wo.prices?.base || 12.5)
+        invoiceTotal += extraThick * realSurf * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25)
+        const vol = wo.volumes[0]
+        if (vol?.has_foil) invoiceTotal += realSurf * parseFloat(wo.prices?.foil || 1.2)
+        if (vol?.has_mesh) invoiceTotal += realSurf * parseFloat(wo.prices?.mesh || 2.5)
+        if (vol?.has_fiber) invoiceTotal += realSurf * parseFloat(wo.prices?.fiber || (realSurf <= 200 ? 2.5 : 2.0))
+        if (wo.prices?.surface_thresholds) {
+            wo.prices.surface_thresholds.forEach(t => {
+                if (realSurf >= parseFloat(t.min_sqm || 0) && realSurf < parseFloat(t.max_sqm || 999999))
+                    invoiceTotal += parseFloat(t.extra_charge || 0)
+            })
+        }
+    }
+    const invoiceTotalWithVat = invoiceTotal * (1 + vatRate / 100)
+    const clientDisplayName = clientData.clientName || wo.client_name || wo.client?.company_name || (wo.client?.first_name ? `${wo.client.first_name} ${wo.client.last_name || ''}`.trim() : null)
 
     const getIframeSrc = () => {
         if (activeTab === 'invoice' && wo.final_invoice_path) return `${API_BASE}${wo.final_invoice_path}#toolbar=0`
@@ -137,7 +165,7 @@ export default function InvoiceDetails() {
                 <div className="flex-1">
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <FileText className="w-6 h-6 text-slate-800 dark:text-slate-200" />
-                        {t('invoicing_details.title', 'Detalii Fiscale')}: {wo.title || t('invoicing.no_title', 'Fără titlu')}
+                        {t('invoicing_details.title', 'Détails Fiscaux')}: {clientDisplayName || wo.title || t('invoicing.no_title', 'Fără titlu')}
                     </h1>
                     <div className="flex items-center gap-3 mt-1 text-sm">
                         {wo.is_invoiced ? (
@@ -252,28 +280,33 @@ export default function InvoiceDetails() {
                     {/* Totals Preview */}
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
                         <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
-                            {t('invoicing_details.financial_summary', 'Rezumat Financiar')}
+                            RÉSUMÉ FINANCIER
                         </h3>
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center text-sm font-medium text-slate-600 dark:text-slate-400">
-                                <span>{t('invoicing_details.subtotal_gross', 'Subtotal Brut')}:</span>
-                                <span>€ {subtotal.toFixed(2)}</span>
+                            {/* DEVIS (estimatif) */}
+                            <div className="flex justify-between items-center text-sm text-slate-500">
+                                <span className="font-medium">Devis (estimatif):</span>
+                                <span className="font-bold">€ {devisTotalWithVat > 0 ? devisTotalWithVat.toFixed(2) : netTotal.toFixed(2)}</span>
                             </div>
+                            {/* FACTURE (real) — afisat doar daca exista date reale */}
+                            {hasRealData && (
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="font-medium text-emerald-700">Facture (réel):</span>
+                                    <span className="font-bold text-emerald-700">€ {invoiceTotalWithVat.toFixed(2)}</span>
+                                </div>
+                            )}
                             {discountVal > 0 && (
-                                <div className="flex justify-between items-center text-sm font-medium text-slate-600 dark:text-slate-400">
-                                    <span>{t('invoicing_details.discount', 'Reducere')} ({clientData.discount}%):</span>
+                                <div className="flex justify-between items-center text-sm font-medium text-slate-500">
+                                    <span>Remise ({clientData.discount}%):</span>
                                     <span>- € {discountVal.toFixed(2)}</span>
                                 </div>
                             )}
                             <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                                <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-xs">{t('invoicing_details.net_total', 'Total Net de Plată')}:</span>
-                                <span className="text-xl font-black text-slate-800 dark:text-slate-100">€ {netTotal.toFixed(2)}</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-xs">TOTAL NET À PAYER:</span>
+                                <span className="text-xl font-black text-emerald-700">
+                                    € {hasRealData && wo.is_invoiced ? invoiceTotalWithVat.toFixed(2) : (devisTotalWithVat > 0 ? devisTotalWithVat.toFixed(2) : netTotal.toFixed(2))}
+                                </span>
                             </div>
-                            {clientData.apply_vat && (
-                                <div className="text-[10px] text-right text-slate-500 dark:text-slate-400 mt-1 font-bold">
-                                    {t('invoicing_details.plus_vat', '+ TVA (conform regimului clientului)')}
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
