@@ -200,6 +200,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showCamera, setShowCamera] = useState(false)
     const [toastMessage, setToastMessage] = useState(null)
+    // Calcul Edit Modal
+    const [calcEditOpen, setCalcEditOpen] = useState(false)
+    const [calcEditSaving, setCalcEditSaving] = useState(false)
+    const [calcEditForm, setCalcEditForm] = useState(null)
 
     const showToast = (msg) => {
         setToastMessage(msg)
@@ -461,41 +465,106 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const matLabel = hasStarted ? t('work_order_detail.kpi.mat_consumed', "Mat. Consumate") : t('work_order_detail.kpi.mat_required', "Mat. Necesare");
 
 
-    // Calculation Logic for Sapa
-    let autoNet = 0;
-    let autoBase = 0;
-    let autoExtra = 0;
-    let autoFoil = 0;
-    let autoMesh = 0;
-    let autoFiber = 0;
+    // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
+    const computeChapeTotal = (surface, thickness, flags, prices) => {
+        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, net: 0, extraThick: 0 };
+        const extraThick = Math.max(0, thickness - 5);
+        const base  = parseFloat(prices?.base  || 12.5) * surface;
+        const extra = extraThick * parseFloat(prices?.extra || 1.25) * surface;
+        const foil  = flags?.has_foil  ? parseFloat(prices?.foil  || 1.2) * surface : 0;
+        const mesh  = flags?.has_mesh  ? parseFloat(prices?.mesh  || 2.5) * surface : 0;
+        const fiberRate = parseFloat(prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
+        const fiber = flags?.has_fiber ? fiberRate * surface : 0;
+        return { base, extra, foil, mesh, fiber, net: base + extra + foil + mesh + fiber, extraThick };
+    };
+
+    // Calculation Logic for Sapa — Estimatif (din volumes[])
     let isAuto = false;
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
+    let chapeFlags = {}; // has_foil, has_mesh, has_fiber, has_duramint
+    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, net: 0 };
 
     (wo.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
         const thickness = parseFloat(vol.thickness) || 0;
         const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (labelSafe.includes('sapa') && surface > 0) {
+        const isChape = /chape|[sșş]ap[aăâ]/i.test(labelSafe);
+        if (isChape && surface > 0) {
             isAuto = true;
             surfaceForAuto += surface;
-            const extraThickness = Math.max(0, thickness - 5);
-            extraThickForAuto = extraThickness;
-            autoBase += parseFloat(wo.prices?.base || 12.5) * surface;
-            autoExtra += extraThickness * parseFloat(wo.prices?.extra || 1.25) * surface;
-            autoFoil += vol.has_foil ? parseFloat(wo.prices?.foil || 1.2) * surface : 0;
-            autoMesh += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0;
-            
-            const fiberRate = parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
-            autoFiber += vol.has_fiber ? surface * fiberRate : 0;
+            chapeFlags = { has_foil: vol.has_foil, has_mesh: vol.has_mesh, has_fiber: vol.has_fiber, has_duramint: vol.has_duramint };
+            const c = computeChapeTotal(surface, thickness, chapeFlags, wo.prices);
+            extraThickForAuto = c.extraThick;
+            estimCalc.base  += c.base;
+            estimCalc.extra += c.extra;
+            estimCalc.foil  += c.foil;
+            estimCalc.mesh  += c.mesh;
+            estimCalc.fiber += c.fiber;
+            estimCalc.net   += c.net;
         }
     });
 
-    autoNet = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
+    // Raccourcis pour compatibilitate cu codul existent
+    const autoBase  = estimCalc.base;
+    const autoExtra = estimCalc.extra;
+    const autoFoil  = estimCalc.foil;
+    const autoMesh  = estimCalc.mesh;
+    const autoFiber = estimCalc.fiber;
+    const autoNet   = estimCalc.net;
+
     // TVA is controlled by user toggle, NOT automatic
     const vatRate = vatEnabled ? (vatType === '21' ? 0.21 : vatType === '6' ? 0.06 : 0) : 0;
     let autoVat = autoNet * vatRate;
     let totalGross = autoNet + autoVat;
+
+    // Calculation Réel — pe baza datelor introduse de șeful de echipă
+    const realSurface   = parseFloat(wo.actual_surface_m2)   || 0;
+    const realThickness = parseFloat(wo.actual_thickness_cm) || 0;
+    const hasRealData   = realSurface > 0;
+    const realCalc = hasRealData
+        ? computeChapeTotal(realSurface, realThickness, chapeFlags, wo.prices)
+        : null;
+    const realVat   = realCalc ? realCalc.net * vatRate : 0;
+    const realGross = realCalc ? realCalc.net + realVat : 0;
+
+    // Alert diferență majoră (>20%)
+    const diffPct = (autoNet > 0 && realCalc)
+        ? Math.abs((realCalc.net - autoNet) / autoNet * 100)
+        : 0;
+    const bigDiff = diffPct > 20;
+
+    // Handler salvare modal Calcul Edit
+    const handleCalcEditSave = async () => {
+        if (!calcEditForm) return;
+        setCalcEditSaving(true);
+        try {
+            const surface = parseFloat(calcEditForm.surface) || 0;
+            const thickness = parseFloat(calcEditForm.thickness) || 0;
+            const newVolumes = (wo.volumes || []).map(v => {
+                const labelSafe = (v.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (/chape|[sșş]ap[aăâ]/i.test(labelSafe)) {
+                    return { ...v, quantity: surface, thickness, has_foil: !!calcEditForm.has_foil, has_mesh: !!calcEditForm.has_mesh, has_fiber: !!calcEditForm.has_fiber, has_duramint: !!calcEditForm.has_duramint };
+                }
+                return v;
+            });
+            // Dacă nu există niciun volum Chape, creăm unul
+            const hasChapeVol = (wo.volumes || []).some(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase()));
+            if (!hasChapeVol && surface > 0) {
+                newVolumes.push({ label: 'Chape', quantity: surface, unit: 'm²', thickness, has_foil: !!calcEditForm.has_foil, has_mesh: !!calcEditForm.has_mesh, has_fiber: !!calcEditForm.has_fiber, has_duramint: !!calcEditForm.has_duramint });
+            }
+            // Calcul nou estimat
+            const newCalc = computeChapeTotal(surface, thickness, calcEditForm, wo.prices);
+            const res = await api.put(`/admin/work-orders/${id}`, { volumes: newVolumes, estimated_price: String(newCalc.net) });
+            setWo(res.data);
+            setCalcEditOpen(false);
+            showToast(t('work_order_detail.calc_edit.saved', 'Calcul actualizat cu succes!'));
+        } catch (e) {
+            showToast(t('work_order_detail.calc_edit.error', 'Eroare la salvare calcul.'));
+        } finally {
+            setCalcEditSaving(false);
+        }
+    };
 
     const rawVolumeTotal = (wo.volumes || []).reduce((a, v) => a + (parseFloat(v.quantity) || 0), 0)
     const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
@@ -1101,15 +1170,38 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {isAuto ? (
                             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex justify-between items-center mb-3">
-                                    <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{t('work_order_detail.invoicing.calc', 'Calcul Șapă (Automat)')}</p>
+                                    <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{t('work_order_detail.invoicing.calc', 'Calcul Chape')} <span className="text-slate-400 font-normal normal-case ml-1">({t('work_order_detail.calc_estimatif', 'estimatif')})</span></p>
                                     <button 
-                                        onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
+                                        onClick={() => {
+                                            // Preia datele din primul volum Chape
+                                            const chapeVol = (wo.volumes || []).find(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase()));
+                                            setCalcEditForm({
+                                                surface: chapeVol?.quantity || surfaceForAuto || '',
+                                                thickness: chapeVol?.thickness || '',
+                                                has_foil: chapeVol?.has_foil || false,
+                                                has_mesh: chapeVol?.has_mesh || false,
+                                                has_fiber: chapeVol?.has_fiber || false,
+                                                has_duramint: chapeVol?.has_duramint || false,
+                                            });
+                                            setCalcEditOpen(true);
+                                        }}
                                         className="text-slate-400 hover:text-blue-600 transition-colors bg-white dark:bg-slate-800 p-1 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm"
-                                        title={t('work_order_detail.edit', 'Editează')}
+                                        title={t('work_order_detail.edit', 'Modifier le calcul')}
                                     >
                                         <Edit2 className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
+
+                                {/* ── Alert différence majeure ── */}
+                                {bigDiff && hasRealData && (
+                                    <div className="mb-3 p-2.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-700 rounded-xl flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-bold text-orange-700 dark:text-orange-400">{t('work_order_detail.calc_diff_alert', 'Différence importante détectée')}</p>
+                                            <p className="text-[11px] text-orange-600 dark:text-orange-300">{t('work_order_detail.calc_diff_pct', 'Écart entre estimatif et réel')}: <b>{diffPct.toFixed(1)}%</b></p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                         <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
@@ -1199,6 +1291,53 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </div>
                         ) : (
                             !wo.estimated_price && <p className="text-sm text-slate-400 py-4">{t('work_order_detail.invoicing.no_calc', 'Aucun calcul disponible.')}</p>
+                        )}
+
+                        {/* ── Calcul RÉEL (date de la șeful de echipă) ── */}
+                        {isAuto && hasRealData && realCalc && (
+                            <div className="mt-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-700">
+                                <p className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-3">✅ {t('work_order_detail.invoicing.calc_real', 'Calcul Réel (chef de chantier)')}</p>
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                        <span>{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
+                                        <span>{realSurface} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)} EUR</b></span>
+                                    </div>
+                                    {realCalc.extra > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({realCalc.extraThick} cm)</span>
+                                            <span>{realSurface} m² × {realCalc.extraThick} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{realCalc.extra.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.foil > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
+                                            <span>{realSurface} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.mesh > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
+                                            <span>{realSurface} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.fiber > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span>{t('work_order_detail.invoicing.fiber', 'Fibres')}</span>
+                                            <span>{realSurface} m² × {parseFloat(wo.prices?.fiber || (realSurface <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    <div className="h-px bg-amber-200 dark:bg-amber-700 my-2" />
+                                    <div className="flex justify-between font-black text-amber-800 dark:text-amber-300 text-base">
+                                        <span>{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL:')}</span>
+                                        <span>{(realCalc.net + realCalc.net * vatRate).toFixed(2)} EUR</span>
+                                    </div>
+                                    {bigDiff && (
+                                        <div className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold mt-1">
+                                            ⚠️ {t('work_order_detail.diff_vs_estim', 'Écart vs estimatif')}: {realCalc.net > autoNet ? '+' : ''}{(realCalc.net - autoNet).toFixed(2)} EUR ({diffPct.toFixed(1)}%)
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </Section>
                 </div>
@@ -1394,6 +1533,84 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     </div>
                 )}
             </Section>
+
+            {/* ── Modal Editare Calcul (focalizat) ─────────────────────────── */}
+            {calcEditOpen && calcEditForm && (
+                <div className="fixed inset-0 bg-black/60 z-[99998] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setCalcEditOpen(false); }}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Calculator className="w-4 h-4 text-indigo-600" />
+                                <h3 className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide">{t('work_order_detail.calc_edit.title', 'Modifier le calcul Chape')}</h3>
+                            </div>
+                            <button onClick={() => setCalcEditOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.surface', 'Surface (m²)')} *</label>
+                                <input
+                                    type="number" min="0" step="0.5"
+                                    value={calcEditForm.surface}
+                                    onChange={e => setCalcEditForm(f => ({ ...f, surface: e.target.value }))}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="ex: 130"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.thickness', 'Épaisseur (cm)')}</label>
+                                <input
+                                    type="number" min="0" step="0.5"
+                                    value={calcEditForm.thickness}
+                                    onChange={e => setCalcEditForm(f => ({ ...f, thickness: e.target.value }))}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="ex: 10"
+                                />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.calc_edit.options', 'Options incluses')}</p>
+                                <div className="space-y-2">
+                                    {[
+                                        { key: 'has_foil',     label: t('work_order_detail.calc_edit.foil',     'Feuille plastique') },
+                                        { key: 'has_mesh',     label: t('work_order_detail.calc_edit.mesh',     'Treillis métallique') },
+                                        { key: 'has_fiber',    label: t('work_order_detail.calc_edit.fiber',    'Fibres') },
+                                        { key: 'has_duramint', label: t('work_order_detail.calc_edit.duramint', 'Duramint') },
+                                    ].map(({ key, label }) => (
+                                        <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!calcEditForm[key]}
+                                                onChange={e => setCalcEditForm(f => ({ ...f, [key]: e.target.checked }))}
+                                                className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                            />
+                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">{label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            {parseFloat(calcEditForm.surface) > 0 && (() => {
+                                const prev = computeChapeTotal(parseFloat(calcEditForm.surface), parseFloat(calcEditForm.thickness) || 0, calcEditForm, wo.prices);
+                                return (
+                                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 border border-indigo-100 dark:border-indigo-800">
+                                        <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.preview', 'Aperçu du total estimatif')}</p>
+                                        <p className="text-lg font-black text-indigo-700 dark:text-indigo-300">{prev.net.toFixed(2)} EUR</p>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                            <button onClick={() => setCalcEditOpen(false)} className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button onClick={handleCalcEditSave} disabled={calcEditSaving || !parseFloat(calcEditForm.surface)} className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                {calcEditSaving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                {t('common.save', 'Enregistrer')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Lightbox ────────────────────────────────────────────────────── */}
             {lightbox && (
