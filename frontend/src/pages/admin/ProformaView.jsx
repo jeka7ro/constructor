@@ -119,21 +119,31 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         cDetails = parts.join('\n');
     }
 
-    // Construct fallback items based on Work Order Calculation
+    // ─── REGULA DE BAZA: Devis = cantitati estimative, Factura = cantitati reale ───
     let defaultFallbackItems = []
     
     if (wo.volumes && wo.volumes.length > 0) {
         wo.volumes.forEach((vol, idx) => {
-            const surfaceForAuto = parseFloat(vol.quantity || 0)
-            const thickForAuto = parseFloat(vol.thickness || 0)
+            const isChape = vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '')
+            
+            // FACTURA foloseste valorile reale introduse de seful de echipa
+            // DEVIS foloseste valorile estimative din deviz
+            const estSurface = parseFloat(vol.quantity || 0)
+            const estThick   = parseFloat(vol.thickness || 0)
+            const realSurface = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : estSurface
+            const realThick   = isInvoiceView && wo.actual_thickness_cm > 0 ? parseFloat(wo.actual_thickness_cm) : estThick
+
+            const surfaceForAuto = realSurface
+            const thickForAuto   = realThick
             
             if (surfaceForAuto > 0) {
-                if (vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '')) {
-                    const extraThickForAuto = Math.max(0, thickForAuto - 5)
+                if (isChape) {
+                    const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
+                    const extraThickForAuto = Math.max(0, thickForAuto - stdThick)
                     
                     defaultFallbackItems.push({
                         id: `base_${idx}`,
-                        desc: `Pose de chape ${Math.min(thickForAuto, 5)} cm`,
+                        desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`,
                         qty: surfaceForAuto,
                         price: parseFloat(wo.prices?.base || 12.5)
                     });
@@ -143,7 +153,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             id: `extra_${idx}`,
                             desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`,
                             qty: surfaceForAuto,
-                            price: extraThickForAuto * parseFloat(wo.prices?.extra || 1.25)
+                            price: extraThickForAuto * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25)
                         });
                     }
                     
@@ -173,15 +183,32 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
                         });
                     }
+
+                    // Seuil de surface
+                    if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
+                        wo.prices.surface_thresholds.forEach(thresh => {
+                            const minS = parseFloat(thresh.min_sqm || 0)
+                            const maxS = parseFloat(thresh.max_sqm || 999999)
+                            if (surfaceForAuto >= minS && surfaceForAuto < maxS) {
+                                defaultFallbackItems.push({
+                                    id: `thresh_${thresh.id || idx}`,
+                                    desc: `Seuil de surface (${minS}–${maxS < 99999 ? maxS : '∞'} m²)`,
+                                    qty: 1,
+                                    price: parseFloat(thresh.extra_charge || 0)
+                                })
+                            }
+                        })
+                    }
                 } else {
                     defaultFallbackItems.push({
                         id: `vol_${idx}`,
                         desc: vol.label || `Volume ${idx+1}`,
                         qty: surfaceForAuto,
-                        price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surfaceForAuto || 1) // rough estimate
+                        price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (estSurface || 1)
                     });
                 }
             }
+
         });
     }
 

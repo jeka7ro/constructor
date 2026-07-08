@@ -60,10 +60,10 @@ export default function InvoiceDetails() {
             await api.patch(`/admin/work-orders/${wo.id}/invoice-status`, { is_invoiced: true })
             setWo(prev => ({ ...prev, is_invoiced: true, invoiced_at: new Date().toISOString() }))
             setActiveTab('invoice')
-            alert('Lucrarea a fost marcată ca facturată! Numărul de factură a fost generat.')
+            showToast('La facture a été émise avec succès. Le numéro de facture a été généré.')
         } catch (error) {
             console.error('Failed to update invoice status:', error)
-            alert('A apărut o eroare la emiterea facturii.')
+            showToast('Une erreur est survenue lors de l’émission de la facture.')
         }
     }
 
@@ -72,11 +72,11 @@ export default function InvoiceDetails() {
             setIsSendingToBilltobox(true)
             const res = await api.post(`/admin/work-orders/${wo.id}/billtobox`)
             setWo(prev => ({ ...prev, billtobox_status: res.data.status }))
-            alert('Factura a fost trimisă cu succes către Billtobox!')
+            showToast('La facture a été envoyée avec succès à Billtobox !')
         } catch (error) {
             console.error('Failed to send invoice to Billtobox:', error)
-            const msg = error.response?.data?.detail || 'A apărut o eroare la trimiterea facturii.'
-            alert(msg)
+            const msg = error.response?.data?.detail || 'Une erreur est survenue lors de l’envoi de la facture.'
+            showToast(msg)
             setWo(prev => ({ ...prev, billtobox_status: 'error', billtobox_error: msg }))
         } finally {
             setIsSendingToBilltobox(false)
