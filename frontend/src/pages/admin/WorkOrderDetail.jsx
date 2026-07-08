@@ -467,7 +467,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
     const computeChapeTotal = (surface, thickness, flags, prices) => {
-        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, net: 0, extraThick: 0 };
+        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, net: 0, extraThick: 0 };
         const extraThick = Math.max(0, thickness - 5);
         const base  = parseFloat(prices?.base  || 12.5) * surface;
         const extra = extraThick * parseFloat(prices?.extra || 1.25) * surface;
@@ -475,7 +475,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         const mesh  = flags?.has_mesh  ? parseFloat(prices?.mesh  || 2.5) * surface : 0;
         const fiberRate = parseFloat(prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
         const fiber = flags?.has_fiber ? fiberRate * surface : 0;
-        return { base, extra, foil, mesh, fiber, net: base + extra + foil + mesh + fiber, extraThick };
+        // ── Aplicare Seuil de Surface (grila de suprafață) ─────────────────────
+        const thresholds = prices?.surface_thresholds || [];
+        let threshold = 0;
+        if (thresholds.length > 0) {
+            const match = thresholds.find(t =>
+                surface >= parseFloat(t.min_sqm) && surface <= parseFloat(t.max_sqm)
+            );
+            if (match) threshold = parseFloat(match.extra_charge) || 0;
+        }
+        return { base, extra, foil, mesh, fiber, threshold, net: base + extra + foil + mesh + fiber + threshold, extraThick };
     };
 
     // Calculation Logic for Sapa — Estimatif (din volumes[])
@@ -1231,6 +1240,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
+                                    {estimCalc.threshold > 0 && (
+                                        <div className="flex justify-between text-indigo-600 dark:text-indigo-400 font-semibold">
+                                            <span>{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
+                                            <span>+ <b>{estimCalc.threshold.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
                                     <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
                                         <span>{t('work_order_detail.invoicing.net', 'Net:')}</span>
@@ -1324,6 +1339,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400">
                                             <span>{t('work_order_detail.invoicing.fiber', 'Fibres')}</span>
                                             <span>{realSurface} m² × {parseFloat(wo.prices?.fiber || (realSurface <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.threshold > 0 && (
+                                        <div className="flex justify-between text-indigo-600 dark:text-indigo-400 font-semibold">
+                                            <span>{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
+                                            <span>+ <b>{realCalc.threshold.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     <div className="h-px bg-amber-200 dark:bg-amber-700 my-2" />

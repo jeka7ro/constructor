@@ -1525,6 +1525,15 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     }
 
     const handleClose = async () => {
+        // Câmpuri obligatorii — nu se poate finaliza fără suprafață și grosime reale
+        if (!actualSurface || parseFloat(actualSurface) <= 0) {
+            showToast('⚠️ La superficie réelle (m²) est obligatoire pour finaliser!', 'error')
+            return
+        }
+        if (!actualThickness || parseFloat(actualThickness) <= 0) {
+            showToast('⚠️ L\'épaisseur réelle (cm) est obligatoire pour finaliser!', 'error')
+            return
+        }
         if (ocrData?.sand_kg && actualSand) {
             const difference = Math.abs(parseFloat(actualSand) - parseFloat(ocrData.sand_kg));
             const percentage = (difference / parseFloat(ocrData.sand_kg)) * 100;
