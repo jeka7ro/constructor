@@ -1276,7 +1276,11 @@ import { useNavigate } from 'react-router-dom'
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function WorkerOrdersPage({ isHistory = false }) {
-    const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
+    const [currentDate, setCurrentDate] = useState(() => {
+        const d = new Date();
+        if (isHistory) d.setDate(d.getDate() - 1);
+        return d;
+    });
     const { user, logout } = useAuthStore()
     const tenant = useTenantStore(s => s.tenant)
     const showToast = useUIStore(s => s.showToast)
@@ -1691,8 +1695,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         <MobileAgenda
                             orders={orders}
                             onOrderClick={(wo) => openOrder(wo)}
-                            currentWeek={currentWeek}
-                            setCurrentWeek={setCurrentWeek}
+                            currentDate={currentDate}
+                            setCurrentDate={setCurrentDate}
                             isHistory={isHistory}
                         />
                         

@@ -56,12 +56,12 @@ function GoogleMapsDistance({ lat1, lon1, lat2, lon2, label }) {
     return <span>• {distance} {label}</span>;
 }
 
-export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCurrentWeek, isHistory = false }) {
+export default function MobileAgenda({ orders, onOrderClick, currentDate, setCurrentDate, isHistory = false }) {
     const { t, i18n } = useTranslation();
     const isFrench = i18n.language === 'fr';
     const locale = isFrench ? fr : ro;
 
-    const days = Array.from({ length: 7 }).map((_, i) => addDays(currentWeek, i));
+    const days = [currentDate];
 
     const ordersByDay = useMemo(() => {
         const grouped = {};
@@ -116,24 +116,24 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
             {/* Navigare Saptamana */}
             <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
                 <button 
-                    onClick={() => setCurrentWeek(w => subWeeks(w, 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors"
+                    onClick={() => setCurrentDate(d => addDays(d, -1))}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors shrink-0"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
                 
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center flex-1 text-center">
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        {format(currentWeek, 'MMM yyyy', { locale })}
+                        {format(currentDate, 'MMM yyyy', { locale })}
                     </span>
-                    <span className="text-sm font-bold text-slate-900">
-                        {format(currentWeek, 'd', { locale })} - {format(addDays(currentWeek, 6), 'd MMM', { locale })}
+                    <span className="text-sm font-bold text-slate-900 capitalize">
+                        {format(currentDate, 'EEEE, d MMM', { locale })}
                     </span>
                 </div>
 
                 <button 
-                    onClick={() => setCurrentWeek(w => addWeeks(w, 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors"
+                    onClick={() => setCurrentDate(d => addDays(d, 1))}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors shrink-0"
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
@@ -141,27 +141,32 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
 
             {/* Zilele Saptamanii */}
             <div className="space-y-4">
-                {days.filter(day => {
-                    const d = new Date(format(day, "yyyy-MM-dd") + "T00:00:00");
-                    const today = new Date(format(new Date(), "yyyy-MM-dd") + "T00:00:00");
-                    return isHistory ? d < today : d >= today;
-                }).map(day => {
+                {days.map(day => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const dayOrders = ordersByDay[dateStr] || [];
                     const isTodayFlag = isSameDay(day, new Date());
 
                     return (
                         <div key={dateStr} className="flex flex-col gap-2">
-                            {/* Header Zi */}
-                            <div className="flex items-center gap-2 px-1">
-                                <div className={`w-2 h-2 rounded-full ${isTodayFlag ? 'bg-blue-500' : 'bg-slate-300'}`} />
-                                <h3 className={`text-sm font-bold capitalize ${isTodayFlag ? 'text-blue-600' : 'text-slate-700'}`}>
-                                    {isTodayFlag ? t("general.today", "Aujourd'hui") + ' • ' + formatDayName(day) : formatDayName(day)}
-                                </h3>
-                                <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
-                                    {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
-                                </span>
-                            </div>
+                            {/* Header Zi - Ascuns pentru ca e deja in top header in view zilnic */}
+                            {isTodayFlag && (
+                                <div className="flex items-center gap-2 px-1 mb-1">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                    <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide">
+                                        {t("general.today", "Aujourd'hui")}
+                                    </h3>
+                                    <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                        {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
+                                    </span>
+                                </div>
+                            )}
+                            {!isTodayFlag && (
+                                <div className="flex justify-end px-1 mb-1">
+                                    <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                        {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Lista Comenzi pt Zi */}
                             {dayOrders.length > 0 ? (
