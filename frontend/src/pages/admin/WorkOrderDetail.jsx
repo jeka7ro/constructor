@@ -1396,29 +1396,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             )}
                         </div>
 
-                        {/* Tab DEVIS / FACTURE — identic cu InvoiceDetails */}
+                        {/* Tab DEVIS / FACTURE — IDENTIC cu InvoiceDetails */}
                         {(wo.proforma_path || wo.is_invoiced) ? (
                             <div className="mt-4">
-                                {/* Tab bar */}
+                                {/* Tab bar — exact same styles as InvoiceDetails */}
                                 <div className="flex gap-1 mb-3">
                                     <button
                                         onClick={() => setActiveDocTab('devis')}
-                                        className={`h-8 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                            activeDocTab === 'devis'
-                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
-                                        }`}
+                                        className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
                                     >
                                         DEVIS
                                     </button>
                                     {wo.is_invoiced && (
                                         <button
                                             onClick={() => setActiveDocTab('facture')}
-                                            className={`h-8 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                                activeDocTab === 'facture'
-                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
-                                            }`}
+                                            className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeDocTab === 'facture' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:bg-slate-100'}`}
                                         >
                                             FACTURE
                                         </button>
