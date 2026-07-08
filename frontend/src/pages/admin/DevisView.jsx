@@ -25,7 +25,7 @@ export default function DevisView({ embeddedToken, signatureElement }) {
     useEffect(() => {
         if (wo) {
             const originalTitle = document.title;
-            const devisNum = wo.quote_number || 'IST 0000';
+            const devisNum = wo.quote_number || 'N/A';
             const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : new Date().toLocaleDateString('ro-RO');
             const clientName = wo.client_name || wo.client?.company_name || wo.client?.first_name || 'Client';
             document.title = `Devis ${devisNum} - ${dateStr} - ${clientName}`;
@@ -111,7 +111,6 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">CLIENT</div>
                                 <div className="font-bold text-slate-800">{wo.client_name || '—'}</div>
                                 {wo.client_email && <div className="text-xs text-slate-500 mt-1">{wo.client_email}</div>}
-                                {wo.client_phone && <div className="text-xs text-slate-500">{wo.client_phone}</div>}
                                 {wo.client_cui && <div className="text-xs text-slate-400 mt-1">N° TVA: {wo.client_cui}</div>}
                             </div>
                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">

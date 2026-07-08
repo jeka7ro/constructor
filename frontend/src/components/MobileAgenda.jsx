@@ -124,9 +124,27 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                 </button>
                 
                 <div className="flex flex-col items-center flex-1 text-center">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        {format(currentDate, 'MMM yyyy', { locale })}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            {format(currentDate, 'MMM yyyy', { locale })}
+                        </span>
+                        {(() => {
+                            const currentDateStr = format(currentDate, 'yyyy-MM-dd');
+                            const currentDayOrders = dayOrdersGrouped[currentDateStr] || [];
+                            const firstOrder = currentDayOrders.find(o => (o.site_latitude || o.site_lat) && (o.site_longitude || o.site_lng));
+                            const weatherLat = firstOrder?.site_latitude || firstOrder?.site_lat;
+                            const weatherLng = firstOrder?.site_longitude || firstOrder?.site_lng;
+                            
+                            if (weatherLat && weatherLng) {
+                                return (
+                                    <div className="scale-90 origin-left">
+                                        <WeatherWidget lat={weatherLat} lon={weatherLng} dateStr={currentDateStr} isLarge={true} />
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
                     <span className="text-sm font-bold text-slate-900 capitalize">
                         {format(currentDate, 'EEEE, d MMM', { locale })}
                     </span>

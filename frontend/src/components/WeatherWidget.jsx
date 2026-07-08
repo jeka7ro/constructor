@@ -80,7 +80,7 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
         };
 
         return (
-            <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded border border-slate-200 dark:border-slate-700" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
+            <div className="flex items-center gap-1 opacity-90" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
                 {getSmallIcon(data.code)}
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
             </div>
@@ -107,7 +107,7 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
         : `flex items-center gap-1 opacity-90`; // no padding, no background
 
     const textClass = isLarge 
-        ? `text-base font-black leading-none text-slate-800 dark:text-white` 
+        ? `text-sm font-bold leading-none text-slate-800 dark:text-white` 
         : `text-[10px] font-bold leading-none ${style.text}`;
 
     return (

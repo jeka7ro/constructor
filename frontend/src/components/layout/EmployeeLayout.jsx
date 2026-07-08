@@ -88,7 +88,7 @@ export default function EmployeeLayout() {
 
             {/* Bottom Navigation Bar */}
             <nav 
-                className="fixed bottom-0 left-0 right-0 border-t border-slate-200/50 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.05)] z-50 rounded-t-3xl transition-colors duration-300"
+                className="fixed bottom-0 left-0 right-0 backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] z-50 rounded-t-3xl transition-colors duration-300"
                 style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
             >
 
@@ -124,14 +124,15 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-[6px] border-slate-50 bg-white shadow-sm ${isHome ? 'scale-105' : ''}`}
+                            style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] ${isHome ? 'scale-105' : ''}`}
                         >
                             {tenant?.favicon_url ? (
-                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-12 h-12 object-contain" />
+                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                             ) : tenant?.logo_url ? (
-                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-14 h-14 object-contain" />
+                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
                             ) : (
-                                <Home className="w-10 h-10 text-slate-400" />
+                                <Home className="w-8 h-8 drop-shadow-md text-white" />
                             )}
                         </button>
                     </div>
@@ -142,14 +143,15 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-[6px] border-slate-50 bg-white shadow-sm ${isHome ? 'scale-105' : ''}`}
+                            style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] ${isHome ? 'scale-105' : ''}`}
                         >
                             {tenant?.favicon_url ? (
-                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-12 h-12 object-contain" />
+                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                             ) : tenant?.logo_url ? (
-                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-14 h-14 object-contain" />
+                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
                             ) : (
-                                <Home className="w-10 h-10 text-slate-400" />
+                                <Home className="w-8 h-8 drop-shadow-md text-white" />
                             )}
                         </button>
                     </div>

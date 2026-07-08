@@ -189,15 +189,38 @@ function OrderCard({ order, onClick }) {
         });
     }
 
+    const lat = order.site_latitude || order.site_lat;
+    const lng = order.site_longitude || order.site_lng;
+    const address = order.site_address || order.site?.address || order.address;
+    const staticMapLoc = (lat && lng) ? `${lat},${lng}` : (address ? encodeURIComponent(address) : null);
+
+    const color = order.assigned_team_color || '#3b82f6';
+    const bgStyle = {
+        backgroundColor: color + '1a',
+        borderColor: color + '33',
+        backdropFilter: 'blur(8px)'
+    };
+
     return (
         <button
             onClick={onClick}
-            className="w-full text-left bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99]"
+            className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800"
+            style={bgStyle}
         >
-            {/* Bara de stare sus */}
-            <div className={`h-1 w-full ${isActive ? 'bg-green-500' : 'bg-slate-200'}`} />
+            {staticMapLoc && (
+                <div 
+                    className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 mix-blend-multiply" 
+                    style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
+                >
+                    <img 
+                        src={`https://maps.googleapis.com/maps/api/staticmap?center=${staticMapLoc}&zoom=14&size=400x300&maptype=roadmap&markers=color:blue%7C${staticMapLoc}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
+                        alt="Map" 
+                        className="w-full h-full object-cover" 
+                    />
+                </div>
+            )}
 
-            <div className="p-4">
+            <div className="p-4 relative z-10">
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <h3 className="font-bold text-slate-900 leading-snug text-sm flex-1">
                         {order.client_name || "Client Necunoscut"}
@@ -1742,9 +1765,14 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     </button>
                     <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.client_name || "Client Necunoscut"}</h2>
                     <div className="shrink-0 flex justify-end">
-                        {(selected.site_lat && selected.site_lng) ? (
+                        {((selected.site_latitude || selected.site_lat) && (selected.site_longitude || selected.site_lng)) ? (
                             <div className="scale-90 origin-right">
-                                <WeatherWidget lat={selected.site_lat} lon={selected.site_lng} dateStr={selected.start_date || new Date().toISOString()} />
+                                <WeatherWidget 
+                                    lat={selected.site_latitude || selected.site_lat} 
+                                    lon={selected.site_longitude || selected.site_lng} 
+                                    dateStr={selected.start_date || new Date().toISOString()} 
+                                    isLarge={true} 
+                                />
                             </div>
                         ) : null}
                     </div>
