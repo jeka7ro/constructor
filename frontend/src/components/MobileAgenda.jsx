@@ -240,7 +240,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                         style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
                                                     >
                                                         <img 
-                                                            src={`https://maps.googleapis.com/maps/api/staticmap?center=${staticMapLoc}&zoom=14&size=400x300&maptype=roadmap&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
+                                                            src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
                                                             alt="Map" 
                                                             className="w-full h-full object-cover" 
                                                             onError={(e) => { e.target.style.display = 'none'; }}
