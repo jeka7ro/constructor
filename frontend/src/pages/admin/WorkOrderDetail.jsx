@@ -205,6 +205,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [calcEditSaving, setCalcEditSaving] = useState(false)
     const [calcEditForm, setCalcEditForm] = useState(null)
     const [generatingProforma, setGeneratingProforma] = useState(false)
+    const [activeDocTab, setActiveDocTab] = useState('devis')
 
     const showToast = (msg) => {
         setToastMessage(msg)
@@ -1395,69 +1396,75 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             )}
                         </div>
 
-                        {/* Documente Generate */}
-                        <div className="space-y-3 mt-4 mb-4">
-                            {/* Proforma Block */}
-                            {wo.proforma_path && (
-                                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <FileText className="w-5 h-5 text-blue-600 shrink-0" />
-                                        <a href={`/admin/invoices/${wo.id}?type=proforma`} target="_blank" rel="noreferrer"
-                                            className="text-sm font-bold text-blue-700 dark:text-blue-400 truncate hover:underline cursor-pointer">
-                                            Proformă PDF Emisă
-                                        </a>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <a href={wo.proforma_path} target="_blank" rel="noreferrer"
-                                            className="px-4 py-1.5 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shrink-0 shadow-sm">
-                                            Descarcă PDF
-                                        </a>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Invoice Block */}
-                            {wo.is_invoiced && (
-                                <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
-                                        <div className="flex flex-col">
-                                            <a href={`/admin/invoices/${wo.id}?type=invoice`} target="_blank" rel="noreferrer"
-                                                className="text-sm font-bold text-emerald-700 dark:text-emerald-400 truncate hover:underline cursor-pointer">
-                                                Factură PDF (Generată)
-                                            </a>
-                                            {wo.invoice_number && (
-                                                <span className="text-xs text-emerald-600 dark:text-emerald-500 font-medium">N° {wo.invoice_number}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <a href={wo.final_invoice_path || `/admin/invoices/${wo.id}?type=invoice`} target="_blank" rel="noreferrer"
-                                            className="px-4 py-1.5 bg-emerald-600 dark:bg-emerald-700 border border-transparent rounded-lg text-xs font-bold text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors shrink-0 shadow-sm">
-                                            Descarcă PDF
-                                        </a>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Fallback Generate Button */}
-                            {(!wo.proforma_path && !wo.is_invoiced) && (
-                                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-                                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">{t('work_order_detail.invoicing.no_doc', 'Aucun document émis')}</span>
-                                    </div>
+                        {/* Tab DEVIS / FACTURE — identic cu InvoiceDetails */}
+                        {(wo.proforma_path || wo.is_invoiced) ? (
+                            <div className="mt-4">
+                                {/* Tab bar */}
+                                <div className="flex gap-1 mb-3">
                                     <button
-                                        onClick={handleGenerateProforma}
-                                        disabled={generatingProforma}
-                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                                        onClick={() => setActiveDocTab('devis')}
+                                        className={`h-8 px-4 rounded-xl text-xs font-bold border transition-all ${
+                                            activeDocTab === 'devis'
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                                        }`}
                                     >
-                                        {generatingProforma && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                        {t('work_order_detail.invoicing.generate_proforma', 'Générer Devis PDF')}
+                                        DEVIS
                                     </button>
+                                    {wo.is_invoiced && (
+                                        <button
+                                            onClick={() => setActiveDocTab('facture')}
+                                            className={`h-8 px-4 rounded-xl text-xs font-bold border transition-all ${
+                                                activeDocTab === 'facture'
+                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                                            }`}
+                                        >
+                                            FACTURE
+                                        </button>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+
+                                {/* Viewer iframe */}
+                                {activeDocTab === 'devis' && wo.proforma_path && (
+                                    <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
+                                        <iframe
+                                            src={`${window.location.origin}/admin/invoices/${wo.id}?type=proforma`}
+                                            className="w-full h-full border-none"
+                                            title="Devis PDF"
+                                        />
+                                    </div>
+                                )}
+                                {activeDocTab === 'facture' && wo.is_invoiced && (
+                                    <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
+                                        <iframe
+                                            src={wo.final_invoice_path
+                                                ? `${API_BASE}${wo.final_invoice_path}#toolbar=0`
+                                                : `${window.location.origin}/admin/invoices/${wo.id}?type=invoice`
+                                            }
+                                            className="w-full h-full border-none"
+                                            title="Facture PDF"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            /* Fallback: nicio documentatie inca */
+                            <div className="flex items-center justify-between p-3 mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+                                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">{t('work_order_detail.invoicing.no_doc', 'Aucun document émis')}</span>
+                                </div>
+                                <button
+                                    onClick={handleGenerateProforma}
+                                    disabled={generatingProforma}
+                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {generatingProforma && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                    {t('work_order_detail.invoicing.generate_proforma', 'Générer Devis PDF')}
+                                </button>
+                            </div>
+                        )}
                     </Section>
                 </div>
 
