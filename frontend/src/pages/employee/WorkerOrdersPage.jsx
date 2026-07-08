@@ -1312,6 +1312,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [acknowledging, setAcknowledging]           = useState(false)
     const [loadingAction, setLoadingAction]           = useState(false)
     const [confirmDialog, setConfirmDialog] = useState(null)
+    const [showFinalizeModal, setShowFinalizeModal] = useState(false)
     const [uploadingCompletion, setUploadingCompletion] = useState(false)
     const [uploadingInternal, setUploadingInternal]   = useState(false)
     const [uploadingMachine, setUploadingMachine]     = useState(false)
@@ -1831,7 +1832,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                 <div className="bg-white border-t border-slate-200 px-4 py-3 shrink-0">
                     <button
                         disabled={closing || !canClose}
-                        onClick={handleClose}
+                        onClick={() => setShowFinalizeModal(true)}
                         className={`w-full py-4 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60 ${canClose ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-400'}`}
                     >
                         <CheckCircle2 className="w-5 h-5" />
