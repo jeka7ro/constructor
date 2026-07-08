@@ -234,7 +234,7 @@ function OrderCard({ order, onClick }) {
                 <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100">
                     <span className={`flex items-center gap-1 text-[10px] font-semibold ${order.my_acknowledged ? 'text-green-600' : 'text-slate-400'}`}>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {order.my_acknowledged ? 'Confirmat' : 'Neconfirmat'}
+                        {order.my_acknowledged ? 'Confirmé' : 'Non confirmé'}
                     </span>
                     {hasCheckin && (
                         <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-600">
@@ -621,7 +621,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
             {/* Documente/poze admin (instruction) */}
             {instPhotos.length > 0 && (
-                <Section label="Documente & Photos Instructiuni">
+                <Section label="Documents & Photos Instructions">
                     <div className="space-y-2">
                         {instPhotos.map(p => (
                             <button
@@ -647,7 +647,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
             {/* Note generale */}
             {order.notes && (
-                <Section label="Note">
+                <Section label="Notes">
                     <p className="text-sm text-slate-700 whitespace-pre-wrap bg-white border border-slate-200 rounded-xl px-4 py-3">
                         {order.notes}
                     </p>
@@ -663,7 +663,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                             <div>
                                 <p className="text-sm font-bold text-amber-900">Le chantier nécessite une confirmation</p>
                                 <p className="text-xs text-amber-700 mt-0.5">
-                                    Confirmez que vous avez pris connaissance des détails.
+                                    Veuillez confirmer la prise de connaissance des détails.
                                 </p>
                             </div>
                         </div>
@@ -710,15 +710,15 @@ function TabHeures({ order, checkins, onCheckin, onCheckout, location, loadingAc
 
             {/* Sosire comanda pe comanda */}
             {order.checkin_at && (
-                <Section label="Prima Sosire Echipa">
-                    <Row label="Check-in la" value={fmtTime(order.checkin_at)} />
-                    {order.checkout_at && <Row label="Check-out la" value={fmtTime(order.checkout_at)} />}
+                <Section label="Première arrivée équipe">
+                    <Row label="Check-in à" value={fmtTime(order.checkin_at)} />
+                    {order.checkout_at && <Row label="Check-out à" value={fmtTime(order.checkout_at)} />}
                 </Section>
             )}
 
             {/* Istoricul check-in-urilor mele */}
             {checkins.length > 0 && (
-                <Section label="Istoricul Meu">
+                <Section label="Mon historique">
                     <div className="space-y-2">
                         {checkins.map(c => (
                             <div key={c.id} className="bg-white border border-slate-200 rounded-xl px-4 py-3">
@@ -747,7 +747,7 @@ function TabHeures({ order, checkins, onCheckin, onCheckout, location, loadingAc
                                 ) : (
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-xs text-green-600 font-semibold">In lucru</span>
+                                        <span className="text-xs text-green-600 font-semibold">En cours</span>
                                     </div>
                                 )}
                                 {c.checkin_address && (
@@ -788,11 +788,26 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
     });
     const sandTons = totalKg / 1000;
 
-    const estMaterials = [...(order.materials || [])];
-    if (sandTons > 0 && !estMaterials.find(m => m.name.toLowerCase().includes('nisip'))) {
+    const estMaterials = [...(order.materials || [])].filter(m => 
+        !m.name.toLowerCase().includes('duramit') && 
+        !m.name.toLowerCase().includes('fibre') && 
+        !m.name.toLowerCase().includes('metalic') && 
+        !m.name.toLowerCase().includes('plastic')
+    );
+    
+    // Inseram statusul clar pentru materiale speciale, imediat sub nisip
+    const specialMats = [
+        { name: 'Duramit', quantity: order.has_duramit ? 'OUI' : 'NON', unit: '' },
+        { name: 'Fibre métallique', quantity: order.has_mesh ? 'OUI' : 'NON', unit: '' },
+        { name: 'Fibre plastique', quantity: order.has_fiber ? 'OUI' : 'NON', unit: '' }
+    ];
+    
+    if (sandTons > 0 && !estMaterials.find(m => m.name.toLowerCase().includes('nisip') || m.name.toLowerCase().includes('sable'))) {
         estMaterials.unshift({ name: 'Sable (Nécessaire calculé)', quantity: sandTons.toFixed(1), unit: 'T' });
+        estMaterials.splice(1, 0, ...specialMats);
+    } else {
+        estMaterials.push(...specialMats);
     }
-    // removed automatic duramit fallback
 
     const [rows, setRows] = useState(
         order.materials_consumed?.length > 0
@@ -819,7 +834,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
 
             {/* Matériaux estimate (admin) */}
             {estMaterials.length > 0 && (
-                <Section label="Matériaux Estimate">
+                <Section label="Matériaux (Estimé)">
                     <div className="space-y-2">
                         {estMaterials.map((m, i) => (
                             <div key={i} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2.5">
@@ -834,7 +849,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
             )}
 
             {/* Date Reale - Completeate de Sef */}
-            <Section label="Date Reale Șantier (Completate de Șef)">
+            <Section label="Données réelles du chantier (Chef d'équipe)">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4 mb-4">
                     <div>
                         <label className="block text-xs font-semibold text-slate-700 mb-1">Surface coulée réelle (m²)</label>
@@ -864,7 +879,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
             </Section>
 
             {/* Matériaux suplimentare */}
-            <Section label="Alte Matériaux Consumate">
+            <Section label="Autres matériaux consommés">
                 <div className="mb-3 mt-2">
                     <button 
                         onClick={() => setShowOtherMaterials(!showOtherMaterials)}
@@ -882,7 +897,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                             <div className="flex gap-2">
                                 <input
                                     className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-200"
-                                    placeholder="Denumire material"
+                                    placeholder="Nom du matériau"
                                     value={row.name}
                                     onChange={e => setRows(r => r.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                                 />
@@ -896,7 +911,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                             <div className="flex gap-2">
                                 <input
                                     className="w-1/3 px-3 py-2 rounded-lg border border-slate-200 text-sm text-center focus:border-green-400 focus:outline-none"
-                                    placeholder="Cant"
+                                    placeholder="Qté"
                                     value={row.quantity}
                                     onChange={e => setRows(r => r.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))}
                                 />
@@ -909,7 +924,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                             </div>
                             <input
                                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-green-400 focus:outline-none"
-                                placeholder="Nota (optional)"
+                                placeholder="Note (optionnel)"
                                 value={row.note || ''}
                                 onChange={e => setRows(r => r.map((x, j) => j === i ? { ...x, note: e.target.value } : x))}
                             />
@@ -934,7 +949,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                             : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
                     } disabled:opacity-60`}
                 >
-                    {saved ? <><Check className="w-4 h-4" /> Salvat</> : saving ? 'Enregistrement...' : <><Check className="w-4 h-4" /> Enregistrer la consommation</>}
+                    {saved ? <><Check className="w-4 h-4" /> Enregistré</> : saving ? 'Enregistrement...' : <><Check className="w-4 h-4" /> Enregistrer la consommation</>}
                 </button>
             
                     </div>
@@ -943,15 +958,15 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
 
             {/* Cantitati executate (mp2, cm etc.) */}
             {order.volumes?.length > 0 && (
-                <Section label="Cantitati Executate">
+                <Section label="Quantités exécutées">
                     {order.volumes.map((v, i) => (
-                        <Row key={i} label={v.label || `Pozitia ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
+                        <Row key={i} label={v.label || `Position ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
                     ))}
                     
                     {/* Necesar Matériaux Calculat automat */}
                     {sandTons > 0 && (
                         <div className="flex items-center justify-between py-2 border-t border-slate-100 mt-2">
-                            <span className="text-sm font-semibold text-slate-700">Sable (Necesar estimat)</span>
+                            <span className="text-sm font-semibold text-slate-700">Sable (Nécessaire estimé)</span>
                             <span className="text-sm font-bold text-slate-900">{sandTons.toFixed(1)} T</span>
                         </div>
                     )}
@@ -967,13 +982,13 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                             <>
                                 {plasticM2 > 0 && (
                                     <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                                        <span className="text-sm font-semibold text-slate-700">Duramit Plastic (Fibră)</span>
+                                        <span className="text-sm font-semibold text-slate-700">Duramit Plastique (Fibre)</span>
                                         <span className="text-sm font-bold text-slate-900">{plasticM2} m²</span>
                                     </div>
                                 )}
                                 {metalicM2 > 0 && (
                                     <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                                        <span className="text-sm font-semibold text-slate-700">Duramit Metalic (Plasă)</span>
+                                        <span className="text-sm font-semibold text-slate-700">Duramit Métallique (Grille)</span>
                                         <span className="text-sm font-bold text-slate-900">{metalicM2} m²</span>
                                     </div>
                                 )}
@@ -1005,14 +1020,14 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                         </p>
                     </div>
 
-                    <Section label="Photos Interne (Consum Matériaux, Situatie Teren)">
+                    <Section label="Photos Interne (Consommation matériaux, état du terrain)">
                         {internalPhotos.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 mb-3">
                                 {internalPhotos.map(p => (
                                     <button key={p.id} onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
                                         <img
                                             src={p.url}
-                                            alt={p.description || 'Poza interna'}
+                                            alt={p.description || 'Photo interne'}
                                             className="w-full aspect-square object-cover rounded-xl border border-slate-200"
                                         />
                                     </button>
@@ -1044,7 +1059,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                     <Lock className="w-10 h-10 mb-3 opacity-30" />
-                    <p className="text-sm text-center">Aceasta sectiune este disponibila<br />doar Sefului de Echipa.</p>
+                    <p className="text-sm text-center">Cette section est disponible<br />uniquement au chef d'équipe.</p>
                 </div>
             )}
         </div>
@@ -1075,7 +1090,7 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                 </div>
             </div>
 
-            <Section label="Photos Finalizare (merg la client)">
+            <Section label="Photos Finalisation (pour le client)">
                 {completionPhotos.length > 0 && (
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {completionPhotos.map(p => (
@@ -1095,17 +1110,17 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                 <input type="file" accept="image/*" className="hidden" ref={fileRef} onChange={e => { const f = e.target.files?.[0]; if (f) onUploadCompletion(f); e.target.value = ''; }} />
                 <button disabled={uploadingCompletion || isCompleted} onClick={() => fileRef.current?.click()} className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
                     <Camera className="w-4 h-4" />
-                    {uploadingCompletion ? 'Chargement...' : 'Fotografiaza lucrarea finalizata'}
+                    {uploadingCompletion ? 'Chargement...' : 'Photographier la finalisation'}
                 </button>
             </Section>
 
-            <Section label="Poză Calculator Mașină (OBLIGATORIU pt OCR)">
+            <Section label="Photo Calculateur Machine (OBLIGATOIRE pour OCR)">
                 {machinePhotos.length > 0 && (
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         {machinePhotos.map(p => (
                             <div key={p.id} className="relative">
                                 <button onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
-                                    <img src={p.url} alt="Poza Calculator Masina" className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm" />
+                                    <img src={p.url} alt="Photo calculateur machine" className="w-full aspect-square object-cover rounded-xl border border-blue-400 shadow-sm" />
                                 </button>
                                 {!isCompleted && (
                                     <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
@@ -1119,14 +1134,14 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                 
                 {ocrData && ocrData.status === 'success' && (
                     <div className="mb-3 bg-emerald-50 text-emerald-700 p-2 text-xs rounded-xl border border-emerald-200">
-                        ✅ Verificat AI: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
+                        ✅ Vérifié par IA: <strong>Sable: {ocrData.sand_kg}kg {ocrData.sand_m3 ? `(${ocrData.sand_m3}m³)` : ''}</strong> | Ciment: {ocrData.cement_kg}kg
                     </div>
                 )}
 
                 <input type="file" accept="image/*" className="hidden" ref={machineFileRef} onChange={e => { const f = e.target.files?.[0]; if (f) onUploadMachine(f); e.target.value = ''; }} />
                 <button disabled={uploadingMachine || isCompleted} onClick={() => machineFileRef.current?.click()} className="w-full py-3 border-2 border-dashed border-indigo-300 rounded-xl text-sm text-indigo-700 font-semibold hover:bg-indigo-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
                     <Camera className="w-4 h-4" />
-                    {uploadingMachine ? 'AI analizeaza...' : 'Fotografiaza Ecran Mașină (Bremat)'}
+                    {uploadingMachine ? 'IA en cours d\'analyse...' : 'Photographier écran machine (Bremat)'}
                 </button>
             </Section>
         </div>
@@ -1145,7 +1160,7 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
             {isCompleted ? (
                 <div className="text-center py-12">
                     <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Comanda finalizata</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Commande finalisée</h3>
                     <p className="text-sm text-slate-500">L'admin enverra le lien de signature au client.</p>
                     <button
                         onClick={onReopen}
@@ -1157,15 +1172,15 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
             ) : (
                 <>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4">
-                        <p className="text-sm font-semibold text-slate-800 mb-1">Verificare închidere comanda</p>
+                        <p className="text-sm font-semibold text-slate-800 mb-1">Vérification clôture commande</p>
                         <div className="text-xs space-y-1">
                             <div className="flex items-center gap-1.5">
                                 {completionPhotos.length >= order.min_photos_required ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-red-500" />}
-                                <span className={completionPhotos.length >= order.min_photos_required ? 'text-slate-600' : 'text-red-600'}>Photos lucrare ({completionPhotos.length}/{order.min_photos_required})</span>
+                                <span className={completionPhotos.length >= order.min_photos_required ? 'text-slate-600' : 'text-red-600'}>Photos travaux ({completionPhotos.length}/{order.min_photos_required})</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 {machinePhotos.length > 0 ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-red-500" />}
-                                <span className={machinePhotos.length > 0 ? 'text-slate-600' : 'text-red-600'}>Poza calculator masina</span>
+                                <span className={machinePhotos.length > 0 ? 'text-slate-600' : 'text-red-600'}>Photo écran machine</span>
                             </div>
                         </div>
                     </div>
@@ -1180,22 +1195,22 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                 {isReanalyzing ? (
                                     <>
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        Analizează...
+                                        Analyse en cours...
                                     </>
                                 ) : (
                                     <>
                                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                                        Re-analizează Poza cu AI
+                                        Ré-analyser photo par IA
                                     </>
                                 )}
                             </button>
                         </div>
                     )}
 
-                    <Section label="Date Măsurători Lucrare (OBLIGATORIU)">
+                    <Section label="Mesures des travaux (OBLIGATOIRE)">
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Suprafața turnată (m²)</label>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Surface coulée (m²)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -1207,7 +1222,7 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip folosită (kg)</label>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Quantité de sable (kg)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -1219,7 +1234,7 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip folosită (m³)</label>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Quantité de sable (m³)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -1231,7 +1246,7 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate ciment folosită (kg)</label>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Quantité de ciment (kg)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -1380,7 +1395,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
 
             setOrders(fetchedOrders);
         } catch {
-            if (!silent) showToast('Eroare la incarcarea comenzilor.', 'error')
+            if (!silent) showToast('Erreur lors du chargement des commandes.', 'error')
         } finally {
             if (!silent) setLoading(false)
         }
@@ -1435,10 +1450,10 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         setAcknowledging(true)
         try {
             await api.post(`/worker/orders/${selected.id}/acknowledge`)
-            showToast('Confirmat cu succes.', 'success')
+            showToast('Confirmé avec succès.', 'success')
             await refreshSelected()
         } catch (e) {
-            showToast(e.response?.data?.detail || 'Eroare la confirmare.', 'error')
+            showToast(e.response?.data?.detail || 'Erreur lors de la confirmation.', 'error')
         } finally {
             setAcknowledging(false)
         }
@@ -1446,17 +1461,17 @@ export default function WorkerOrdersPage({ isHistory = false }) {
 
     // CHECK-IN
     const handleCheckin = async () => {
-        if (!location) { showToast('GPS indisponibil. Permite accesul la locatie.', 'error'); return }
+        if (!location) { showToast('GPS indisponible. Autoriser l\'accès à la localisation.', 'error'); return }
         setLoadingAction(true)
         try {
             await api.post(`/worker/orders/${selected.id}/checkin`, {
                 latitude: location.latitude,
                 longitude: location.longitude,
             })
-            showToast('Check-in inregistrat.', 'success')
+            showToast('Check-in enregistré.', 'success')
             await refreshSelected()
         } catch (e) {
-            showToast(e.response?.data?.detail || 'Eroare la check-in.', 'error')
+            showToast(e.response?.data?.detail || 'Erreur lors du check-in.', 'error')
         } finally {
             setLoadingAction(false)
         }
@@ -1464,17 +1479,17 @@ export default function WorkerOrdersPage({ isHistory = false }) {
 
     // CHECK-OUT
     const handleCheckout = async () => {
-        if (!location) { showToast('GPS indisponibil.', 'error'); return }
+        if (!location) { showToast('GPS indisponible.', 'error'); return }
         setLoadingAction(true)
         try {
             const res = await api.post(`/worker/orders/${selected.id}/checkout`, {
                 latitude: location.latitude,
                 longitude: location.longitude,
             })
-            showToast(res.data?.message || 'Check-out inregistrat.', 'success')
+            showToast(res.data?.message || 'Check-out enregistré.', 'success')
             await refreshSelected()
         } catch (e) {
-            showToast(e.response?.data?.detail || 'Eroare la check-out.', 'error')
+            showToast(e.response?.data?.detail || 'Erreur lors du check-out.', 'error')
         } finally {
             setLoadingAction(false)
         }
