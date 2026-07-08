@@ -1079,6 +1079,7 @@ class WorkOrder(Base):
     # materials: [{name, quantity, unit}] — materiale estimate
     # materials_consumed: [{name, quantity, unit, note}] — materiale reale la finalizare
     actual_surface_m2 = Column(Float, nullable=True)
+    actual_thickness_cm = Column(Float, nullable=True)
     actual_sand_quantity = Column(Float, nullable=True)
     
     # AI Validations

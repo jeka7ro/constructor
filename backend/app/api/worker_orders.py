@@ -95,6 +95,8 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "materials_consumed": wo.materials_consumed or [],
         "volumes": wo.volumes or [],
         "actual_surface_m2": wo.actual_surface_m2,
+            "actual_thickness_cm": wo.actual_thickness_cm,
+        "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
         "assigned_team_id": wo.assigned_team_id,
@@ -192,6 +194,8 @@ def get_my_orders(
             "materials_consumed": wo.materials_consumed or [],
             "volumes": wo.volumes or [],
             "actual_surface_m2": wo.actual_surface_m2,
+            "actual_thickness_cm": wo.actual_thickness_cm,
+        "actual_thickness_cm": wo.actual_thickness_cm,
             "actual_sand_quantity": wo.actual_sand_quantity,
             "status": wo.status,
             "assigned_team_id": wo.assigned_team_id,
@@ -676,6 +680,7 @@ class CloseOrderPayload(BaseModel):
     volumes: Optional[list] = []
     notes: Optional[str] = None
     actual_surface_m2: Optional[float] = None
+    actual_thickness_cm: Optional[float] = None
     actual_sand_quantity: Optional[float] = None
 
 
@@ -718,6 +723,8 @@ def close_order(
         wo.notes = (wo.notes or "") + f"\n[Muncitor la finalizare]: {payload.notes}"
     if payload.actual_surface_m2 is not None:
         wo.actual_surface_m2 = payload.actual_surface_m2
+    if payload.actual_thickness_cm is not None:
+        wo.actual_thickness_cm = payload.actual_thickness_cm
     if payload.actual_sand_quantity is not None:
         wo.actual_sand_quantity = payload.actual_sand_quantity
     wo.status = "completed"

@@ -17,6 +17,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
+import LanguageSelector from '../../components/LanguageSelector'
 import MobileAgenda from '../../components/MobileAgenda'
 import MapView from '../../components/MapView'
 import WeatherWidget from '../../components/WeatherWidget'
@@ -42,7 +43,7 @@ const TABS = [
     { id: 'info',       label: 'Info',       icon: Info },
     { id: 'materiale',  label: 'Materiale',  icon: Package },
     { id: 'poze',       label: 'Poze',       icon: Camera },
-    { id: 'trimite',    label: 'Trimite',    icon: Send },
+    { id: 'trimite',    label: 'Finalizare Lucrare',    icon: Send },
 ]
 
 const STATUS_LABEL = {
@@ -785,7 +786,7 @@ function TabOre({ order, checkins, onCheckin, onCheckout, location, loadingActio
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: MATERIALE
 // ─────────────────────────────────────────────────────────────────────────────
-function TabMateriale({ order, onSaveConsumed }) {
+function TabMateriale({ order, onSaveConsumed, actualSurface, setActualSurface, actualThickness, setActualThickness, actualSand, setActualSand }) {
     let totalKg = 0;
     let hasSapa = false;
     let totalSapaM2 = 0;
@@ -845,8 +846,38 @@ function TabMateriale({ order, onSaveConsumed }) {
                 </Section>
             )}
 
-            {/* Cantitati reale (muncitor) */}
-            <Section label="Materiale Consumate (Reale)">
+            {/* Date Reale - Completeate de Sef */}
+            <Section label="Date Reale Șantier (Completate de Șef)">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4 mb-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Suprafața reală turnată (m²)</label>
+                        <input 
+                            type="number" min="0" step="0.01" value={actualSurface} onChange={(e) => setActualSurface(e.target.value)}
+                            placeholder="Ex: 120.5"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Grosimea reală (cm)</label>
+                        <input 
+                            type="number" min="0" step="0.01" value={actualThickness} onChange={(e) => setActualThickness(e.target.value)}
+                            placeholder="Ex: 5"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Cantitate nisip reală (kg)</label>
+                        <input 
+                            type="number" min="0" step="0.01" value={actualSand} onChange={(e) => setActualSand(e.target.value)}
+                            placeholder="Ex: 8500"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                    </div>
+                </div>
+            </Section>
+
+            {/* Materiale suplimentare */}
+            <Section label="Alte Materiale Consumate">
                 <div className="space-y-2">
                     {rows.map((row, i) => (
                         <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
@@ -1275,6 +1306,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [checkins, setCheckins]     = useState([])
     const [location, setLocation]     = useState(null)
     const [actualSurface, setActualSurface] = useState('')
+    const [actualThickness, setActualThickness] = useState('')
     const [actualSand, setActualSand] = useState('')
     const [actualSandM3, setActualSandM3] = useState('')
     const [actualCement, setActualCement] = useState('')
@@ -1523,6 +1555,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                 ],
                 volumes: selected.volumes || [],
                 actual_surface_m2: parseFloat(actualSurface) || null,
+                actual_thickness_cm: parseFloat(actualThickness) || null,
                 actual_sand_quantity: parseFloat(actualSand) || null,
             })
             showToast(res.data?.message || 'Comanda finalizata.', 'success')
@@ -1640,9 +1673,12 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                                 <p className="text-blue-200 text-sm">{isLeader ? t('roles.team_leader', "Chef d'équipe") : t('roles.worker', 'Ouvrier')}</p>
                             </div>
                         </div>
-                        <button onClick={handleLogout} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
-                            <LogOut className="w-5 h-5 text-white" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <LanguageSelector variant="light" className="bg-white/20 border-0 text-white hover:bg-white/30" />
+                            <button onClick={handleLogout} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
+                                <LogOut className="w-5 h-5 text-white" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
