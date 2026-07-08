@@ -146,11 +146,10 @@ export default function InvoiceDetails() {
     const clientDisplayName = clientData.clientName || wo.client_name || wo.client?.company_name || (wo.client?.first_name ? `${wo.client.first_name} ${wo.client.last_name || ''}`.trim() : null)
 
     const getIframeSrc = () => {
-        if (activeTab === 'invoice' && wo.final_invoice_path) return `${API_BASE}${wo.final_invoice_path}#toolbar=0`
-        if (activeTab === 'proforma' && wo.proforma_path) return `${window.location.origin}${wo.proforma_path}?type=proforma`
-        if (wo.final_invoice_path) return `${API_BASE}${wo.final_invoice_path}#toolbar=0`
-        if (wo.proforma_path) return `${window.location.origin}${wo.proforma_path}?type=${activeTab}`
-        return ''
+        // MEREU acelasi template ProformaView — doar type difera
+        const base = `${window.location.origin}/proforma/${wo.id}`
+        if (activeTab === 'invoice') return `${base}?type=invoice`
+        return `${base}?type=proforma`
     }
 
     return (

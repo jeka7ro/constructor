@@ -1425,11 +1425,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                 </div>
 
-                                {/* Viewer iframe */}
-                                {activeDocTab === 'devis' && wo.proforma_path && (
+                                {/* Viewer iframe — MEREU acelasi template ProformaView */}
+                                {activeDocTab === 'devis' && (
                                     <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
                                         <iframe
-                                            src={`${window.location.origin}${wo.proforma_path}?type=proforma`}
+                                            src={`${window.location.origin}/proforma/${wo.id}?type=proforma`}
                                             className="w-full h-full border-none"
                                             title="Devis PDF"
                                         />
@@ -1438,10 +1438,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 {activeDocTab === 'facture' && wo.is_invoiced && (
                                     <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200">
                                         <iframe
-                                            src={wo.final_invoice_path
-                                                ? `${API_BASE}${wo.final_invoice_path}#toolbar=0`
-                                                : `${window.location.origin}${wo.proforma_path}?type=invoice`
-                                            }
+                                            src={`${window.location.origin}/proforma/${wo.id}?type=invoice`}
                                             className="w-full h-full border-none"
                                             title="Facture PDF"
                                         />
