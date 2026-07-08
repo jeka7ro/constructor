@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { createPortal } from 'react-dom';
 
 export default function StreetViewPhotos({ lat, lng, className = "" }) {
     const { t } = useTranslation();
@@ -61,25 +62,25 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
                 </div>
             </div>
 
-            {/* Lightbox Modal */}
-            {selectedIndex !== null && (
-                <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}>
+            {/* Lightbox Modal via Portal */}
+            {selectedIndex !== null && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-sm flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}>
                     
                     <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedIndex(null); }}
-                        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white"
+                        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white z-10"
                     >
                         <X className="w-6 h-6" />
                     </button>
 
                     <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedIndex((prev) => (prev - 1 + 3) % 3); }}
-                        className="absolute left-2 sm:left-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white backdrop-blur-md"
+                        className="absolute left-2 sm:left-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white backdrop-blur-md z-10"
                     >
                         <ChevronLeft className="w-8 h-8" />
                     </button>
 
-                    <div className="w-full max-w-5xl max-h-[85vh] p-4 flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-5xl max-h-[85vh] p-4 flex flex-col items-center justify-center z-10" onClick={(e) => e.stopPropagation()}>
                         <img 
                             src={getImageUrl(headings[selectedIndex], true)} 
                             alt="Street View Enlarge"
@@ -92,12 +93,13 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
 
                     <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedIndex((prev) => (prev + 1) % 3); }}
-                        className="absolute right-2 sm:right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white backdrop-blur-md"
+                        className="absolute right-2 sm:right-6 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-white backdrop-blur-md z-10"
                     >
                         <ChevronRight className="w-8 h-8" />
                     </button>
 
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
