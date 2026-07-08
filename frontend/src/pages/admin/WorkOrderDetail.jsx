@@ -204,10 +204,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [calcEditOpen, setCalcEditOpen] = useState(false)
     const [calcEditSaving, setCalcEditSaving] = useState(false)
     const [calcEditForm, setCalcEditForm] = useState(null)
+    const [generatingProforma, setGeneratingProforma] = useState(false)
 
     const showToast = (msg) => {
         setToastMessage(msg)
         setTimeout(() => setToastMessage(null), 3000)
+    }
+
+    const handleGenerateProforma = async () => {
+        setGeneratingProforma(true)
+        try {
+            const res = await api.post(`/admin/work-orders/${id}/generate-proforma`)
+            setWo(prev => ({ ...prev, proforma_path: res.data.proforma_path, proforma_issued_at: res.data.proforma_issued_at }))
+            showToast(t('work_order_detail.invoicing.proforma_generated', 'Proformă generată cu succes!'))
+        } catch (err) {
+            showToast(err.response?.data?.detail || t('common.error', 'Eroare la generarea proformei.'))
+        } finally {
+            setGeneratingProforma(false)
+        }
     }
 
     const handleInvoiceUpload = async (e) => {
@@ -1431,11 +1445,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                                     <div className="flex items-center gap-2 min-w-0">
                                         <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-                                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">Niciun document emis</span>
+                                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">{t('work_order_detail.invoicing.no_doc', 'Aucun document émis')}</span>
                                     </div>
-                                    <button onClick={() => navigate('/admin/invoicing')}
-                                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors shrink-0">
-                                        Generează
+                                    <button
+                                        onClick={handleGenerateProforma}
+                                        disabled={generatingProforma}
+                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                                    >
+                                        {generatingProforma && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                        {t('work_order_detail.invoicing.generate_proforma', 'Générer Devis PDF')}
                                     </button>
                                 </div>
                             )}
