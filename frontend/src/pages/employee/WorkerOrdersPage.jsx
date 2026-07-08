@@ -1176,7 +1176,7 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: TRIMITE (inchidere comanda)
 // ─────────────────────────────────────────────────────────────────────────────
-function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen, isReanalyzing, onReanalyze }) {
+function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, setActualSurface, actualThickness, setActualThickness, actualSand, setActualSand, actualSandM3, setActualSandM3, actualCement, setActualCement, onReopen, isReanalyzing, onReanalyze }) {
     const isCompleted = order.status === 'completed'
 
     return (
@@ -1854,6 +1854,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         machinePhotos={machinePhotos}
                         actualSurface={actualSurface}
                         setActualSurface={setActualSurface}
+                        actualThickness={actualThickness}
+                        setActualThickness={setActualThickness}
                         actualSand={actualSand}
                         setActualSand={setActualSand}
                         actualSandM3={actualSandM3}
