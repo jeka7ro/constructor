@@ -130,7 +130,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                         </span>
                         {(() => {
                             const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-                            const currentDayOrders = dayOrdersGrouped[currentDateStr] || [];
+                            const currentDayOrders = ordersByDay[currentDateStr] || [];
                             const firstOrder = currentDayOrders.find(o => (o.site_latitude || o.site_lat) && (o.site_longitude || o.site_lng));
                             const weatherLat = firstOrder?.site_latitude || firstOrder?.site_lat;
                             const weatherLng = firstOrder?.site_longitude || firstOrder?.site_lng;
