@@ -442,11 +442,18 @@ export default function InvoicingManagement() {
     const columns = [
         {
             key: 'date',
-            label: t('invoicing.col_date', 'Dată'),
+            label: t('invoicing.col_date', 'Date'),
             className: 'w-[10%]',
             render: (wo) => (
-                <div className="text-slate-600 dark:text-slate-400 font-medium">
-                    {wo.start_date ? new Date(wo.start_date).toLocaleDateString(i18n.language === 'en' ? 'en-GB' : (i18n.language === 'fr' ? 'fr-FR' : (i18n.language === 'de' ? 'de-DE' : 'ro-RO'))) : '-'}
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">
+                        {wo.start_date ? new Date(wo.start_date).toLocaleDateString(i18n.language === 'en' ? 'en-GB' : (i18n.language === 'fr' ? 'fr-FR' : (i18n.language === 'de' ? 'de-DE' : 'ro-RO'))) : '-'}
+                    </span>
+                    {wo.assigned_team_name && (
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 leading-tight">
+                            👥 {wo.assigned_team_name}
+                        </span>
+                    )}
                 </div>
             )
         },
@@ -483,16 +490,38 @@ export default function InvoicingManagement() {
             render: (wo) => {
                 const hasVolumes = wo.volumes && Array.isArray(wo.volumes) && wo.volumes.length > 0;
                 const hasMaterials = wo.materials && Array.isArray(wo.materials) && wo.materials.length > 0;
+                const hasRealSurface = wo.actual_surface_m2 > 0;
+                const hasRealThickness = wo.actual_thickness_cm > 0;
+
+                // Translate sapa label → Chape (regex acoperind toate diacriticele)
+                const translateLabel = (label) => {
+                    if (!label) return label;
+                    return label
+                        .replace(/[sșş]ap[aăâ]/gi, 'Chape')
+                        .replace(/manoper[aăâ]/gi, "Main-d'\u0153uvre");
+                };
 
                 if (!hasVolumes && !hasMaterials) return <span className="text-slate-400">-</span>;
 
                 return (
                     <div className="flex flex-col gap-0.5 max-w-[220px]">
+                        {/* Estimatif */}
                         {hasVolumes && wo.volumes.map((v, i) => (
                             <div key={`v-${i}`} className="text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
-                                <span className="font-bold">{v.quantity} {v.unit}</span> {v.label} {v.thickness ? `(gr. ${v.thickness} cm)` : ''}
+                                <span className="font-bold">{v.quantity} {v.unit}</span> {translateLabel(v.label)} {v.thickness ? `(gr. ${v.thickness} cm)` : ''}
                             </div>
                         ))}
+                        {/* Real (daca exista) */}
+                        {(hasRealSurface || hasRealThickness) && (
+                            <div className="flex items-center gap-1 mt-0.5 pt-0.5 border-t border-slate-200 dark:border-slate-700">
+                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Réel:</span>
+                                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                                    {hasRealSurface ? `${wo.actual_surface_m2} m²` : ''}
+                                    {hasRealSurface && hasRealThickness ? ' / ' : ''}
+                                    {hasRealThickness ? `${wo.actual_thickness_cm} cm` : ''}
+                                </span>
+                            </div>
+                        )}
                         {hasMaterials && (
                             <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-1 border-t border-slate-200 dark:border-slate-700 pt-1">
                                 <span className="font-semibold">{t('invoicing.materials_abbr', 'Mat: ')}</span>
