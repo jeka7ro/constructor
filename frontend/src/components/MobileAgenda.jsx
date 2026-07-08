@@ -141,7 +141,11 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
 
             {/* Zilele Saptamanii */}
             <div className="space-y-4">
-                {days.filter(day => isHistory || new Date(format(day, "yyyy-MM-dd") + "T00:00:00") >= new Date(format(new Date(), "yyyy-MM-dd") + "T00:00:00")).map(day => {
+                {days.filter(day => {
+                    const d = new Date(format(day, "yyyy-MM-dd") + "T00:00:00");
+                    const today = new Date(format(new Date(), "yyyy-MM-dd") + "T00:00:00");
+                    return isHistory ? d < today : d >= today;
+                }).map(day => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const dayOrders = ordersByDay[dateStr] || [];
                     const isTodayFlag = isSameDay(day, new Date());
@@ -152,7 +156,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                             <div className="flex items-center gap-2 px-1">
                                 <div className={`w-2 h-2 rounded-full ${isTodayFlag ? 'bg-blue-500' : 'bg-slate-300'}`} />
                                 <h3 className={`text-sm font-bold capitalize ${isTodayFlag ? 'text-blue-600' : 'text-slate-700'}`}>
-                                    {isTodayFlag ? t('general.today', 'Azi') + ' • ' + formatDayName(day) : formatDayName(day)}
+                                    {isTodayFlag ? t("general.today", "Aujourd'hui") + ' • ' + formatDayName(day) : formatDayName(day)}
                                 </h3>
                                 <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
                                     {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
