@@ -240,40 +240,55 @@ export default function InvoiceDetails() {
                             {(clientData.client_address || wo.client_address || wo.client?.company_address || wo.site_address) && (
                                 <div className="flex gap-2 text-slate-600 dark:text-slate-400">
                                     <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <p className="text-sm leading-snug">{clientData.client_address || wo.client_address || wo.client?.company_address || wo.site_address}</p>
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clientData.client_address || wo.client_address || wo.client?.company_address || wo.site_address)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm leading-snug text-blue-600 hover:underline"
+                                    >
+                                        {clientData.client_address || wo.client_address || wo.client?.company_address || wo.site_address}
+                                    </a>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Invoice Info */}
+                    {/* Invoice + Devis Info */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-4">
-                            <Receipt className="w-4 h-4" /> {t('invoicing_details.issue_details', 'Detalii Emitere')}
+                            <Receipt className="w-4 h-4" /> DÉTAILS D'ÉMISSION
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.invoice_number', 'Nr. Factură')}</p>
-                                <p className="font-semibold text-slate-900 dark:text-white">{wo.invoice_number || 'N/A'}</p>
+                        <div className="flex flex-col gap-3">
+                            {/* Devis */}
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">N° Devis</p>
+                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{wo.quote_number || 'N/A'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Date Devis</p>
+                                    <p className="font-medium text-slate-700 dark:text-slate-300">
+                                        {wo.proforma_issued_at ? new Date(wo.proforma_issued_at).toLocaleDateString('fr-FR') : 'N/A'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.invoice_date', 'Dată Facturare')}</p>
-                                <p className="font-medium text-slate-700 dark:text-slate-300">
-                                    {wo.invoiced_at ? new Date(wo.invoiced_at).toLocaleDateString() : 'N/A'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.issue_status', 'Status Emitere')}</p>
-                                <p className="font-medium text-slate-700 dark:text-slate-300">
-                                    {isGenerated ? t('invoicing_details.status_generated', 'Generat') : t('invoicing_details.status_missing', 'Lipsă document')}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('invoicing_details.proforma_date', 'Dată Proformă')}</p>
-                                <p className="font-medium text-slate-700 dark:text-slate-300">
-                                    {wo.proforma_issued_at ? new Date(wo.proforma_issued_at).toLocaleDateString() : 'N/A'}
-                                </p>
-                            </div>
+                            {/* Separator */}
+                            {wo.is_invoiced && <div className="border-t border-slate-100 dark:border-slate-700" />}
+                            {/* Facture */}
+                            {wo.is_invoiced && (
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mb-0.5">N° Facture</p>
+                                        <p className="font-bold text-emerald-700 dark:text-emerald-400">{wo.invoice_number || 'N/A'}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mb-0.5">Date Facture</p>
+                                        <p className="font-bold text-emerald-700 dark:text-emerald-400">
+                                            {wo.invoiced_at ? new Date(wo.invoiced_at).toLocaleDateString('fr-FR') : 'N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
