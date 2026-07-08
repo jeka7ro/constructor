@@ -22,8 +22,8 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
 
     if (!lat || !lng || !apiKey) return null;
 
-    // Pozele cerute de utilizator: 0, 30, 60, 90, 180
-    const headings = [0, 30, 60, 90, 180];
+    // Pozele cerute de utilizator: 0, 30, 60, 90, 180, 210, 240, 270
+    const headings = [0, 30, 60, 90, 180, 210, 240, 270];
 
     const getImageUrl = (heading, isLarge = false) => {
         const size = isLarge ? '1200x800' : '400x300';
@@ -40,7 +40,7 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
                     </h4>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-2 sm:gap-3">
                     {headings.map((heading, index) => (
                         <div 
                             key={heading} 
