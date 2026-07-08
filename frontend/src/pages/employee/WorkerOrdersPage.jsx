@@ -47,12 +47,12 @@ const TABS = [
 ]
 
 const STATUS_LABEL = {
-    draft:       'Draft',
-    sent:        'Trimisa',
-    confirmed:   'Confirmata',
-    in_progress: 'In Lucru',
-    completed:   'Finalizata',
-    cancelled:   'Anulata',
+    draft:       'Brouillon',
+    sent:        'Envoyée',
+    confirmed:   'Confirmée',
+    in_progress: 'En cours',
+    completed:   'Terminée',
+    cancelled:   'Annulée',
 }
 
 const STATUS_COLOR = {
@@ -353,6 +353,7 @@ function Lightbox({ url, onClose }) {
 function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
     const [showStation, setShowStation] = useState(false)
+    const [enableStations, setEnableStations] = useState(false)
 
     // Parse access_notes in bullet lines
     const accessLines = (order.access_notes || '')
@@ -362,36 +363,6 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
     return (
         <div className="pb-28 px-4 pt-4 space-y-4">
-            {/* Planuri/Documente Atasate */}
-            {documents && documents.length > 0 && (
-                <Section label="Documente / Planuri Atașate">
-                    <div className="space-y-2">
-                        {documents.map(doc => (
-                            <a 
-                                key={doc.id} 
-                                href={doc.url} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all group"
-                            >
-                                <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                                    <FileText className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-slate-800 truncate">{doc.filename}</p>
-                                    <p className="text-[10px] text-slate-500 uppercase mt-0.5">
-                                        Fichier téléchargé • {Math.round(doc.file_size / 1024)} KB
-                                    </p>
-                                </div>
-                                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
-                            </a>
-                        ))}
-                    </div>
-                </Section>
-            )}
-
-
-
             {/* Suprafata si Épaisseur + Sable */}
             {order.volumes && order.volumes.length > 0 && (
                 <Section label="Detalii Lucrare">
@@ -469,7 +440,15 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                                 {sandTons.toFixed(1)} T
                                             </span>
                                         </div>
-                                        {bestStation && (
+                                        <div className="pt-2 mt-2 flex justify-center">
+                                            <button 
+                                                onClick={() => setEnableStations(!enableStations)}
+                                                className="text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-wider px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50"
+                                            >
+                                                {enableStations ? "Masquer les stations de sable" : "Afficher les stations de sable"}
+                                            </button>
+                                        </div>
+                                        {bestStation && enableStations && (
                                             <div className="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 transition-all duration-200">
                                                 <div 
                                                     className="flex items-center justify-between cursor-pointer select-none"
@@ -581,31 +560,6 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                 </Section>
             )}
 
-            {/* Echipa si vehicul */}
-            {(order.assigned_team_name || order.assigned_vehicle_name) && (
-                <Section label="Echipa Alocata">
-                    {order.assigned_team_name && (
-                        <Row label="Echipa" value={
-                            <div className="flex items-center gap-1.5">
-                                <Users className="w-3.5 h-3.5 text-blue-500" />
-                                <span className="font-semibold text-slate-800">{order.assigned_team_name}</span>
-                            </div>
-                        } />
-                    )}
-                    {order.assigned_vehicle_name && (
-                        <Row label="Vehicul" value={
-                            <div className="flex items-center gap-1.5">
-                                <Truck className="w-3.5 h-3.5 text-slate-500" />
-                                <span className="font-semibold text-slate-800">
-                                    {order.assigned_vehicle_name}
-                                    {order.assigned_vehicle_plate && <span className="text-slate-500 font-normal ml-1">({order.assigned_vehicle_plate})</span>}
-                                </span>
-                            </div>
-                        } />
-                    )}
-                </Section>
-            )}
-
             {/* Contact client */}
             {(order.client_name || order.client_phone) && (
                 <Section label="Contact">
@@ -634,6 +588,36 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                     </div>
                 </Section>
             )}
+
+            {/* Planuri/Documente Atasate */}
+            {documents && documents.length > 0 && (
+                <Section label="Documente / Planuri Atașate">
+                    <div className="space-y-2">
+                        {documents.map(doc => (
+                            <a 
+                                key={doc.id} 
+                                href={doc.url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 hover:border-blue-400 hover:shadow-md transition-all group"
+                            >
+                                <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-slate-800 truncate">{doc.filename}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase mt-0.5">
+                                        Fichier téléchargé • {Math.round(doc.file_size / 1024)} KB
+                                    </p>
+                                </div>
+                                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                            </a>
+                        ))}
+                    </div>
+                </Section>
+            )}
+
+
 
             {/* Documente/poze admin (instruction) */}
             {instPhotos.length > 0 && (
@@ -880,6 +864,17 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
 
             {/* Matériaux suplimentare */}
             <Section label="Alte Matériaux Consumate">
+                <div className="mb-3 mt-2">
+                    <button 
+                        onClick={() => setShowOtherMaterials(!showOtherMaterials)}
+                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors uppercase tracking-wider"
+                    >
+                        {showOtherMaterials ? "Masquer les autres matériaux" : "Ajouter d'autres matériaux consommés"}
+                    </button>
+                </div>
+                {showOtherMaterials && (
+                    <div className="w-full animate-in slide-in-from-top-2 duration-200">
+                        
                 <div className="space-y-2">
                     {rows.map((row, i) => (
                         <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
@@ -940,7 +935,10 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
                 >
                     {saved ? <><Check className="w-4 h-4" /> Salvat</> : saving ? 'Enregistrement...' : <><Check className="w-4 h-4" /> Enregistrer la consommation</>}
                 </button>
-            </Section>
+            
+                    </div>
+                )}
+</Section>
 
             {/* Cantitati executate (mp2, cm etc.) */}
             {order.volumes?.length > 0 && (
@@ -1002,7 +1000,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                     <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
                         <Eye className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                         <p className="text-xs text-blue-800">
-                            Photosle adaugate aici sunt <strong>interne</strong>. Nu apar in link-ul clientului si nu sunt poze de finalizare.
+                            Les photos ajoutées ici sont <strong>internes</strong>. Elles n'apparaissent pas dans le lien client.
                         </p>
                     </div>
 
@@ -1038,7 +1036,7 @@ function TabExtra({ order, photos, isLeader, onUploadInternal, uploadingInternal
                             className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
                         >
                             <Camera className="w-4 h-4" />
-                            {uploadingInternal ? 'Se incarca...' : 'Adauga poza interna'}
+                            {uploadingInternal ? 'Chargement...' : 'Ajouter photo interne'}
                         </button>
                     </Section>
                 </>
@@ -1064,7 +1062,7 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
         <div className="pb-28 px-4 pt-4 space-y-4">
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                 <p className="text-xs text-slate-600">
-                    Photos de finalizare necesare: <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
+                    Photos de finalisation requises : <strong className={completionPhotos.length >= order.min_photos_required ? 'text-blue-600' : 'text-red-600'}>
                         {completionPhotos.length} / {order.min_photos_required}
                     </strong>
                 </p>
@@ -1082,7 +1080,7 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                         {completionPhotos.map(p => (
                             <div key={p.id} className="relative">
                                 <button onClick={() => onPhotoClick(p.url)} className="block w-full text-left">
-                                    <img src={p.url} alt="Poza finalizare" className="w-full aspect-square object-cover rounded-xl border border-slate-200" />
+                                    <img src={p.url} alt="Photo finalisation" className="w-full aspect-square object-cover rounded-xl border border-slate-200" />
                                 </button>
                                 {!isCompleted && (
                                     <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-600 border border-slate-200 rounded-full flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity">
@@ -1096,7 +1094,7 @@ function TabPhotos({ order, completionPhotos, machinePhotos, onUploadCompletion,
                 <input type="file" accept="image/*" className="hidden" ref={fileRef} onChange={e => { const f = e.target.files?.[0]; if (f) onUploadCompletion(f); e.target.value = ''; }} />
                 <button disabled={uploadingCompletion || isCompleted} onClick={() => fileRef.current?.click()} className="w-full py-3 border-2 border-dashed border-blue-200 rounded-xl text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
                     <Camera className="w-4 h-4" />
-                    {uploadingCompletion ? 'Se incarca...' : 'Fotografiaza lucrarea finalizata'}
+                    {uploadingCompletion ? 'Chargement...' : 'Fotografiaza lucrarea finalizata'}
                 </button>
             </Section>
 
@@ -1147,12 +1145,12 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                 <div className="text-center py-12">
                     <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 mb-1">Comanda finalizata</h3>
-                    <p className="text-sm text-slate-500">Adminul va trimite link-ul clientului pentru semnatura digitala.</p>
+                    <p className="text-sm text-slate-500">L'admin enverra le lien de signature au client.</p>
                     <button
                         onClick={onReopen}
                         className="mt-6 text-sm text-blue-600 underline font-semibold"
                     >
-                        Anulează Finalizarea (Corectează datele)
+                        Annuler la finalisation
                     </button>
                 </div>
             ) : (
@@ -1491,7 +1489,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             const res = await api.post(`/worker/orders/${selected.id}/photos`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
-            showToast('Poza adaugata.', 'success')
+            showToast('Photo ajoutée.', 'success')
             
             if (photoType === 'machine_computer' && res.data?.ocr_data) {
                 setOcrData(res.data.ocr_data)
@@ -1564,7 +1562,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             setSelected(null) // inchide modalul
             await fetchOrders() // reincarca lista
         } catch (e) {
-            showToast(e.response?.data?.detail || 'Eroare la finalizare.', 'error')
+            showToast(e.response?.data?.detail || 'Erreur de finalisation.', 'error')
         } finally {
             setClosing(false)
         }
@@ -1719,10 +1717,14 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     >
                         <ChevronRight className="w-5 h-5 rotate-180" />
                     </button>
-                    <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.title}</h2>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${STATUS_COLOR[selected.status] || ''}`}>
-                        {STATUS_LABEL[selected.status] || selected.status}
-                    </span>
+                    <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.client_name ? `${selected.client_name} - ${selected.title}` : selected.title}</h2>
+                    <div className="shrink-0 flex justify-end">
+                        {(selected.site_lat && selected.site_lng) ? (
+                            <div className="scale-90 origin-right">
+                                <WeatherWidget lat={selected.site_lat} lon={selected.site_lng} dateStr={selected.start_date || new Date().toISOString()} />
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </div>
 
@@ -1838,7 +1840,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         className={`w-full py-4 text-white font-bold text-base rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-colors disabled:opacity-60 ${canClose ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-400'}`}
                     >
                         <CheckCircle2 className="w-5 h-5" />
-                        {closing ? 'Se finalizeaza...' : (canClose ? 'Finalizeaza comanda' : 'Adauga datele necesare')}
+                        {closing ? 'Finalisation en cours...' : (canClose ? 'Finaliser la commande' : 'Ajouter les données nécessaires')}
                     </button>
                 </div>
             )}

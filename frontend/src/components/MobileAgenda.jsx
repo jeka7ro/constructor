@@ -200,12 +200,17 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                 style={bgStyle}
                                             >
                                                 <div className="p-3.5 flex flex-col gap-2.5">
-                                                                                                        <div className="flex items-start gap-3">
+                                                                                                        <div className="flex items-start justify-between w-full">
                                                         <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg shrink-0" style={{ backgroundColor: color + '26' }}>
                                                             <Clock className="w-3.5 h-3.5 opacity-80" />
                                                             <span className="text-sm font-bold opacity-90">{time}</span>
                                                         </div>
-                                                        <div className="flex-1 text-right">
+                                                        <div className="flex-1 flex justify-center scale-[1.15] origin-top mt-[-4px]">
+                                                            {(wo.site_lat && wo.site_lng) ? (
+                                                                <WeatherWidget lat={wo.site_lat} lon={wo.site_lng} dateStr={wo.start_date || dateStr} />
+                                                            ) : null}
+                                                        </div>
+                                                        <div className="shrink-0 text-right">
                                                             {sandTons > 0 && (
                                                                 <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
                                                                     {sandTons.toFixed(1)} T {t('general.sand', 'Sable')}
@@ -249,15 +254,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                         </div>
                                                     </div>
 
-                                                                                                        <div className="flex justify-end items-end pt-0 mt-0">
-                                                        <div className="text-right flex-shrink-0 -mr-2 -mb-2">
-                                                            {(wo.site_lat && wo.site_lng) ? (
-                                                                <div className="scale-100 origin-bottom-right">
-                                                                    <WeatherWidget lat={wo.site_lat} lon={wo.site_lng} dateStr={wo.start_date || dateStr} />
-                                                                </div>
-                                                            ) : null}
-                                                        </div>
-                                                    </div>
+                                
                                                 </div>
                                             </button>
                                         );
