@@ -5,6 +5,20 @@ import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks
 import { ro, fr } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const toRad = x => x * Math.PI / 180;
+    const R = 6371; 
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCurrentWeek, isHistory = false }) {
     const { t, i18n } = useTranslation();
     const isFrench = i18n.language === 'fr';
@@ -111,7 +125,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                             {/* Lista Comenzi pt Zi */}
                             {dayOrders.length > 0 ? (
                                 <div className="space-y-3">
-                                                                        {dayOrders.map(wo => {
+                                                                        {dayOrders.map((wo, index) => {
                                         const time = wo.start_time || '--:--';
                                         
                                         let sandTons = 0;
@@ -125,6 +139,18 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                 if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
                                             });
                                             sandTons = totalKg / 1000;
+                                        }
+
+                                        
+                                        let distanceStr = '';
+                                        if (index > 0) {
+                                            const prevWo = dayOrders[index - 1];
+                                            const dist = haversineDistance(prevWo.site_lat, prevWo.site_lng, wo.site_lat, wo.site_lng);
+                                            if (dist !== null) {
+                                                distanceStr = `• ${dist.toFixed(1)} km de la lucrarea anterioară`;
+                                            }
+                                        } else {
+                                            distanceStr = `• Din Bază`;
                                         }
 
                                         const color = wo.assigned_team_color || '#3b82f6';
@@ -143,12 +169,18 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                 style={bgStyle}
                                             >
                                                 <div className="p-3.5 flex flex-col gap-2.5">
-                                                    <div className="flex items-start gap-3">
+                                                                                                        <div className="flex items-start gap-3">
                                                         <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg shrink-0" style={{ backgroundColor: color + '26' }}>
                                                             <Clock className="w-3.5 h-3.5 opacity-80" />
                                                             <span className="text-sm font-bold opacity-90">{time}</span>
                                                         </div>
-                                                        <div className="flex-1"></div>
+                                                        <div className="flex-1 text-right">
+                                                            {sandTons > 0 && (
+                                                                <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
+                                                                    {sandTons.toFixed(1)} T Nisip
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
 
                                                     <div className="space-y-1">
@@ -160,22 +192,21 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                         </p>
                                                     </div>
 
-                                                    <div className="flex items-start gap-1.5 mt-1 pt-2 border-t" style={{ borderColor: color + '26' }}>
+                                                                                                        <div className="flex items-start gap-1.5 mt-1 pt-2 border-t" style={{ borderColor: color + '26' }}>
                                                         <MapPin className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                                                        <span className="text-xs font-medium leading-tight opacity-80">
-                                                            {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
-                                                        </span>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-medium leading-tight opacity-80">
+                                                                {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
+                                                            </span>
+                                                            {distanceStr && (
+                                                                <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
+                                                                    {distanceStr}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
 
-                                                    <div className="flex justify-between items-end pt-1 mt-1">
-                                                        <div className="flex flex-col gap-1">
-                                                            {sandTons > 0 ? (
-                                                                <span className="text-xs font-bold px-2 py-1 rounded-md" style={{ backgroundColor: color + '1a' }}>
-                                                                    {sandTons.toFixed(1)} T Nisip
-                                                                </span>
-                                                            ) : <span />}
-                                                        </div>
-                                                        
+                                                                                                        <div className="flex justify-end items-end pt-0 mt-0">
                                                         <div className="text-right flex-shrink-0 -mr-2 -mb-2">
                                                             {(wo.site_lat && wo.site_lng) ? (
                                                                 <div className="scale-75 origin-bottom-right">
