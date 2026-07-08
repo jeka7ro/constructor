@@ -805,9 +805,7 @@ function TabMateriale({ order, onSaveConsumed }) {
     if (sandTons > 0 && !estMaterials.find(m => m.name.toLowerCase().includes('nisip'))) {
         estMaterials.unshift({ name: 'Nisip (Necesar calculat)', quantity: sandTons.toFixed(1), unit: 'T' });
     }
-    if (hasSapa && !estMaterials.find(m => m.name.toLowerCase().includes('duramint') || m.name.toLowerCase().includes('fibr'))) {
-        estMaterials.push({ name: 'Duramint (Fibră)', quantity: totalSapaM2.toString(), unit: 'm²' });
-    }
+    // removed automatic duramit fallback
 
     const [rows, setRows] = useState(
         order.materials_consumed?.length > 0
@@ -935,10 +933,10 @@ function TabMateriale({ order, onSaveConsumed }) {
                         });
                         return (
                             <>
-                                {(plasticM2 > 0 || hasSapa) && (
+                                {plasticM2 > 0 && (
                                     <div className="flex items-center justify-between py-2 border-t border-slate-100">
                                         <span className="text-sm font-semibold text-slate-700">Durmit Plastic (Fibră)</span>
-                                        <span className="text-sm font-bold text-slate-900">{Math.max(plasticM2, totalSapaM2)} m²</span>
+                                        <span className="text-sm font-bold text-slate-900">{plasticM2} m²</span>
                                     </div>
                                 )}
                                 {metalicM2 > 0 && (

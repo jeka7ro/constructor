@@ -99,6 +99,7 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "status": wo.status,
         "assigned_team_id": wo.assigned_team_id,
         "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
+            "assigned_team_color": wo.assigned_team.color_hex if wo.assigned_team else None,
         "assigned_vehicle_name": wo.assigned_vehicle.name if wo.assigned_vehicle else None,
         "assigned_vehicle_plate": wo.assigned_vehicle.plate_number if wo.assigned_vehicle else None,
         "min_photos_required": wo.min_photos_required,
@@ -195,6 +196,7 @@ def get_my_orders(
             "status": wo.status,
             "assigned_team_id": wo.assigned_team_id,
             "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
+            "assigned_team_color": wo.assigned_team.color_hex if wo.assigned_team else None,
             "assigned_vehicle_name": wo.assigned_vehicle.name if wo.assigned_vehicle else None,
             "assigned_vehicle_plate": wo.assigned_vehicle.plate_number if wo.assigned_vehicle else None,
             "min_photos_required": wo.min_photos_required,
@@ -612,14 +614,40 @@ def get_documents(
 
     from app.storage import get_file_url
     docs = db.query(WorkOrderDocument).filter(WorkOrderDocument.work_order_id == order_id).all()
-    return [{
+    
+    result = [{
         "id": d.id,
         "url": get_file_url(d.file_path),
         "filename": d.filename,
         "file_size": d.file_size,
         "content_type": d.content_type,
-        "uploaded_at": d.uploaded_at.isoformat()
+        "uploaded_at": d.uploaded_at.isoformat() if d.uploaded_at else None
     } for d in docs]
+    
+    # Adauga si documentele salvate in coloana JSON `documents` de catre admin
+    if wo.documents and isinstance(wo.documents, list):
+        for idx, doc in enumerate(wo.documents):
+            # doc can be a string (URL) or a dict {"url": "...", "name": "..."}
+            if isinstance(doc, str):
+                result.append({
+                    "id": f"json-doc-{idx}",
+                    "url": get_file_url(doc),
+                    "filename": doc.split('/')[-1] or f"Document {idx+1}",
+                    "file_size": 0,
+                    "content_type": "application/pdf" if doc.endswith('.pdf') else "application/octet-stream",
+                    "uploaded_at": None
+                })
+            elif isinstance(doc, dict) and doc.get("url"):
+                result.append({
+                    "id": f"json-doc-{idx}",
+                    "url": get_file_url(doc.get("url")),
+                    "filename": doc.get("name") or doc.get("url").split('/')[-1],
+                    "file_size": 0,
+                    "content_type": "application/pdf" if doc.get("url", "").endswith('.pdf') else "application/octet-stream",
+                    "uploaded_at": None
+                })
+                
+    return result
 
 @router.post("/{order_id}/reopen")
 def reopen_order(

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Navigation, Clock, CheckCircle2, Package, Check, Calendar } from 'lucide-react';
+import WeatherWidget from './WeatherWidget';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks, parseISO } from 'date-fns';
 import { ro, fr } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -110,40 +111,78 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                             {/* Lista Comenzi pt Zi */}
                             {dayOrders.length > 0 ? (
                                 <div className="space-y-3">
-                                    {dayOrders.map(wo => {
+                                                                        {dayOrders.map(wo => {
                                         const time = wo.start_time || '--:--';
                                         
+                                        let sandTons = 0;
+                                        if (wo.actual_sand_quantity) {
+                                            sandTons = parseFloat(wo.actual_sand_quantity) / 1000;
+                                        } else {
+                                            let totalKg = 0;
+                                            (wo.volumes || []).forEach(vol => {
+                                                const surface = parseFloat(vol.quantity) || 0;
+                                                const thickness = parseFloat(vol.thickness) || 0;
+                                                if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
+                                            });
+                                            sandTons = totalKg / 1000;
+                                        }
+
+                                        const color = wo.assigned_team_color || '#3b82f6';
+                                        const bgStyle = {
+                                            backgroundColor: color + '1a',
+                                            borderColor: color + '33',
+                                            backdropFilter: 'blur(8px)',
+                                            color: '#1e293b'
+                                        };
+
                                         return (
                                             <button
                                                 key={wo.id}
                                                 onClick={() => onOrderClick(wo)}
-                                                className="w-full text-left bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99]"
+                                                className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99]"
+                                                style={bgStyle}
                                             >
                                                 <div className="p-3.5 flex flex-col gap-2.5">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="flex items-center gap-2 bg-slate-50 px-2.5 py-1 rounded-lg shrink-0">
-                                                            <Clock className="w-3.5 h-3.5 text-slate-500" />
-                                                            <span className="text-sm font-bold text-slate-700">{time}</span>
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg shrink-0" style={{ backgroundColor: color + '26' }}>
+                                                            <Clock className="w-3.5 h-3.5 opacity-80" />
+                                                            <span className="text-sm font-bold opacity-90">{time}</span>
                                                         </div>
-                                                        <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-lg border ${getStatusColor(wo.status)}`}>
-                                                            {getStatusLabel(wo.status)}
-                                                        </span>
+                                                        <div className="flex-1"></div>
                                                     </div>
 
                                                     <div className="space-y-1">
-                                                        <h4 className="font-bold text-slate-900 text-[15px] leading-tight">
+                                                        <h4 className="font-bold text-[16px] leading-tight opacity-90">
                                                             {wo.client?.name || wo.client_name || 'Client Necunoscut'}
                                                         </h4>
-                                                        <p className="text-sm font-medium text-slate-600 leading-snug line-clamp-2">
+                                                        <p className="text-sm font-medium leading-snug line-clamp-2 opacity-75">
                                                             {wo.title}
                                                         </p>
                                                     </div>
 
-                                                    <div className="flex items-start gap-1.5 mt-1 pt-2 border-t border-slate-100">
-                                                        <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                                                        <span className="text-xs text-slate-500 font-medium leading-tight">
+                                                    <div className="flex items-start gap-1.5 mt-1 pt-2 border-t" style={{ borderColor: color + '26' }}>
+                                                        <MapPin className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
+                                                        <span className="text-xs font-medium leading-tight opacity-80">
                                                             {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
                                                         </span>
+                                                    </div>
+
+                                                    <div className="flex justify-between items-end pt-1 mt-1">
+                                                        <div className="flex flex-col gap-1">
+                                                            {sandTons > 0 ? (
+                                                                <span className="text-xs font-bold px-2 py-1 rounded-md" style={{ backgroundColor: color + '1a' }}>
+                                                                    {sandTons.toFixed(1)} T Nisip
+                                                                </span>
+                                                            ) : <span />}
+                                                        </div>
+                                                        
+                                                        <div className="text-right flex-shrink-0 -mr-2 -mb-2">
+                                                            {(wo.site_lat && wo.site_lng) ? (
+                                                                <div className="scale-75 origin-bottom-right">
+                                                                    <WeatherWidget lat={wo.site_lat} lon={wo.site_lng} dateStr={wo.start_date || dateStr} />
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </button>
