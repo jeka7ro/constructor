@@ -128,7 +128,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             const thickForAuto = parseFloat(vol.thickness || 0)
             
             if (surfaceForAuto > 0) {
-                if (vol.label?.toLowerCase()?.includes('sapa')) {
+                if (vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '')) {
                     const extraThickForAuto = Math.max(0, thickForAuto - 5)
                     
                     defaultFallbackItems.push({
@@ -261,7 +261,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </h2>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {isInvoiceView ? (wo.invoice_number || 'N/A') : (wo.quote_number || 'N/A')}
+                                N° {isInvoiceView ? (wo.invoice_number || 'N/A') : (wo.quote_number || `EST ${String(wo.quote_seq || wo.id?.slice(-4) || '0001').padStart(4, '0')}`)}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">

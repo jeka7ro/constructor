@@ -1485,6 +1485,14 @@ def generate_proforma(
     wo.proforma_path = proforma_route
     wo.proforma_issued_at = datetime.utcnow()
     
+    # Genereaza numar secvential EST daca nu exista
+    if not wo.quote_number:
+        count = db.query(WorkOrder).filter(
+            WorkOrder.organization_id == current_admin.organization_id,
+            WorkOrder.quote_number.isnot(None)
+        ).count()
+        wo.quote_number = f"EST {str(count + 1).zfill(4)}"
+    
     if payload:
         wo.proforma_data = payload
         
