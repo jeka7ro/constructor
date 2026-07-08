@@ -227,14 +227,11 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                         <h4 className="font-bold text-[16px] leading-tight opacity-90">
                                                             {wo.client?.name || wo.client_name || 'Client Necunoscut'}
                                                         </h4>
-                                                        <p className="text-sm font-medium leading-snug line-clamp-2 opacity-75">
-                                                            {wo.title}
-                                                        </p>
                                                     </div>
 
-                                                                                                        <div className="flex items-start gap-1.5 mt-1 pt-2 border-t" style={{ borderColor: color + '26' }}>
-                                                        <MapPin className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />
-                                                        <div className="flex flex-col">
+                                                    <div className="flex items-center gap-1.5 mt-1 pt-2 border-t" style={{ borderColor: color + '26' }}>
+                                                        <MapPin className="w-4 h-4 shrink-0 opacity-70" />
+                                                        <div className="flex flex-col flex-1">
                                                             <span className="text-xs font-medium leading-tight opacity-80">
                                                                 {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
                                                             </span>
@@ -256,6 +253,15 @@ export default function MobileAgenda({ orders, onOrderClick, currentWeek, setCur
                                                                 </span>
                                                             )}
                                                         </div>
+                                                        <a 
+                                                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
+                                                        >
+                                                            <Navigation className="w-4 h-4" />
+                                                        </a>
                                                     </div>
 
                                 

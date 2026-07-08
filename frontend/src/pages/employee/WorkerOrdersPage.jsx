@@ -187,7 +187,7 @@ function OrderCard({ order, onClick }) {
             <div className="p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <h3 className="font-bold text-slate-900 leading-snug text-sm flex-1">
-                        {order.title}
+                        {order.client_name || "Client Necunoscut"}
                         {order.start_date && (
                             <span className="text-xs font-semibold text-blue-600 ml-2 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 whitespace-nowrap">
                                 {fmtDate(order.start_date)} {order.start_time ? ` - ${order.start_time}` : ''}
@@ -1717,7 +1717,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     >
                         <ChevronRight className="w-5 h-5 rotate-180" />
                     </button>
-                    <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.client_name ? `${selected.client_name} - ${selected.title}` : selected.title}</h2>
+                    <h2 className="text-sm font-bold text-slate-900 truncate flex-1">{selected.client_name || "Client Necunoscut"}</h2>
                     <div className="shrink-0 flex justify-end">
                         {(selected.site_lat && selected.site_lng) ? (
                             <div className="scale-90 origin-right">
