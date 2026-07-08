@@ -799,6 +799,7 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
             ? order.materials_consumed.map(m => ({ ...m }))
             : (sandTons > 0 ? [{ name: 'Sable', quantity: '', unit: 'T', note: '' }] : [{ name: '', quantity: '', unit: '', note: '' }])
     )
+    const [showOtherMaterials, setShowOtherMaterials] = useState(false)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
 
