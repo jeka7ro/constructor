@@ -304,14 +304,15 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
             <div className="relative flex justify-center w-[20%]">
                 <button
                     onClick={onHomePress}
-                    className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white/90 backdrop-blur-xl shadow-[0_10px_25px_rgba(0,0,0,0.3)] bg-white`}
+                    className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] bg-[color:var(--mobile-bg)]`}
+                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     {tenant?.favicon_url ? (
                         <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                     ) : tenant?.logo_url ? (
                         <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
                     ) : (
-                        <Home className="w-8 h-8 drop-shadow-md" style={{ color: tenant?.primary_color || '#2563EB' }} />
+                        <Home className="w-8 h-8 drop-shadow-md text-white" />
                     )}
                 </button>
             </div>
@@ -525,46 +526,52 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
 
             {/* Adresa */}
-            {(order.site_address || (order.site_lat && (order.site_lon || order.site_lng))) && (
-                <Section label="Adresa">
-                    <div className="bg-white rounded-xl border border-slate-200 px-3 py-3 mb-2">
-                        <p className="text-sm font-bold text-slate-900 flex items-start gap-2">
-                            <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                            {order.site_address}
-                        </p>
-                    </div>
-                    {(order.site_lat && (order.site_lon || order.site_lng)) ? (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 h-64 relative mb-2">
-                            <MapView 
-                                latitude={order.site_lat} 
-                                longitude={order.site_lon || order.site_lng}
-                                address={order.site_address}
-                                baseName={order.assigned_team_name}
-                                routeSegments={order.route_segments}
-                                sandStations={sandStations}
-                                zoom={13}
-                            />
-                        </div>
-                    ) : (
-                        <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative mb-2">
-                            <iframe 
-                                width="100%" 
-                                height="100%" 
-                                frameBorder="0" 
-                                style={{ border: 0 }} 
-                                src={`https://maps.google.com/maps?q=${encodeURIComponent(order.site_address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`} 
-                                allowFullScreen
-                            />
-                        </div>
-                    )}
-                    {(order.site_lat && (order.site_lon || order.site_lng)) && (
-                        <div className="mb-2">
-                            <StreetViewPhotos lat={order.site_lat} lng={order.site_lon || order.site_lng} />
-                        </div>
-                    )}
-                    <NavButtons lat={order.site_lat} lon={order.site_lon || order.site_lng} address={order.site_address} />
-                </Section>
-            )}
+            {(() => {
+                const finalLat = order.site_lat || order.site_latitude;
+                const finalLng = order.site_lng || order.site_longitude || order.site_lon;
+                return (order.site_address || (finalLat && finalLng)) && (
+                    <Section label="Adresa">
+                        {order.site_address && (
+                            <div className="bg-white rounded-xl border border-slate-200 px-3 py-3 mb-2">
+                                <p className="text-sm font-bold text-slate-900 flex items-start gap-2">
+                                    <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                                    {order.site_address}
+                                </p>
+                            </div>
+                        )}
+                        {(finalLat && finalLng) ? (
+                            <div className="rounded-xl overflow-hidden border border-slate-200 h-64 relative mb-2">
+                                <MapView 
+                                    latitude={finalLat} 
+                                    longitude={finalLng}
+                                    address={order.site_address}
+                                    baseName={order.assigned_team_name}
+                                    routeSegments={order.route_segments}
+                                    sandStations={sandStations}
+                                    zoom={13}
+                                />
+                            </div>
+                        ) : order.site_address ? (
+                            <div className="rounded-xl overflow-hidden border border-slate-200 h-48 relative mb-2">
+                                <iframe 
+                                    width="100%" 
+                                    height="100%" 
+                                    frameBorder="0" 
+                                    style={{ border: 0 }} 
+                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(order.site_address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`} 
+                                    allowFullScreen
+                                />
+                            </div>
+                        ) : null}
+                        {((finalLat && finalLng) || order.site_address) && (
+                            <div className="mb-2">
+                                <StreetViewPhotos lat={finalLat} lng={finalLng} address={order.site_address} />
+                            </div>
+                        )}
+                        <NavButtons lat={finalLat} lon={finalLng} address={order.site_address} />
+                    </Section>
+                );
+            })()}
 
             {/* Instructiuni acces (admin) */}
             {accessLines.length > 0 && (
@@ -1377,17 +1384,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             const res = await api.get('/worker/orders')
             let fetchedOrders = res.data || [];
             
-            // Filtram comenzi
-            const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Bucharest' }); // yyyy-mm-dd local
-            
-            fetchedOrders = fetchedOrders.filter(o => {
-                const isPast = o.start_date && o.start_date < todayStr;
-                if (isHistory) {
-                    return isPast; // in history, show ONLY past orders
-                } else {
-                    return !isPast || o.status === "in_progress"; // in main view, hide past orders EXCEPT if they are currently active
-                }
-            });
+            // Nu mai filtrăm comenzile aici pentru a permite MobileAgenda să navigheze liber între zile.
+            // Componenta MobileAgenda va filtra automat comenzile afișate pentru ziua curentă (currentDate).
 
             setOrders(fetchedOrders);
         } catch {

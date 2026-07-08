@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Navigation, Clock, CheckCircle2, Package, Check, Calendar } from 'lucide-react';
+import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, Calendar } from 'lucide-react';
+import StreetViewPhotos from './StreetViewPhotos';
 import WeatherWidget from './WeatherWidget';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks, parseISO } from 'date-fns';
 import { ro, fr } from 'date-fns/locale';
@@ -187,36 +188,55 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                             sandTons = totalKg / 1000;
                                         }
 
-                                        
                                         let prevWo = null;
+                                        let prevLat = null;
+                                        let prevLng = null;
                                         if (index > 0) {
                                             prevWo = dayOrders[index - 1];
+                                            prevLat = prevWo.site_latitude || prevWo.site_lat;
+                                            prevLng = prevWo.site_longitude || prevWo.site_lng;
                                         }
 
                                         const color = wo.assigned_team_color || '#3b82f6';
                                         const bgStyle = {
                                             backgroundColor: color + '1a',
                                             borderColor: color + '33',
-                                            backdropFilter: 'blur(8px)',
-                                            color: '#1e293b'
+                                            backdropFilter: 'blur(8px)'
                                         };
+
+                                        const lat = wo.site_latitude || wo.site_lat;
+                                        const lng = wo.site_longitude || wo.site_lng;
+                                        const address = wo.site_address || wo.site?.address || wo.address;
+                                        const staticMapLoc = (lat && lng) ? `${lat},${lng}` : (address ? encodeURIComponent(address) : null);
 
                                         return (
                                             <button
                                                 key={wo.id}
                                                 onClick={() => onOrderClick(wo)}
-                                                className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99]"
+                                                className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800 dark:text-slate-100"
                                                 style={bgStyle}
                                             >
-                                                <div className="p-3.5 flex flex-col gap-2.5">
+                                                {staticMapLoc && (
+                                                    <div 
+                                                        className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 dark:opacity-20 mix-blend-multiply dark:mix-blend-lighten" 
+                                                        style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
+                                                    >
+                                                        <img 
+                                                            src={`https://maps.googleapis.com/maps/api/staticmap?center=${staticMapLoc}&zoom=14&size=400x300&maptype=roadmap&markers=color:blue%7C${staticMapLoc}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
+                                                            alt="Map" 
+                                                            className="w-full h-full object-cover" 
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
                                                                                                         <div className="flex items-start justify-between w-full">
                                                         <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg shrink-0" style={{ backgroundColor: color + '26' }}>
                                                             <Clock className="w-3.5 h-3.5 opacity-80" />
                                                             <span className="text-sm font-bold opacity-90">{time}</span>
                                                         </div>
                                                         <div className="flex-1 flex justify-center scale-[1.15] origin-top mt-[-4px]">
-                                                            {(wo.site_lat && wo.site_lng) ? (
-                                                                <WeatherWidget lat={wo.site_lat} lon={wo.site_lng} dateStr={wo.start_date || dateStr} />
+                                                            {(lat && lng) ? (
+                                                                <WeatherWidget lat={lat} lon={lng} dateStr={wo.start_date || dateStr} />
                                                             ) : null}
                                                         </div>
                                                         <div className="shrink-0 text-right">
@@ -233,18 +253,24 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                             {wo.client?.name || wo.client_name || 'Client Necunoscut'}
                                                         </h4>
                                                     </div>
+                                                    
+                                                    {((lat && lng) || address) && (
+                                                        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                                                            <StreetViewPhotos lat={lat} lng={lng} address={address} />
+                                                        </div>
+                                                    )}
 
-                                                    <div className="flex items-center gap-1.5 mt-1 pt-2 border-t" style={{ borderColor: color + '26' }}>
+                                                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
                                                         <MapPin className="w-4 h-4 shrink-0 opacity-70" />
                                                         <div className="flex flex-col flex-1">
                                                             <span className="text-xs font-medium leading-tight opacity-80">
-                                                                {wo.site_address || wo.site?.address || wo.address || 'Fără adresă'}
+                                                                {address || 'Fără adresă'}
                                                             </span>
                                                             {prevWo ? (
                                                                 <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
                                                                     <GoogleMapsDistance 
-                                                                        lat1={prevWo.site_lat} lon1={prevWo.site_lng} 
-                                                                        lat2={wo.site_lat} lon2={wo.site_lng} 
+                                                                        lat1={prevLat} lon1={prevLng} 
+                                                                        lat2={lat} lon2={lng} 
                                                                         label={t("general.from_prev", "du chantier précédent")} 
                                                                     />
                                                                 </span>
@@ -252,7 +278,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
                                                                     <GoogleMapsDistance 
                                                                         lat1={50.88243} lon1={4.39343} 
-                                                                        lat2={wo.site_lat} lon2={wo.site_lng} 
+                                                                        lat2={lat} lon2={lng} 
                                                                         label={t('general.from_base', 'de la base')}
                                                                     />
                                                                 </span>

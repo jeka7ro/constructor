@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 const weatherCache = {};
 
-export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, compact }) {
+export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, compact, inline }) {
     const { t } = useTranslation();
     const [hourlyData, setHourlyData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -101,7 +101,29 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
 
     }, [lat, lon, dateStr]);
 
+    const getIcon = (code, className="w-5 h-5") => {
+        if (code === 0) return <Sun className={`${className} text-orange-500`} />;
+        if ([1, 2].includes(code)) return <CloudSun className={`${className} text-blue-500`} />;
+        if (code === 3) return <Cloud className={`${className} text-slate-500`} />;
+        if ([45, 48].includes(code)) return <CloudFog className={`${className} text-slate-400`} />;
+        if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className={`${className} text-blue-400`} />;
+        if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className={`${className} text-blue-600`} />;
+        if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className={`${className} text-sky-300`} />;
+        if ([95, 96, 99].includes(code)) return <CloudLightning className={`${className} text-purple-600`} />;
+        return <Cloud className={`${className} text-slate-500`} />;
+    };
+
     if (!lat || !lon || !dateStr) return null;
+
+    if (inline) {
+        if (loading || error || !hourlyData) return null;
+        return (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/50 dark:bg-slate-800/50 border border-blue-100/50 dark:border-slate-700/50 rounded-full shadow-sm">
+                {getIcon(hourlyData[0]?.code, "w-4 h-4")}
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{hourlyData[0]?.temp}°</span>
+            </div>
+        );
+    }
     
     if (loading && !hourlyData) {
         return (
@@ -120,17 +142,7 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
         );
     }
 
-    const getIcon = (code, className="w-5 h-5") => {
-        if (code === 0) return <Sun className={`${className} text-orange-500`} />;
-        if ([1, 2].includes(code)) return <CloudSun className={`${className} text-blue-500`} />;
-        if (code === 3) return <Cloud className={`${className} text-slate-500`} />;
-        if ([45, 48].includes(code)) return <CloudFog className={`${className} text-slate-400`} />;
-        if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className={`${className} text-blue-400`} />;
-        if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className={`${className} text-blue-600`} />;
-        if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className={`${className} text-sky-300`} />;
-        if ([95, 96, 99].includes(code)) return <CloudLightning className={`${className} text-purple-600`} />;
-        return <Cloud className={`${className} text-slate-500`} />;
-    };
+
 
     return (
         <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col h-full overflow-hidden ${compact ? 'p-3' : 'p-5'}`}>
@@ -152,16 +164,16 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
                     </div>
                 </div>
                 <div className="flex flex-col items-end">
-                    {getIcon(hourlyData[0]?.code, compact ? "w-10 h-10 mb-1" : "w-12 h-12 mb-2")}
+                    {getIcon(hourlyData[0]?.code, compact ? "w-8 h-8 mb-1" : "w-10 h-10 mb-2")}
                     <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-                        {t('weather.feels_like', 'Se simt')} {hourlyData[0]?.feelsLike}°
+                        {t('weather.feels_like', 'Ressenti')} {hourlyData[0]?.feelsLike}°
                     </div>
                 </div>
             </div>
 
-            <div className={`text-[11px] font-medium text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700/50 flex justify-between ${compact ? 'mb-3 pb-2' : 'mb-5 pb-4'}`}>
-                <span>{t('weather.wind', 'Vânt')}: {hourlyData[0]?.wind} km/h</span>
-                <span>{t('weather.humidity', 'Umiditate')}: {hourlyData[0]?.humidity}%</span>
+            <div className={`text-[11px] font-medium text-slate-500 dark:text-slate-400 flex justify-between ${compact ? 'mb-3' : 'mb-5'}`}>
+                <span>{t('weather.wind', 'Vent')}: {hourlyData[0]?.wind} km/h</span>
+                <span>{t('weather.humidity', 'Humidité')}: {hourlyData[0]?.humidity}%</span>
             </div>
 
             {/* Bottom part: Next 5-6 hours */}

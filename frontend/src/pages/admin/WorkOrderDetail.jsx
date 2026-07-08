@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { SAND_STATIONS } from '../../data/sandStations'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw
 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
+import ConfirmModal from '../../components/ConfirmModal'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import {
@@ -16,6 +18,7 @@ import {
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import HourlyWeather from '../../components/HourlyWeather'
+import StreetViewPhotos from '../../components/StreetViewPhotos'
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const getStatusConfig = (t) => ({
@@ -206,6 +209,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [calcEditForm, setCalcEditForm] = useState(null)
     const [generatingProforma, setGeneratingProforma] = useState(false)
     const [activeDocTab, setActiveDocTab] = useState('devis')
+    const [docDrawerState, setDocDrawerState] = useState(null)
+    const [syncingPrices, setSyncingPrices] = useState(false)
+    const [showSyncConfirm, setShowSyncConfirm] = useState(false)
 
     const showToast = (msg) => {
         setToastMessage(msg)
@@ -482,7 +488,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
     const computeChapeTotal = (surface, thickness, flags, prices) => {
-        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, net: 0, extraThick: 0 };
+        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0, extraThick: 0 };
         const extraThick = Math.max(0, thickness - 5);
         const base  = parseFloat(prices?.base  || 12.5) * surface;
         const extra = extraThick * parseFloat(prices?.extra || 1.25) * surface;
@@ -490,6 +496,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         const mesh  = flags?.has_mesh  ? parseFloat(prices?.mesh  || 2.5) * surface : 0;
         const fiberRate = parseFloat(prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
         const fiber = flags?.has_fiber ? fiberRate * surface : 0;
+        const discountAmount = parseFloat(prices?.discount || 0);
         // ── Aplicare Seuil de Surface (grila de suprafață) ─────────────────────
         const thresholds = prices?.surface_thresholds || [];
         let threshold = 0;
@@ -499,7 +506,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             );
             if (match) threshold = parseFloat(match.extra_charge) || 0;
         }
-        return { base, extra, foil, mesh, fiber, threshold, net: base + extra + foil + mesh + fiber + threshold, extraThick };
+        const grossBeforeDiscount = base + extra + foil + mesh + fiber + threshold;
+        return { base, extra, foil, mesh, fiber, threshold, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick };
     };
 
     // Calculation Logic for Sapa — Estimatif (din volumes[])
@@ -558,6 +566,25 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         : 0;
     const bigDiff = diffPct > 20;
 
+    const handleSyncPrices = () => {
+        setShowSyncConfirm(true);
+    };
+
+    const executeSyncPrices = async () => {
+        setShowSyncConfirm(false);
+        setSyncingPrices(true);
+        try {
+            await api.post(`/admin/work-orders/${id}/sync-prices`);
+            showToast(t('work_order_detail.sync_success', 'Les prix ont été synchronisés avec succès.'));
+            loadWorkOrder(); // reîncarcă datele pentru a afișa noile prețuri
+        } catch (err) {
+            console.error(err);
+            showToast(t('common.error', 'Erreur lors de la synchronisation des prix.'), 'error');
+        } finally {
+            setSyncingPrices(false);
+        }
+    };
+
     // Handler salvare modal Calcul Edit
     const handleCalcEditSave = async () => {
         if (!calcEditForm) return;
@@ -577,9 +604,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             if (!hasChapeVol && surface > 0) {
                 newVolumes.push({ label: 'Chape', quantity: surface, unit: 'm²', thickness, has_foil: !!calcEditForm.has_foil, has_mesh: !!calcEditForm.has_mesh, has_fiber: !!calcEditForm.has_fiber, has_duramint: !!calcEditForm.has_duramint });
             }
+            const newPrices = {
+                ...(wo.prices || {}),
+                base: parseFloat(calcEditForm.base_price) || 0,
+                extra: parseFloat(calcEditForm.extra_price) || 0,
+                foil: parseFloat(calcEditForm.foil_price) || 0,
+                mesh: parseFloat(calcEditForm.mesh_price) || 0,
+                fiber: parseFloat(calcEditForm.fiber_price) || 0,
+                discount: parseFloat(calcEditForm.discount) || 0,
+            };
             // Calcul nou estimat
-            const newCalc = computeChapeTotal(surface, thickness, calcEditForm, wo.prices);
-            const res = await api.put(`/admin/work-orders/${id}`, { volumes: newVolumes, estimated_price: String(newCalc.net) });
+            const newCalc = computeChapeTotal(surface, thickness, calcEditForm, newPrices);
+            const res = await api.put(`/admin/work-orders/${id}`, { volumes: newVolumes, estimated_price: String(newCalc.net), prices: newPrices });
             setWo(res.data);
             setCalcEditOpen(false);
             showToast(t('work_order_detail.calc_edit.saved', 'Calcul actualizat cu succes!'));
@@ -650,7 +686,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-2 sm:ml-auto shrink-0">
+                <div className="flex gap-2 sm:ml-auto shrink-0 items-center">
+                    <HourlyWeather 
+                        lat={lat || 50.8503} 
+                        lon={lon || 4.3517} 
+                        dateStr={wo.start_date || wo.deadline_date || wo.created_at} 
+                        address={address}
+                        orderTime={wo.start_time}
+                        inline={true}
+                    />
                     {wo.token && (
                         <button
                             onClick={() => {
@@ -670,7 +714,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     {wo.is_quote && (
                         <>
                             <button
-                                onClick={() => navigate(`/admin/quotes/${id}/pdf`)}
+                                onClick={() => setDocDrawerState({ url: `/admin/quotes/${wo.id}/pdf`, type: 'devis' })}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full bg-purple-600 text-white text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm"
                             >
                                 <FileText className="w-3.5 h-3.5" />
@@ -835,16 +879,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div className="h-full">
-                    <HourlyWeather 
-                        lat={lat || 50.8503} 
-                        lon={lon || 4.3517} 
-                        dateStr={wo.start_date || wo.deadline_date || wo.created_at} 
-                        address={address}
-                        orderTime={wo.start_time}
-                        compact={true}
-                    />
-                </div>
-                <div className="h-full">
                     <Section className="h-full" icon={({ className }) => <TruckSVG color={wo.team_color || '#2563eb'} className={className} />} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
                         <div className="flex flex-col md:flex-row gap-3">
                             {/* Left: Schedule + Crew */}
@@ -978,7 +1012,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
-
+                                            {((wo.site_latitude && wo.site_longitude) || wo.site_address) && (
+                                                <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
+                                                    <StreetViewPhotos lat={wo.site_latitude} lng={wo.site_longitude} address={wo.site_address} />
+                                                </div>
+                                            )}
                                         </Section>
                 </div>
                 <div className="flex flex-col gap-5">
@@ -1058,9 +1096,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.volumes.map((v, i) => (
-                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{translateDynamicLabel(v.label)}</span>
-                                                                            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400">{v.quantity} {v.unit}</span>
+                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(v.label)}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{v.quantity} {v.unit}</span>
                                                                         </div>
                                                                     ))}
                                                                 </div>
@@ -1072,9 +1110,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Materiale Necesare')}</p>
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.materials.map((m, i) => (
-                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{translateDynamicLabel(m.name)}</span>
-                                                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{m.quantity} {m.unit}</span>
+                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(m.name)}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
                                                                         </div>
                                                                     ))}
                                                                 </div>
@@ -1091,35 +1129,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         <div className="w-full h-px bg-slate-100 dark:bg-slate-700/50 my-1"></div>
                                                         <div className="flex items-center flex-wrap gap-2 pt-1">
                                                             <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'RÉELLEMENT CONSOMMÉ')}</p>
                                                             </div>
                                                             <div className="flex items-center gap-2">
                                                                 {wo.actual_surface_m2 && (
-                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('work_order_detail.materials_volumes.confirmed_surface', 'Surface confirmée')}</span>
-                                                                        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{wo.actual_surface_m2} m²</span>
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_surface', 'Surface confirmée')}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_surface_m2} m²</span>
                                                                     </div>
                                                                 )}
                                                                 
                                                                 {wo.actual_thickness_cm && (
-                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('work_order_detail.materials_volumes.confirmed_thickness', 'Épaisseur confirmée')}</span>
-                                                                        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{wo.actual_thickness_cm} cm</span>
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_thickness', 'Épaisseur confirmée')}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_thickness_cm} cm</span>
                                                                     </div>
                                                                 )}
                                                                 
                                                                 {wo.actual_sand_quantity && (
-                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{t('work_order_detail.materials_volumes.confirmed_sand', 'Sable')}</span>
-                                                                        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{wo.actual_sand_quantity} kg</span>
+                                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_sand', 'Sable')}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_sand_quantity} kg</span>
                                                                     </div>
                                                                 )}
 
                                                                 {(wo.materials_consumed || []).filter(m => m.name).map((m, i) => (
-                                                                    <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg">
-                                                                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{m.name} {m.note && `(${m.note})`}</span>
-                                                                        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">{m.quantity} {m.unit}</span>
+                                                                    <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{m.name} {m.note && `(${m.note})`}</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -1172,7 +1210,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 e.stopPropagation();
                                                 const rawUrl = doc.file_url || doc.file_path;
                                                 const finalUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
-                                                window.open(finalUrl, '_blank');
+                                                
+                                                if (doc.filename?.toLowerCase().endsWith('.pdf') || doc.content_type === 'application/pdf') {
+                                                    setDocDrawerState({ url: finalUrl, type: 'document' });
+                                                } else {
+                                                    window.open(finalUrl, '_blank');
+                                                }
                                             }}
                                         />
                                     </button>
@@ -1195,130 +1238,151 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         )}
 
                         {isAuto ? (
-                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                                <div className="flex justify-between items-center mb-3">
-                                    <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{t('work_order_detail.invoicing.calc', 'Calcul Chape')} <span className="text-slate-400 font-normal normal-case ml-1">({t('work_order_detail.calc_estimatif', 'estimatif')})</span></p>
-                                    <button 
-                                        onClick={() => {
-                                            // Preia datele din primul volum Chape
-                                            const chapeVol = (wo.volumes || []).find(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase()));
-                                            setCalcEditForm({
-                                                surface: chapeVol?.quantity || surfaceForAuto || '',
-                                                thickness: chapeVol?.thickness || '',
-                                                has_foil: chapeVol?.has_foil || false,
-                                                has_mesh: chapeVol?.has_mesh || false,
-                                                has_fiber: chapeVol?.has_fiber || false,
-                                                has_duramint: chapeVol?.has_duramint || false,
-                                            });
-                                            setCalcEditOpen(true);
-                                        }}
-                                        className="text-slate-400 hover:text-blue-600 transition-colors bg-white dark:bg-slate-800 p-1 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm"
-                                        title={t('work_order_detail.edit', 'Modifier le calcul')}
-                                    >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
+                            <div className="bg-white dark:bg-slate-900 rounded-xl p-0 border border-slate-200 dark:border-slate-700">
+                                <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{t('work_order_detail.invoicing.calc', 'Calcul Chape')} <span className="text-slate-400 font-normal normal-case ml-1">({t('work_order_detail.calc_estimatif', 'estimatif')})</span></p>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={handleSyncPrices}
+                                            disabled={syncingPrices}
+                                            className="text-indigo-400 hover:text-indigo-600 transition-colors bg-indigo-50 dark:bg-indigo-900/30 p-1.5 rounded-md border border-indigo-200 dark:border-indigo-800 shadow-sm disabled:opacity-50"
+                                            title={t('work_order_detail.sync_prices_title', 'Resynchroniser les prix avec les tarifs globaux actuels')}
+                                        >
+                                            <RefreshCw className={`w-3.5 h-3.5 ${syncingPrices ? 'animate-spin' : ''}`} />
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                const chapeVol = (wo.volumes || []).find(v => /chape|[sșş]ap[aăâ]/i.test((v.label || '').toLowerCase()));
+                                                setCalcEditForm({
+                                                    surface: chapeVol?.quantity || surfaceForAuto || '',
+                                                    thickness: chapeVol?.thickness || '',
+                                                    has_foil: chapeVol?.has_foil || false,
+                                                    has_mesh: chapeVol?.has_mesh || false,
+                                                    has_fiber: chapeVol?.has_fiber || false,
+                                                    has_duramint: chapeVol?.has_duramint || false,
+                                                    base_price: parseFloat(wo.prices?.base || 12.5),
+                                                    extra_price: parseFloat(wo.prices?.extra || 1.25),
+                                                    foil_price: parseFloat(wo.prices?.foil || 1.2),
+                                                    mesh_price: parseFloat(wo.prices?.mesh || 2.5),
+                                                    fiber_price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)),
+                                                    discount: parseFloat(wo.prices?.discount || 0)
+                                                });
+                                                setCalcEditOpen(true);
+                                            }}
+                                            className="text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm"
+                                            title={t('work_order_detail.edit', 'Modifier le calcul')}
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* ── Alert différence majeure ── */}
                                 {bigDiff && hasRealData && (
-                                    <div className="mb-3 p-2.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-700 rounded-xl flex items-start gap-2">
-                                        <AlertCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                                    <div className="m-4 mb-0 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0 mt-0.5" />
                                         <div>
-                                            <p className="text-xs font-bold text-orange-700 dark:text-orange-400">{t('work_order_detail.calc_diff_alert', 'Différence importante détectée')}</p>
-                                            <p className="text-[11px] text-orange-600 dark:text-orange-300">{t('work_order_detail.calc_diff_pct', 'Écart entre estimatif et réel')}: <b>{diffPct.toFixed(1)}%</b></p>
+                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('work_order_detail.calc_diff_alert', 'Différence importante détectée')}</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400">{t('work_order_detail.calc_diff_pct', 'Écart entre estimatif et réel')}: <b>{diffPct.toFixed(1)}%</b></p>
                                         </div>
                                     </div>
                                 )}
-                                <div className="space-y-1.5 text-sm">
-                                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                        <span>{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
-                                        <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)} EUR</b></span>
+                                <div className="p-4 space-y-2 text-sm">
+                                    <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                        <span className="font-medium">{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
+                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)} EUR</b></span>
                                     </div>
                                     {autoExtra > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                            <span>{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoFoil > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
-                                            <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoMesh > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
-                                            <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoFiber > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
-                                            <span>{surfaceForAuto} m² × {parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {estimCalc.threshold > 0 && (
-                                        <div className="flex justify-between text-indigo-600 dark:text-indigo-400 font-semibold">
-                                            <span>{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
-                                            <span>+ <b>{estimCalc.threshold.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
+                                            <span className="text-right tabular-nums">+ <b>{estimCalc.threshold.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-                                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                                    {estimCalc.discount > 0 && (
+                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.discount', 'Remise (Discount)')}</span>
+                                            <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
+                                    <div className="flex justify-between text-base font-bold text-slate-900 dark:text-white">
                                         <span>{t('work_order_detail.invoicing.net', 'Net:')}</span>
-                                        <span>{autoNet.toFixed(2)} EUR</span>
+                                        <span className="tabular-nums">{autoNet.toFixed(2)} EUR</span>
                                     </div>
 
                                     {/* TVA Toggle */}
-                                    <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">{t('quotes.tva_toggle', 'Appliquer TVA')}</span>
+                                    <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{t('quotes.tva_toggle', 'Appliquer TVA')}</span>
                                             <button
                                                 onClick={() => setVatEnabled(v => !v)}
                                                 className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
-                                                    vatEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'
+                                                    vatEnabled ? 'bg-slate-800 dark:bg-slate-200' : 'bg-slate-300 dark:bg-slate-600'
                                                 }`}
                                             >
-                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 shadow transition-transform ${
                                                     vatEnabled ? 'translate-x-5' : 'translate-x-1'
                                                 }`} />
                                             </button>
                                         </div>
                                         {vatEnabled && (
-                                            <div className="flex flex-col gap-1.5 mt-2">
+                                            <div className="flex flex-col gap-2 mt-3">
                                                 {[
                                                     { val: '21', label: t('quotes.tva_type_new', 'Construction neuve (21%)') },
                                                     { val: '6',  label: t('quotes.tva_type_renov', 'Rénovation (6%)') },
                                                     ...(wo.client_type === 'juridica' ? [{ val: '0', label: t('quotes.tva_type_zero', '0% TVA (Entreprise)') }] : []),
                                                 ].map(opt => (
-                                                    <label key={opt.val} className="flex items-center gap-2 cursor-pointer">
+                                                    <label key={opt.val} className="flex items-center gap-3 cursor-pointer">
                                                         <input
                                                             type="radio"
                                                             name="vatType"
                                                             value={opt.val}
                                                             checked={vatType === opt.val}
                                                             onChange={() => setVatType(opt.val)}
-                                                            className="text-amber-500 focus:ring-amber-400"
+                                                            className="text-slate-800 dark:text-slate-200 focus:ring-slate-400 w-4 h-4"
                                                         />
-                                                        <span className="text-xs text-amber-800 dark:text-amber-300 font-medium">{opt.label}</span>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{opt.label}</span>
                                                     </label>
                                                 ))}
-                                                <div className="flex justify-between font-bold text-amber-700 dark:text-amber-400 mt-1 pt-1 border-t border-amber-200 dark:border-amber-700">
+                                                <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
                                                     <span>TVA ({vatType}%):</span>
-                                                    <span>{autoVat.toFixed(2)} EUR</span>
+                                                    <span className="tabular-nums">{autoVat.toFixed(2)} EUR</span>
                                                 </div>
                                             </div>
                                         )}
                                         {!vatEnabled && (
-                                            <p className="text-xs text-slate-400 dark:text-slate-500">{t('quotes.tva_disabled', 'TVA non appliquée / 0%')}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">{t('quotes.tva_disabled', 'TVA non appliquée / 0%')}</p>
                                         )}
                                     </div>
 
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
-                                    <div className="flex justify-between text-base font-black text-blue-600 dark:text-blue-400">
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
+                                    <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white">
                                         <span>{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
-                                        <span>{totalGross.toFixed(2)} EUR</span>
+                                        <span className="tabular-nums">{totalGross.toFixed(2)} EUR</span>
                                     </div>
                                 </div>
                             </div>
@@ -1328,51 +1392,56 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                         {/* ── Calcul RÉEL (date de la șeful de echipă) ── */}
                         {isAuto && hasRealData && realCalc && (
-                            <div className="mt-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-700">
-                                <p className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-3">✅ {t('work_order_detail.invoicing.calc_real', 'Calcul Réel (chef de chantier)')}</p>
-                                <div className="space-y-1.5 text-sm">
-                                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                        <span>{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span>{realSurface} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)} EUR</b></span>
+                            <div className="mt-4 bg-white dark:bg-slate-900 rounded-xl p-0 border border-slate-200 dark:border-slate-700">
+                                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{t('work_order_detail.invoicing.calc_real', 'Calcul Réel (chef de chantier)')}</p>
+                                </div>
+                                <div className="p-4 space-y-2 text-sm">
+                                    <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                        <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
+                                        <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)} EUR</b></span>
                                     </div>
                                     {realCalc.extra > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({realCalc.extraThick} cm)</span>
-                                            <span>{realSurface} m² × {realCalc.extraThick} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{realCalc.extra.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({realCalc.extraThick} cm)</span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {realCalc.extraThick} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{realCalc.extra.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.foil > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
-                                            <span>{realSurface} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.mesh > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
-                                            <span>{realSurface} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.fiber > 0 && (
-                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                                            <span>{t('work_order_detail.invoicing.fiber', 'Fibres')}</span>
-                                            <span>{realSurface} m² × {parseFloat(wo.prices?.fiber || (realSurface <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres')}</span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.fiber || (realSurface <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.threshold > 0 && (
-                                        <div className="flex justify-between text-indigo-600 dark:text-indigo-400 font-semibold">
-                                            <span>{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
-                                            <span>+ <b>{realCalc.threshold.toFixed(2)} EUR</b></span>
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
+                                            <span className="text-right tabular-nums">+ <b>{realCalc.threshold.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
-                                    <div className="h-px bg-amber-200 dark:bg-amber-700 my-2" />
-                                    <div className="flex justify-between font-black text-amber-800 dark:text-amber-300 text-base">
+                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
+                                    <div className="flex justify-between text-base font-black text-slate-900 dark:text-white">
                                         <span>{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL:')}</span>
-                                        <span>{(realCalc.net + realCalc.net * vatRate).toFixed(2)} EUR</span>
+                                        <span className="tabular-nums">{(realCalc.net + realCalc.net * vatRate).toFixed(2)} EUR</span>
                                     </div>
                                     {bigDiff && (
-                                        <div className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold mt-1">
-                                            ⚠️ {t('work_order_detail.diff_vs_estim', 'Écart vs estimatif')}: {realCalc.net > autoNet ? '+' : ''}{(realCalc.net - autoNet).toFixed(2)} EUR ({diffPct.toFixed(1)}%)
+                                        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700">
+                                            {t('work_order_detail.diff_vs_estim', 'Écart vs estimatif')}: {realCalc.net > autoNet ? '+' : ''}{(realCalc.net - autoNet).toFixed(2)} EUR ({diffPct.toFixed(1)}%)
                                         </div>
                                     )}
                                 </div>
@@ -1388,17 +1457,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                             {/* Tabs DEVIS / FACTURE — schimbă preview, click pe PDF deschide full page */}
                             {(wo.proforma_path || wo.is_invoiced) && (
-                                <div className="bg-white dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
                                     <button
                                         onClick={() => setActiveDocTab('devis')}
-                                        className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                                        style={activeDocTab === 'devis' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'shadow-sm ring-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                                     >
                                         DEVIS
                                     </button>
                                     {wo.is_invoiced && (
                                         <button
                                             onClick={() => setActiveDocTab('facture')}
-                                            className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeDocTab === 'facture' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                                            style={activeDocTab === 'facture' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
+                                            className={`px-3 py-1.5 text-xs font-bold rounded-full transition-colors ${activeDocTab === 'facture' ? 'shadow-sm ring-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                                         >
                                             FACTURE
                                         </button>
@@ -1408,13 +1479,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             {/* Badge FACTURAT / NEFACTURAT */}
                             <div className="ml-auto">
                                 {wo.is_invoiced ? (
-                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
+                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
                                         {t('work_order_detail.invoicing.invoiced', 'Facturat')}
                                     </span>
                                 ) : (
-                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block"></span>
                                         {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
                                     </span>
                                 )}
@@ -1425,7 +1496,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {(wo.proforma_path || wo.is_invoiced) && (
                             <div
                                 className="relative w-full h-[500px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
-                                onClick={() => window.open(`${window.location.origin}/proforma/${wo.id}?type=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`, 'pdfPopup', 'width=1000,height=800,menubar=no,toolbar=no,location=no')}
+                                onClick={() => setDocDrawerState({ url: `${window.location.origin}/proforma/${wo.id}?type=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`, type: activeDocTab })}
                             >
                                 {/* Overlay click hint */}
                                 <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
@@ -1451,7 +1522,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <button
                                     onClick={handleGenerateProforma}
                                     disabled={generatingProforma}
-                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg text-xs font-bold text-white transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 border border-transparent rounded-lg text-xs font-bold text-white transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
                                 >
                                     {generatingProforma && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                                     {t('work_order_detail.invoicing.generate_proforma', 'Générer Devis PDF')}
@@ -1466,10 +1537,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             {/* ── Devis PDF Preview ── */}
             {wo.is_quote && (
                 <Section icon={FileText} title={t('work_order_detail.pdf_preview', 'Previzualizare Devis PDF')}>
-                    <div className="w-full h-[800px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white">
+                    <div 
+                        className="w-full h-[800px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white relative cursor-pointer group"
+                        onClick={() => setDocDrawerState({ url: `/admin/quotes/${wo.id}/pdf`, type: 'devis' })}
+                    >
+                        {/* Overlay click hint */}
+                        <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                            <span className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-slate-700 shadow-lg">
+                                Ouvrir en plein écran
+                            </span>
+                        </div>
                         <iframe
                             src={`/admin/quotes/${wo.id}/pdf`}
-                            className="w-full h-full border-none"
+                            className="w-full h-full border-none pointer-events-none"
                             title="Devis PDF"
                         />
                     </div>
@@ -1504,11 +1584,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {photos.filter(p => p.photo_type === 'machine_computer').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
+                                        const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
                                         return (
                                             <div key={`mc-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border-2 border-indigo-400 cursor-zoom-in hover:shadow-lg transition-all"
                                                 onClick={() => setLightbox(src)}>
-                                                <img src={src} alt="Ecran Masina" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt="Ecran Masina" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <div className="absolute bottom-0 left-0 right-0 bg-indigo-900/80 backdrop-blur-sm p-1.5 text-center">
                                                     <span className="text-white text-[10px] font-bold">ECRAN MAȘINĂ</span>
                                                 </div>
@@ -1527,11 +1608,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {photos.filter(p => p.photo_type === 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
+                                        const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
                                         return (
                                             <div key={`comp-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:border-blue-400 hover:shadow-md transition-all"
                                                 onClick={() => setLightbox(src)}>
-                                                <img src={src} alt={`Finalizare ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt={`Finalizare ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <span className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-xl shadow-sm">
                                                     FINAL
                                                 </span>
@@ -1550,11 +1632,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
+                                        const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
                                         return (
                                             <div key={`alt-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:shadow-md transition-all"
                                                 onClick={() => setLightbox(src)}>
-                                                <img src={src} alt={`Interna ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt={`Interna ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-bold rounded uppercase">
                                                     {p.photo_type || 'intern'}
                                                 </span>
@@ -1628,8 +1711,40 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     ))}
                                 </div>
                             </div>
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.calc_edit.prices', 'Grille de Tarifs Personnalisée')}</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { key: 'base_price', label: t('work_order_detail.calc_edit.base_price', 'Base /m²') },
+                                        { key: 'extra_price', label: t('work_order_detail.calc_edit.extra_price', 'Extra /m²/cm') },
+                                        { key: 'foil_price', label: t('work_order_detail.calc_edit.foil_price', 'Feuille /m²') },
+                                        { key: 'mesh_price', label: t('work_order_detail.calc_edit.mesh_price', 'Treillis /m²') },
+                                        { key: 'fiber_price', label: t('work_order_detail.calc_edit.fiber_price', 'Fibres /m²') },
+                                        { key: 'discount', label: t('work_order_detail.calc_edit.discount', 'Remise (-EUR)') }
+                                    ].map(({ key, label }) => (
+                                        <div key={key}>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">{label}</label>
+                                            <input
+                                                type="number" min="0" step="0.01"
+                                                value={calcEditForm[key]}
+                                                onChange={e => setCalcEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                             {parseFloat(calcEditForm.surface) > 0 && (() => {
-                                const prev = computeChapeTotal(parseFloat(calcEditForm.surface), parseFloat(calcEditForm.thickness) || 0, calcEditForm, wo.prices);
+                                const livePrices = {
+                                    ...wo.prices,
+                                    base: parseFloat(calcEditForm.base_price) || 0,
+                                    extra: parseFloat(calcEditForm.extra_price) || 0,
+                                    foil: parseFloat(calcEditForm.foil_price) || 0,
+                                    mesh: parseFloat(calcEditForm.mesh_price) || 0,
+                                    fiber: parseFloat(calcEditForm.fiber_price) || 0,
+                                    discount: parseFloat(calcEditForm.discount) || 0
+                                };
+                                const prev = computeChapeTotal(parseFloat(calcEditForm.surface), parseFloat(calcEditForm.thickness) || 0, calcEditForm, livePrices);
                                 return (
                                     <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 border border-indigo-100 dark:border-indigo-800">
                                         <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.preview', 'Aperçu du total estimatif')}</p>
@@ -1652,14 +1767,25 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             )}
 
             {/* ── Lightbox ────────────────────────────────────────────────────── */}
-            {lightbox && (
+            {lightbox && createPortal(
                 <div className="fixed inset-0 bg-black/90 z-[99999] flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightbox(null)}>
-                    <img src={lightbox} alt="Preview" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
+                    <img 
+                        src={lightbox} 
+                        onError={(e) => { 
+                            if (lightbox.includes('/api/uploads/')) {
+                                const fb = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${lightbox.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
+                                if (e.target.src !== fb) e.target.src = fb;
+                            }
+                        }} 
+                        alt="Preview" 
+                        className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+                    />
                     <button onClick={() => setLightbox(null)}
                         className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold transition-colors">
                         ✕
                     </button>
-                </div>
+                </div>,
+                document.body
             )}
             {toastMessage && (
                 <div className="fixed bottom-4 right-4 z-[9999] bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4">
@@ -1675,6 +1801,56 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     onClose={() => setPreviewDocIndex(null)} 
                 />
             )}
+
+            {/* FULL PAGE PREVIEW MODAL pentru Facturi si Devize PDF */}
+            {docDrawerState && createPortal(
+                <div className="fixed inset-0 z-[100] flex flex-col bg-slate-100 dark:bg-slate-950">
+                    <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={() => setDocDrawerState(null)}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">PREVIZUALIZARE {docDrawerState.type === 'facture' ? 'FACTURĂ' : 'DEVIZ'}</h2>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{wo?.client?.name || wo?.client_name || 'Fără Client'}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => setDocDrawerState(null)}
+                                className="px-6 py-2.5 rounded-full font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                            >
+                                {t('common.close', 'Închide')}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden p-6 relative flex justify-center items-center bg-slate-50 dark:bg-slate-900/50">
+                        <div className="w-full h-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden ring-1 ring-slate-200/50">
+                            <iframe 
+                                src={docDrawerState.url} 
+                                className="w-full h-full border-none"
+                                title={docDrawerState.type === 'facture' ? 'Facture PDF' : 'Devis PDF'}
+                            />
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            <ConfirmModal
+                isOpen={showSyncConfirm}
+                onClose={() => setShowSyncConfirm(false)}
+                onConfirm={executeSyncPrices}
+                title={t('work_order_detail.sync_prices_title_modal', 'Resynchronisation des Tarifs')}
+                message={t('work_order_detail.sync_prices_confirm', 'Êtes-vous sûr de vouloir resynchroniser cette commande avec les tarifs globaux actuels ? Cela modifiera définitivement les prix historiques de la commande.')}
+                confirmText={t('common.confirm', 'Confirmer')}
+                cancelText={t('common.cancel', 'Annuler')}
+                type="danger"
+            />
         </div>
     )
     if (isEmbedded) {

@@ -257,7 +257,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0) + hiddenExtra
-    const discountAmount = priceRaw * (discountPct / 100)
+    const discountAmount = (priceRaw * (discountPct / 100)) + parseFloat(wo.prices?.discount || 0)
     const subtotal = priceRaw - discountAmount
     const vatAmount = subtotal * (vatRate / 100)
     const totalAmount = subtotal + vatAmount
@@ -288,7 +288,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </h2>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {isInvoiceView ? (wo.invoice_number || 'N/A') : (wo.quote_number || `EST ${String(wo.quote_seq || wo.id?.slice(-4) || '0001').padStart(4, '0')}`)}
+                                N° {isInvoiceView ? (wo.invoice_number || 'N/A') : (wo.quote_number || `DEV${String(wo.quote_seq || wo.id?.slice(-4) || '0001').padStart(4, '0')}`)}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
@@ -314,7 +314,6 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-2xl p-4 text-right print:border-none print:shadow-none print:p-0 print:pl-4">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">À L'ATTENTION DE</h3>
                         <p className="font-bold text-slate-800 text-base mb-1">{cName || tL('client_none')}</p>
-                        <p className="text-sm font-bold text-slate-700 mt-2 mb-1">N° client: <span className="font-normal">{wo.client?.id || wo.client_id ? `CUST-${(wo.client?.id || wo.client_id).toString().substring(0, 5)}` : '-'}</span></p>
                         <p className="text-sm text-slate-600 whitespace-pre-wrap leading-snug">{cDetails}</p>
                     </div>
                 </div>
@@ -360,9 +359,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                     <span className="font-bold text-slate-800 text-sm">Sous-total:</span>
                                     <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{priceRaw.toFixed(2)} EUR</span>
                                 </div>
-                                {discountPct > 0 && (
+                                {discountAmount > 0 && (
                                     <div className="flex justify-between mb-2 text-green-600">
-                                        <span className="font-bold text-sm">Discount ({discountPct}%)</span>
+                                        <span className="font-bold text-sm">{discountPct > 0 ? `Remise (${discountPct}%)` : 'Remise (Discount)'}</span>
                                         <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                                     </div>
                                 )}
@@ -386,9 +385,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             </>
                         ) : (
                             <>
-                                {discountPct > 0 && (
+                                {discountAmount > 0 && (
                                     <div className="flex justify-between mb-2 text-green-600">
-                                        <span className="font-bold text-sm">Discount ({discountPct}%)</span>
+                                        <span className="font-bold text-sm">{discountPct > 0 ? `Remise (${discountPct}%)` : 'Remise (Discount)'}</span>
                                         <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                                     </div>
                                 )}
@@ -411,7 +410,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
                                 <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
                                 <br/>
-                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || `INV${wo.id}`) : `EST${wo.id}`}</span></p>
+                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || `INV${wo.id}`) : (wo.quote_number || `DEV${wo.id?.slice(-4) || ''}`)}</span></p>
                             </div>
                         </div>
                     )}

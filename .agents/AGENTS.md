@@ -34,3 +34,7 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 ## 7. Portul Frontend (Vite)
 - Frontend-ul rulează întotdeauna pe portul **5678**.
 - Nu rula comenzi sau teste vizuale presupunând portul default 5173 sau alt port.
+
+## 8. Git Commit & Push
+- **ESTE STRICT INTERZIS** să folosești comenzi precum `git commit` și `git push` FĂRĂ permisiunea clară și explicită a utilizatorului.
+- După ce scrii și testezi codul, raportează modificările și AȘTEAPTĂ până când utilizatorul spune "dă push" sau "ok, commit".

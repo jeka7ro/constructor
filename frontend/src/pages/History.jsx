@@ -14,9 +14,13 @@ function formatHoursMinutes(hours) {
     return `${h}h ${m}min`
 }
 
+const getLocalDateString = (d = new Date()) => {
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+}
+
 export default function History() {
     const navigate = useNavigate()
-    const [historyDate, setHistoryDate] = useState(new Date().toISOString().split('T')[0])
+    const [historyDate, setHistoryDate] = useState(getLocalDateString())
     const [historyData, setHistoryData] = useState(null)
     const [historyLoading, setHistoryLoading] = useState(true)
     const [historyDates, setHistoryDates] = useState([])
@@ -43,37 +47,38 @@ export default function History() {
     }, [])
 
     const changeDate = (delta) => {
-        const d = new Date(historyDate)
+        const d = new Date(historyDate + 'T12:00:00') // Use local noon to safely add days
         d.setDate(d.getDate() + delta)
-        const today = new Date()
-        if (delta > 0 && d > today) return
-        const newDate = d.toISOString().split('T')[0]
-        setHistoryDate(newDate)
-        fetchHistory(newDate)
+        const newDateStr = getLocalDateString(d)
+        const todayStr = getLocalDateString()
+        if (delta > 0 && newDateStr > todayStr) return
+        setHistoryDate(newDateStr)
+        fetchHistory(newDateStr)
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-10">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                <div className="max-w-md mx-auto px-4 py-4">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                        <div>
-                            <h1 className="text-lg font-bold">Istoricul Meu</h1>
-                            <p className="text-xs text-blue-100">Ore, pauze și activități</p>
-                        </div>
+            <div className="max-w-md mx-auto px-4 pt-6 pb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-slate-500" />
+                    </button>
+                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30 shrink-0">
+                        <Calendar className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight truncate">Istoricul Meu</h1>
+                        <p className="text-xs font-semibold text-slate-500">Ore, pauze și activități</p>
                     </div>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+            <div className="max-w-md mx-auto px-4 space-y-4">
                 {/* Date Picker */}
                 <div className="bg-white rounded-2xl shadow-sm p-4">
                     <div className="flex items-center gap-3">
@@ -86,7 +91,7 @@ export default function History() {
                         <input
                             type="date"
                             value={historyDate}
-                            max={new Date().toISOString().split('T')[0]}
+                            max={getLocalDateString()}
                             onChange={(e) => {
                                 setHistoryDate(e.target.value)
                                 fetchHistory(e.target.value)
@@ -95,7 +100,7 @@ export default function History() {
                         />
                         <button
                             onClick={() => changeDate(1)}
-                            disabled={historyDate >= new Date().toISOString().split('T')[0]}
+                            disabled={historyDate >= getLocalDateString()}
                             className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30"
                         >
                             <ChevronRight className="w-5 h-5 text-slate-500" />

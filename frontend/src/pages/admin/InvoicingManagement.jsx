@@ -15,7 +15,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 import i18n from '../../i18n'
 
-const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken, onSendToBilltobox }) => {
+const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedToken, onSendToBilltobox, onPreviewPdf }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const btnRef = React.useRef(null);
@@ -60,15 +60,13 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                 >
                     {wo.proforma_path ? (
                         <>
-                            <a 
-                                href={wo.proforma_path} 
-                                target="_blank" 
-                                rel="noreferrer"
+                            <button 
+                                onClick={() => { onPreviewPdf(wo.proforma_path); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <FileOutput className="w-4 h-4 text-slate-400" />
                                 {t('invoicing.view_pdf', 'Descarcă / Vezi PDF')}
-                            </a>
+                            </button>
                             <button 
                                 onClick={() => { onEdit(wo); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
@@ -124,15 +122,13 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                     )}
 
                     <div className="border-t border-slate-100 my-1"></div>
-                    <a 
-                        href={`/admin/work-orders/${wo.id}`}
-                        target="_blank"
-                        rel="noreferrer"
+                    <button 
+                        onClick={() => { navigate(`/admin/work-orders/${wo.id}`); setIsOpen(false); }}
                         className="w-full text-left px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-2"
                     >
                         <ExternalLink className="w-4 h-4 text-slate-400" />
                         {t('invoicing.view_details', 'Vezi Detalii Lucrare')}
-                    </a>
+                    </button>
                 </div>,
                 document.body
             )}
@@ -156,6 +152,7 @@ export default function InvoicingManagement() {
     const [previewWo, setPreviewWo] = useState(null)
     const [generatingId, setGeneratingId] = useState(null)
     const [copiedToken, setCopiedToken] = useState(null)
+    const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null)
     const [isSearchingVies, setIsSearchingVies] = useState(false)
     const [selectedTeams, setSelectedTeams] = useState([])   // array de team names
     const [statusFilter, setStatusFilter] = useState(null)    // null | 'unfactured' | 'proforma' | 'invoiced' | 'quote'
@@ -601,6 +598,7 @@ export default function InvoicingManagement() {
                         onCopyLink={handleCopyLink}
                         copiedToken={copiedToken}
                         onSendToBilltobox={handleSendToBilltobox}
+                        onPreviewPdf={setPdfPreviewUrl}
                     />
                 </div>
             )
@@ -1051,6 +1049,31 @@ export default function InvoicingManagement() {
                         {toast.msg}
                     </div>
                 </div>
+            )}
+            {pdfPreviewUrl && createPortal(
+                <div className="fixed inset-0 z-[100] flex flex-col bg-slate-100 dark:bg-slate-950">
+                    <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                                {t('work_order_detail.pdf_preview', 'PREVIZUALIZARE DEVIZ')}
+                            </h2>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => setPdfPreviewUrl(null)}
+                                className="px-6 py-2.5 rounded-full font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                            >
+                                {t('common.close', 'Fermer')}
+                            </button>
+                        </div>
+                    </div>
+                    <iframe
+                        src={pdfPreviewUrl}
+                        className="w-full flex-1 border-none bg-slate-100"
+                        title="Document Preview"
+                    />
+                </div>,
+                document.body
             )}
         </div>
     )

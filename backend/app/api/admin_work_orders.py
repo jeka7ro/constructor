@@ -480,7 +480,7 @@ def create_work_order(
     # Auto-generate quote_number (IST0001, IST0002...) sau invoice_number (INV001...)
     if wo.is_quote:
         count = db.query(WorkOrder).filter(WorkOrder.is_quote == True).count()
-        wo.quote_number = f"IST {str(838 + count).zfill(4)}"
+        wo.quote_number = f"DEV{str(count + 1).zfill(4)}"
     else:
         count = db.query(WorkOrder).filter(
             WorkOrder.organization_id == current_admin.organization_id,
@@ -766,6 +766,88 @@ def update_work_order(
     db.commit()
     db.refresh(wo)
     return _serialize(wo, db)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SYNC PRICES
+# ──────────────────────────────────────────────────────────────────────────────
+@router.post("/work-orders/{wo_id}/sync-prices")
+def sync_work_order_prices(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
+        
+    pricing = db.query(PricingSetting).filter(
+        PricingSetting.organization_id == current_admin.organization_id,
+        PricingSetting.client_id == (wo.client_id if wo.client_id else None)
+    ).first()
+    
+    if not pricing and wo.client_id:
+        pricing = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == current_admin.organization_id,
+            PricingSetting.client_id == None
+        ).first()
+        
+    if not pricing:
+        raise HTTPException(status_code=404, detail="Setările de preț globale nu au fost găsite.")
+        
+    wo.prices = {
+        "base": pricing.base_price_sqm,
+        "extra": pricing.extra_thickness_price_per_cm,
+        "foil": pricing.plastic_foil_price_sqm,
+        "mesh": pricing.metal_mesh_price_sqm,
+        "fiber": pricing.fiber_price_sqm,
+        "fiber_large": pricing.fiber_price_sqm_large,
+        "fiber_threshold": pricing.fiber_large_threshold_sqm
+    }
+    
+    db.commit()
+    
+    # Recalculate estimated price using the updated prices
+    try:
+        from app.api.public_work_orders import compute_chape_total
+        auto_base = 0
+        auto_extra = 0
+        auto_foil = 0
+        auto_mesh = 0
+        auto_fiber = 0
+        auto_net = 0
+        
+        for vol in (wo.volumes or []):
+            quantity = float(vol.get('quantity') or 0)
+            thickness = float(vol.get('thickness') or 0)
+            label = str(vol.get('label') or '').lower()
+            if 'chape' in label or 'sapa' in label or 'şapă' in label or 'șapă' in label:
+                if quantity > 0:
+                    flags = {
+                        'has_foil': vol.get('has_foil', False),
+                        'has_mesh': vol.get('has_mesh', False),
+                        'has_fiber': vol.get('has_fiber', False),
+                        'has_duramint': vol.get('has_duramint', False)
+                    }
+                    c = compute_chape_total(quantity, thickness, flags, wo.prices)
+                    auto_base += c.get('base', 0)
+                    auto_extra += c.get('extra', 0)
+                    auto_foil += c.get('foil', 0)
+                    auto_mesh += c.get('mesh', 0)
+                    auto_fiber += c.get('fiber', 0)
+                    auto_net += c.get('net', 0)
+                    
+        if auto_net > 0:
+            wo.estimated_price = auto_net
+            db.commit()
+    except Exception as e:
+        print("Failed to auto-recalculate estimated price after sync:", str(e))
+        pass
+
+    return {"message": "Prices synchronized successfully", "prices": wo.prices, "estimated_price": wo.estimated_price}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1492,7 +1574,7 @@ def generate_proforma(
             WorkOrder.organization_id == current_admin.organization_id,
             WorkOrder.quote_number.isnot(None)
         ).count()
-        wo.quote_number = f"EST {str(count + 1).zfill(4)}"
+        wo.quote_number = f"DEV{str(count + 1).zfill(4)}"
     
     if payload:
         wo.proforma_data = payload

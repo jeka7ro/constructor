@@ -86,14 +86,17 @@ export default function EmployeeLayout() {
                 <Outlet />
             </main>
 
-            {/* Bottom Navigation Bar (Glossy Glass Theme) */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-blue-100/40 backdrop-blur-xl border-4 border-b-0 border-white/80 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(59,130,246,0.5)] z-50 rounded-t-3xl">
+            {/* Bottom Navigation Bar */}
+            <nav 
+                className="fixed bottom-0 left-0 right-0 border-t border-slate-200/50 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.05)] z-50 rounded-t-3xl transition-colors duration-300"
+                style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
+            >
 
                 {/* 1. Istoric sau Spacer */}
                 {hasLongTerm ? (
                     <NavLink
                         to="/history"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-700 scale-110 drop-shadow-md' : (isHome ? 'text-blue-600/90' : 'text-slate-400')}`}
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
                         <Calendar className="w-7 h-7 mb-1.5" />
                         <span className="text-xs font-bold">{t('nav.history', 'Istoric')}</span>
@@ -101,7 +104,7 @@ export default function EmployeeLayout() {
                 ) : (
                     <NavLink
                         to="/istoric"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-blue-700 scale-110 drop-shadow-md' : (isHome ? 'text-blue-600/90' : 'text-slate-400')}`}
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
                         <Calendar className="w-7 h-7 mb-1.5" />
                         <span className="text-[10px] font-bold text-center leading-tight">{t('nav.history', 'Istoric')}</span>
@@ -112,7 +115,7 @@ export default function EmployeeLayout() {
                 {hasLongTerm ? (
                     <NavLink
                         to="/comenzi"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-green-700 scale-110 drop-shadow-md' : (isHome ? 'text-green-600/90' : 'text-slate-400')}`}
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
                         <ClipboardList className="w-7 h-7 mb-1.5" />
                         <span className="text-xs font-bold">{t('nav.work_orders', 'Comenzi')}</span>
@@ -121,15 +124,14 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-[color:var(--mobile-bg)] shadow-[0_10px_25px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
-                            style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-[6px] border-slate-50 bg-white shadow-sm ${isHome ? 'scale-105' : ''}`}
                         >
                             {tenant?.favicon_url ? (
-                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
+                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-12 h-12 object-contain" />
                             ) : tenant?.logo_url ? (
-                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-12 h-12 object-contain drop-shadow-md rounded-xl" />
+                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-14 h-14 object-contain" />
                             ) : (
-                                <Home className="w-10 h-10 drop-shadow-md" />
+                                <Home className="w-10 h-10 text-slate-400" />
                             )}
                         </button>
                     </div>
@@ -140,22 +142,21 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-[color:var(--mobile-bg)] shadow-[0_10px_25px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.2)] ${isHome ? 'ring-4 ring-[color:var(--mobile-bg)] scale-105' : 'ring-2 ring-[color:var(--mobile-bg)] opacity-90'}`}
-                            style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[84px] h-[84px] text-white rounded-full transition-all active:scale-95 border-[6px] border-slate-50 bg-white shadow-sm ${isHome ? 'scale-105' : ''}`}
                         >
                             {tenant?.favicon_url ? (
-                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
+                                <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-12 h-12 object-contain" />
                             ) : tenant?.logo_url ? (
-                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-12 h-12 object-contain drop-shadow-md rounded-xl" />
+                                <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-14 h-14 object-contain" />
                             ) : (
-                                <Home className="w-10 h-10 drop-shadow-md" />
+                                <Home className="w-10 h-10 text-slate-400" />
                             )}
                         </button>
                     </div>
                 ) : (
                     <NavLink
                         to="/comenzi"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-green-700 scale-110 drop-shadow-md' : (isHome ? 'text-green-600/90' : 'text-slate-400')}`}
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
                         <ClipboardList className="w-7 h-7 mb-1.5" />
                         <span className="text-[10px] font-bold text-center leading-tight">{t('nav.work_orders_full', 'Comenzi de lucru')}</span>
@@ -166,7 +167,7 @@ export default function EmployeeLayout() {
                 {hasLongTerm && (
                     <NavLink
                         to="/my-inventory"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 scale-110 drop-shadow-md' : (isHome ? 'text-emerald-600/90' : 'text-slate-400')}`}
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
                         <Wrench className="w-7 h-7 mb-1.5" />
                         <span className="text-xs font-bold">{t('nav.inventory', 'Inventar')}</span>
@@ -177,7 +178,7 @@ export default function EmployeeLayout() {
                 {hasLongTerm && (
                     <NavLink
                         to="/sesizari"
-                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-red-600 scale-110 drop-shadow-md' : (isHome ? 'text-red-500/90' : 'text-slate-400')}`}
+                        className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
                         <AlertTriangle className="w-7 h-7 mb-1.5" />
                         <span className="text-xs font-bold">{t('nav.complaints', 'Sesizări')}</span>
