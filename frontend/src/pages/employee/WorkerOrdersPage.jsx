@@ -280,7 +280,10 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
     };
 
     return (
-        <div className="bg-blue-100/40 backdrop-blur-xl border-4 border-b-0 border-white/80 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(59,130,246,0.5)] rounded-t-3xl pb-[calc(env(safe-area-inset-bottom)+12px)] relative">
+        <div 
+            className="backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] rounded-t-3xl pb-[calc(env(safe-area-inset-bottom)+12px)] relative"
+            style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
+        >
             <div className="flex justify-around w-[40%]">
                 {TABS.slice(0, 2).map(({ id, label, icon: Icon }) => (
                     <button
@@ -288,8 +291,8 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
                         onClick={() => onChange(id)}
                         className={`flex flex-col items-center p-2 w-[72px] transition-all ${
                             active === id
-                                ? 'text-blue-700 scale-110 drop-shadow-md'
-                                : 'text-slate-500'
+                                ? 'text-white scale-110 drop-shadow-md'
+                                : 'text-white/60'
                         }`}
                     >
                         <Icon className="w-7 h-7 mb-1.5" />
@@ -301,15 +304,14 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
             <div className="relative flex justify-center w-[20%]">
                 <button
                     onClick={onHomePress}
-                    className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white/80 backdrop-blur-xl bg-[color:var(--mobile-bg)] shadow-[0_10px_25px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.2)] ring-2 ring-[color:var(--mobile-bg)] opacity-90`}
-                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                    className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white/90 backdrop-blur-xl shadow-[0_10px_25px_rgba(0,0,0,0.3)] bg-white`}
                 >
                     {tenant?.favicon_url ? (
                         <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                     ) : tenant?.logo_url ? (
                         <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
                     ) : (
-                        <Home className="w-8 h-8 drop-shadow-md" />
+                        <Home className="w-8 h-8 drop-shadow-md" style={{ color: tenant?.primary_color || '#2563EB' }} />
                     )}
                 </button>
             </div>
@@ -321,8 +323,8 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
                         onClick={() => onChange(id)}
                         className={`flex flex-col items-center p-2 w-[72px] transition-all ${
                             active === id
-                                ? 'text-blue-700 scale-110 drop-shadow-md'
-                                : 'text-slate-500'
+                                ? 'text-white scale-110 drop-shadow-md'
+                                : 'text-white/60'
                         }`}
                     >
                         <Icon className="w-7 h-7 mb-1.5" />
@@ -523,7 +525,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
 
 
             {/* Adresa */}
-            {order.site_address && (
+            {(order.site_address || (order.site_lat && (order.site_lon || order.site_lng))) && (
                 <Section label="Adresa">
                     <div className="bg-white rounded-xl border border-slate-200 px-3 py-3 mb-2">
                         <p className="text-sm font-bold text-slate-900 flex items-start gap-2">
