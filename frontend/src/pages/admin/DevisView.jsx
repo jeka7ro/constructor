@@ -63,7 +63,7 @@ export default function DevisView({ embeddedToken, signatureElement }) {
 
     const items = buildItems()
     const total = items.reduce((s, i) => s + i.qty * i.price, 0)
-    const devisNum = wo.quote_number || `EST ${wo.id?.toString().slice(-4).padStart(4, '0') || '0000'}`
+    const devisNum = wo.quote_number || `EST ${wo.id?.toString().replace(/\\D/g, '').slice(-4).padStart(4, '0') || '0840'}`
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-BE') : new Date().toLocaleDateString('fr-BE')
     const primaryColor = tenant?.primary_color || '#059669'
 

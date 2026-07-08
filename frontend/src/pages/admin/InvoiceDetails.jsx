@@ -269,7 +269,7 @@ export default function InvoiceDetails() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">N° Devis</p>
-                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{wo.quote_number || clientData.quoteNumber || clientData.quote_number || `EST ${wo.id?.toString().slice(-4).padStart(4, '0') || '0000'}`}</p>
+                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{wo.quote_number || clientData.quoteNumber || clientData.quote_number || `EST ${wo.id?.toString().replace(/\\D/g, '').slice(-4).padStart(4, '0') || '0840'}`}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Date Devis</p>

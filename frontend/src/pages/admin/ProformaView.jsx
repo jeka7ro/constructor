@@ -279,7 +279,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     </div>
                     <div className="text-right flex items-center gap-6">
                         <div className="text-right">
-                            <h2 className="text-3xl font-light text-slate-800 uppercase tracking-widest leading-tight">
+                            <h2 className="text-xl font-light text-slate-800 uppercase tracking-widest leading-tight">
                                 {isInvoiceView ? (
                                     tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
                                 ) : (
@@ -287,7 +287,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </h2>
                             <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {isInvoiceView ? (wo.invoice_number || `INV ${wo.id?.toString().slice(-4).padStart(4, '0') || '0000'}`) : (wo.quote_number || `EST ${wo.id?.toString().slice(-4).padStart(4, '0') || '0000'}`)}
+                                N° {isInvoiceView ? (wo.invoice_number || `INV ${wo.id?.toString().replace(/\\D/g, '').slice(-4).padStart(4, '0') || '0000'}`) : (wo.quote_number || `EST ${wo.id?.toString().replace(/\\D/g, '').slice(-4).padStart(4, '0') || '0840'}`)}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
