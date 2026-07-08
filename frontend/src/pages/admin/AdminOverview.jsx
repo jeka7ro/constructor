@@ -290,26 +290,25 @@ export default function AdminOverview() {
     }
 
     useEffect(() => {
-        // Batch sequential fetching to prevent Supabase pool exhaustion (max 15 connections)
         const loadAll = async () => {
-            // Batch 1: Essential & Critical Data (Works & Teams)
+            // Batch 1: RAPID — date critice pentru UI imediat vizibil
             await Promise.allSettled([
                 fetchTeams(),
                 fetchClients(),
+                fetchStats(),          // stat cards vizibile imediat
+                fetchActiveWorkers(),  // lista lucratori vizibila imediat
+            ])
+            
+            // Batch 2: MEDIU — devisuri + alerte
+            await Promise.allSettled([
                 fetchPendingQuotes(),
-                isShortTerm ? fetchWorkOrdersStats() : Promise.resolve()
-            ])
-            
-            // Batch 2: Workers & Quick Stats
-            await Promise.allSettled([
-                fetchActiveWorkers(),
-                fetchStats()
-            ])
-            
-            // Batch 3: Heavy / Background Stats
-            await Promise.allSettled([
-                fetchChartData(),
                 fetchFleetAlerts(),
+            ])
+            
+            // Batch 3: LENT — date grele in background (nu blocheaza UI)
+            await Promise.allSettled([
+                isShortTerm ? fetchWorkOrdersStats() : Promise.resolve(),
+                fetchChartData(),
                 fetchComplaints()
             ])
         }
@@ -368,6 +367,7 @@ export default function AdminOverview() {
 
     const fetchWorkOrdersStats = async () => {
         try {
+            // O singura cerere cu limit mare (evita doua cereri secventiale)
             const res = await api.get(`/admin/work-orders${getDateParams()}`)
             const all = res.data?.items || res.data || []
             const total = res.data?.total || all.length
@@ -376,10 +376,9 @@ export default function AdminOverview() {
             setWorkOrdersStats({ total, active, draft })
             if (Array.isArray(all)) {
                 setAllWorkOrders(all)
+                // Recentele = primele 50 din aceeasi lista (sortate desc)
+                setRecentWorkOrders(all.slice(0, 50))
             }
-            // Fetch the 50 most recent work orders independent of current month
-            const recentRes = await api.get('/admin/work-orders?limit=50')
-            setRecentWorkOrders(recentRes.data || [])
         } catch {}
     }
 
