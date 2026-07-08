@@ -362,6 +362,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     useEffect(() => { load() }, [load])
 
+    // ESC key — close lightbox
+    useEffect(() => {
+        const handler = (e) => { if (e.key === 'Escape') setLightbox(null); };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
+
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <div className="flex flex-col items-center gap-3">
@@ -1390,7 +1397,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {/* ── Lightbox ────────────────────────────────────────────────────── */}
             {lightbox && (
-                <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightbox(null)}>
+                <div className="fixed inset-0 bg-black/90 z-[99999] flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightbox(null)}>
                     <img src={lightbox} alt="Preview" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
                     <button onClick={() => setLightbox(null)}
                         className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold transition-colors">
