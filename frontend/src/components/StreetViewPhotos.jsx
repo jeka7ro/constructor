@@ -21,8 +21,8 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
 
     if (!lat || !lng || !apiKey) return null;
 
-    // Folosim un arc de cerc mai strâns (300°, 0°, 60°) pentru a menține focusul spre clădire
-    const headings = [0, 60, 300];
+    // Folosim un arc de cerc mai strâns (315°, 0°, 45°) pentru a menține focusul spre clădire
+    const headings = [315, 0, 45];
 
     const getImageUrl = (heading, isLarge = false) => {
         const size = isLarge ? '1200x800' : '400x300';
