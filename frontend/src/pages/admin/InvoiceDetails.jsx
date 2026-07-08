@@ -266,18 +266,20 @@ export default function InvoiceDetails() {
                         </h3>
                         <div className="flex flex-col gap-3">
                             {/* Devis */}
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">N° Devis</p>
-                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{wo.quote_number || clientData.quoteNumber || clientData.quote_number || 'N/A'}</p>
+                            {(wo.quote_number || clientData.quoteNumber || clientData.quote_number) && (
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">N° Devis</p>
+                                        <p className="font-semibold text-slate-800 dark:text-slate-200">{wo.quote_number || clientData.quoteNumber || clientData.quote_number}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Date Devis</p>
+                                        <p className="font-medium text-slate-700 dark:text-slate-300">
+                                            {wo.proforma_issued_at ? new Date(wo.proforma_issued_at).toLocaleDateString('fr-FR') : ''}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Date Devis</p>
-                                    <p className="font-medium text-slate-700 dark:text-slate-300">
-                                        {wo.proforma_issued_at ? new Date(wo.proforma_issued_at).toLocaleDateString('fr-FR') : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
+                            )}
                             {/* Separator */}
                             {wo.is_invoiced && <div className="border-t border-slate-100 dark:border-slate-700" />}
                             {/* Facture */}

@@ -279,16 +279,18 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     </div>
                     <div className="text-right flex items-center gap-6">
                         <div className="text-right">
-                            <h2 className="text-3xl font-light text-slate-800 uppercase tracking-widest leading-tight">
+                            <h2 className="text-xl font-light text-slate-800 uppercase tracking-widest leading-tight">
                                 {isInvoiceView ? (
                                     tL('invoice_title') === 'invoice_title' ? 'FACTURE' : tL('invoice_title')
                                 ) : (
                                     tL('proforma')
                                 )}
                             </h2>
-                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                N° {isInvoiceView ? (wo.invoice_number || 'N/A') : (wo.quote_number || 'N/A')}
-                            </p>
+                            {(isInvoiceView ? wo.invoice_number : wo.quote_number) && (
+                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
+                                    N° {isInvoiceView ? wo.invoice_number : wo.quote_number}
+                                </p>
+                            )}
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
                             <p className="bg-white/60 px-2 py-0.5 rounded-md border border-slate-200/50">{tL('date')} <strong>{new Date(wo.proforma_issued_at || Date.now()).toLocaleDateString('ro-RO')}</strong></p>
@@ -409,7 +411,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
                                 <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
                                 <br/>
-                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || `INV${wo.id}`) : (wo.quote_number || `DEV${wo.id?.slice(-4) || ''}`)}</span></p>
+                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || '') : (wo.quote_number || '')}</span></p>
                             </div>
                         </div>
                     )}
