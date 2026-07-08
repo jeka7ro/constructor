@@ -594,7 +594,7 @@ export default function AdminOverview() {
                 client_id: quickCreateData.clientId || null,
                 status: 'draft',
                 volumes: (quickCreateForm.surface || quickCreateForm.thickness) ? [{
-                    label: 'Șapă',
+                    label: 'Chape',
                     quantity: parseFloat(quickCreateForm.surface) || 0,
                     unit: 'm²',
                     thickness: parseFloat(quickCreateForm.thickness) || 0,
@@ -633,7 +633,9 @@ export default function AdminOverview() {
                 const autoExtra = extraThickness * 1.25 * surface;
                 const autoFoil = quickEditForm.has_foil ? 1.2 * surface : 0;
                 const autoMesh = quickEditForm.has_mesh ? 2.5 * surface : 0;
-                estimatedAmount = autoBase + autoExtra + autoFoil + autoMesh;
+                const fiberRate = surface <= 200 ? 2.5 : 2.0;
+                const autoFiber = quickEditForm.has_fiber ? fiberRate * surface : 0;
+                estimatedAmount = autoBase + autoExtra + autoFoil + autoMesh + autoFiber;
                 isAutoCalculated = true;
             }
 
@@ -645,12 +647,13 @@ export default function AdminOverview() {
                 assigned_team_id: quickEditForm.teamId || null,
                 client_id: quickEditForm.clientId || null,
                 volumes: (quickEditForm.surface || quickEditForm.thickness) ? [{
-                    label: 'Șapă',
+                    label: 'Chape',
                     quantity: surface,
                     unit: 'm²',
                     thickness: thickness,
                     has_foil: !!quickEditForm.has_foil,
                     has_mesh: !!quickEditForm.has_mesh,
+                    has_fiber: !!quickEditForm.has_fiber,
                     has_duramint: !!quickEditForm.has_duramint
                 }] : [],
                 ...(estimatedAmount > 0 ? { estimated_price: String(estimatedAmount), is_auto_calculated: isAutoCalculated } : {})
@@ -829,7 +832,7 @@ export default function AdminOverview() {
                     ))
                 ) : isScreeds ? (
                     <>
-                        <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'ro-RO', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
+                        <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
                         <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
                         <KPICard label={t('admin_overview.sand_consumption', 'Consum Nisip')} value={`${weekSandTons} t`} icon={Package} colorTheme="amber" subtitle={t('admin_overview.this_week', 'Săptămâna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
                         <KPICard label={t('admin_overview.sand_consumption', 'Consum Nisip')} value={`${monthSandTons} t`} icon={Package} colorTheme="orange" subtitle={t('admin_overview.this_month', 'Luna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
@@ -1442,6 +1445,15 @@ export default function AdminOverview() {
                                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                     <input 
                                         type="checkbox" 
+                                        checked={!!quickEditForm.has_fiber}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, has_fiber: e.target.checked })}
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                    />
+                                    {t('dashboard.quick_create.include_fiber', 'Include Fibre')}
+                                </label>
+                                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
                                         checked={!!quickEditForm.has_duramint}
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_duramint: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
@@ -1555,7 +1567,7 @@ export default function AdminOverview() {
                                         key: 'start_date',
                                         label: t('common.execution_date', 'Data Execuție'),
                                         sortable: true,
-                                        render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO') : '—'}</div>
+                                        render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('fr-FR') : '—'}</div>
                                     },
                                     {
                                         key: 'status',
@@ -1817,7 +1829,7 @@ export default function AdminOverview() {
                                         <AvatarImg path={w.avatar_path} name={w.worker_name} size="w-6 h-6" textSize="text-[10px]" />
                                         <span className="font-medium text-slate-700 dark:text-slate-300 truncate flex-1">{w.worker_name}</span>
                                         <span className="text-[11px] font-bold text-amber-700 bg-white dark:bg-amber-950 px-2 py-0.5 rounded-full shadow-sm">
-                                            {new Date(w.check_in_time).toLocaleTimeString('ro-RO', { ...tzOption, hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(w.check_in_time).toLocaleTimeString('fr-FR', { ...tzOption, hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 ))}
@@ -2116,7 +2128,7 @@ export default function AdminOverview() {
                                                 <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
                                             </div>
                                             <span className="text-[10px] text-slate-400 shrink-0">
-                                                {req.updated_at ? new Date(req.updated_at).toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit' }) : ''}
+                                                {req.updated_at ? new Date(req.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : ''}
                                             </span>
                                         </div>
                                         {/* Unde */}
@@ -2174,7 +2186,7 @@ export default function AdminOverview() {
                         key: 'check_in_time',
                         label: t('dashboard.check_in'),
                         sortable: true,
-                        render: (worker) => <span className="text-sm text-slate-600">{worker.check_in_time ? new Date(worker.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                        render: (worker) => <span className="text-sm text-slate-600">{worker.check_in_time ? new Date(worker.check_in_time).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                     },
                     {
                         key: 'worked_hours',
@@ -2353,7 +2365,7 @@ export default function AdminOverview() {
                                         </div>
                                         <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-center">
                                             <div className="text-lg font-bold text-slate-700">
-                                                {selectedWorker.check_in_time ? new Date(selectedWorker.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                {selectedWorker.check_in_time ? new Date(selectedWorker.check_in_time).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}
                                             </div>
                                             <div className="text-[10px] text-slate-500 mt-0.5">Check-in</div>
                                         </div>
@@ -2371,7 +2383,7 @@ export default function AdminOverview() {
                                                         <span className="text-sm font-medium text-slate-700">{act.name}</span>
                                                         {act.added_at && (
                                                             <span className="ml-2 text-[11px] text-slate-400">
-                                                                {new Date(act.added_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
+                                                                {new Date(act.added_at).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
                                                             </span>
                                                         )}
                                                     </div>
@@ -2402,13 +2414,13 @@ export default function AdminOverview() {
                                             <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                                        {new Date(entry.date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin',  weekday: 'short', day: 'numeric', month: 'short' })}
+                                                        {new Date(entry.date).toLocaleDateString('fr-FR', { timeZone: 'Europe/Berlin',  weekday: 'short', day: 'numeric', month: 'short' })}
                                                     </span>
                                                     <span className="text-sm font-bold text-blue-600">{formatTime(entry.worked_hours)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-xs text-slate-500">
                                                     <span className="flex items-center gap-1"><Building2 className="w-3 h-3" /> {entry.site_name}</span>
-                                                    {entry.check_in && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(entry.check_in).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</span>}
+                                                    {entry.check_in && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(entry.check_in).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</span>}
                                                 </div>
                                                 {entry.activities.length > 0 && (
                                                     <div className="flex flex-wrap gap-1 mt-2">

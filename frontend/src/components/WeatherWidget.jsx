@@ -66,25 +66,25 @@ export default function WeatherWidget({ lat, lon, dateStr }) {
         });
     }, [lat, lon, dateStr]);
 
-    if (loading && !data) return <Loader2 className="w-3 h-3 animate-spin opacity-50 text-slate-500" />;
+    if (loading && !data) return <Loader2 className="w-4 h-4 animate-spin opacity-50 text-slate-500" />;
     if (!data || data.error) return null;
 
     const getIcon = (code) => {
-        if (code === 0) return <Sun className="w-3 h-3 text-orange-500" />;
-        if ([1, 2].includes(code)) return <CloudSun className="w-3 h-3 text-blue-500" />;
-        if (code === 3) return <Cloud className="w-3 h-3 text-slate-500" />;
-        if ([45, 48].includes(code)) return <CloudFog className="w-3 h-3 text-slate-400" />;
-        if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className="w-3 h-3 text-blue-400" />;
-        if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className="w-3 h-3 text-blue-600" />;
-        if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className="w-3 h-3 text-sky-300" />;
-        if ([95, 96, 99].includes(code)) return <CloudLightning className="w-3 h-3 text-purple-600" />;
-        return <Cloud className="w-3 h-3 text-slate-500" />;
+        if (code === 0) return <Sun className="w-4 h-4 text-orange-500" />;
+        if ([1, 2].includes(code)) return <CloudSun className="w-4 h-4 text-blue-500" />;
+        if (code === 3) return <Cloud className="w-4 h-4 text-slate-500" />;
+        if ([45, 48].includes(code)) return <CloudFog className="w-4 h-4 text-slate-400" />;
+        if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className="w-4 h-4 text-blue-400" />;
+        if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className="w-4 h-4 text-blue-600" />;
+        if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className="w-4 h-4 text-sky-300" />;
+        if ([95, 96, 99].includes(code)) return <CloudLightning className="w-4 h-4 text-purple-600" />;
+        return <Cloud className="w-4 h-4 text-slate-500" />;
     };
 
     return (
-        <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
+        <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-slate-200 dark:border-slate-700" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
             {getIcon(data.code)}
-            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
         </div>
     );
 }

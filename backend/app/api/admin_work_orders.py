@@ -180,6 +180,7 @@ def _serialize(wo: WorkOrder) -> dict:
         "materials_consumed": wo.materials_consumed or [],
         "volumes": wo.volumes or [],
         "actual_surface_m2": wo.actual_surface_m2,
+        "actual_thickness_cm": wo.actual_thickness_cm,
         "actual_sand_quantity": wo.actual_sand_quantity,
         "status": wo.status,
         "prices": wo.prices or {},

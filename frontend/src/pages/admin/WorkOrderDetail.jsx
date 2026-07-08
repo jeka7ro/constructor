@@ -178,6 +178,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [wo, setWo]           = useState(null)
     const [sessions, setSessions] = useState(null)
     const [photos, setPhotos]   = useState([])
+
+    const translateDynamicLabel = (text) => {
+        if (!text) return '—';
+        let res = text;
+        if (/^[sșş]ap[aăâ]$/i.test(res)) return 'Chape';
+        if (/[sșş]ap[aăâ]/i.test(res)) res = res.replace(/[sșş]ap[aăâ]/ig, 'Chape');
+        if (/manoper[aă]/i.test(res)) res = res.replace(/manoper[aă]/ig, "Main-d'œuvre");
+        return res;
+    };
     const [loading, setLoading] = useState(true)
     const [lightbox, setLightbox] = useState(null)
     // Sand stations — folosim lista hardcodata completa (aceleasi ca in Logistica)
@@ -471,7 +480,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             autoMesh += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0;
             
             const fiberRate = parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
-            autoFiber += surface * fiberRate;
+            autoFiber += vol.has_fiber ? surface * fiberRate : 0;
         }
     });
 
@@ -947,7 +956,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.volumes.map((v, i) => (
                                                                         <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{v.label || '—'}</span>
+                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{translateDynamicLabel(v.label)}</span>
                                                                             <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400">{v.quantity} {v.unit}</span>
                                                                         </div>
                                                                     ))}
@@ -961,7 +970,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.materials.map((m, i) => (
                                                                         <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-lg">
-                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{m.name}</span>
+                                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">{translateDynamicLabel(m.name)}</span>
                                                                             <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{m.quantity} {m.unit}</span>
                                                                         </div>
                                                                     ))}

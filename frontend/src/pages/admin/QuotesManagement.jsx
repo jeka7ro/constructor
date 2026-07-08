@@ -580,7 +580,7 @@ export default function QuotesManagement() {
             autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;
             
             const fiberPrice = parseFloat(form.prices?.fiber) || (surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? (pricingSettings?.fiber_price_sqm ?? 2.5) : (pricingSettings?.fiber_price_sqm_large ?? 2.0));
-            autoFiber += fiberPrice * surface;
+            autoFiber += vol.has_fiber ? fiberPrice * surface : 0;
         }
     });
 

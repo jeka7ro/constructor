@@ -521,7 +521,7 @@ export default function InvoicingManagement() {
                         autoNet += vol.has_foil ? parseFloat(wo.prices?.foil || 1.2) * surface : 0;
                         autoNet += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0;
                         const fiberRate = parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
-                        autoNet += surface * fiberRate;
+                        autoNet += vol.has_fiber ? surface * fiberRate : 0;
                     }
                 });
 

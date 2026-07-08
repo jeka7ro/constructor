@@ -81,11 +81,11 @@ function haversine(lat1, lon1, lat2, lon2) {
 // ─────────────────────────────────────────────────────────────────────────────
 function fmtDate(d) {
     if (!d) return '—'
-    return new Date(d).toLocaleDateString('ro-RO', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+    return new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 }
 function fmtTime(d) {
     if (!d) return '—'
-    return new Date(d).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+    return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 function fmtDuration(minutes) {
     if (!minutes) return '0 min'
@@ -365,7 +365,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
         <div className="pb-28 px-4 pt-4 space-y-4">
             {/* Suprafata si Épaisseur + Sable */}
             {order.volumes && order.volumes.length > 0 && (
-                <Section label="Detalii Lucrare">
+                <Section label="Détails du travail">
                     <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 space-y-2">
                         {order.volumes.map((v, idx) => {
                             const sq = parseFloat(v.quantity);
@@ -380,7 +380,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                                 {sq > 0 && th > 0 ? ' × ' : ''}
                                                 {th > 0 ? `${th} cm` : ''}
                                             </span>
-                                            <span className="text-xs text-slate-500 font-medium">{v.label || `Zonă ${idx + 1}`}</span>
+                                            <span className="text-xs text-slate-500 font-medium">{translateDynamicLabel(v.label) || `Zone ${idx + 1}`}</span>
                                         </div>
                                         {idx === 0 && order.start_date && (
                                             <span className="text-sm font-semibold text-slate-800 capitalize whitespace-nowrap text-right">
@@ -391,7 +391,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                     {idx === 0 && order.deadline_date && (
                                         <div className="text-right mt-1">
                                             <span className="text-xs text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                                                Termen: {fmtDate(order.deadline_date)}
+                                                Délai: {fmtDate(order.deadline_date)}
                                             </span>
                                         </div>
                                     )}
@@ -958,9 +958,9 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
 
             {/* Cantitati executate (mp2, cm etc.) */}
             {order.volumes?.length > 0 && (
-                <Section label="Quantités exécutées">
+                <Section label="Quantités planifiées / estimées">
                     {order.volumes.map((v, i) => (
-                        <Row key={i} label={v.label || `Position ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
+                        <Row key={i} label={translateDynamicLabel(v.label) || `Position ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
                     ))}
                     
                     {/* Necesar Matériaux Calculat automat */}
