@@ -1381,26 +1381,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 {/* ─── Facturare ──────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
                     <Section icon={FileText} title={t('work_order_detail.invoicing.title', 'Facturare')} className="h-full">
-                        <div className="flex items-center justify-between mb-4">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.invoicing.status_label', 'Status Factură')}</p>
-                            {wo.is_invoiced ? (
-                                <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                    {t('work_order_detail.invoicing.invoiced', 'Facturat')}
-                                </span>
-                            ) : (
-                                <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
-                                    {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Tab DEVIS / FACTURE — IDENTIC cu InvoiceDetails */}
-                        {(wo.proforma_path || wo.is_invoiced) ? (
-                            <div className="mt-4">
-                                {/* Tab bar — exact same styles as InvoiceDetails */}
-                                <div className="flex gap-1 mb-3">
+                        {/* Status + Tabs + Badge — totul pe un singur rând */}
+                        <div className="flex items-center gap-3 mb-4 flex-wrap">
+                            {/* Tabs DEVIS / FACTURE */}
+                            {(wo.proforma_path || wo.is_invoiced) && (
+                                <div className="flex gap-1">
                                     <button
                                         onClick={() => setActiveDocTab('devis')}
                                         className={`px-5 py-2 text-sm font-bold rounded-full transition-colors ${activeDocTab === 'devis' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'}`}
@@ -1416,6 +1401,26 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </button>
                                     )}
                                 </div>
+                            )}
+                            {/* Badge FACTURAT / NEFACTURAT — push to right */}
+                            <div className="ml-auto">
+                                {wo.is_invoiced ? (
+                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                                        {t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                                        {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Viewer iframe */}
+                        {(wo.proforma_path || wo.is_invoiced) ? (
+                            <div>
 
                                 {/* Viewer iframe — MEREU acelasi template ProformaView */}
                                 {activeDocTab === 'devis' && (
