@@ -22,8 +22,8 @@ export default function StreetViewPhotos({ lat, lng, className = "" }) {
 
     if (!lat || !lng || !apiKey) return null;
 
-    // Pozele cerute de utilizator: 315, 330, 0, 30, 60
-    const headings = [315, 330, 0, 30, 60];
+    // Pozele cerute de utilizator: 0, 30, 60, 90, 180
+    const headings = [0, 30, 60, 90, 180];
 
     const getImageUrl = (heading, isLarge = false) => {
         const size = isLarge ? '1200x800' : '400x300';
