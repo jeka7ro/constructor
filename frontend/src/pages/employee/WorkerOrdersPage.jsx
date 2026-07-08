@@ -1247,6 +1247,18 @@ function TabTrimite({ order, completionPhotos, machinePhotos, actualSurface, set
                                 />
                             </div>
                             <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Épaisseur réelle (cm)</label>
+                                <input 
+                                    type="number" 
+                                    min="0"
+                                    step="0.1"
+                                    value={actualThickness}
+                                    onChange={(e) => setActualThickness(e.target.value)}
+                                    placeholder="Ex: 6.5"
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-slate-700 mb-1">Quantité de sable (kg)</label>
                                 <input 
                                     type="number" 
