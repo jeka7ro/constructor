@@ -368,7 +368,7 @@ export default function WorkOrderConfirm() {
     const [error, setError] = useState(null)
     const [confirmed, setConfirmed] = useState(false)
     const [confirming, setConfirming] = useState(false)
-    const [checkedTerms, setCheckedTerms] = useState(false)
+    const [checkedTerms, setCheckedTerms] = useState(true)
     const [confirmedByName, setConfirmedByName] = useState('')
     const [signature, setSignature] = useState(null)
     const [mode, setMode] = useState('quote')
@@ -562,44 +562,7 @@ export default function WorkOrderConfirm() {
                     </div>
                 </div>
 
-                {/* Location Map Container */}
-                {/* Location Map Container */}
-                {(order?.site_name || order?.site_address || order?.site_lat) && (() => {
-                    const getLocalizedAddress = (addr) => {
-                        if (!addr) return '';
-                        let str = addr;
-                        if (lang === 'fr') {
-                            str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
-                        } else if (lang === 'nl') {
-                            str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
-                        } else if (lang === 'en') {
-                            str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
-                        }
-                        return str;
-                    };
-                    const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
-                    
-                    return (
-                        <div className="bg-transparent rounded-2xl border-0 overflow-hidden mb-6 flex flex-col print:hidden">
-                            <div className="px-1 py-2 flex items-center gap-2 mb-2">
-                                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
-                                <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">
-                                    {displayAddr}
-                                </div>
-                            </div>
-                            <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full h-[220px]">
-                                <MapView
-                                    latitude={order.site_lat}
-                                    longitude={order.site_lon}
-                                    address={displayAddr}
-                                    height="100%"
-                                    zoom={15}
-                                    markerType="pin"
-                                />
-                            </div>
-                        </div>
-                    );
-                })()}
+
 
                 {/* Embed the PDF with integrated Signature */}
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
@@ -634,19 +597,6 @@ export default function WorkOrderConfirm() {
                 {/* Confirm section (integrated immediately below PDF) */}
                 {!confirmed && (
                     <div className="flex flex-col gap-3 mt-2 print:hidden w-full max-w-2xl mx-auto">
-                        <label className="flex items-start gap-3 p-3 rounded-xl bg-blue-50/50 border border-blue-100 cursor-pointer group transition-colors hover:bg-blue-50">
-                            <input
-                                type="checkbox"
-                                checked={checkedTerms}
-                                onChange={e => setCheckedTerms(e.target.checked)}
-                                disabled={confirming}
-                                className="mt-0.5 w-5 h-5 rounded text-blue-600 focus:ring-blue-500 shadow-sm"
-                            />
-                            <span className="text-sm text-blue-900 font-bold group-hover:text-blue-950 transition-colors leading-relaxed">
-                                {mode === 'final' ? t.termsFinal : t.terms}
-                            </span>
-                        </label>
-
                         {error && (
                             <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>
                         )}
@@ -669,43 +619,49 @@ export default function WorkOrderConfirm() {
                 )}
 
                 {/* Client Documents (Upload & List) */}
-                <div className="mt-8 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm print:hidden w-full max-w-2xl mx-auto">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                            <Paperclip className="w-4 h-4 text-slate-500" />
-                            {t.clientDocuments || 'Documents Client (Plans / Photos)'}
-                        </h3>
-                        <input type="file" ref={docInputRef} onChange={handleDocumentUpload} accept="image/*,application/pdf" className="hidden" multiple max="10" />
-                        <button 
-                            onClick={() => docInputRef.current?.click()}
-                            disabled={isUploadingDoc}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors"
-                        >
-                            {isUploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
-                            {t.addDocument || 'Ajouter un Document'}
-                        </button>
-                    </div>
-
+                <div className="mt-6 print:hidden w-full max-w-2xl mx-auto">
+                    <input type="file" ref={docInputRef} onChange={handleDocumentUpload} accept="image/*,application/pdf" className="hidden" multiple max="10" />
                     {order?.client_documents?.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                            {order.client_documents.map((d, i) => (
-                                <a key={i} href={d.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                                        <FileText className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-slate-700 truncate">{d.filename}</p>
-                                        <p className="text-[10px] text-slate-400">
-                                            {new Date(d.uploaded_at).toLocaleDateString('ro-RO')}
-                                        </p>
-                                    </div>
-                                </a>
-                            ))}
+                        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <Paperclip className="w-4 h-4 text-slate-500" />
+                                    {t.clientDocuments || 'Documents Client (Plans / Photos)'}
+                                </h3>
+                                <button
+                                    onClick={() => docInputRef.current?.click()}
+                                    disabled={isUploadingDoc}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors"
+                                >
+                                    {isUploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />}
+                                    {t.addDocument || 'Ajouter un Document'}
+                                </button>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {order.client_documents.map((d, i) => (
+                                    <a key={i} href={d.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                            <FileText className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-slate-700 truncate">{d.filename}</p>
+                                            <p className="text-[10px] text-slate-400">
+                                                {new Date(d.uploaded_at).toLocaleDateString('ro-RO')}
+                                            </p>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
                         </div>
                     ) : (
-                        <p className="text-sm text-slate-400 text-center py-4">
-                            {t.noDocuments || 'Aucun document chargé.'}
-                        </p>
+                        <button
+                            onClick={() => docInputRef.current?.click()}
+                            disabled={isUploadingDoc}
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-slate-300 text-slate-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 text-sm font-bold transition-all"
+                        >
+                            {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                            {t.addDocument || 'Ajouter des Documents / Plans / Photos'}
+                        </button>
                     )}
                 </div>
 
