@@ -194,13 +194,27 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                         const time = wo.start_time || '--:--';
                                         
                                         let sandTons = 0;
+                                        let totalSurface = 0;
+                                        if (wo.actual_surface_m2) {
+                                            totalSurface = parseFloat(wo.actual_surface_m2);
+                                        }
+
                                         if (wo.actual_sand_quantity) {
                                             sandTons = parseFloat(wo.actual_sand_quantity) / 1000;
+                                            if (!totalSurface) {
+                                                (wo.volumes || []).forEach(vol => {
+                                                    const surface = parseFloat(vol.quantity) || 0;
+                                                    totalSurface += surface;
+                                                });
+                                            }
                                         } else {
                                             let totalKg = 0;
                                             (wo.volumes || []).forEach(vol => {
                                                 const surface = parseFloat(vol.quantity) || 0;
                                                 const thickness = parseFloat(vol.thickness) || 0;
+                                                if (!wo.actual_surface_m2) {
+                                                    totalSurface += surface;
+                                                }
                                                 if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
                                             });
                                             sandTons = totalKg / 1000;
@@ -258,10 +272,15 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 <WeatherWidget lat={lat} lon={lng} dateStr={wo.start_date || dateStr} />
                                                             ) : null}
                                                         </div>
-                                                        <div className="shrink-0 text-right">
+                                                        <div className="shrink-0 text-right flex flex-col items-end gap-1">
                                                             {sandTons > 0 && (
                                                                 <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
                                                                     {sandTons.toFixed(1)} T {t('general.sand', 'Sable')}
+                                                                </span>
+                                                            )}
+                                                            {totalSurface > 0 && (
+                                                                <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
+                                                                    {totalSurface.toFixed(0)} m²
                                                                 </span>
                                                             )}
                                                         </div>
