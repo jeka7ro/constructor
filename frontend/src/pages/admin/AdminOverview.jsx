@@ -590,7 +590,7 @@ export default function AdminOverview() {
                 start_date: quickCreateData.date,
                 start_time: quickCreateData.time,
                 assigned_team_id: quickCreateData.teamId || null,
-                client_id: quickCreateData.clientId || null,
+                client_id: quickCreateForm.clientId || null,
                 status: 'draft',
                 volumes: (quickCreateForm.surface || quickCreateForm.thickness) ? [{
                     label: 'Chape',
