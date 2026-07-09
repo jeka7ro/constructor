@@ -451,6 +451,30 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     <p className="mb-1">TVA: BE0785292895</p>
                     <p>Téléphone: 0493.37.07.77 | Email: info@davidechape.be</p>
                 </div>
+
+                {/* ── Bon pour accord ── */}
+                <div className="mt-10 pt-6 border-t border-slate-200 grid grid-cols-2 gap-8">
+                    {/* Gauche: Davide Chape */}
+                    <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Pour Davide Chape :</p>
+                        {tenant?.logo_url ? (
+                            <img src={tenant.logo_url} alt="Davide Chape" className="h-10 object-contain mb-4 opacity-80" />
+                        ) : (
+                            <p className="font-bold text-slate-800 mb-4">{tenant?.name || 'Davide Chape'}</p>
+                        )}
+                        <div className="border-b-2 border-slate-300 w-full mt-8 mb-1" />
+                        <p className="text-xs text-slate-400">Signature</p>
+                    </div>
+
+                    {/* Droite: Client */}
+                    <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Pour le client :</p>
+                        <p className="font-bold text-slate-800 mb-1">{cName || wo.client_name || ''}</p>
+                        <p className="text-xs text-slate-500 mb-4 whitespace-pre-line">{cDetails || ''}</p>
+                        <div className="border-b-2 border-slate-300 w-full mt-8 mb-1" />
+                        <p className="text-xs text-slate-400">Signature</p>
+                    </div>
+                </div>
             </div>
 
         </div>
