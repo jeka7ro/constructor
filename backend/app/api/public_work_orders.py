@@ -232,7 +232,7 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     return {
         "workOrderData": _public_serialize(wo, org),
-        "config": wo.proforma_data
+        "config": getattr(wo, 'proforma_data', None)
     }
 
 

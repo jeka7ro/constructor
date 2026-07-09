@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from typing import Optional
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -23,6 +23,7 @@ from app.api import (
     admin_logistics, public_calculator
 )
 from apscheduler.schedulers.background import BackgroundScheduler
+from app.services.backup_service import run_backup
 from app.services.robaws_scraper import run_all_scrapers
 
 import threading
@@ -183,8 +184,11 @@ async def lifespan(app: FastAPI):
     # Start Robaws Scraper Background Scheduler
     scheduler = BackgroundScheduler()
     scheduler.add_job(run_all_scrapers, 'interval', hours=2)
+    # Backup automat la fiecare 4 ore (primul rulează după 60 secunde)
+    scheduler.add_job(run_backup, 'interval', hours=4, next_run_time=datetime.now() + timedelta(seconds=60))
     scheduler.start()
     print("🤖 Robaws Scraper Scheduler started (runs every 2 hours)")
+    print("💾 Backup Scheduler started (runs every 4 hours, first run in 60s)")
 
     yield
     # Shutdown

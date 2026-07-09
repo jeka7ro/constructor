@@ -1157,7 +1157,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 {wo.actual_thickness_cm && (
                                                                     <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
                                                                         <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_thickness', 'Épaisseur confirmée')}</span>
-                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{wo.actual_thickness_cm} cm</span>
+                                                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{(Math.round(parseFloat(wo.actual_thickness_cm) * 2) / 2).toFixed(1)} cm</span>
                                                                     </div>
                                                                 )}
                                                                 

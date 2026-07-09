@@ -1046,6 +1046,7 @@ class WorkOrder(Base):
     final_invoice_path  = Column(String(500), nullable=True) # PDF cu factura finală
     proforma_path       = Column(String(500), nullable=True) # PDF cu proforma
     proforma_issued_at  = Column(DateTime, nullable=True)
+    proforma_data       = Column(JSON, nullable=True)  # Config JSON al proformei (prețuri, TVA etc.)
 
     # ── Status Facturare ───────────────────────────────────────────────────────
     is_invoiced         = Column(Boolean, default=False, nullable=False)
