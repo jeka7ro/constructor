@@ -145,7 +145,10 @@ def get_my_orders(
         WorkOrder.assigned_team_id.in_(team_ids),
         WorkOrder.status.notin_(["cancelled"]),
         WorkOrder.start_date >= sixty_days_ago.date()
-    ).order_by(WorkOrder.start_date.asc()).distinct().all()
+    ).order_by(WorkOrder.start_date.asc()).all()
+    
+    # Deduplicate in Python to avoid Postgres DISTINCT on JSON columns
+    orders = list({o.id: o for o in orders}.values())
 
     # Bulk fetch associations to avoid N+1 queries
     order_ids = [wo.id for wo in orders]
