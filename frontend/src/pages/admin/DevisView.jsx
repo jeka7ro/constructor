@@ -150,6 +150,14 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                             </div>
                         </div>
                         <div className="mt-10 pt-6 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
+                            {wo.approximate_date && (
+                                <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
+                                    <span className="font-bold text-slate-500">Date estimée d'intervention :</span>
+                                    <span className="font-black text-slate-800">
+                                        {new Date(wo.approximate_date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </span>
+                                </div>
+                            )}
                             <p className="font-bold text-slate-500 mb-1">Conditions</p>
                             <p>Ce document est un devis estimatif. Les prix sont valables 30 jours à compter de la date d'émission. Pour confirmer, retournez ce devis signé avec la mention «Bon pour accord».</p>
                         </div>
