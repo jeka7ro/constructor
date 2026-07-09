@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Maximize2, Minimize2, Layers } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useTenantStore } from '../store/tenantStore';
 
 const getTruckSvg = (teamColor) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
@@ -39,6 +40,7 @@ const getPinSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
  * Dacă latitude/longitude sunt nule, geocodează automat `address` via Google Geocoder.
  */
 const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofenceRadius, label, routeSegments, baseName, navButtons, sandStations = [], leftPanelContent, onRouteCalculated, teamColor = '#2563eb', markerType = 'truck' }) => {
+    const { t } = useTranslation();
     const mapRef = useRef(null);
     const detailMapRef = useRef(null);
     const mapInstance = useRef(null);
@@ -403,7 +405,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     <div className={`relative rounded-xl overflow-hidden shadow-inner w-full shrink-0 ${isFullScreen && leftPanelContent ? 'h-[120px] min-h-[120px] border-2 border-slate-700' : 'h-full border border-slate-200 dark:border-slate-700'}`}>
                         <div ref={detailMapRef} style={{ width: '100%', height: '100%' }} />
                         <div className="absolute top-2 left-2 bg-white/90 dark:bg-slate-800/90 px-2 py-1 rounded text-[10px] font-bold shadow-sm z-[400] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                            DESTINAȚIE
+                            {t('map.destination', 'DESTINATION')}
                         </div>
                         {navButtons && !isFullScreen && (
                             <div className="absolute top-2 right-2 z-[400] flex gap-2">

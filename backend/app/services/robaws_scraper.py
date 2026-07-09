@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Team, WorkOrder, WorkOrderDocument
+from app.models import Team, WorkOrder, Client, RobawsWorkOrderCache, WorkOrderDocument
 from app.storage import upload_file, get_content_type
 
 load_dotenv()
@@ -153,13 +153,23 @@ def run_api_sync_for_team(team: Team, db: Session):
                     if found_duramit:
                         materials_json.append({"name": "Duramit", "quantity": str(round(total_volume, 2)), "unit": "buc"})
             
+                # Try to link to an existing client
+                matched_client_id = None
+                if client_name:
+                    matched_client = db.query(Client).filter(
+                        Client.organization_id == team.organization_id,
+                        Client.name.ilike(f"%{client_name}%")
+                    ).first()
+                    if matched_client:
+                        matched_client_id = matched_client.id
+
                 # Save to DB
                 if not existing:
                     new_wo = WorkOrder(
                         organization_id=team.organization_id,
                         token=uuid.uuid4().hex,
                         title=full_title[:255],
-                        client_id=None,
+                        client_id=matched_client_id,
                         client_name=client_name,
                         site_address=address,
                         site_latitude=lat,

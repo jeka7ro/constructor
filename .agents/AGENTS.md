@@ -23,7 +23,7 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - Când o aplicație se blochează (crash cu ecran alb), explică imediat **cauza tehnică** utilizatorului (ex. *O importare lipsă*) înainte de a adresa acuzațiile privind dispariția unor funcționalități. Utilizatorul nu poate vedea codul spart.
 ## 5. UI, Tabele, și "Z-Index" Modale
 - Când combini date într-un tabel (pentru lipsă de spațiu), pune-le pe aceeași coloană una sub alta (ex: `Suprafață / Grosime`), în loc să micșorezi fonturile ca să încapă toate.
-- Asigură-te întotdeauna că Modalele, ferestrele de Dialog, și ferestrele de tip Popup (ex: `ConfirmModal`) au un `z-[9999]` sau suficient de mare pentru a randa peste Navigation Bar (Header-ul albastru), care are `z-50`.
+- Asigură-te întotdeauna că Modalele, ferestrele de Dialog, și ferestrele de tip Popup (ex: `ConfirmModal`) au un `z-[9999]` sau suficient de mare pentru a randa peste Navigation Bar (Header-ul albastru). **CRITIC:** Deoarece aplicația folosește un layout unde `<main>` și `<header>` sunt siblings, un simplu `z-[9999]` pus în interiorul unei pagini nu va acoperi header-ul din cauza stacking context-ului. **Folosește MEREU `createPortal(<div className="fixed inset-0 z-[9999]...">...</div>, document.body)`** pentru a garanta că modalul acoperă întreg ecranul, inclusiv header-ul!
 - **FĂRĂ ALERTE NATIVE BROWSER**: Este complet interzisă folosirea `alert(...)` sau `prompt(...)`! Folosește exclusiv componenta Toast/Notificări existentă în aplicație (ex: funcția `showToast` existentă deja în pagini) sau un modal stilizat curat.
 
 ## 6. Limba de lucru în Frontend

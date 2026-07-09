@@ -134,9 +134,12 @@ def get_my_orders(
 
     # Get recent orders (last 60 days) to avoid fetching thousands.
     from datetime import datetime, timedelta
+    from sqlalchemy.orm import joinedload
     sixty_days_ago = datetime.utcnow() - timedelta(days=60)
 
-    orders = db.query(WorkOrder).filter(
+    orders = db.query(WorkOrder).options(
+        joinedload(WorkOrder.site)
+    ).filter(
         WorkOrder.organization_id == current_user.organization_id,
         WorkOrder.assigned_team_id.in_(team_ids),
         WorkOrder.status.notin_(["cancelled"]),

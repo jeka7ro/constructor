@@ -684,7 +684,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         <ClipboardList className="w-5 h-5 text-white" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-tight truncate">{wo.title}</h1>
+                        <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-tight truncate">
+                            {wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title}
+                        </h1>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${cfg.color}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -735,7 +737,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             <button onClick={handleConvertToOrder} disabled={isConverting}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
                                 {isConverting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />} 
-                                {t('quotes.btn_convert', 'Conversie în Comandă')}
+                                {t('quotes.btn_convert', 'Convertir en Commande')}
                             </button>
                         </>
                     )}
@@ -743,11 +745,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         <>
                             <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                <Edit2 className="w-3.5 h-3.5" /> {t('work_order_detail.edit', 'Editează')}
+                                <Edit2 className="w-3.5 h-3.5" /> {t('work_order_detail.edit', 'Modifier')}
                             </button>
                             <button 
                                 onClick={() => {
-                                    if(window.confirm('Ștergeți definitiv acest devis/comandă?')) {
+                                    if(window.confirm(t('work_order_detail.delete_confirm', 'Ștergeți definitiv acest devis/comandă?'))) {
                                         api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
                                            .then(() => navigate('/admin/quotes'))
                                            .catch(console.error)
@@ -1580,7 +1582,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-lg text-xs font-bold transition-colors"
                     >
                         {isUploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                        {t('common.add_photo', 'Adaugă Poză')}
+                        {t('common.add_photo', 'Ajouter une Photo')}
                     </button>
                 }
             >
@@ -1870,7 +1872,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 onClick={() => setDocDrawerState(null)}
                                 className="px-6 py-2.5 rounded-full font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
                             >
-                                {t('common.close', 'Închide')}
+                                {t('common.close', 'Fermer')}
                             </button>
                         </div>
                     </div>
@@ -1900,10 +1902,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         </div>
     )
     if (isEmbedded) {
-        return (
+        return createPortal(
             <div className="fixed inset-0 z-[99999] bg-slate-50 dark:bg-slate-950 overflow-y-auto w-full h-full">
                 {pageContent}
-            </div>
+            </div>,
+            document.body
         )
     }
     return pageContent;

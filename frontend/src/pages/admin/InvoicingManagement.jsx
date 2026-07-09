@@ -457,28 +457,18 @@ export default function InvoicingManagement() {
             )
         },
         {
-            key: 'title',
-            label: t('invoicing.col_title', 'Lucrare'),
-            className: 'w-[20%]',
+            key: 'client',
+            label: t('invoicing.col_client', 'Client & Adresă'),
+            className: 'w-[35%]',
             render: (wo) => (
                 <div className="flex flex-col">
                     <button 
                         onClick={() => navigate(`/admin/invoices/${wo.id}`)}
-                        className="font-bold text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300 line-clamp-2 transition-colors text-left" 
-                        title={wo.title}
+                        className="font-bold text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300 line-clamp-1 transition-colors text-left text-[14px]" 
+                        title={wo.client_name || t('invoicing.no_client', 'Fără Client')}
                     >
-                        {wo.title || t('invoicing.no_title', 'Fără titlu')}
+                        {wo.client_name || t('invoicing.no_client', 'Fără Client')}
                     </button>
-                </div>
-            )
-        },
-        {
-            key: 'client',
-            label: t('invoicing.col_client', 'Client & Adresă'),
-            className: 'w-[20%]',
-            render: (wo) => (
-                <div className="flex flex-col">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-1" title={wo.client_name}>{wo.client_name || t('invoicing.no_client', 'Fără Client')}</span>
                     <span className="text-[11px] text-slate-500 line-clamp-2 mt-0.5" title={wo.site_name || wo.site_address}>{wo.site_name || wo.site_address || t('invoicing.no_address', 'Fără adresă')}</span>
                 </div>
             )

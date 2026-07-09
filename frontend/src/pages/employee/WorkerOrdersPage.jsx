@@ -1395,6 +1395,23 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         return () => navigator.geolocation.clearWatch(id)
     }, [])
 
+    // Auto-calculate Thickness when Surface and Sand change
+    useEffect(() => {
+        const surface = parseFloat(actualSurface) || 0
+        const sandTons = (parseFloat(actualSand) || 0) / 1000 // if sand is in kg, it needs to be in Tons! Wait, actualSand is kg? Let's check formula.
+
+        // Formula: Grosime (cm) = ( Tonaj_Nisip / Suprafața_Reală / 1.6 ) * 100
+        if (surface > 0 && sandTons > 0) {
+            const calculatedThickness = (sandTons / surface / 1.6) * 100;
+            // Rounding logic:
+            // .00 to .24 -> .0
+            // .25 to .74 -> .5
+            // .75 to .99 -> +1.0
+            const roundedThickness = Math.round(calculatedThickness * 2) / 2;
+            setActualThickness(roundedThickness.toString())
+        }
+    }, [actualSurface, actualSand])
+
     const fetchSandStations = async () => {
         try {
             const res = await api.get('/worker/orders/sand-stations')

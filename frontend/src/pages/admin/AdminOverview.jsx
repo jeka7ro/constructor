@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../../lib/api'
 import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
@@ -1034,7 +1035,7 @@ export default function AdminOverview() {
                     )}
 
             {/* Activity Popup (Portal) */}
-            {activityPopup && (
+            {activityPopup && createPortal(
                 <>
                     <div className="fixed inset-0 z-[100]" onClick={() => setActivityPopup(null)} />
                     <div
@@ -1062,11 +1063,12 @@ export default function AdminOverview() {
                             ))}
                         </div>
                     </div>
-                </>
+                </>,
+                document.body
             )}
 
             {/* Quick Create Modal */}
-            {quickCreateData && (
+            {quickCreateData && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]" style={{ animation: 'slideInUp 0.3s ease-out' }}>
                         <div className="px-5 py-4 bg-blue-600 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl flex-shrink-0">
@@ -1084,7 +1086,7 @@ export default function AdminOverview() {
                                 <>
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.client_optional', 'Client (Opțional)')}</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.client_mandatory', 'Client *')}</label>
                                             <button type="button" onClick={() => setQuickCreateStep('new-client')} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors">
                                                 <Plus className="w-3 h-3" /> {t('dashboard.quick_create.new_client', 'Client Nou')}
                                             </button>
@@ -1144,7 +1146,7 @@ export default function AdminOverview() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Suprafață (m²)')}</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface_mandatory', 'Surface (m²) *')}</label>
                                             <input 
                                                 type="number"
                                                 min="0"
@@ -1155,15 +1157,21 @@ export default function AdminOverview() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Grosime (cm)')}</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness_mandatory', 'Épaisseur (cm) *')}</label>
                                             <input 
                                                 type="number"
-                                                min="0"
+                                                min="4"
                                                 step="any"
                                                 value={quickCreateForm.thickness}
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
-                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Min 4 cm"
+                                                className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 4 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
                                             />
+                                            {quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 4 && (
+                                                <div className="text-[10px] font-bold text-red-500 mt-1">
+                                                    L'épaisseur minimum est de 4 cm.
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
@@ -1339,17 +1347,17 @@ export default function AdminOverview() {
                             <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                                 {t('common.cancel', 'Anulează')}
                             </button>
-                            <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.title} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
+                            <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.clientId || !quickCreateForm.surface || !quickCreateForm.thickness || parseFloat(quickCreateForm.thickness) < 4} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
                                 {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
                             </button>
                         </div>
                         </form>
                     </div>
-                </div>
+                </div>, document.body
             )}
 
             {/* Quick Edit Modal */}
-            {quickEditOrder && quickEditForm && (
+            {quickEditOrder && quickEditForm && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700" style={{ animation: 'slideInUp 0.3s ease-out' }}>
                         <div className="px-5 py-4 bg-slate-100 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl border-b border-slate-200 dark:border-slate-700">
@@ -1399,7 +1407,7 @@ export default function AdminOverview() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Suprafață (m²)')}</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Surface (m²)')}</label>
                                     <input 
                                         type="number"
                                         min="0"
@@ -1410,15 +1418,21 @@ export default function AdminOverview() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Grosime (cm)')}</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Épaisseur (cm)')}</label>
                                     <input 
                                         type="number"
-                                        min="0"
+                                        min="4"
                                         step="any"
                                         value={quickEditForm.thickness}
                                         onChange={e => setQuickEditForm({ ...quickEditForm, thickness: e.target.value })}
-                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Min 4 cm"
+                                        className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 4 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
                                     />
+                                    {quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 4 && (
+                                        <div className="text-[10px] font-bold text-red-500 mt-1">
+                                            L'épaisseur minimum est de 4 cm.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -1474,31 +1488,17 @@ export default function AdminOverview() {
                                 />
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                                <button type="button" onClick={() => setQuickEditOrder(null)} className="h-10 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                                <button type="button" onClick={() => setQuickEditOrder(null)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-colors">
                                     {t('common.cancel', 'Anulează')}
                                 </button>
-                                <button type="submit" disabled={quickEditSaving} className="flex-1 h-10 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                                <button type="submit" disabled={quickEditSaving || (quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 4)} className="flex-1 h-11 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
                                     {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Salvează')}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => {
-                                        if (isCalendarFull) {
-                                            setFullscreenOrderId(quickEditOrder.id);
-                                            setQuickEditOrder(null);
-                                        } else {
-                                            navigate(`/admin/work-orders/${quickEditOrder.id}/edit`);
-                                        }
-                                    }} 
-                                    className="flex-1 h-10 font-bold text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 transition-colors rounded-xl flex items-center justify-center gap-2"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                    {t('dashboard.quick_edit.advanced_details', 'Detalii Avansate')}
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             {/* Embedded Work Order Detail for Fullscreen Mode */}
@@ -2303,7 +2303,7 @@ export default function AdminOverview() {
             )}
 
             {/* Worker Detail Drawer */}
-            {selectedWorker && (
+            {selectedWorker && createPortal(
                 <div className="fixed inset-0 z-[9999] flex">
                     <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={closeWorkerDetail} />
                     <div className="w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.25s ease-out' }}>
@@ -2438,7 +2438,8 @@ export default function AdminOverview() {
                             <div className="flex items-center justify-center py-20 text-slate-400"><p>Eroare la încărcarea datelor</p></div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             <style>{`

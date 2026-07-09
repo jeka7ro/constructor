@@ -329,10 +329,13 @@ def list_work_orders(
         joinedload(WorkOrder.client),
         joinedload(WorkOrder.assigned_team),
         joinedload(WorkOrder.assigned_vehicle),
-        selectinload(WorkOrder.documents)
+        selectinload(WorkOrder.documents),
+        selectinload(WorkOrder.photos)
     )
     if status:
         q = q.filter(WorkOrder.status == status)
+    else:
+        q = q.filter(WorkOrder.status != 'isoflex')
     from sqlalchemy import or_
     from datetime import datetime
     if start_date:
