@@ -55,6 +55,7 @@ const QuotesManagement = lazy(() => import('./pages/admin/QuotesManagement'))
 const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
 const DevisView = lazy(() => import('./pages/admin/DevisView'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
+const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
 const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
@@ -369,6 +370,16 @@ function App() {
                         element={
                             <Suspense fallback={<PageLoader />}>
                                 <PublicProformaView />
+                            </Suspense>
+                        } 
+                    />
+                    
+                    {/* Ruta pentru varianta publică a calculatorului */}
+                    <Route 
+                        path="/devisonline" 
+                        element={
+                            <Suspense fallback={<PageLoader />}>
+                                <PublicCalculator />
                             </Suspense>
                         } 
                     />

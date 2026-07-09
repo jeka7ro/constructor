@@ -110,6 +110,28 @@ export default function PricingSettingsForm({
                         onChange={v => onSettingChange('fiber_large_threshold_sqm', v)}
                         unit="m²"
                     />
+                    <SectionHeader label={t('pricing_settings.section_vat', 'TVA (Taxes)')} />
+                    <PriceRow
+                        label={t('pricing_settings.vat_legal', 'Entreprise (Cocontractant)')}
+                        sublabel={t('pricing_settings.vat_legal_sub', 'Auto-liquidation')}
+                        value={settings.vat_legal_entity ?? 0}
+                        onChange={v => onSettingChange('vat_legal_entity', v)}
+                        unit="%"
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.vat_physical_new', 'Particulier (Nouvelle Constr.)')}
+                        sublabel={t('pricing_settings.vat_physical_new_sub', '< 10 ans')}
+                        value={settings.vat_physical_new ?? 21}
+                        onChange={v => onSettingChange('vat_physical_new', v)}
+                        unit="%"
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.vat_physical_repair', 'Particulier (Rénovation)')}
+                        sublabel={t('pricing_settings.vat_physical_repair_sub', '> 10 ans')}
+                        value={settings.vat_physical_repair ?? 6}
+                        onChange={v => onSettingChange('vat_physical_repair', v)}
+                        unit="%"
+                    />
                 </div>
             </div>
 

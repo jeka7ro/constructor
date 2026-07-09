@@ -52,6 +52,37 @@ export default function ClientsManagement() {
             setIsSearchingVies(false);
         }
     }
+
+    const [isSearchingKbo, setIsSearchingKbo] = useState(false)
+
+    const handleKboSearch = async () => {
+        if (!formData.cui) return;
+        setIsSearchingKbo(true);
+        try {
+            const vatClean = formData.cui.replace(/[^A-Za-z0-9]/g, '');
+            let vatNum = vatClean;
+            
+            if (vatClean.length > 2 && isNaN(vatClean.charAt(0))) {
+                vatNum = vatClean.substring(2);
+            }
+
+            const res = await api.get(`/admin/clients/kbo/${vatNum}`);
+            if (res.data && res.data.valid) {
+                setFormData(p => ({
+                    ...p,
+                    name: res.data.name || p.name,
+                    address: res.data.address || p.address,
+                    cui: vatNum, // Keep it without country code or with, as you prefer
+                    country: 'BE' // KBO is always BE
+                }));
+            }
+        } catch (error) {
+            console.error('KBO Error:', error);
+            alert(t('clients.kbo_error', 'Firma nu a fost găsită în KBO sau serviciul este indisponibil. Verificați numărul de întreprindere.'));
+        } finally {
+            setIsSearchingKbo(false);
+        }
+    }
     const [formData, setFormData] = useState({
         client_type: 'juridica',
         country: 'RO',
@@ -498,28 +529,42 @@ export default function ClientsManagement() {
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">
                                                     {formData.country === 'RO' ? 'CUI' : 'VAT Number (TVA)'}
                                                 </label>
-                                                <div className="relative">
+                                                <div className="relative flex items-center">
                                                     <input 
                                                         type="text" 
-                                                        className="w-full pl-4 pr-10 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" 
+                                                        className="w-full pl-4 pr-20 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" 
                                                         value={formData.cui} 
                                                         onChange={e => setFormData({...formData, cui: e.target.value})}
                                                         onKeyDown={e => {
                                                             if (e.key === 'Enter') {
                                                                 e.preventDefault();
-                                                                handleViesSearch();
+                                                                if (formData.country === 'BE') handleKboSearch();
+                                                                else handleViesSearch();
                                                             }
                                                         }}
                                                     />
-                                                    <button 
-                                                        type="button"
-                                                        onClick={handleViesSearch}
-                                                        disabled={isSearchingVies || !formData.cui}
-                                                        className="absolute right-1 top-1 bottom-1 w-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
-                                                        title="Caută firmă în VIES"
-                                                    >
-                                                        {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                                    </button>
+                                                    <div className="absolute right-1 top-1 bottom-1 flex gap-1">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={handleViesSearch}
+                                                            disabled={isSearchingVies || !formData.cui}
+                                                            className="w-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
+                                                            title="Caută firmă în VIES"
+                                                        >
+                                                            {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                        </button>
+                                                        {formData.country === 'BE' && (
+                                                            <button 
+                                                                type="button"
+                                                                onClick={handleKboSearch}
+                                                                disabled={isSearchingKbo || !formData.cui}
+                                                                className="w-8 flex items-center justify-center rounded-full bg-amber-50 text-amber-600 hover:text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 font-bold text-[9px]"
+                                                                title="Caută în KBO (Belgia)"
+                                                            >
+                                                                {isSearchingKbo ? <Loader2 className="w-4 h-4 animate-spin" /> : "KBO"}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div>

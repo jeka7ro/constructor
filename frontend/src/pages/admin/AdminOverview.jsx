@@ -205,7 +205,7 @@ export default function AdminOverview() {
     };
 
     const [quickCreateData, setQuickCreateData] = useState(null) // { teamId, clientId, clientName, date, time }
-    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', has_foil: false, has_mesh: false, has_duramint: false })
+    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', work_type: 'new', use_vat: true, has_foil: false, has_mesh: false, has_duramint: false })
     const [quickEditOrder, setQuickEditOrder] = useState(null) // wo object
     const [fullscreenOrderId, setFullscreenOrderId] = useState(null)
     const [fullscreenNewOrder, setFullscreenNewOrder] = useState(null)
@@ -214,6 +214,43 @@ export default function AdminOverview() {
     const [quickCreateStep, setQuickCreateStep] = useState(1) // 1 = General, 2 = Resurse, 'new-client' = formular client nou
     const [quickCreateClientForm, setQuickCreateClientForm] = useState({ name: '', phone: '', email: '', type: 'fizica', identifier: '', country: 'BE', address: '' })
     const [quickCreateSaving, setQuickCreateSaving] = useState(false)
+    
+    // Autocomplete states
+    const [clientSearchQuery, setClientSearchQuery] = useState('')
+    const [clientSearchResults, setClientSearchResults] = useState([])
+    const [placesSearchResults, setPlacesSearchResults] = useState([])
+    const [isSearchingClients, setIsSearchingClients] = useState(false)
+    const [showClientDropdown, setShowClientDropdown] = useState(false)
+
+    useEffect(() => {
+        if (!clientSearchQuery || clientSearchQuery.length < 2) {
+            setClientSearchResults([])
+            setPlacesSearchResults([])
+            setShowClientDropdown(false)
+            return
+        }
+        
+        const timeout = setTimeout(async () => {
+            setIsSearchingClients(true)
+            try {
+                // Parallel search: Local DB + Google Places (only establishments)
+                const [localRes, placesRes] = await Promise.all([
+                    api.get(`/admin/clients/search?q=${encodeURIComponent(clientSearchQuery)}`).catch(() => ({ data: [] })),
+                    fetch(`/api/places/autocomplete?input=${encodeURIComponent(clientSearchQuery)}&types=establishment`).then(res => res.json()).catch(() => ({ predictions: [] }))
+                ])
+                
+                setClientSearchResults(localRes.data || [])
+                setPlacesSearchResults(placesRes.predictions || [])
+                setShowClientDropdown(true)
+            } catch (err) {
+                console.error("Client search error:", err)
+            } finally {
+                setIsSearchingClients(false)
+            }
+        }, 300)
+
+        return () => clearTimeout(timeout)
+    }, [clientSearchQuery])
     const [detectingLocation, setDetectingLocation] = useState(false)
 
     const [quickRouteDist, setQuickRouteDist] = useState(null)
@@ -524,9 +561,49 @@ export default function AdminOverview() {
             }
         } catch (error) {
             console.error('VIES Error:', error);
-            alert(t('clients.vies_error', 'Firma nu a fost găsită sau serviciul VIES este indisponibil. Verificați codul TVA.'));
+            alert(t('clients.vies_error', "L'entreprise n'a pas été trouvée ou le service VIES est indisponible. Veuillez vérifier le code TVA."));
         } finally {
             setIsSearchingVies(false);
+        }
+    }
+
+    const [isSearchingKbo, setIsSearchingKbo] = useState(false);
+    const [kboDetails, setKboDetails] = useState(null);
+
+    const handleQuickKboSearch = async () => {
+        if (!quickCreateClientForm.identifier) return;
+        setIsSearchingKbo(true);
+        setKboDetails(null);
+        try {
+            const vatClean = quickCreateClientForm.identifier.replace(/[^A-Za-z0-9]/g, '');
+            let vatNum = vatClean;
+            
+            if (vatClean.length > 2 && isNaN(vatClean.charAt(0))) {
+                vatNum = vatClean.substring(2);
+            }
+
+            const res = await api.get(`/admin/clients/kbo/${vatNum}`);
+            if (res.data && res.data.valid) {
+                setQuickCreateClientForm(p => ({
+                    ...p,
+                    name: res.data.name || p.name,
+                    address: res.data.address || p.address,
+                    identifier: vatNum,
+                    country: 'BE'
+                }));
+                
+                // Add KBO Extra Details
+                setKboDetails({
+                    status: res.data.status,
+                    is_vat_subject: res.data.is_vat_subject,
+                    director: res.data.director
+                });
+            }
+        } catch (error) {
+            console.error('KBO Error:', error);
+            alert(t('clients.kbo_error', "L'entreprise n'a pas été trouvée dans KBO ou le service est indisponible. Veuillez vérifier le numéro d'entreprise."));
+        } finally {
+            setIsSearchingKbo(false);
         }
     }
 
@@ -541,6 +618,9 @@ export default function AdminOverview() {
                 address: quickCreateClientForm.address || null,
                 phone: quickCreateClientForm.phone || null,
                 email: quickCreateClientForm.email || null,
+                // Also pass the director as contact_person if we have it from KBO
+                contact_person: kboDetails?.director || null,
+                is_active: kboDetails?.status ? (kboDetails.status.toLowerCase().includes('activ') || kboDetails.status.toLowerCase().includes('norm')) : true
             })
             // Fetch updated clients or just add to list
             const newClient = res.data
@@ -592,6 +672,8 @@ export default function AdminOverview() {
                 start_time: quickCreateData.time,
                 assigned_team_id: quickCreateData.teamId || null,
                 client_id: quickCreateForm.clientId || null,
+                work_type: quickCreateForm.work_type || 'new',
+                use_vat: quickCreateForm.use_vat !== false,
                 status: 'draft',
                 volumes: (quickCreateForm.surface || quickCreateForm.thickness) ? [{
                     label: 'Chape',
@@ -1109,6 +1191,37 @@ export default function AdminOverview() {
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                         />
                                     </div>
+                                    
+                                    {(() => {
+                                        const selectedClient = clients.find(cl => String(cl.id) === String(quickCreateForm.clientId));
+                                        if (selectedClient && selectedClient.client_type === 'fizica') {
+                                            return (
+                                                <div className="mt-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('dashboard.quick_create.work_type', 'Tip Lucrare (TVA)')}</label>
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">{t('dashboard.quick_create.apply_vat', 'Aplică TVA')}</span>
+                                                            <div className="relative inline-flex items-center">
+                                                                <input type="checkbox" className="sr-only peer" checked={quickCreateForm.use_vat !== false} onChange={(e) => setQuickCreateForm(p => ({...p, use_vat: e.target.checked}))} />
+                                                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-xl cursor-pointer transition-colors ${quickCreateForm.work_type === 'new' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                            <input type="radio" className="hidden" checked={quickCreateForm.work_type === 'new'} onChange={() => setQuickCreateForm(p => ({...p, work_type: 'new'}))} /> 
+                                                            <span className="text-xs">{t('dashboard.quick_create.work_new', 'Nouă (< 10 ani)')}</span>
+                                                        </label>
+                                                        <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-xl cursor-pointer transition-colors ${quickCreateForm.work_type === 'repair' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                            <input type="radio" className="hidden" checked={quickCreateForm.work_type === 'repair'} onChange={() => setQuickCreateForm(p => ({...p, work_type: 'repair'}))} /> 
+                                                            <span className="text-xs">{t('dashboard.quick_create.work_repair', 'Renovare (> 10 ani)')}</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
 
                                     <div>
                                         <div className="flex items-center justify-between mb-1">
@@ -1244,9 +1357,108 @@ export default function AdminOverview() {
                                             </label>
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className="relative z-50">
                                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_name', 'Nume Client *')}</label>
-                                        <input type="text" autoFocus required value={quickCreateClientForm.name} onChange={e => setQuickCreateClientForm(p => ({...p, name: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} />
+                                        <input 
+                                            type="text" 
+                                            autoFocus 
+                                            required 
+                                            value={clientSearchQuery || quickCreateClientForm.name} 
+                                            onChange={e => {
+                                                setClientSearchQuery(e.target.value);
+                                                setQuickCreateClientForm(p => ({...p, name: e.target.value}));
+                                                if (e.target.value.length < 2) {
+                                                    setShowClientDropdown(false);
+                                                }
+                                            }}
+                                            onFocus={() => {
+                                                if (clientSearchResults.length > 0) setShowClientDropdown(true);
+                                            }}
+                                            className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
+                                            placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} 
+                                        />
+                                        {isSearchingClients && (
+                                            <div className="absolute right-3 top-[34px]">
+                                                <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                                            </div>
+                                        )}
+                                        
+                                        {showClientDropdown && (clientSearchResults.length > 0 || placesSearchResults.length > 0) && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-64 overflow-y-auto z-50">
+                                                {clientSearchResults.length > 0 && (
+                                                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase text-slate-500">
+                                                        {t('clients.from_database', 'Din Baza de Date')}
+                                                    </div>
+                                                )}
+                                                {clientSearchResults.map(client => (
+                                                    <div 
+                                                        key={client.id}
+                                                        className="px-3 py-2 border-b border-slate-100 dark:border-slate-800/50 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer"
+                                                        onClick={() => {
+                                                            setQuickCreateClientForm({
+                                                                name: client.name,
+                                                                type: client.client_type || 'juridica',
+                                                                identifier: client.cui || '',
+                                                                country: client.country || 'BE',
+                                                                address: client.address || '',
+                                                                phone: client.phone || '',
+                                                                email: client.email || ''
+                                                            });
+                                                            setClientSearchQuery('');
+                                                            setShowClientDropdown(false);
+                                                            setKboDetails(null);
+                                                        }}
+                                                    >
+                                                        <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{client.name}</div>
+                                                        <div className="text-[10px] text-slate-500 flex gap-2">
+                                                            {client.cui && <span>{client.country || 'BE'} {client.cui}</span>}
+                                                            {client.address && <span className="truncate">{client.address}</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {placesSearchResults.length > 0 && (
+                                                    <>
+                                                        <div className="p-2 bg-amber-50 dark:bg-slate-800 border-y border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase text-amber-600 flex items-center gap-1">
+                                                            <MapPin className="w-3 h-3" /> Google Maps (Firme Noi)
+                                                        </div>
+                                                        {placesSearchResults.map(place => (
+                                                            <div 
+                                                                key={place.place_id}
+                                                                className="px-3 py-2 border-b border-slate-100 dark:border-slate-800/50 hover:bg-amber-50/50 dark:hover:bg-slate-800 cursor-pointer"
+                                                                onClick={async () => {
+                                                                    setClientSearchQuery(place.structured_formatting.main_text);
+                                                                    setQuickCreateClientForm(p => ({
+                                                                        ...p,
+                                                                        name: place.structured_formatting.main_text,
+                                                                        address: place.description // fallback
+                                                                    }));
+                                                                    setShowClientDropdown(false);
+                                                                    try {
+                                                                        const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(place.place_id)}`);
+                                                                        const data = await res.json();
+                                                                        if (data.status === 'OK' && data.result?.formatted_address) {
+                                                                            setQuickCreateClientForm(p => ({
+                                                                                ...p,
+                                                                                address: data.result.formatted_address
+                                                                            }));
+                                                                        }
+                                                                    } catch (err) {}
+                                                                }}
+                                                            >
+                                                                <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{place.structured_formatting.main_text}</div>
+                                                                <div className="text-[10px] text-slate-500 truncate">{place.structured_formatting.secondary_text}</div>
+                                                            </div>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                        {showClientDropdown && clientSearchQuery.length >= 2 && clientSearchResults.length === 0 && placesSearchResults.length === 0 && !isSearchingClients && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 text-center text-xs text-slate-500 z-50">
+                                                {t('clients.no_results', 'Niciun client găsit în baza de date. Vă rugăm continuați crearea.')}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)')}</label>
@@ -1282,7 +1494,7 @@ export default function AdminOverview() {
                                                     <option value="GR">🇬🇷 GR</option>
                                                 </select>
                                             )}
-                                            <div className="relative flex-1">
+                                            <div className="relative flex-1 flex items-center">
                                             <input 
                                                 type="text" 
                                                 value={quickCreateClientForm.identifier} 
@@ -1290,35 +1502,84 @@ export default function AdminOverview() {
                                                 onKeyDown={e => {
                                                     if (e.key === 'Enter' && quickCreateClientForm.type === 'juridica') {
                                                         e.preventDefault();
-                                                        handleQuickViesSearch();
+                                                        if (quickCreateClientForm.country === 'BE') handleQuickKboSearch();
+                                                        else handleQuickViesSearch();
                                                     }
                                                 }}
-                                                className="w-full h-11 pl-3 pr-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
+                                                className="w-full h-11 pl-3 pr-20 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
                                             />
                                             {quickCreateClientForm.type === 'juridica' && (
-                                                <button 
-                                                    type="button"
-                                                    onClick={handleQuickViesSearch}
-                                                    disabled={isSearchingVies || !quickCreateClientForm.identifier}
-                                                    className="absolute right-1 top-1 bottom-1 w-9 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                                                    title="Caută firmă în VIES"
-                                                >
-                                                    {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                                </button>
+                                                <div className="absolute right-1 top-1 bottom-1 flex gap-1 items-center">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={handleQuickViesSearch}
+                                                        disabled={isSearchingVies || !quickCreateClientForm.identifier}
+                                                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                                        title="Caută firmă în VIES"
+                                                    >
+                                                        {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                    </button>
+                                                    {quickCreateClientForm.country === 'BE' && (
+                                                        <button 
+                                                            type="button"
+                                                            onClick={handleQuickKboSearch}
+                                                            disabled={isSearchingKbo || !quickCreateClientForm.identifier}
+                                                            className="w-9 h-9 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 font-bold text-[10px]"
+                                                            title="Caută în KBO (Belgia)"
+                                                        >
+                                                            {isSearchingKbo ? <Loader2 className="w-4 h-4 animate-spin" /> : "KBO"}
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
                                             </div>
                                         </div>
                                     </div>
                                     {quickCreateClientForm.type === 'juridica' && (
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresă Sediu')}</label>
-                                            <input 
-                                                type="text" 
-                                                value={quickCreateClientForm.address} 
-                                                onChange={e => setQuickCreateClientForm(p => ({...p, address: e.target.value}))} 
-                                                placeholder={t('clients.address_placeholder', 'Completează sau caută automat cu lupa →')}
-                                                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" 
-                                            />
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresă Sediu')}</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={quickCreateClientForm.address} 
+                                                    onChange={e => setQuickCreateClientForm(p => ({...p, address: e.target.value}))} 
+                                                    placeholder={t('clients.address_placeholder', 'Completează sau caută automat cu lupa →')}
+                                                    className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+                                                />
+                                            </div>
+                                            
+                                            {/* KBO Super Fișă */}
+                                            {kboDetails && (
+                                                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                            {t('clients.kbo_source', 'SOURCE KBO')}
+                                                        </div>
+                                                        <span className="text-xs font-medium text-slate-500">{t('clients.kbo_details', 'Détails Officiels Extraits')}</span>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className={`w-2 h-2 rounded-full ${kboDetails.status?.toLowerCase().includes('activ') || kboDetails.status?.toLowerCase().includes('norm') ? 'bg-green-500' : 'bg-red-500'}`} />
+                                                            <span className="font-semibold text-slate-700 dark:text-slate-300">{t('clients.status', 'Statut :')}</span>
+                                                            <span className="text-slate-600 dark:text-slate-400">{kboDetails.status || t('clients.unknown', 'Inconnu')}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            {kboDetails.is_vat_subject ? (
+                                                                <span className="text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded text-[10px]">{t('clients.vat_subject', 'ASSUJETTI À LA TVA')}</span>
+                                                            ) : (
+                                                                <span className="text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 font-bold px-1.5 py-0.5 rounded text-[10px]">{t('clients.no_vat', 'SANS TVA')}</span>
+                                                            )}
+                                                        </div>
+                                                        {kboDetails.director && (
+                                                            <div className="col-span-2 flex items-center gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
+                                                                <span className="font-semibold text-slate-700 dark:text-slate-300">{t('clients.representative', 'Représentant :')}</span>
+                                                                <span className="text-slate-600 dark:text-slate-400">{kboDetails.director}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     <div className="grid grid-cols-2 gap-3">

@@ -121,7 +121,23 @@ export default function InvoiceDetails() {
     const subtotal = items.reduce((sum, it) => sum + (it.qty * it.price), 0)
     const discountVal = (subtotal * (clientData.discount || 0)) / 100
     const netTotal = subtotal - discountVal
-    const vatRate = clientData.useVat !== false ? parseFloat(clientData.vatRate || wo.prices?.vat_rate || 21) : 0
+    
+    // Configurare automată a cotelor TVA din setările de preț (wo.prices)
+    let defaultVatRate = 21;
+    const clientType = clientData.client_type || wo.client_type || 'fizica';
+    const workType = wo.work_type || 'new';
+    
+    if (clientType === 'juridica') {
+        defaultVatRate = parseFloat(wo.prices?.vat_legal_entity ?? 0);
+    } else {
+        if (workType === 'repair') {
+            defaultVatRate = parseFloat(wo.prices?.vat_physical_repair ?? 6);
+        } else {
+            defaultVatRate = parseFloat(wo.prices?.vat_physical_new ?? 21);
+        }
+    }
+    
+    const vatRate = clientData.useVat !== false ? parseFloat(clientData.vatRate ?? wo.prices?.vat_rate ?? defaultVatRate) : 0;
     const devisTotalWithVat = netTotal * (1 + vatRate / 100)
 
     // Total FACTURA (real — pe baza suprafetelor reale introduse de sef echipa)

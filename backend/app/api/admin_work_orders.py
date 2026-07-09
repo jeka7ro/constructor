@@ -101,6 +101,8 @@ class WorkOrderCreate(BaseModel):
     client_company_iban: Optional[str] = None
     client_company_swift: Optional[str] = None
     is_quote: Optional[bool] = False
+    work_type: Optional[str] = "new"
+    use_vat: Optional[bool] = True
     
     # Conținut
     requirements: Optional[list] = []
@@ -153,8 +155,12 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
                 PricingSetting.organization_id == wo.organization_id,
                 PricingSetting.client_id == None
             ).first()
-        if pricing and pricing.surface_thresholds:
-            wo_prices['surface_thresholds'] = pricing.surface_thresholds
+        if pricing:
+            if pricing.surface_thresholds:
+                wo_prices['surface_thresholds'] = pricing.surface_thresholds
+            wo_prices['vat_legal_entity'] = pricing.vat_legal_entity
+            wo_prices['vat_physical_new'] = pricing.vat_physical_new
+            wo_prices['vat_physical_repair'] = pricing.vat_physical_repair
     site_name = None
     client_display = wo.client_name
     
@@ -173,6 +179,7 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
         "is_quote": bool(wo.is_quote),
         "approximate_date": wo.approximate_date,
+        "work_type": wo.work_type,
         "site_id": wo.site_id,
         "site_name": site_name,
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
@@ -475,8 +482,14 @@ def create_work_order(
         status="draft",
         is_quote=getattr(payload, 'is_quote', False),
         approximate_date=getattr(payload, 'approximate_date', None),
+        work_type=getattr(payload, 'work_type', 'new'),
         created_by=current_admin.id,
     )
+    
+    # Store use_vat inside prices JSON
+    prices_dict = getattr(payload, 'prices', {}) or {}
+    prices_dict["useVat"] = getattr(payload, 'use_vat', True)
+    wo.prices = prices_dict
     db.add(wo)
     db.flush()  # obtine ID-ul
 
@@ -633,7 +646,7 @@ def update_work_order(
         "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
         "client_email", "client_phone", "client_language", "requirements", "materials", "volumes", "prices",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
-        "estimated_price", "status", "is_quote"
+        "estimated_price", "status", "is_quote", "work_type"
     ]
     
     update_data = payload.dict(exclude_unset=True)
@@ -641,6 +654,11 @@ def update_work_order(
     for f in fields:
         if f in update_data:
             setattr(wo, f, update_data[f])
+
+    if "use_vat" in update_data:
+        pd = dict(wo.prices or {})
+        pd["useVat"] = update_data["use_vat"]
+        wo.prices = pd
 
     new_materials = wo.materials or []
     if wo.status not in ("completed", "cancelled") and old_materials != new_materials:
@@ -1580,8 +1598,6 @@ def generate_proforma(
         wo.quote_number = f"DEV{str(count + 1).zfill(4)}"
     
     if payload:
-        wo.proforma_data = payload
-        
         # Extrage si salveaza clientul
         client_mode = payload.get("client_mode")
         if client_mode == "new" and payload.get("clientName"):

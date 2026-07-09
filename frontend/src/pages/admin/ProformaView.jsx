@@ -93,8 +93,23 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     const isBelgium = tenant?.country === 'BE'
     
     // Apply config or defaults from DB
-    const useVat = pData?.useVat ?? true
-    const vatRate = useVat ? (isBelgium ? 21 : 19) : 0
+    const useVat = pData?.useVat ?? wo?.prices?.useVat ?? true
+    let defaultVatRate = isBelgium ? 21 : 19;
+    
+    // Auto-calcul TVA bazat pe status client / lucrare din wo.prices
+    const clientType = wo.client_type || 'fizica';
+    const workType = wo.work_type || 'new';
+    if (clientType === 'juridica') {
+        defaultVatRate = parseFloat(wo.prices?.vat_legal_entity ?? 0);
+    } else {
+        if (workType === 'repair') {
+            defaultVatRate = parseFloat(wo.prices?.vat_physical_repair ?? 6);
+        } else {
+            defaultVatRate = parseFloat(wo.prices?.vat_physical_new ?? 21);
+        }
+    }
+    
+    const vatRate = useVat ? (pData?.vatRate !== undefined ? parseFloat(pData.vatRate) : defaultVatRate) : 0
     const discountPct = pData?.discountPct || 0
     
     // Custom Client Fields

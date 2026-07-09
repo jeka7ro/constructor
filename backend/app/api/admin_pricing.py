@@ -26,6 +26,9 @@ class PricingSettingSchema(BaseModel):
     fiber_price_sqm_large: float
     fiber_large_threshold_sqm: float
     surface_thresholds: List[SurfaceThreshold]
+    vat_legal_entity: float = 0.0
+    vat_physical_new: float = 21.0
+    vat_physical_repair: float = 6.0
 
 @router.get("/pricing-settings")
 def get_pricing_settings(
@@ -56,7 +59,10 @@ def get_pricing_settings(
             id=str(uuid.uuid4()),
             organization_id=current_admin.organization_id,
             client_id=None,
-            surface_thresholds=[]
+            surface_thresholds=[],
+            vat_legal_entity=0.0,
+            vat_physical_new=21.0,
+            vat_physical_repair=6.0
         )
         if not client_id:
             db.add(setting)
@@ -73,7 +79,10 @@ def get_pricing_settings(
         "fiber_price_sqm": setting.fiber_price_sqm,
         "fiber_price_sqm_large": setting.fiber_price_sqm_large,
         "fiber_large_threshold_sqm": setting.fiber_large_threshold_sqm,
-        "surface_thresholds": setting.surface_thresholds or []
+        "surface_thresholds": setting.surface_thresholds or [],
+        "vat_legal_entity": setting.vat_legal_entity,
+        "vat_physical_new": setting.vat_physical_new,
+        "vat_physical_repair": setting.vat_physical_repair
     }
 
 @router.put("/pricing-settings")
@@ -103,6 +112,10 @@ def update_pricing_settings(
     setting.fiber_price_sqm = payload.fiber_price_sqm
     setting.fiber_price_sqm_large = payload.fiber_price_sqm_large
     setting.fiber_large_threshold_sqm = payload.fiber_large_threshold_sqm
+    
+    setting.vat_legal_entity = payload.vat_legal_entity
+    setting.vat_physical_new = payload.vat_physical_new
+    setting.vat_physical_repair = payload.vat_physical_repair
     
     thresholds = []
     for t in payload.surface_thresholds:

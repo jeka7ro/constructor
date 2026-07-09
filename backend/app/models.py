@@ -66,6 +66,11 @@ class PricingSetting(Base):
     
     surface_thresholds = Column(JSON, default=list) 
     
+    # ── VAT Configuration ───────────────────────────────────────────────────
+    vat_legal_entity = Column(Float, default=0.0)
+    vat_physical_new = Column(Float, default=21.0)
+    vat_physical_repair = Column(Float, default=6.0)
+    
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -992,6 +997,7 @@ class WorkOrder(Base):
     # ── Tipizare: Devis vs Work Order ─────────────────────────────────────────
     is_quote         = Column(Boolean, default=False, nullable=False, index=True)
     approximate_date = Column(String(255), nullable=True)    # Dată cerută de client pe devis
+    work_type        = Column(String(50), default="new", nullable=False) # 'new' or 'repair'
 
     # ── Locație ──────────────────────────────────────────────────────────────
     site_id              = Column(String(36), ForeignKey("construction_sites.id", ondelete="SET NULL"), nullable=True)

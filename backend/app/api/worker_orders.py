@@ -87,7 +87,7 @@ def _serialize_order(wo: WorkOrder, user_id: str, db: Session) -> dict:
         "site_address": wo.site_address or (wo.site.address if wo.site else None),
         "site_lat": (wo.site.latitude if wo.site else None) or wo.site_latitude,
         "site_lng": (wo.site.longitude if wo.site else None) or wo.site_longitude,
-        "client_name": wo.client_name,
+        "client_name": wo.client_name or (wo.client.name if getattr(wo, 'client', None) else None),
         "client_phone": wo.client_phone,
         "client_language": wo.client_language,
         "requirements": wo.requirements or [],
@@ -138,13 +138,14 @@ def get_my_orders(
     sixty_days_ago = datetime.utcnow() - timedelta(days=60)
 
     orders = db.query(WorkOrder).options(
-        joinedload(WorkOrder.site)
+        joinedload(WorkOrder.site),
+        joinedload(WorkOrder.client)
     ).filter(
         WorkOrder.organization_id == current_user.organization_id,
         WorkOrder.assigned_team_id.in_(team_ids),
         WorkOrder.status.notin_(["cancelled"]),
         WorkOrder.start_date >= sixty_days_ago.date()
-    ).order_by(WorkOrder.start_date.asc()).all()
+    ).order_by(WorkOrder.start_date.asc()).distinct().all()
 
     # Bulk fetch associations to avoid N+1 queries
     order_ids = [wo.id for wo in orders]
@@ -189,7 +190,7 @@ def get_my_orders(
             "site_address": wo.site_address or (wo.site.address if wo.site else None),
             "site_lat": (wo.site.latitude if wo.site else None) or wo.site_latitude,
             "site_lng": (wo.site.longitude if wo.site else None) or wo.site_longitude,
-            "client_name": wo.client_name,
+            "client_name": wo.client_name or (wo.client.name if wo.client else None),
             "client_phone": wo.client_phone,
             "client_language": wo.client_language,
             "requirements": wo.requirements or [],

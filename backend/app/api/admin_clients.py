@@ -1,5 +1,5 @@
 import requests
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, Field, EmailStr, model_validator, field_validator
@@ -218,3 +218,40 @@ def check_vies(country_code: str, vat_number: str, current_admin: Admin = Depend
             raise HTTPException(status_code=resp.status_code, detail="VIES API Service Unavailable")
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error connecting to VIES: {str(e)}")
+
+@router.get("/kbo/{vat_number}")
+def check_kbo(vat_number: str, current_admin: Admin = Depends(get_current_admin)):
+    from app.services.kbo_scraper import fetch_kbo_data
+    result = fetch_kbo_data(vat_number)
+    
+    if result and result.get("valid"):
+        return result
+    else:
+        error_msg = result.get("error", "Company not found in KBO") if result else "Company not found in KBO"
+        raise HTTPException(status_code=404, detail=error_msg)
+
+@router.get("/search")
+def search_clients(q: str = Query(..., min_length=2), db: Session = Depends(get_db), current_admin: Admin = Depends(get_current_admin)):
+    search_term = f"%{q}%"
+    clients = db.query(Client).filter(
+        (Client.organization_id == current_admin.organization_id) &
+        (
+            Client.name.ilike(search_term) | 
+            Client.cui.ilike(search_term)
+        )
+    ).limit(10).all()
+    
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "cui": c.cui,
+            "address": c.address,
+            "country": c.country,
+            "client_type": c.client_type,
+            "phone": c.phone,
+            "email": c.email,
+            "contact_person": c.contact_person
+        }
+        for c in clients
+    ]

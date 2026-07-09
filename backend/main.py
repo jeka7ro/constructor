@@ -20,7 +20,7 @@ from app.api import (
     alerts, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
     public_tenant, admin_work_orders, admin_pricing, admin_organizations, admin_transport,
     admin_leaves, calendar_sync, public_work_orders, worker_orders,
-    admin_logistics
+    admin_logistics, public_calculator
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.robaws_scraper import run_all_scrapers
@@ -286,9 +286,9 @@ _places_cache = {}
 _places_cache_lock = threading.Lock()
 
 @app.get("/api/places/autocomplete")
-def places_autocomplete(input: str):
+def places_autocomplete(input: str, types: str = None):
     """Proxy to Google Places Autocomplete API — no browser referrer restrictions"""
-    key = input.strip().lower()
+    key = f"{input.strip().lower()}_{types}"
     now = _time.time()
     with _places_cache_lock:
         if key in _places_cache:
@@ -296,13 +296,17 @@ def places_autocomplete(input: str):
             if now - ts < 300:  # 5 min cache
                 return data
     try:
+        params = {
+            "input": input,
+            "key": GOOGLE_MAPS_API_KEY,
+            "language": "ro",
+        }
+        if types:
+            params["types"] = types
+
         resp = _requests.get(
             "https://maps.googleapis.com/maps/api/place/autocomplete/json",
-            params={
-                "input": input,
-                "key": GOOGLE_MAPS_API_KEY,
-                "language": "ro",
-            },
+            params=params,
             timeout=5.0
         )
         data = resp.json()
@@ -386,6 +390,7 @@ app.include_router(calendar_sync.router, prefix="/api")
 app.include_router(public_work_orders.router, prefix="/api")
 app.include_router(worker_orders.router, prefix="/api")
 app.include_router(admin_logistics.router, prefix="/api")
+app.include_router(public_calculator.router)
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body

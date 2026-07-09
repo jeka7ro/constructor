@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useUIStore } from '../store/uiStore';
 
 /**
  * AddressAutocomplete — uses backend proxy to call Google Places API.
@@ -139,7 +140,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
             },
             (err) => {
                 console.error(err);
-                alert(t('quotes.geo_error', 'Nu am putut prelua locația. Verifică permisiunile.'));
+                useUIStore.getState().showToast(t('quotes.geo_error', 'Impossible de récupérer la position. Vérifiez vos autorisations.'), 'error');
                 setIsLocating(false);
             },
             { enableHighAccuracy: true, timeout: 10000 }
