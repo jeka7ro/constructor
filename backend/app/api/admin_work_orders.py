@@ -671,9 +671,14 @@ def update_work_order(
             Client.organization_id == current_admin.organization_id
         ).first()
         if cl:
-            wo.client_name = wo.client_name or cl.name
-            wo.client_email = wo.client_email or cl.email
-            wo.client_phone = wo.client_phone or cl.phone
+            if "client_name" not in update_data:
+                wo.client_name = cl.name
+            if "client_email" not in update_data:
+                wo.client_email = cl.email
+            if "client_phone" not in update_data:
+                wo.client_phone = cl.phone
+            if "client_language" not in update_data:
+                wo.client_language = cl.preferred_language or 'ro'
     elif wo.client_name:
         # Create client automatically if missing
         cl = db.query(Client).filter(

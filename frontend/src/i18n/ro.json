@@ -1519,6 +1519,13 @@
         "fiber_large": "Fibră / Duramint (suprafață mare)",
         "fiber_threshold": "Prag suprafață Fibră",
         "fiber_threshold_sub": "peste → tarif suprafață mare",
+        "section_vat": "TVA (Taxe)",
+        "vat_legal": "Firma (Cocontractant)",
+        "vat_legal_sub": "Taxare inversă",
+        "vat_physical_new": "Persoană fizică (Construcție nouă)",
+        "vat_physical_new_sub": "< 10 ani",
+        "vat_physical_repair": "Persoană fizică (Renovare)",
+        "vat_physical_repair_sub": "> 10 ani",
         "thickness": "Grosime Suplimentară",
         "fiber": "Fibră (Duramint)",
         "thresholds": "Praguri de Suprafață",
@@ -1532,5 +1539,12 @@
         "client_pricing_title": "Tarifare Client",
         "select_client": "Selectează Clientul",
         "confirm_reset": "Ești sigur că vrei să resetezi prețurile pentru acest client?"
+    },
+    "datatable": {
+        "show": "Afișează",
+        "all": "Toate",
+        "total": "Total:",
+        "page": "Pagina",
+        "of": "din"
     }
 }

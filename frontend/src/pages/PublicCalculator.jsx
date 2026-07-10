@@ -5,10 +5,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 
-// We cannot use the authenticated `api` instance directly, so we use axios directly to the public endpoint.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Use relative path so it routes through Vite's proxy in dev, and matches origin in production
 const publicApi = axios.create({
-    baseURL: `${API_BASE_URL}/api/public/calculator`
+    baseURL: '/api/public/calculator'
 });
 
 export default function PublicCalculator() {

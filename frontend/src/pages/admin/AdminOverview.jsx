@@ -5,7 +5,7 @@ import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
-    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus, Edit2, Search
+    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus, Edit2, Search, GripVertical
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -79,6 +79,27 @@ export default function AdminOverview() {
     const [allWorkOrders, setAllWorkOrders] = useState([])
     const [recentWorkOrders, setRecentWorkOrders] = useState([])
     const [teams, setTeams] = useState([])
+    const [bases, setBases] = useState([])
+
+    // Calcul distantă (Haversine)
+    const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    };
+
+    const formatCityOnly = (address) => {
+        if (!address) return '';
+        const parts = address.split(',').map(p => p.trim());
+        let cityWithZip = parts.length > 1 ? parts[1] : parts[0];
+        let city = cityWithZip.replace(/\d+/g, '').trim();
+        return city || cityWithZip;
+    };
 
     // Feature flags
     const tenantFeatures = tenant?.features || []
@@ -181,6 +202,7 @@ export default function AdminOverview() {
     // Calendar Fullscreen
     const calendarWrapperRef = useRef(null)
     const [isCalendarFull, setIsCalendarFull] = useState(false)
+    const lastMutationTime = useRef(0)
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -327,6 +349,15 @@ export default function AdminOverview() {
         return Math.max(0, elapsed - breakH)
     }
 
+    const fetchBases = async () => {
+        try {
+            const res = await api.get('/admin/logistics/bases')
+            setBases(res.data.bases || res.data || [])
+        } catch (e) {
+            console.error('fetchBases', e)
+        }
+    }
+
     useEffect(() => {
         const loadAll = async () => {
             // Batch 1: RAPID — date critice pentru UI imediat vizibil
@@ -335,6 +366,7 @@ export default function AdminOverview() {
                 fetchClients(),
                 fetchStats(),          // stat cards vizibile imediat
                 fetchActiveWorkers(),  // lista lucratori vizibila imediat
+                fetchBases(),
             ])
             
             // Batch 2: MEDIU — devisuri + alerte
@@ -407,6 +439,12 @@ export default function AdminOverview() {
         try {
             // O singura cerere cu limit mare (evita doua cereri secventiale)
             const res = await api.get(`/admin/work-orders${getDateParams()}`)
+            
+            // Daca s-a facut o mutare/editare in ultimele 5 secunde, ignoram polling-ul pentru a nu suprascrie UI-ul cu date vechi
+            if (Date.now() - lastMutationTime.current < 5000) {
+                return;
+            }
+            
             const all = res.data?.items || res.data || []
             const total = res.data?.total || all.length
             const active = Array.isArray(all) ? all.filter(w => w.status === 'in_progress' || w.status === 'sent' || w.status === 'confirmed').length : 0
@@ -454,6 +492,7 @@ export default function AdminOverview() {
             await api.put(`/admin/work-orders/${workOrderId}`, {
                 assigned_team_id: teamId
             })
+            lastMutationTime.current = Date.now();
             // Silent refresh
             fetchWorkOrdersStats()
         } catch (error) {
@@ -482,6 +521,7 @@ export default function AdminOverview() {
             await api.put(`/admin/work-orders/${workOrderId}`, {
                 client_id: clientId
             })
+            lastMutationTime.current = Date.now();
             // Silent refresh
             fetchWorkOrdersStats()
         } catch (error) {
@@ -753,15 +793,28 @@ export default function AdminOverview() {
 
     const handleOrderRescheduled = async (woId, newDate, newTime, revert = false) => {
         if (woId && newDate && newTime) {
-            setAllWorkOrders(prev => prev.map(wo => wo.id === String(woId) ? { 
-                ...wo, 
-                start_date: newDate, 
-                start_time: newTime,
-                ...(wo.status === 'draft' ? { status: 'planning' } : {}) 
-            } : wo));
+            const quoteInPending = pendingQuotes.find(q => String(q.id) === String(woId));
+            
+            if (quoteInPending) {
+                // Dacă a fost tras un Devis din așteptare, îl mutăm vizual instant în calendar
+                setPendingQuotes(prev => prev.filter(q => String(q.id) !== String(woId)));
+                setAllWorkOrders(prev => [...prev, { ...quoteInPending, start_date: newDate, start_time: newTime, status: 'planning' }]);
+            } else {
+                setAllWorkOrders(prev => prev.map(wo => String(wo.id) === String(woId) ? { 
+                    ...wo, 
+                    start_date: newDate, 
+                    start_time: newTime,
+                    ...(wo.status === 'draft' ? { status: 'planning' } : {}) 
+                } : wo));
+            }
         }
+        if (!revert) {
+            lastMutationTime.current = Date.now();
+        }
+        
         if (revert || !woId) {
             fetchWorkOrdersStats();
+            fetchPendingQuotes();
         }
         // Eliminat api.get imediat pentru a preveni race-conditions in care DB-ul returneaza data veche. 
         // Se va actualiza oricum prin timer-ul de 15 secunde.
@@ -1009,14 +1062,11 @@ export default function AdminOverview() {
                         <div className="flex flex-col gap-4">
                             {/* Panel DEVIS — draggable pe calendar */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
-                                <div className="px-4 py-3 shrink-0" style={{ backgroundColor: '#059669' }}>
-                                    <h3 className="font-extrabold text-white flex items-center gap-2 mb-0.5 text-xs uppercase tracking-wide">
-                                        <ClipboardList className="w-3.5 h-3.5 text-white" />
-                                        Devis en attente
+                                <div className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                    <h3 className="font-extrabold text-white flex items-center gap-2 text-xs uppercase tracking-wide leading-tight">
+                                        <ClipboardList className="w-4 h-4 text-white shrink-0" />
+                                        <span>Devis en attente</span>
                                     </h3>
-                                    <p className="text-[10px] text-emerald-100">
-                                        Glisse un devis sur le calendrier.
-                                    </p>
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
@@ -1040,20 +1090,45 @@ export default function AdminOverview() {
                                             onDragEnd={(e) => {
                                                 e.currentTarget.classList.remove('opacity-50', 'scale-95')
                                             }}
-                                            className="p-2 rounded-xl border border-emerald-200 dark:border-emerald-800 transition-all cursor-grab active:cursor-grabbing hover:scale-[1.02] bg-emerald-50 dark:bg-emerald-900/20 shadow-sm"
+                                            className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
                                         >
-                                            <div className="font-bold text-xs text-emerald-800 dark:text-emerald-300 truncate">
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <GripVertical className="w-4 h-4 text-rose-300 dark:text-rose-600" />
+                                            </div>
+                                            <div className="font-bold text-[13px] text-rose-900 dark:text-rose-100 pr-4 truncate">
                                                 {quote.client_name || quote.title || 'Devis'}
                                             </div>
                                             {quote.site_address && (
-                                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 truncate mt-0.5">{quote.site_address}</div>
+                                                <div className="text-[10px] text-rose-600 dark:text-rose-400 truncate mt-0.5 flex items-center justify-between">
+                                                    <span className="truncate pr-2 flex items-center gap-1">
+                                                        <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                                        {formatCityOnly(quote.site_address)}
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        {quote.approximate_date && (
+                                                            <span className="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[9px] font-bold text-rose-700 dark:text-rose-300">
+                                                                {new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             )}
-                                            {quote.volumes?.[0]?.quantity && (
-                                                <div className="text-[10px] text-slate-500 mt-0.5">{quote.volumes[0].quantity} m² · {quote.volumes[0].thickness || '?'} cm</div>
-                                            )}
-                                            {quote.estimated_price && (
-                                                <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">{parseFloat(quote.estimated_price).toFixed(0)} €</div>
-                                            )}
+                                            <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2">
+                                                {quote.volumes?.[0]?.quantity && (
+                                                    <span>{quote.volumes[0].quantity} m² · {quote.volumes[0].thickness || '?'} cm</span>
+                                                )}
+                                                {bases?.[0] ? (
+                                                    quote.site_latitude && quote.site_longitude ? (
+                                                        <span className="font-semibold text-rose-700 dark:text-rose-300">
+                                                            · {getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0)} km
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-semibold text-red-500/50 dark:text-red-400/50" title="Lipsă coordonate GPS. Selectează adresa din Google Maps când editezi devizul.">
+                                                            · ? km
+                                                        </span>
+                                                    )
+                                                ) : null}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

@@ -66,6 +66,20 @@ const calculateOrderSand = (wo) => {
     return totalKg / 1000;
 };
 
+export const formatAddressCityFirst = (address) => {
+    if (!address) return '';
+    const parts = address.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+        // Assume parts[0] is street, parts[1] is city+zip
+        const street = parts[0];
+        let cityWithZip = parts[1];
+        let city = cityWithZip.replace(/\d+/g, '').trim();
+        if (!city) city = cityWithZip;
+        return `${city}, ${street}`;
+    }
+    return address;
+};
+
 export default function ShortWorksCalendar({ 
     isCalendarFull,
     toggleCalendarFullscreen,
@@ -205,105 +219,23 @@ export default function ShortWorksCalendar({
     }, [workOrders, weekDayStrings]);
 
     const [bases, setBases] = useState([]);
-    const [routeDistances, setRouteDistances] = useState({});
-    const [mapsLoaded, setMapsLoaded] = useState(!!window.google?.maps?.DistanceMatrixService);
-
-    useEffect(() => {
-        if (mapsLoaded) return;
-        const interval = setInterval(() => {
-            if (window.google?.maps?.DistanceMatrixService) {
-                setMapsLoaded(true);
-                clearInterval(interval);
-            }
-        }, 500);
-        return () => clearInterval(interval);
-    }, [mapsLoaded]);
+    // Calcul distantă (Haversine) - instant, fără limite de API
+    const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    };
 
     useEffect(() => {
         api.get('/admin/logistics/bases')
-            .then(res => setBases(res.data))
+            .then(res => setBases(res.data.bases || res.data || []))
             .catch(e => console.error("Eroare incarcare baze:", e));
     }, []);
-
-    // Calcula distantele pentru fiecare lucrare bazat pe Baza Echipei si ordinea lucrarilor
-    useEffect(() => {
-        if (!window.google?.maps?.DistanceMatrixService) return;
-        if (bases.length === 0 || weeklyOrders.length === 0) return;
-
-        const grouped = {};
-        weeklyOrders.forEach(wo => {
-            const dateStr = (wo.start_date || wo.deadline_date)?.split('T')[0];
-            const teamId = wo.team?.id || wo.assigned_team_id;
-            if (!dateStr || !teamId || !wo.site_address && !wo.site_name) return;
-            if (!grouped[dateStr]) grouped[dateStr] = {};
-            if (!grouped[dateStr][teamId]) grouped[dateStr][teamId] = [];
-            grouped[dateStr][teamId].push(wo);
-        });
-
-        const pairsToCalc = []; 
-
-        Object.keys(grouped).forEach(dateStr => {
-            Object.keys(grouped[dateStr]).forEach(teamId => {
-                const orders = grouped[dateStr][teamId];
-                orders.sort((a, b) => (a.start_time || '07:00').localeCompare(b.start_time || '07:00'));
-
-                const base = bases.find(b => b.team_ids && b.team_ids.map(String).includes(String(teamId)));
-                if (!base) return;
-
-                let prevLocation = base.address ? base.address : (base.latitude && base.longitude ? `${base.latitude},${base.longitude}` : null);
-                if (!prevLocation) return;
-
-                orders.forEach((wo, idx) => {
-                    const currentLocation = wo.site_address || wo.site_name;
-                    if (!currentLocation) return;
-                    
-                    const legKey = `leg_${wo.id}_${prevLocation}_${currentLocation}`;
-                    
-                    if (!routeDistances[legKey] && prevLocation !== currentLocation) {
-                        pairsToCalc.push({ woId: wo.id, origin: prevLocation, destination: currentLocation, legKey });
-                    }
-                    
-                    prevLocation = currentLocation;
-                });
-            });
-        });
-
-        if (pairsToCalc.length === 0) return;
-
-        const service = new window.google.maps.DistanceMatrixService();
-        const batchSize = 5;
-        
-        for (let i = 0; i < pairsToCalc.length; i += batchSize) {
-            const batch = pairsToCalc.slice(i, i + batchSize);
-            const origins = batch.map(p => p.origin);
-            const destinations = batch.map(p => p.destination);
-            
-            setTimeout(() => {
-                service.getDistanceMatrix({
-                    origins,
-                    destinations,
-                    travelMode: 'DRIVING'
-                }, (response, status) => {
-                    if (status === 'OK' && response.rows) {
-                        setRouteDistances(prev => {
-                            const next = { ...prev };
-                            batch.forEach((req, idx) => {
-                                const cell = response.rows[idx]?.elements[idx];
-                                if (cell && cell.status === 'OK') {
-                                    next[req.legKey] = cell.distance.text;
-                                } else {
-                                    next[req.legKey] = 'N/A';
-                                }
-                            });
-                            return next;
-                        });
-                    } else {
-                        console.error("DistanceMatrix Error:", status, response);
-                    }
-                });
-            }, i * 150);
-        }
-    }, [bases, weeklyOrders, routeDistances, mapsLoaded]);
 
     const getDistanceTextForOrder = (wo) => {
         const teamId = wo.team?.id || wo.assigned_team_id;
@@ -321,21 +253,27 @@ export default function ShortWorksCalendar({
         const idx = dayOrders.findIndex(o => String(o.id) === String(wo.id));
         if (idx === -1) return null;
 
-        let prevLocation = base.address ? base.address : (base.latitude && base.longitude ? `${base.latitude},${base.longitude}` : null);
-        if (!prevLocation) return null;
+        let prevLat = base.latitude;
+        let prevLon = base.longitude;
+
+        if (!prevLat || !prevLon) return null;
+
         for (let i = 0; i < idx; i++) {
-            prevLocation = dayOrders[i].site_address || dayOrders[i].site_name || prevLocation;
+            if (dayOrders[i].site_latitude && dayOrders[i].site_longitude) {
+                prevLat = dayOrders[i].site_latitude;
+                prevLon = dayOrders[i].site_longitude;
+            }
         }
 
-        const currentLocation = wo.site_address || wo.site_name;
-        if (!currentLocation) return null;
+        const currLat = wo.site_latitude;
+        const currLon = wo.site_longitude;
 
-        const legKey = `leg_${wo.id}_${prevLocation}_${currentLocation}`;
+        if (!currLat || !currLon) return null;
 
-        if (prevLocation === currentLocation) return null;
-
-        const legDist = routeDistances[legKey];
-        if (!legDist || legDist === 'N/A' || legDist === '1 m') return null;
+        const dist = getDistanceKm(prevLat, prevLon, currLat, currLon);
+        if (dist === null) return null;
+        
+        const legDist = Math.round(dist) + ' km';
 
         return idx > 0 ? `+ ${legDist}` : legDist;
     };
@@ -515,7 +453,7 @@ export default function ShortWorksCalendar({
         >
             {/* Header */}
             <div className="flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-                <div className="px-4 py-3 flex items-center justify-between">
+                <div className="px-4 h-[60px] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <CalendarIcon className="w-5 h-5 text-white/90" />
                         <h2 className="text-lg font-bold text-white capitalize">
@@ -1068,7 +1006,7 @@ export default function ShortWorksCalendar({
                                                  if (addr) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
                                              }}>
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                            <span className="truncate">{wo.site_name || wo.site_address || t('common.no_location', 'Aucune adresse')}</span>
+                                            <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
                                         </div>
                                         <div className="mt-1 flex items-center justify-between">
                                             <div className="flex items-center gap-1.5 truncate bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-full shadow-sm">
@@ -1195,7 +1133,7 @@ export default function ShortWorksCalendar({
                                         </div>
                                         <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                            <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Fără locație')}</span>
+                                            <span className="truncate">{formatAddressCityFirst((wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Fără locație'))}</span>
                                         </div>
                                         <div className="mt-1.5">
                                             <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-full shadow-sm max-w-full">

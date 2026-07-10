@@ -523,8 +523,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         const extra = extraThick * parseFloat(prices?.extra || 1.25) * surface;
         const foil  = flags?.has_foil  ? parseFloat(prices?.foil  || 1.2) * surface : 0;
         const mesh  = flags?.has_mesh  ? parseFloat(prices?.mesh  || 2.5) * surface : 0;
-        const fiberRate = parseFloat(prices?.fiber || (surface <= 200 ? 2.5 : 2.0));
-        const fiber = flags?.has_fiber ? fiberRate * surface : 0;
+        let fiberRate = 0;
+        if (prices?.fiber_large !== undefined && prices?.fiber_threshold !== undefined) {
+            fiberRate = surface > parseFloat(prices.fiber_threshold) ? parseFloat(prices.fiber_large) : parseFloat(prices.fiber);
+        } else {
+            fiberRate = parseFloat(prices?.fiber || 2.5);
+        }
+        const fiber = (flags?.has_fiber || flags?.has_duramint) ? fiberRate * surface : 0;
         const discountAmount = parseFloat(prices?.discount || 0);
         // ── Aplicare Seuil de Surface (grila de suprafață) ─────────────────────
         const thresholds = prices?.surface_thresholds || [];
@@ -642,6 +647,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 fiber: parseFloat(calcEditForm.fiber_price) || 0,
                 discount: parseFloat(calcEditForm.discount) || 0,
             };
+            // Stergem logica cu threshold daca pretul fiber a fost editat custom
+            delete newPrices.fiber_large;
+            delete newPrices.fiber_threshold;
             // Calcul nou estimat
             const newCalc = computeChapeTotal(surface, thickness, calcEditForm, newPrices);
             const res = await api.put(`/admin/work-orders/${id}`, { volumes: newVolumes, estimated_price: String(newCalc.net), prices: newPrices });
@@ -1279,8 +1287,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     {autoFiber > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibre')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b></span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
+                                            <span className="text-right tabular-nums">
+                                                {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b>
+                                            </span>
                                         </div>
                                     )}
                                     {estimCalc.threshold > 0 && (
@@ -1391,8 +1401,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     {realCalc.fiber > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres')}</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.fiber || (realSurface <= 200 ? 2.5 : 2.0)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b></span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
+                                            <span className="text-right tabular-nums">
+                                                {realSurface} m² × {(wo.prices?.fiber_large !== undefined ? (realSurface > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b>
+                                            </span>
                                         </div>
                                     )}
                                     {realCalc.threshold > 0 && (

@@ -199,8 +199,11 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         proforma_issued_at=datetime.utcnow()
     )
     
-    count = db.query(WorkOrder).filter(WorkOrder.organization_id == org.id, WorkOrder.is_quote == True).count()
-    wo.quote_number = f"DEV{str(count + 1).zfill(4)}"
+    count = db.query(WorkOrder).filter(
+        WorkOrder.organization_id == wo.organization_id,
+        WorkOrder.quote_number.isnot(None)
+    ).count()
+    wo.quote_number = f"EST{str(count + 841).zfill(4)}"
     wo.proforma_path = f"/proforma/{wo.id}" # We set the internal path for consistency
     
     db.add(wo)
