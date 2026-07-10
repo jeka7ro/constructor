@@ -1,26 +1,22 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import os
-from dotenv import load_dotenv
+import sys
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
-engine = create_engine(os.getenv("DATABASE_URL"))
-Session = sessionmaker(bind=engine)
-session = Session()
+db_url = os.environ.get('DATABASE_URL')
+engine = create_engine(db_url)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+db = SessionLocal()
 
-from app.models import Client
-
-clients = session.query(Client).all()
-bad_clients = 0
-for c in clients:
-    if not c.name or len(c.name) < 2:
-        print("Bad name:", c.id, c.name)
-        bad_clients += 1
-    if not c.country:
-        print("Bad country:", c.id, c.country)
-        bad_clients += 1
-    if not c.client_type:
-        print("Bad client_type:", c.id, c.client_type)
-        bad_clients += 1
-
-print(f"Found {bad_clients} bad clients.")
+try:
+    result = db.execute(text("SELECT id, token, prices, client_type, work_type FROM work_orders WHERE token = '878b322e-322c-4dd8-aa15-3fecf8d68f56' OR id = '878b322e-322c-4dd8-aa15-3fecf8d68f56'")).fetchone()
+    if result:
+        print(f"prices: {result[2]}")
+        print(f"client_type: {result[3]}")
+        print(f"work_type: {result[4]}")
+    else:
+        print("Not found")
+except Exception as e:
+    print(f"Error: {e}")
+finally:
+    db.close()

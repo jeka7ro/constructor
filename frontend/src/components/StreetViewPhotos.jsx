@@ -24,7 +24,7 @@ export default function StreetViewPhotos({ lat, lng, address, className = "" }) 
     if (!apiKey) return null;
 
     // Poza 'auto' este dedusă de Google (arată fix spre clădire)
-    const headings = ['auto', 0, 30, 60, 90, 180, 210, 240, 270];
+    const headings = ['auto'];
 
     const getImageUrl = (heading, isLarge = false) => {
         const size = isLarge ? '1200x800' : '400x300';
