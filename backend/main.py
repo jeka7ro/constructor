@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -601,8 +601,11 @@ if frontend_dist.exists():
 
     # SPA catch-all: serve index.html for all non-API routes
     @app.get("/{full_path:path}")
-    async def spa_fallback(full_path: str):
-        from starlette.responses import FileResponse as StarletteFileResponse
+    async def spa_fallback(full_path: str, request: Request):
+        from starlette.responses import FileResponse, HTMLResponse
+        from app.database import SessionLocal
+        from app.models import Organization
+        import re
         
         # Files that must never be cached (SW, index.html)
         no_cache_files = {'sw.js', 'registerSW.js', 'index.html', 'manifest.webmanifest', 'workbox-8c29f6e4.js'}
@@ -614,8 +617,40 @@ if frontend_dist.exists():
             if full_path.split('/')[-1] in no_cache_files:
                 headers = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
             return FileResponse(str(file_path), headers=headers)
+            
         # Otherwise serve index.html for SPA routing
         index_path = frontend_dist / "index.html"
         if index_path.exists():
-            return FileResponse(str(index_path), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+            try:
+                host = request.headers.get("host", "")
+                subdomain = host.split(".")[0]
+                
+                db = SessionLocal()
+                tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
+                db.close()
+                
+                with open(index_path, "r", encoding="utf-8") as f:
+                    html_content = f.read()
+                    
+                if tenant:
+                    # Replace title dynamically
+                    if tenant.name:
+                        html_content = re.sub(r'<title>.*?</title>', f'<title>{tenant.name}</title>', html_content)
+                        html_content = re.sub(r'<meta property="og:title" content=".*?" />', f'<meta property="og:title" content="{tenant.name}" />', html_content)
+                    
+                    # Replace favicon dynamically
+                    icon_url = tenant.favicon_url or tenant.logo_url
+                    if icon_url:
+                        if not icon_url.startswith('http'):
+                            app_url = os.getenv("APP_URL", f"http://{host}")
+                            icon_url = f"{app_url}{icon_url}"
+                        
+                        html_content = re.sub(r'<link rel="icon" type="image/svg\+xml" href=".*?" />', f'<link rel="icon" href="{icon_url}" />', html_content)
+                        html_content = re.sub(r'<link rel="apple-touch-icon" href=".*?" />', f'<link rel="apple-touch-icon" href="{icon_url}" />', html_content)
+                        html_content = re.sub(r'<meta property="og:image" content=".*?" />', f'<meta property="og:image" content="{icon_url}" />', html_content)
+                        
+                return HTMLResponse(content=html_content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+            except Exception as e:
+                print(f"Error injecting tenant meta tags: {e}")
+                return FileResponse(str(index_path), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
         return {"detail": "Not found"}

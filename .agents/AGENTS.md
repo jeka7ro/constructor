@@ -48,3 +48,8 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - **ESTE STRICT INTERZIS** să folosești `venv`, executabile sau orice resurse din foldere din afara workspace-ului curent (`Client B - pontaje`). Nu se folosesc căi de tipul `../../alt_proiect/venv/...` sub NICIO formă.
 - Dacă nu există un `venv` funcțional în workspace-ul curent, raportează problema utilizatorului și cere instrucțiuni — nu improviza cu resurse din alte proiecte.
 - **CASCADE DELETE**: Înainte de a șterge orice WorkOrder sau entitate principală, agentul TREBUIE să verifice relațiile `CASCADE` și să avertizeze utilizatorul că ștergerea va elimina și toate datele legate (poze, pontaje GPS, check-in-uri, calcule materiale).
+
+## 10. Interdicția de a lua decizii neautorizate (Regulă de la utilizator)
+- Dacă nu știi ceva cu siguranță (ex. care este logoul corect, cum ar trebui să se numească un anumit câmp, etc.), **ÎNTREABĂ**. 
+- Nu ai voie să decizi în locul utilizatorului. 
+- După ce întrebi, **AȘTEAPTĂ** răspunsul utilizatorului înainte de a merge mai departe.
