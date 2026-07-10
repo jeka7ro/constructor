@@ -424,8 +424,19 @@ function SmartRedirect() {
         return <Navigate to="/admin/login" replace />
     }
 
-    // Otherwise redirect to employee login
-    return <Navigate to="/login" replace />
+    // If it's exactly the root path, redirect to employee login
+    if (location === '/') {
+        return <Navigate to="/login" replace />
+    }
+
+    // Otherwise, show a generic 404 to avoid leaking employee interfaces
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center font-sans">
+            <h1 className="text-6xl font-black text-slate-300 mb-4">404</h1>
+            <p className="text-lg text-slate-600 mb-2 font-bold">Lien introuvable ou expiré</p>
+            <p className="text-sm text-slate-500 max-w-md mx-auto">Veuillez vérifier l'adresse web que vous avez saisie ou contactez-nous si vous pensez qu'il s'agit d'une erreur.</p>
+        </div>
+    )
 }
 
 function HomeRouter() {
