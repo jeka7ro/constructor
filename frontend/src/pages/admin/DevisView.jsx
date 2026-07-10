@@ -256,11 +256,11 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             </div>
                         </div>
                         <div className="mt-6 h-0.5 rounded-full" style={{ backgroundColor: primaryColor + '50' }} />
-                        <div className="mt-6 grid grid-cols-2 gap-6">
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
-                                <div className="font-bold text-slate-800">{wo.client_name || '—'}</div>
-                                {wo.client_email && <div className="text-xs text-slate-500 mt-1">{wo.client_email}</div>}
+                                <div className="font-bold text-slate-800 break-words">{wo.client_name || '—'}</div>
+                                {wo.client_email && <div className="text-xs text-slate-500 mt-1 break-all">{wo.client_email}</div>}
                                 {wo.client_cui && <div className="text-xs text-slate-400 mt-1">N° TVA: {wo.client_cui}</div>}
                             </div>
                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
@@ -273,23 +273,25 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         </div>
                     </div>
                     <div className="px-10 pb-10 print:px-8">
-                        <div className="space-y-2">
-                            <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                <div className="col-span-5">{T.desc}</div>
-                                <div className="col-span-2 text-center">{T.qty}</div>
-                                <div className="col-span-1 text-center">{T.unit}</div>
-                                <div className="col-span-2 text-right">{T.pu}</div>
-                                <div className="col-span-2 text-right">{T.total}</div>
-                            </div>
-                            {items.map((item, i) => (
-                                <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
-                                    <div className="col-span-5 text-slate-700 font-medium text-sm">{item.desc}</div>
-                                    <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.qty}</div>
-                                    <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit}</div>
-                                    <div className="col-span-2 text-right text-slate-600 text-sm">{item.price.toFixed(2)}</div>
-                                    <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{(item.qty * item.price).toFixed(2)}</div>
+                        <div className="overflow-x-auto -mx-10 px-10 print:overflow-visible print:mx-0 print:px-0">
+                            <div className="min-w-[500px] space-y-2">
+                                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <div className="col-span-5">{T.desc}</div>
+                                    <div className="col-span-2 text-center">{T.qty}</div>
+                                    <div className="col-span-1 text-center">{T.unit}</div>
+                                    <div className="col-span-2 text-right">{T.pu}</div>
+                                    <div className="col-span-2 text-right">{T.total}</div>
                                 </div>
-                            ))}
+                                {items.map((item, i) => (
+                                    <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
+                                        <div className="col-span-5 text-slate-700 font-medium text-sm">{item.desc}</div>
+                                        <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.qty}</div>
+                                        <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit}</div>
+                                        <div className="col-span-2 text-right text-slate-600 text-sm">{item.price.toFixed(2)}</div>
+                                        <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{(item.qty * item.price).toFixed(2)}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <div className="flex justify-end mt-6">
                             <div className="w-72 space-y-1 text-sm">
