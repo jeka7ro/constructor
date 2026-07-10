@@ -293,20 +293,28 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         return { ...item, desc: newDesc };
     }) : defaultFallbackItems
 
-    // Calcul seuil de surface — ascuns din linii, adaugat la total
-    let hiddenExtra = 0
+    // Calcul seuil de surface — adaugat ca linie in deviz
     if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
         const surfCheck = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : parseFloat(wo.volumes?.[0]?.quantity || 0)
         wo.prices.surface_thresholds.forEach(thresh => {
             const minS = parseFloat(thresh.min_sqm || 0)
             const maxS = parseFloat(thresh.max_sqm || 999999)
             if (surfCheck >= minS && surfCheck <= maxS) {
-                hiddenExtra += parseFloat(thresh.extra_charge || 0)
+                const charge = parseFloat(thresh.extra_charge || 0)
+                if (charge > 0) {
+                    items.push({
+                        id: `threshold_${minS}`,
+                        desc: `Seuil de surface (${minS}-${maxS} m²)`,
+                        qty: 1,
+                        unit: 'Forfait',
+                        price: charge
+                    })
+                }
             }
         })
     }
 
-    const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0) + hiddenExtra
+    const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
     const discountAmount = (priceRaw * (discountPct / 100)) + parseFloat(wo.prices?.discount || 0)
     const subtotal = priceRaw - discountAmount
     const vatAmount = subtotal * (vatRate / 100)

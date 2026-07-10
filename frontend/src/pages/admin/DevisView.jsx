@@ -193,19 +193,26 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const items = buildItems()
     
     // Calcul seuil de surface
-    let hiddenExtra = 0
     if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
         const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0)
         wo.prices.surface_thresholds.forEach(thresh => {
             const minS = parseFloat(thresh.min_sqm || 0)
             const maxS = parseFloat(thresh.max_sqm || 999999)
             if (surfCheck >= minS && surfCheck <= maxS) {
-                hiddenExtra += parseFloat(thresh.extra_charge || 0)
+                const charge = parseFloat(thresh.extra_charge || 0)
+                if (charge > 0) {
+                    items.push({
+                        desc: `Seuil de surface (${minS}-${maxS} m²)`,
+                        qty: 1,
+                        unit: 'Forfait',
+                        price: charge
+                    })
+                }
             }
         })
     }
 
-    const total = items.reduce((s, i) => s + i.qty * i.price, 0) + hiddenExtra
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0)
     const devisNum = wo.quote_number || 'EST 0840'
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString(locale) : new Date().toLocaleDateString(locale)
     const primaryColor = tenant?.primary_color || '#059669'
