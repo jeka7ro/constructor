@@ -199,7 +199,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 const charge = parseFloat(thresh.extra_charge || 0)
                 if (charge > 0) {
                     items.push({
-                        desc: `Seuil de surface (${minS}-${maxS} m²)`,
+                        desc: 'Forfait',
                         qty: 1,
                         unit: 'Forfait',
                         price: charge

@@ -304,7 +304,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 if (charge > 0) {
                     items.push({
                         id: `threshold_${minS}`,
-                        desc: `Seuil de surface (${minS}-${maxS} m²)`,
+                        desc: 'Forfait',
                         qty: 1,
                         unit: 'Forfait',
                         price: charge

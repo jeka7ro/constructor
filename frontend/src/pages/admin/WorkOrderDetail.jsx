@@ -767,38 +767,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             {t('quotes.copy_link', 'Copier le lien client')}
                         </button>
                     )}
-                    {wo.is_quote && (
-                        <>
-                            <button
-                                onClick={() => setDocDrawerState({ url: `/admin/quotes/${wo.id}/pdf`, type: 'devis' })}
-                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-purple-600 text-white text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm"
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                Devis PDF
-                            </button>
-                            <button onClick={handleConvertToOrder} disabled={isConverting}
-                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
-                                {isConverting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />} 
-                                {t('quotes.btn_convert', 'Convertir en Commande')}
-                            </button>
-                        </>
-                    )}
                     {wo.status !== 'completed' && (
                         <>
                             <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                <Edit2 className="w-3.5 h-3.5" /> {t('work_order_detail.edit', 'Modifier')}
+                                <Edit2 className="w-3.5 h-3.5" /> {t('common.edit', 'Modifier')}
                             </button>
                             <button 
                                 onClick={() => {
-                                    if(window.confirm(t('work_order_detail.delete_confirm', 'Ștergeți definitiv acest devis/comandă?'))) {
+                                    if(window.confirm(t('work_order_detail.delete_confirm', 'Êtes-vous sûr de vouloir supprimer ceci définitivement ?'))) {
                                         api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
                                            .then(() => navigate('/admin/quotes'))
                                            .catch(console.error)
                                     }
                                 }}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors">
-                                <Trash2 className="w-3.5 h-3.5" /> Șterge
+                                <Trash2 className="w-3.5 h-3.5" /> {t('common.delete', 'Supprimer')}
                             </button>
                         </>
                     )}
@@ -1390,7 +1374,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     {estimCalc.threshold > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
                                             <span className="text-right tabular-nums">+ <b>{estimCalc.threshold.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
@@ -1473,7 +1457,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     {realCalc.threshold > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Seuil de surface')}</span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
                                             <span className="text-right tabular-nums">+ <b>{realCalc.threshold.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}

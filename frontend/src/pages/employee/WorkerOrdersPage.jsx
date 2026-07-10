@@ -551,6 +551,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                         )}
                                     </>
                                 );
+                            }
                             return null;
                         })()}
                     </div>
