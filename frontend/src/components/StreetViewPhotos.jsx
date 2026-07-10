@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 
 export default function StreetViewPhotos({ lat, lng, address, className = "" }) {
     const { t } = useTranslation();
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyC0K3Je-Wg4PQ68BltbA5xtz_zbbp3qPG4';
     const [selectedIndex, setSelectedIndex] = useState(null);
 
     // Handle escape key to close modal

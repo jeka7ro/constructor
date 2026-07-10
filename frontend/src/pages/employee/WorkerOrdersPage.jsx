@@ -631,7 +631,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                 {order.client_name}
                                 {order.client_language && (
                                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                                        Limba: {order.client_language}
+                                        Langue: {order.client_language?.toUpperCase() === 'RO' ? 'FR' : order.client_language?.toUpperCase()}
                                     </span>
                                 )}
                             </p>
