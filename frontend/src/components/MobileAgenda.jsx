@@ -289,11 +289,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                         </h4>
                                                     </div>
 
-                                                    {((lat && lng) || address) && (
-                                                        <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                                                            <StreetViewPhotos lat={lat} lng={lng} address={address} />
-                                                        </div>
-                                                    )}
+
 
                                                     <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
                                                         <MapPin className="w-4 h-4 shrink-0 opacity-70" />
