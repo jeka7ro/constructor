@@ -622,8 +622,10 @@ if frontend_dist.exists():
         index_path = frontend_dist / "index.html"
         if index_path.exists():
             try:
-                host = request.headers.get("host", "")
+                host = request.headers.get("x-forwarded-host", request.headers.get("host", ""))
                 subdomain = host.split(".")[0]
+                if ":" in subdomain:
+                    subdomain = subdomain.split(":")[0]
                 
                 db = SessionLocal()
                 tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
