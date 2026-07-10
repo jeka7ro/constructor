@@ -552,38 +552,13 @@ def create_work_order(
             except Exception:
                 pass
 
-        if wo.site_latitude and wo.site_longitude and base_lat and base_lng:
-            if getattr(payload, 'route_distance_km', None) is not None:
-                dist_one_way = payload.route_distance_km / 2.0
-                wo.route_distance_km = round(payload.route_distance_km, 2)
-            else:
-                def haversine(lat1, lon1, lat2, lon2):
-                    R = 6371.0
-                    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-                    dphi = math.radians(lat2 - lat1)
-                    dlambda = math.radians(lon2 - lon1)
-                    a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-                    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-                
-                dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
-                wo.route_distance_km = round(dist_one_way * 2, 2)
-            
-            wo.route_segments = [
-                {
-                    "from": base_name,
-                    "to": wo.site_address or wo.title,
-                    "km": round(dist_one_way, 2),
-                    "from_lat": base_lat,
-                    "from_lng": base_lng
-                },
-                {
-                    "from": wo.site_address or wo.title,
-                    "to": base_name,
-                    "km": round(dist_one_way, 2),
-                    "from_lat": wo.site_latitude,
-                    "from_lng": wo.site_longitude
-                }
-            ]
+        from app.api.admin_logistics import _calculate_daily_routes
+        try:
+            if wo.start_date and getattr(wo, 'assigned_team_id', None):
+                _calculate_daily_routes(wo.start_date, db, current_admin)
+        except Exception as e:
+            print(f"Logistics recalculation warning: {e}")
+
         elif base_lat and base_lng:
             # Fallback so frontend MapView knows where the base is and can draw the route
             wo.route_segments = [
@@ -753,38 +728,12 @@ def update_work_order(
             except Exception:
                 pass
 
-        if wo.site_latitude and wo.site_longitude and base_lat and base_lng:
-            if getattr(payload, 'route_distance_km', None) is not None:
-                dist_one_way = payload.route_distance_km / 2.0
-                wo.route_distance_km = round(payload.route_distance_km, 2)
-            else:
-                def haversine(lat1, lon1, lat2, lon2):
-                    R = 6371.0
-                    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-                    dphi = math.radians(lat2 - lat1)
-                    dlambda = math.radians(lon2 - lon1)
-                    a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-                    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-                
-                dist_one_way = haversine(base_lat, base_lng, wo.site_latitude, wo.site_longitude)
-                wo.route_distance_km = round(dist_one_way * 2, 2)
-            
-            wo.route_segments = [
-                {
-                    "from": base_name,
-                    "to": wo.site_address or wo.title,
-                    "km": round(dist_one_way, 2),
-                    "from_lat": base_lat,
-                    "from_lng": base_lng
-                },
-                {
-                    "from": wo.site_address or wo.title,
-                    "to": base_name,
-                    "km": round(dist_one_way, 2),
-                    "from_lat": wo.site_latitude,
-                    "from_lng": wo.site_longitude
-                }
-            ]
+        from app.api.admin_logistics import _calculate_daily_routes
+        try:
+            if wo.start_date and getattr(wo, 'assigned_team_id', None):
+                _calculate_daily_routes(wo.start_date, db, current_admin)
+        except Exception as e:
+            print(f"Logistics recalculation warning: {e}")
 
     except Exception as _route_err:
         print(f"Route calc warning (non-fatal): {_route_err}")

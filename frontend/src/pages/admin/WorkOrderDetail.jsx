@@ -910,8 +910,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distanță Totală (Dus-Întors)')}</span>
-                                            <span className="text-sm font-black text-slate-900 dark:text-white">{wo.route_distance_km ? (wo.route_distance_km * 2).toFixed(1) : 0} km</span>
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distanță Totală (Etape)')}</span>
+                                            <span className="text-sm font-black text-slate-900 dark:text-white">{(wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0).toFixed(1)} km</span>
                                         </div>
                                     </>
                                 ) : (
