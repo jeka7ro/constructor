@@ -190,7 +190,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         });
                     }
                     
-                    if (vol.has_fiber) {
+                    if (vol.has_fiber || vol.has_duramint) {
                         defaultFallbackItems.push({
                             id: `fiber_${idx}`,
                             desc: `Fibre + Duramint`,
@@ -234,7 +234,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 if (wo.has_mesh || wo.actual_has_mesh) {
                     defaultFallbackItems.push({ id: 'mesh_gen', desc: `Armature (Paillasse)`, qty: surfaceForAuto, price: parseFloat(wo.prices?.mesh || 2.5) });
                 }
-                if (wo.has_fiber || wo.actual_has_fiber) {
+                if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) {
                     defaultFallbackItems.push({ id: 'fiber_gen', desc: `Fibre + Duramint`, qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
                 }
             }
@@ -300,7 +300,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         wo.prices.surface_thresholds.forEach(thresh => {
             const minS = parseFloat(thresh.min_sqm || 0)
             const maxS = parseFloat(thresh.max_sqm || 999999)
-            if (surfCheck >= minS && surfCheck < maxS) {
+            if (surfCheck >= minS && surfCheck <= maxS) {
                 hiddenExtra += parseFloat(thresh.extra_charge || 0)
             }
         })

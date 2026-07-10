@@ -158,7 +158,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         }
                         if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) })
                         if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) })
-                        if (vol.has_fiber) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) })
+                        if (vol.has_fiber || vol.has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) })
                     } else {
                         items.push({ desc: vol.label || `Volume ${idx + 1}`, qty: surface, unit: 'm²', price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surface || 1) })
                     }
@@ -179,7 +179,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25) });
                     if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) });
                     if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) });
-                    if (wo.has_fiber || wo.actual_has_fiber) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) });
+                    if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) });
                 }
             }
             if (items.length === 0) {
@@ -199,7 +199,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         wo.prices.surface_thresholds.forEach(thresh => {
             const minS = parseFloat(thresh.min_sqm || 0)
             const maxS = parseFloat(thresh.max_sqm || 999999)
-            if (surfCheck >= minS && surfCheck < maxS) {
+            if (surfCheck >= minS && surfCheck <= maxS) {
                 hiddenExtra += parseFloat(thresh.extra_charge || 0)
             }
         })

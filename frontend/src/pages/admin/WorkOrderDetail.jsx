@@ -549,7 +549,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
     let chapeFlags = {}; // has_foil, has_mesh, has_fiber, has_duramint
-    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, net: 0 };
+    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0 };
 
     (wo.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
@@ -567,6 +567,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             estimCalc.foil  += c.foil;
             estimCalc.mesh  += c.mesh;
             estimCalc.fiber += c.fiber;
+            estimCalc.threshold += c.threshold;
+            estimCalc.discount += c.discount;
             estimCalc.net   += c.net;
         }
     });
