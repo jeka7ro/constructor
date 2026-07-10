@@ -1545,7 +1545,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {photos.filter(p => p.photo_type === 'machine_computer').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
-                                        const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
+                                        const fallbackSrc = `https://cmr.up.railway.app${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         return (
                                             <div key={`mc-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border-2 border-indigo-400 cursor-zoom-in hover:shadow-lg transition-all"
@@ -1572,7 +1572,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {photos.filter(p => p.photo_type === 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
-                                        const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
+                                        const fallbackSrc = `https://cmr.up.railway.app${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         return (
                                             <div key={`comp-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:border-blue-400 hover:shadow-md transition-all"
@@ -1599,7 +1599,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
                                         const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
-                                        const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
+                                        const fallbackSrc = `https://cmr.up.railway.app${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                                         return (
                                             <div key={`alt-${i}`}
                                                 className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-zoom-in hover:shadow-md transition-all"
@@ -1757,7 +1757,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             const p = photos[lightbox];
                             const rawSrc = p.url || p.file_url || p.path || '';
                             const src = rawSrc.startsWith('http') ? rawSrc : `${API_BASE}${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
-                            const fallbackSrc = `https://ltxbghtnygnguoegtgfo.supabase.co/storage/v1/object/public/uploads/${rawSrc.replace('/api/uploads/', '').replace('api/uploads/', '')}`;
+                            const fallbackSrc = `https://cmr.up.railway.app${rawSrc.startsWith('/') ? '' : '/'}${rawSrc}`;
                             return (
                                 <img 
                                     src={src} 
