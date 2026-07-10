@@ -139,7 +139,7 @@ function App() {
                     const res = await api.get('/public/tenant-config', { params: { slug: subdomain } })
                     setTenant(res.data)
                     if (res.data.name) {
-                        document.title = `${res.data.name} - Smart Timesheet`
+                        document.title = res.data.name;
                     }
                     if (res.data.default_language) {
                         i18n.changeLanguage(res.data.default_language)
