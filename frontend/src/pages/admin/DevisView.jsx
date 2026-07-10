@@ -246,10 +246,10 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     </button>
                 </div>
             )}
-            <div className={`print:p-0 max-w-[860px] mx-auto ${token ? 'p-0' : 'p-6'}`}>
+            <div className={`print:p-0 max-w-[860px] mx-auto ${token ? 'p-0' : 'p-4 sm:p-6'}`}>
                 <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden print:shadow-none print:border-none print:rounded-none">
-                    <div className="px-10 pt-10 pb-6 print:px-8 print:pt-8">
-                        <div className="flex justify-between items-start">
+                    <div className="px-5 pt-6 pb-6 sm:px-10 sm:pt-10 print:px-8 print:pt-8">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                             <div>
                                 {tenant?.logo_url ? (<img src={tenant.logo_url} alt="Logo" className="h-14 object-contain mb-2" />) : (<div className="text-2xl font-black text-slate-800">{tenant?.name || 'Davide Chape'}</div>)}
                                 <div className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -269,14 +269,14 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             </div>
                         </div>
                         <div className="mt-6 h-0.5 rounded-full" style={{ backgroundColor: primaryColor + '50' }} />
-                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                            <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
                                 <div className="font-bold text-slate-800 break-words">{wo.client_name || '—'}</div>
                                 {wo.client_email && <div className="text-xs text-slate-500 mt-1 break-all">{wo.client_email}</div>}
                                 {wo.client_cui && <div className="text-xs text-slate-400 mt-1">N° TVA: {wo.client_cui}</div>}
                             </div>
-                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                            <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.chantier}</div>
                                 <div className="text-sm text-slate-700">{wo.site_address || '—'}</div>
                                 {wo.volumes?.[0]?.quantity && (
@@ -285,10 +285,10 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             </div>
                         </div>
                     </div>
-                    <div className="px-10 pb-10 print:px-8">
-                        <div className="overflow-x-auto -mx-10 px-10 print:overflow-visible print:mx-0 print:px-0">
-                            <div className="min-w-[500px] space-y-2">
-                                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="pb-8 sm:pb-10 print:px-8">
+                        <div className="w-full overflow-x-auto print:overflow-visible">
+                            <div className="min-w-[500px] px-5 sm:px-10 space-y-2 pb-2 print:px-0">
+                                <div className="grid grid-cols-12 gap-3 sm:gap-4 px-2 sm:px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <div className="col-span-5">{T.desc}</div>
                                     <div className="col-span-2 text-center">{T.qty}</div>
                                     <div className="col-span-1 text-center">{T.unit}</div>
@@ -296,8 +296,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                     <div className="col-span-2 text-right">{T.total}</div>
                                 </div>
                                 {items.map((item, i) => (
-                                    <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
-                                        <div className="col-span-5 text-slate-700 font-medium text-sm">{item.desc}</div>
+                                    <div key={i} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
+                                        <div className="col-span-5 text-slate-700 font-medium text-xs sm:text-sm">{item.desc}</div>
                                         <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.qty}</div>
                                         <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit}</div>
                                         <div className="col-span-2 text-right text-slate-600 text-sm">{item.price.toFixed(2)}</div>
@@ -306,7 +306,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                 ))}
                             </div>
                         </div>
-                        <div className="flex justify-end mt-6">
+                        <div className="flex justify-end mt-6 px-5 sm:px-10 print:px-0">
                             <div className="w-72 space-y-1 text-sm">
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between py-1 px-4 font-bold text-emerald-600">
@@ -335,7 +335,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                 </div>
                             </div>
                         </div>
-                        <div className="mt-10 pt-6 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
+                        <div className="mt-10 pt-6 px-5 sm:px-10 print:px-0 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
                             {wo.approximate_date && (
                                 <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
                                     <span className="font-bold text-slate-500">{T.dateEst}</span>
