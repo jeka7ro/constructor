@@ -552,14 +552,7 @@ def create_work_order(
             except Exception:
                 pass
 
-        from app.api.admin_logistics import _calculate_daily_routes
-        try:
-            if wo.start_date and getattr(wo, 'assigned_team_id', None):
-                _calculate_daily_routes(wo.start_date, db, current_admin)
-        except Exception as e:
-            print(f"Logistics recalculation warning: {e}")
-
-        elif base_lat and base_lng:
+        if base_lat and base_lng and not wo.route_segments:
             # Fallback so frontend MapView knows where the base is and can draw the route
             wo.route_segments = [
                 {
@@ -576,6 +569,15 @@ def create_work_order(
 
     db.commit()
     db.refresh(wo)
+    
+    try:
+        if wo.start_date and getattr(wo, 'assigned_team_id', None):
+            from app.api.admin_logistics import _calculate_daily_routes
+            _calculate_daily_routes(wo.start_date, db, current_admin)
+            db.refresh(wo)
+    except Exception as e:
+        print(f"Logistics recalculation warning: {e}")
+
     return _serialize(wo, db)
 
 
@@ -728,18 +730,32 @@ def update_work_order(
             except Exception:
                 pass
 
-        from app.api.admin_logistics import _calculate_daily_routes
-        try:
-            if wo.start_date and getattr(wo, 'assigned_team_id', None):
-                _calculate_daily_routes(wo.start_date, db, current_admin)
-        except Exception as e:
-            print(f"Logistics recalculation warning: {e}")
+        if base_lat and base_lng and not wo.route_segments:
+            # Fallback so frontend MapView knows where the base is and can draw the route
+            wo.route_segments = [
+                {
+                    "from": base_name,
+                    "to": wo.site_address or wo.title,
+                    "km": 0,
+                    "from_lat": base_lat,
+                    "from_lng": base_lng
+                }
+            ]
 
     except Exception as _route_err:
         print(f"Route calc warning (non-fatal): {_route_err}")
 
     db.commit()
     db.refresh(wo)
+    
+    try:
+        if wo.start_date and getattr(wo, 'assigned_team_id', None):
+            from app.api.admin_logistics import _calculate_daily_routes
+            _calculate_daily_routes(wo.start_date, db, current_admin)
+            db.refresh(wo)
+    except Exception as e:
+        print(f"Logistics recalculation warning: {e}")
+
     return _serialize(wo, db)
 
 
