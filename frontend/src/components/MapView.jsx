@@ -232,26 +232,36 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         title: `Baza: ${startName}`
                     });
 
-                    // Route
-                    const directionsService = new window.google.maps.DirectionsService();
-                    const directionsRenderer = new window.google.maps.DirectionsRenderer({
-                        map: mapInstance.current,
-                        suppressMarkers: true,
-                        polylineOptions: { strokeColor: '#3b82f6', strokeWeight: 4, strokeOpacity: 0.8 }
-                    });
-                    elementsRef.current.directionsRenderer = directionsRenderer;
+                    // OSRM Route
+                    fetch(`https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${center.lng},${center.lat}?overview=full&geometries=polyline`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
+                                const route = data.routes[0];
+                                const path = window.google.maps.geometry.encoding.decodePath(route.geometry);
+                                
+                                const line = new window.google.maps.Polyline({
+                                    path: path,
+                                    strokeColor: '#3b82f6',
+                                    strokeOpacity: 0.8,
+                                    strokeWeight: 4,
+                                    map: mapInstance.current
+                                });
+                                elementsRef.current.directionsRenderer = line;
 
-                    directionsService.route({
-                        origin: startCoords,
-                        destination: center,
-                        travelMode: window.google.maps.TravelMode.DRIVING
-                    }, (response, status) => {
-                        if (status === 'OK') {
-                            directionsRenderer.setDirections(response);
-                            if (onRouteCalculated && response.routes[0] && response.routes[0].legs[0]) {
-                                onRouteCalculated(response.routes[0].legs[0].distance.value / 1000);
+                                const bounds = new window.google.maps.LatLngBounds();
+                                path.forEach(p => bounds.extend(p));
+                                mapInstance.current.fitBounds(bounds, { padding: 50 });
+
+                                if (onRouteCalculated) {
+                                    onRouteCalculated(route.distance / 1000);
+                                }
+                            } else {
+                                throw new Error("OSRM routing failed");
                             }
-                        } else {
+                        })
+                        .catch(err => {
+                            console.error("OSRM error:", err);
                             // Fallback direct line if routing fails
                             const line = new window.google.maps.Polyline({
                                 path: [startCoords, center],
@@ -260,14 +270,13 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                                 strokeWeight: 3,
                                 map: mapInstance.current
                             });
-                            elementsRef.current.directionsRenderer = line; // Save reference to clear it later
+                            elementsRef.current.directionsRenderer = line; 
                             
                             const bounds = new window.google.maps.LatLngBounds();
                             bounds.extend(startCoords);
                             bounds.extend(center);
                             mapInstance.current.fitBounds(bounds, { padding: 50 });
-                        }
-                    });
+                        });
                 }
             });
         }
