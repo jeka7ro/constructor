@@ -496,7 +496,7 @@ def create_work_order(
     # Auto-generate quote_number (IST0001, IST0002...) sau invoice_number (INV001...)
     if wo.is_quote:
         count = db.query(WorkOrder).filter(WorkOrder.is_quote == True).count()
-        wo.quote_number = f"DEV{str(count + 1).zfill(4)}"
+        wo.quote_number = f"EST{str(count + 841).zfill(4)}"
     else:
         count = db.query(WorkOrder).filter(
             WorkOrder.organization_id == current_admin.organization_id,
@@ -1595,7 +1595,7 @@ def generate_proforma(
             WorkOrder.organization_id == current_admin.organization_id,
             WorkOrder.quote_number.isnot(None)
         ).count()
-        wo.quote_number = f"DEV{str(count + 1).zfill(4)}"
+        wo.quote_number = f"EST{str(count + 841).zfill(4)}"
     
     if payload:
         # Extrage si salveaza clientul

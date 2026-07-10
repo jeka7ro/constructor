@@ -91,6 +91,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
     // Fiscal logic
     const isBelgium = tenant?.country === 'BE'
+    const primaryColor = tenant?.primary_color || '#2563eb'
     
     // Apply config or defaults from DB
     const useVat = pData?.useVat ?? wo?.prices?.useVat ?? true
@@ -138,7 +139,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     
     if (wo.volumes && wo.volumes.length > 0) {
         wo.volumes.forEach((vol, idx) => {
-            const isChape = vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '')
+            const isChape = vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '') || /chape/i.test(vol.label || '')
             
             // FACTURA foloseste valorile reale introduse de seful de echipa
             // DEVIS foloseste valorile estimative din deviz
@@ -215,18 +216,53 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
     // Fallback if no volumes
     if (defaultFallbackItems.length === 0) {
-        defaultFallbackItems = [{
-            id: 'default',
-            desc: `${tL('items.custom_work') || 'Lucrări conform deviz'} (${wo.title || tL('items.labor_materials') || 'Manoperă și materiale'})`,
-            qty: 1,
-            price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0')
-        }]
+        const isSapaGeneral = wo.work_type === 'sapa_mecanizata' || (wo.title || '').toLowerCase().includes('isoflex') || (parseFloat(wo.surface_m2 || 0) > 0 && !parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0'));
+        if (isSapaGeneral) {
+            const surfaceForAuto = parseFloat(isInvoiceView && wo.actual_surface_m2 > 0 ? wo.actual_surface_m2 : (wo.surface_m2 || 0));
+            const thickForAuto = parseFloat(isInvoiceView && wo.actual_thickness_cm > 0 ? wo.actual_thickness_cm : (wo.thickness_cm || 5));
+            if (surfaceForAuto > 0) {
+                const stdThick = parseFloat(wo.prices?.standard_thickness || 5);
+                const extraThickForAuto = Math.max(0, thickForAuto - stdThick);
+                
+                defaultFallbackItems.push({ id: 'base_gen', desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`, qty: surfaceForAuto, price: parseFloat(wo.prices?.base || 12.5) });
+                if (extraThickForAuto > 0) {
+                    defaultFallbackItems.push({ id: 'extra_gen', desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`, qty: surfaceForAuto, price: extraThickForAuto * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25) });
+                }
+                if (wo.has_foil || wo.actual_has_foil) {
+                    defaultFallbackItems.push({ id: 'foil_gen', desc: `Feuille de plastique (Visqueen)`, qty: surfaceForAuto, price: parseFloat(wo.prices?.foil || 1.2) });
+                }
+                if (wo.has_mesh || wo.actual_has_mesh) {
+                    defaultFallbackItems.push({ id: 'mesh_gen', desc: `Armature (Paillasse)`, qty: surfaceForAuto, price: parseFloat(wo.prices?.mesh || 2.5) });
+                }
+                if (wo.has_fiber || wo.actual_has_fiber) {
+                    defaultFallbackItems.push({ id: 'fiber_gen', desc: `Fibre + Duramint`, qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
+                }
+            }
+        }
+
+        if (defaultFallbackItems.length === 0) {
+            defaultFallbackItems = [{
+                id: 'default',
+                desc: `${tL('items.custom_work') || 'Lucrări conform deviz'} (${wo.title || tL('items.labor_materials') || 'Manoperă și materiale'})`,
+                qty: 1,
+                price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0')
+            }];
+        }
     }
 
     // Items array from config or default fallback
     let shouldUseFallback = !pData?.items || pData.items.length === 0;
-    if (pData?.items?.length === 1 && (pData.items[0].id === 'default' || String(pData.items[0].desc).includes('Lucrări conform deviz') || String(pData.items[0].desc).includes('Manoperă'))) {
-        shouldUseFallback = true;
+    if (pData?.items?.length === 1) {
+        const descLower = String(pData.items[0].desc || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        if (pData.items[0].id === 'default' || 
+            descLower.includes('conform deviz') || 
+            descLower.includes('manoper') || 
+            descLower === 'chape' ||
+            descLower === 'sapa' ||
+            descLower.startsWith('sapa') ||
+            descLower.startsWith('chape')) {
+            shouldUseFallback = true;
+        }
     }
 
     // Try translating items on the fly if desc isn't hardcoded or uses translation keys
@@ -332,38 +368,36 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     </div>
                 </div>
 
-                <table className="w-full mb-12 table-fixed">
-                    <thead>
-                        <tr className="border-b-2 border-slate-200">
-                            <th className="py-3 pr-4 text-left text-xs font-bold text-slate-500 uppercase w-[55%]">{tL('desc')}</th>
-                            <th className="py-3 px-4 text-center text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('qty')}</th>
-                            <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{tL('price')}</th>
-                            {isInvoiceView && <th className="py-3 px-4 text-right text-xs font-bold text-slate-500 uppercase w-[10%]">TVA</th>}
-                            <th className="py-3 pl-4 text-right text-xs font-bold text-slate-500 uppercase w-[15%]">{isInvoiceView ? 'Sous-total (EUR)' : 'Montant'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={item.id || idx} className="border-b border-slate-100">
-                                <td className="py-4 pr-4 align-top">
-                                    <p className="font-medium text-slate-800">{item.desc}</p>
-                                    {idx === 0 && (wo.site_name || wo.site_address) && (
-                                        <div className="mt-2 text-sm text-slate-500">
-                                            <span className="font-semibold">{tL('address')} (Chantier):</span>{' '}
-                                            {wo.site_name && <span>{wo.site_name}</span>}
-                                            {wo.site_name && wo.site_address && <span> - </span>}
-                                            {wo.site_address && <span>{wo.site_address}</span>}
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="py-4 px-4 text-center text-slate-600 align-top">{item.qty}</td>
-                                <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{Number(item.price).toFixed(2)}</td>
-                                {isInvoiceView && <td className="py-4 px-4 text-right text-slate-600 whitespace-nowrap align-top">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</td>}
-                                <td className="py-4 pl-4 text-right font-medium text-slate-800 whitespace-nowrap align-top">{(item.qty * item.price).toFixed(2)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <div className="space-y-2 mb-12">
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <div className="col-span-5">{tL('desc')}</div>
+                        <div className={isInvoiceView ? "col-span-1 text-center" : "col-span-2 text-center"}>{tL('qty')}</div>
+                        <div className="col-span-1 text-center">UNIT</div>
+                        <div className="col-span-2 text-right">{tL('price')}</div>
+                        {isInvoiceView && <div className="col-span-1 text-right">TVA</div>}
+                        <div className="col-span-2 text-right">{isInvoiceView ? 'Sous-total (EUR)' : 'Montant'}</div>
+                    </div>
+                    {items.map((item, idx) => (
+                        <div key={item.id || idx} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
+                            <div className="col-span-5">
+                                <p className="font-medium text-slate-800 text-sm">{item.desc}</p>
+                                {idx === 0 && (wo.site_name || wo.site_address) && (
+                                    <div className="mt-2 text-xs text-slate-500">
+                                        <span className="font-semibold">{tL('address')} (Chantier):</span>{' '}
+                                        {wo.site_name && <span>{wo.site_name}</span>}
+                                        {wo.site_name && wo.site_address && <span> - </span>}
+                                        {wo.site_address && <span>{wo.site_address}</span>}
+                                    </div>
+                                )}
+                            </div>
+                            <div className={isInvoiceView ? "col-span-1 text-center text-slate-600 font-medium text-sm" : "col-span-2 text-center text-slate-600 font-medium text-sm"}>{item.qty}</div>
+                            <div className="col-span-1 text-center text-slate-500 font-bold text-[10px] uppercase">{item.unit || 'm²'}</div>
+                            <div className="col-span-2 text-right text-slate-600 text-sm">{Number(item.price).toFixed(2)}</div>
+                            {isInvoiceView && <div className="col-span-1 text-right text-slate-600 text-sm">{vatRate > 0 ? `${vatRate}%` : '0,0%'}</div>}
+                            <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{(item.qty * item.price).toFixed(2)}</div>
+                        </div>
+                    ))}
+                </div>
 
                 <div className="flex justify-end mb-12">
                     <div className="w-[450px] print:w-[350px]">
@@ -407,9 +441,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </>
                         )}
-                        <div className={`flex justify-between pt-4 ${isInvoiceView ? 'border-t border-slate-200' : ''}`}>
-                            <span className="font-bold text-slate-800 text-base">Total:</span>
-                            <span className="font-bold text-slate-800 whitespace-nowrap text-base">{totalAmount.toFixed(2)} EUR</span>
+                        <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
+                            <span>Total:</span>
+                            <span>{totalAmount.toFixed(2)} EUR</span>
                         </div>
                     </div>
                 </div>

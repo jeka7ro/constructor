@@ -166,10 +166,8 @@ export default function InvoiceDetails() {
     const clientDisplayName = clientData.clientName || wo.client_name || wo.client?.company_name || (wo.client?.first_name ? `${wo.client.first_name} ${wo.client.last_name || ''}`.trim() : null)
 
     const getIframeSrc = () => {
-        // MEREU acelasi template ProformaView — doar type difera
-        const base = `${window.location.origin}/proforma/${wo.id}`
-        if (activeTab === 'invoice') return `${base}?type=invoice`
-        return `${base}?type=proforma`
+        if (activeTab === 'invoice') return `${window.location.origin}/proforma/${wo.id}?type=invoice`
+        return `${window.location.origin}/admin/quotes/${wo.id}/pdf`
     }
 
     return (

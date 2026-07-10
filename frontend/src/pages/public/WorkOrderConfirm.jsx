@@ -356,7 +356,7 @@ const translateDynamic = (text, lang) => {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function WorkOrderConfirm() {
+export default function WorkOrderConfirm({ hideMap = false }) {
     const { token } = useParams()
     const [searchParams, setSearchParams] = useSearchParams()
     const urlLang = searchParams.get('lang')
@@ -562,12 +562,49 @@ export default function WorkOrderConfirm() {
                     </div>
                 </div>
 
-
+                {/* Location Map Container */}
+                {!hideMap && (order?.site_name || order?.site_address || order?.site_lat) && (() => {
+                    const getLocalizedAddress = (addr) => {
+                        if (!addr) return '';
+                        let str = addr;
+                        if (lang === 'fr') {
+                            str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
+                        } else if (lang === 'nl') {
+                            str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
+                        } else if (lang === 'en') {
+                            str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
+                        }
+                        return str;
+                    };
+                    const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
+                    
+                    return (
+                        <div className="bg-transparent rounded-2xl border-0 overflow-hidden mb-6 flex flex-col print:hidden">
+                            <div className="px-1 py-2 flex items-center gap-2 mb-2">
+                                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                                <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">
+                                    {displayAddr}
+                                </div>
+                            </div>
+                            <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full h-[220px]">
+                                <MapView
+                                    latitude={order.site_lat}
+                                    longitude={order.site_lon}
+                                    address={displayAddr}
+                                    height="100%"
+                                    zoom={15}
+                                    markerType="pin"
+                                />
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* Embed the PDF with integrated Signature */}
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
                     <DevisView 
-                        embeddedToken={token} 
+                        embeddedToken={token}
+                        lang={lang}
                         signatureElement={
                             !confirmed ? (
                                 <div className="w-full relative h-full flex flex-col">

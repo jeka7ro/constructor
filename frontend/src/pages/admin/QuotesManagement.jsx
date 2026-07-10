@@ -24,8 +24,10 @@ function haversine(lat1, lon1, lat2, lon2) {
 const EditablePrice = ({ row, onUpdate }) => {
     const [price, setPrice] = useState(row.estimated_price ?? '')
     const [isSaving, setIsSaving] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
     
     const handleBlur = async () => {
+        setIsEditing(false)
         if (price === (row.estimated_price ?? '')) return
         setIsSaving(true)
         try {
@@ -39,18 +41,34 @@ const EditablePrice = ({ row, onUpdate }) => {
         }
     }
     
+    const formatPrice = (val) => {
+        if (val === '' || val === null || val === undefined) return '';
+        return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+    }
+    
     return (
-        <div className="relative w-24">
-            <input 
-                type="number" step="any"
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-                onBlur={handleBlur}
-                className="w-full text-sm border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 bg-transparent transition-colors outline-none"
-                placeholder="Preț..."
-                disabled={isSaving}
-            />
-            {isSaving && <Loader2 className="w-3 h-3 animate-spin absolute right-2 top-2 text-slate-400" />}
+        <div className="relative w-28 flex items-center">
+            {isEditing ? (
+                <input 
+                    type="number" step="any"
+                    value={price}
+                    onChange={e => setPrice(e.target.value)}
+                    onBlur={handleBlur}
+                    className="w-full text-right text-sm text-slate-700 border border-slate-300 focus:border-blue-500 rounded pl-2 pr-6 py-1 bg-white transition-colors outline-none"
+                    placeholder="Preț..."
+                    disabled={isSaving}
+                    autoFocus
+                />
+            ) : (
+                <div 
+                    onClick={() => !isSaving && setIsEditing(true)}
+                    className="w-full text-right text-sm text-slate-700 border border-transparent hover:border-slate-300 rounded pl-2 pr-6 py-1 cursor-text"
+                >
+                    {price ? formatPrice(price) : '0,00'}
+                </div>
+            )}
+            <span className="absolute right-2 text-slate-500 font-bold pointer-events-none">€</span>
+            {isSaving && <Loader2 className="w-3 h-3 animate-spin absolute right-6 text-slate-400" />}
         </div>
     )
 }
@@ -348,81 +366,148 @@ export default function QuotesManagement() {
 
     const columns = [
         {
-            key: 'approximate_date',
-            label: t('quotes.approx_date', 'Date Aprox.'),
+            key: 'created_at',
+            label: t('quotes.quote_details', 'N° Devis / Date'),
+            sortable: true,
             render: (row) => {
                 let display = '-'
-                if (row.approximate_date) {
+                if (row.created_at) {
                     try {
-                        const d = new Date(row.approximate_date)
+                        const d = new Date(row.created_at)
                         if (!isNaN(d.getTime())) {
                             display = d.toLocaleDateString('ro-RO')
                         } else {
-                            display = row.approximate_date
+                            display = row.created_at
                         }
                     } catch(e) {
-                        display = row.approximate_date
+                        display = row.created_at
                     }
                 }
-                const isPlanning = row.status === 'planning'
+                const getStatusBadge = (status) => {
+                    switch (status) {
+                        case 'planning':
+                            return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide border border-emerald-200 whitespace-nowrap w-fit">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                    {t('status.planning', 'En planning')}
+                                </span>
+                            );
+                        case 'confirmed':
+                            return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-wide border border-green-200 whitespace-nowrap w-fit">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                                    {t('status.confirmed', 'Signé')}
+                                </span>
+                            );
+                        case 'completed':
+                            return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-wide border border-slate-200 whitespace-nowrap w-fit">
+                                    <CheckCircle2 className="w-3 h-3 text-slate-500" />
+                                    {t('status.completed', 'Terminé')}
+                                </span>
+                            );
+                        case 'cancelled':
+                            return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wide border border-red-200 whitespace-nowrap w-fit">
+                                    <X className="w-3 h-3 text-red-500" />
+                                    {t('status.cancelled', 'Annulé')}
+                                </span>
+                            );
+                        default:
+                            return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wide border border-amber-200 whitespace-nowrap w-fit">
+                                    <AlertCircle className="w-3 h-3 text-amber-500" />
+                                    {t('status.pending', 'En attente')}
+                                </span>
+                            );
+                    }
+                }
                 return (
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-slate-600">
-                            <CalendarDays className="w-4 h-4 text-slate-400" />
-                            <span>{display}</span>
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5 text-sm text-slate-700">
+                            <span>
+                                {row.quote_number || '-'}
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <div className="flex items-center gap-1 text-slate-500">
+                                <CalendarDays className="w-4 h-4 text-slate-400" />
+                                <span>{display}</span>
+                            </div>
                         </div>
-                        {isPlanning ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide border border-emerald-200 whitespace-nowrap w-fit">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                                En Planning
-                            </span>
-                        ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wide border border-amber-200 whitespace-nowrap w-fit">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
-                                En attente
-                            </span>
-                        )}
+                        {getStatusBadge(row.status)}
                     </div>
                 )
             }
         },
         {
             key: 'client_name',
-            label: t('quotes.client', 'Client'),
+            label: t('quotes.client_address', 'Client & Adresse'),
             sortable: true,
-            render: (row) => (
-                <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-400" />
-                    <span className="font-medium text-slate-800">{row.client_name || '-'}</span>
-                </div>
-            )
-        },
-        {
-            key: 'surface_thickness',
-            label: t('quotes.surface_thickness', 'Suprafață / Grosime'),
-            render: (row) => (
-                <div className="flex flex-col">
-                    <span className="font-bold text-slate-700">{row.volumes?.[0]?.quantity ? `${row.volumes[0].quantity} m²` : '-'}</span>
-                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}</span>
-                </div>
-            )
-        },
-        {
-            key: 'site_address',
-            label: t('quotes.address', 'Adresse'),
             render: (row) => {
                 const addr = row.site_address;
-                if (!addr) return <span className="text-slate-400 italic text-xs">—</span>;
+
                 return (
-                    <div className="flex items-center gap-1.5 max-w-[200px]" title={addr}>
-                        <span className="text-xs text-slate-600 truncate">{addr}</span>
+                    <div className="flex flex-col gap-0.5 min-w-[300px]">
+                        <div className="flex items-center gap-2 text-sm text-slate-700">
+                            <User className="w-4 h-4 text-slate-400 shrink-0" />
+                            <span className="whitespace-nowrap" title={row.client_name}>{row.client_name || '-'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 pl-6 text-sm text-slate-500">
+                            {addr ? (
+                                <span className="whitespace-nowrap" title={addr}>{addr}</span>
+                            ) : (
+                                <span className="italic">—</span>
+                            )}
+                        </div>
                     </div>
                 );
             }
         },
         {
+            key: 'surface_thickness',
+            label: t('quotes.surface_thickness', 'Suprafață / Grosime'),
+            sortable: true,
+            render: (row) => {
+                let displayDate = '';
+                if (row.approximate_date) {
+                    try {
+                        const d = new Date(row.approximate_date)
+                        if (!isNaN(d.getTime())) displayDate = d.toLocaleDateString('ro-RO')
+                    } catch(e) {}
+                }
+                
+                return (
+                    <div className="flex flex-col gap-0.5 text-sm text-slate-700">
+                        <div className="flex items-center gap-1.5">
+                            <span>{row.volumes?.[0]?.quantity ? `${row.volumes[0].quantity} m²` : '-'}</span>
+                            {row.route_distance_km > 0 && (
+                                <>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="text-slate-500">{Math.round(row.route_distance_km)} km</span>
+                                </>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                            <span className="uppercase">{row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}</span>
+                            {displayDate && (
+                                <>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="flex items-center gap-1">
+                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                        {displayDate}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        },
+
+        {
             key: 'estimated_price',
             label: t('quotes.price', 'Preț (€)'),
+            sortable: true,
             render: (row) => (
                 <EditablePrice row={row} onUpdate={fetchQuotes} />
             )
@@ -446,18 +531,7 @@ export default function QuotesManagement() {
                             <Link className="w-4 h-4" />
                         </button>
                     )}
-                    {row.documents && row.documents.length > 0 && (
-                        <button 
-                            title="Voir les documents client"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setPreviewDocs(row.documents);
-                            }}
-                            className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition-colors"
-                        >
-                            <Paperclip className="w-4 h-4" />
-                        </button>
-                    )}
+
                     <button 
                         title="Voir Devis PDF"
                         onClick={(e) => {
@@ -970,6 +1044,9 @@ export default function QuotesManagement() {
                     data={quotes}
                     loading={loading}
                     defaultPageSize={25}
+                    storageKey="admin_quotes"
+                    defaultSortKey="created_at"
+                    defaultSortDir="desc"
                     searchable={true}
                     searchPlaceholder={t('quotes.search', 'Rechercher un devis...')}
                     emptyText={t('quotes.empty', 'Aucun devis en attente.')}

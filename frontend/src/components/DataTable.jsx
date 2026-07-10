@@ -28,13 +28,26 @@ export default function DataTable({
     rowClassName,
     onRowClick,
     mobileCard,
-    pageSizeOptions
+    pageSizeOptions,
+    storageKey
 }) {
     const { t } = useTranslation()
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(defaultPageSize)
-    const [sortKey, setSortKey] = useState(defaultSortKey)
-    const [sortDir, setSortDir] = useState(defaultSortDir) // 'asc' | 'desc'
+    const [sortKey, setSortKey] = useState(() => {
+        if (storageKey) {
+            const saved = localStorage.getItem(`${storageKey}_sortKey`)
+            if (saved) return saved
+        }
+        return defaultSortKey
+    })
+    const [sortDir, setSortDir] = useState(() => {
+        if (storageKey) {
+            const saved = localStorage.getItem(`${storageKey}_sortDir`)
+            if (saved) return saved
+        }
+        return defaultSortDir
+    }) // 'asc' | 'desc'
     const [searchTerm, setSearchTerm] = useState('')
 
     // 1. Filter
@@ -51,14 +64,15 @@ export default function DataTable({
     // 2. Sort
     const sorted = useMemo(() => {
         if (!sortKey) return filtered
+        const col = columns.find(c => c.key === sortKey)
         return [...filtered].sort((a, b) => {
-            const av = a[sortKey] ?? ''
-            const bv = b[sortKey] ?? ''
+            const av = col?.sortValue ? col.sortValue(a) : (a[sortKey] ?? '')
+            const bv = col?.sortValue ? col.sortValue(b) : (b[sortKey] ?? '')
             if (av === bv) return 0
             const cmp = av < bv ? -1 : 1
             return sortDir === 'asc' ? cmp : -cmp
         })
-    }, [filtered, sortKey, sortDir])
+    }, [filtered, sortKey, sortDir, columns])
 
     const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
     const safePage = Math.min(page, totalPages)
@@ -66,11 +80,15 @@ export default function DataTable({
     const slice = sorted.slice(from, from + pageSize)
 
     const handleSort = (key) => {
+        let newDir = 'asc'
         if (sortKey === key) {
-            setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-        } else {
-            setSortKey(key)
-            setSortDir('asc')
+            newDir = sortDir === 'asc' ? 'desc' : 'asc'
+        }
+        setSortKey(key)
+        setSortDir(newDir)
+        if (storageKey) {
+            localStorage.setItem(`${storageKey}_sortKey`, key)
+            localStorage.setItem(`${storageKey}_sortDir`, newDir)
         }
         setPage(1)
     }

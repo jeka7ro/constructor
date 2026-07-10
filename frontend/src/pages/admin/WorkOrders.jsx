@@ -286,6 +286,7 @@ export default function WorkOrders() {
     const columns = [
         {
             key: 'title', label: t('work_orders.col_title', 'Titlu'), sortable: true,
+            sortValue: (wo) => wo.title?.toLowerCase() || '',
             render: (wo) => (
                 <div>
                     <div className="font-bold text-slate-900 dark:text-white text-sm">
@@ -305,6 +306,7 @@ export default function WorkOrders() {
         },
         {
             key: 'client_name', label: t('work_orders.col_client', 'Client'), sortable: true,
+            sortValue: (wo) => wo.client_name?.toLowerCase() || '',
             render: (wo) => (
                 <div>
                     <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{wo.client_name || '—'}</div>
@@ -316,6 +318,7 @@ export default function WorkOrders() {
         },
         {
             key: 'start_date', label: t('work_orders.col_date', 'Date Lucrare'), sortable: true,
+            sortValue: (wo) => wo.start_date || 'zzzzzz',
             render: (wo) => (
                 <div>
                     {wo.start_date && (
@@ -369,14 +372,41 @@ export default function WorkOrders() {
         },
         {
             key: 'status', label: t('work_orders.col_status', 'Status'), sortable: true,
+            sortValue: (wo) => wo.status,
             render: (wo) => {
                 const cfg = STATUS_CONFIG[wo.status] || STATUS_CONFIG.draft
+                
+                let badgeColor = cfg.color;
+                let dotColor = cfg.dot;
+                if (wo.status === 'confirmed' && !wo.start_date) {
+                    badgeColor = 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
+                    dotColor = 'bg-red-500';
+                }
+
                 return (
                     <div className="flex flex-col items-start gap-1">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${cfg.color}`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
                             {t(`status.${wo.status}`, cfg.label)}
                         </span>
+                        {wo.status === 'confirmed' && (
+                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1 font-bold">
+                                <CheckCircle2 className="w-3 h-3" />
+                                {formatDate(wo.confirmed_at)}
+                                {wo.client_signature && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSigModal({ name: wo.confirmed_by_name, sig: wo.client_signature });
+                                        }}
+                                        title="Vezi semnătura digitală"
+                                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-emerald-600 ml-1"
+                                    >
+                                        <Pen className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         {wo.assigned_team_name && (
                             <span 
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mt-1 whitespace-nowrap" 

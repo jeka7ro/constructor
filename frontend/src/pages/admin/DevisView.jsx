@@ -4,20 +4,89 @@ import { Loader2, Printer, ArrowLeft, FileText } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
 
-export default function DevisView({ embeddedToken, signatureElement }) {
+const DEVIS_LANG = {
+    fr: {
+        devis: 'DEVIS', validDays: 'Valable 30 jours', date: 'Date :',
+        client: 'CLIENT', chantier: 'CHANTIER / ADRESSE', surface: 'Surface', ep: 'Ép.',
+        desc: 'DESCRIPTION', qty: 'QTÉ', unit: 'UNITÉ', pu: 'P.U. (€)', total: 'TOTAL (€)',
+        totalLabel: 'TOTAL',
+        condTitle: 'Conditions',
+        condText: "Ce document est un devis estimatif. Les prix sont valables 30 jours à compter de la date d'émission. Pour confirmer, retournez ce devis signé avec la mention «Bon pour accord».",
+        dateEst: "Date estimée d'intervention :",
+        chapeBase: (cm) => `Pose de chape ${cm} cm`,
+        chapeExtra: (cm) => `Épaisseur supplémentaire (${cm} cm)`,
+        foil: 'Feuille de plastique (Visqueen)',
+        mesh: 'Armature (Paillasse)',
+        fiber: 'Fibre + Duramint',
+        forfait: 'forfait', travaux: 'Travaux selon devis',
+        signClient: 'Cachet / Signature',
+    },
+    en: {
+        devis: 'QUOTE', validDays: 'Valid 30 days', date: 'Date:',
+        client: 'CLIENT', chantier: 'SITE / ADDRESS', surface: 'Surface', ep: 'Th.',
+        desc: 'DESCRIPTION', qty: 'QTY', unit: 'UNIT', pu: 'U.P. (€)', total: 'TOTAL (€)',
+        totalLabel: 'TOTAL',
+        condTitle: 'Terms & Conditions',
+        condText: 'This document is an estimate. Prices are valid for 30 days from the date of issue. To confirm, please return this quote signed with the mention «Bon pour accord».',
+        dateEst: 'Estimated work date:',
+        chapeBase: (cm) => `Screed installation ${cm} cm`,
+        chapeExtra: (cm) => `Additional thickness (${cm} cm)`,
+        foil: 'Plastic sheet (Visqueen)',
+        mesh: 'Reinforcement mesh',
+        fiber: 'Fibre + Duramint',
+        forfait: 'lump sum', travaux: 'Works per quote',
+        signClient: 'Stamp / Signature',
+    },
+    nl: {
+        devis: 'OFFERTE', validDays: 'Geldig 30 dagen', date: 'Datum:',
+        client: 'KLANT', chantier: 'WERF / ADRES', surface: 'Oppervlak', ep: 'Dikte',
+        desc: 'OMSCHRIJVING', qty: 'AANTAL', unit: 'EENHEID', pu: 'E.P. (€)', total: 'TOTAAL (€)',
+        totalLabel: 'TOTAAL',
+        condTitle: 'Voorwaarden',
+        condText: 'Dit document is een vrijblijvende offerte. Prijzen zijn 30 dagen geldig. Om te bevestigen, stuur deze offerte ondertekend terug met de vermelding «Bon pour accord».',
+        dateEst: 'Geschatte werkdatum:',
+        chapeBase: (cm) => `Dekvloer leggen ${cm} cm`,
+        chapeExtra: (cm) => `Extra dikte (${cm} cm)`,
+        foil: 'Plastiekfolie (Visqueen)',
+        mesh: 'Wapeningsnet',
+        fiber: 'Vezel + Duramint',
+        forfait: 'forfait', travaux: 'Werken volgens offerte',
+        signClient: 'Stempel / Handtekening',
+    },
+}
+
+export default function DevisView({ embeddedToken, signatureElement, lang = 'fr', embedded = false }) {
     const params = useParams()
     const id = params.id
     const token = embeddedToken || params.token
     const navigate = useNavigate()
     const { tenant } = useTenantStore()
     const [wo, setWo] = useState(null)
+    const [proformaItems, setProformaItems] = useState(null) // items din proforma_data (tarife corecte)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
     useEffect(() => {
         const endpoint = token ? `/public/work-orders/${token}` : `/admin/work-orders/${id}`;
         api.get(endpoint)
-            .then(res => setWo(res.data))
+            .then(res => {
+                setWo(res.data)
+                // Dacă are proforma_data cu items valide, le folosim
+                const pItems = res.data?.proforma_data?.items
+                if (pItems && pItems.length > 0) {
+                    const descLower = String(pItems[0].desc || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
+                    const isPlaceholder = pItems.length === 1 && 
+                        (pItems[0].id === 'default' || 
+                         descLower.includes('conform deviz') || 
+                         descLower.includes('manoper') ||
+                         descLower === 'chape' ||
+                         descLower === 'sapa' ||
+                         descLower.match(/sapa|chape/i) ||
+                         descLower.startsWith('sapa') ||
+                         descLower.startsWith('chape'))
+                    if (!isPlaceholder) setProformaItems(pItems)
+                }
+            })
             .catch(err => { console.error(err); setError('Devisul nu a fost găsit.') })
             .finally(() => setLoading(false))
     }, [id, token])
@@ -29,47 +98,121 @@ export default function DevisView({ embeddedToken, signatureElement }) {
             const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : new Date().toLocaleDateString('ro-RO');
             const clientName = wo.client_name || wo.client?.company_name || wo.client?.first_name || 'Client';
             document.title = `Devis ${devisNum} - ${dateStr} - ${clientName}`;
-            
-            return () => {
-                document.title = originalTitle;
-            }
+            return () => { document.title = originalTitle }
         }
     }, [wo])
 
     if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>
     if (error || !wo) return <div className="flex h-screen items-center justify-center font-bold text-red-600">{error || 'Eroare'}</div>
 
+    const T = DEVIS_LANG[lang] || DEVIS_LANG['fr']
+    const locale = lang === 'nl' ? 'nl-BE' : lang === 'en' ? 'en-GB' : 'fr-BE'
+
     const buildItems = () => {
+        // PRIORITATE: proforma_data.items (prețuri din pagina de tarife, inclusiv prețuri preferențiale)
+        if (proformaItems) {
+            return proformaItems.map(item => {
+                let newDesc = item.desc || '';
+                const lang = tenant?.invoice_language || 'fr';
+                if (lang === 'fr' || i18nGlobal.language === 'fr') {
+                    const normalizedDesc = newDesc.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                    if (normalizedDesc === 'sapa') {
+                        newDesc = 'Chape';
+                    } else if (normalizedDesc === 'manopera') {
+                        newDesc = "Main-d'œuvre";
+                    } else if (normalizedDesc === 'sapa + manopera') {
+                        newDesc = "Chape + Main-d'œuvre";
+                    } else {
+                        newDesc = newDesc.replace(/[sșş]ap[aăâ]/gi, 'Chape');
+                        newDesc = newDesc.replace(/manoper[aăâ]/gi, "Main-d'œuvre");
+                    }
+                }
+                return {
+                    desc: newDesc,
+                    qty: parseFloat(item.qty || 1),
+                    unit: item.unit || 'm²',
+                    price: parseFloat(item.price || 0)
+                }
+            })
+        }
+        
+        // FALLBACK: calcul din grosimi (folosit doar dacă proforma_data lipsește)
         const items = []
-        ;(wo.volumes || []).forEach((vol, idx) => {
-            const surface = parseFloat(vol.quantity || 0)
-            const thick = parseFloat(vol.thickness || 0)
-            if (surface <= 0) return
-            const labelSafe = (vol.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            if (labelSafe.includes('sapa')) {
-                const extraThick = Math.max(0, thick - 5)
-                items.push({ desc: `Pose de chape ${Math.min(thick, 5)} cm`, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) })
-                if (extraThick > 0) items.push({ desc: `Épaisseur supplémentaire (${extraThick} cm)`, qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra || 1.25) })
-                if (vol.has_foil) items.push({ desc: 'Feuille de plastique (Visqueen)', qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) })
-                if (vol.has_mesh) items.push({ desc: 'Armature (Paillasse)', qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) })
-                if (vol.has_fiber) items.push({ desc: 'Fibre + Duramint', qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) })
-            } else {
-                items.push({ desc: vol.label || `Service ${idx + 1}`, qty: surface, unit: 'm²', price: parseFloat(wo.estimated_price || 0) / (surface || 1) })
+        let hasChapeVolumes = false
+        
+        if (wo.volumes && wo.volumes.length > 0) {
+            wo.volumes.forEach((vol, idx) => {
+                const isChape = vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '') || /chape/i.test(vol.label || '')
+                const surface = parseFloat(vol.quantity || 0)
+                const thick = parseFloat(vol.thickness || 0)
+                
+                if (surface > 0) {
+                    if (isChape) {
+                        hasChapeVolumes = true
+                        const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
+                        const extraThick = Math.max(0, thick - stdThick)
+                        
+                        items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) })
+                        if (extraThick > 0) {
+                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25) })
+                        }
+                        if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) })
+                        if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) })
+                        if (vol.has_fiber) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) })
+                    } else {
+                        items.push({ desc: vol.label || `Volume ${idx + 1}`, qty: surface, unit: 'm²', price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surface || 1) })
+                    }
+                }
+            })
+        }
+
+        if (items.length === 0) {
+            const isSapaGeneral = wo.work_type === 'sapa_mecanizata' || (wo.title || '').toLowerCase().includes('isoflex') || (parseFloat(wo.surface_m2 || 0) > 0 && !parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0'));
+            if (isSapaGeneral) {
+                const surface = parseFloat(wo.surface_m2 || 0);
+                const thick = parseFloat(wo.thickness_cm || 5);
+                if (surface > 0) {
+                    const stdThick = parseFloat(wo.prices?.standard_thickness || 5);
+                    const extraThick = Math.max(0, thick - stdThick);
+                    
+                    items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) });
+                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25) });
+                    if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) });
+                    if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) });
+                    if (wo.has_fiber || wo.actual_has_fiber) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) });
+                }
             }
-        })
-        if (items.length === 0) items.push({ desc: wo.title || 'Travaux selon devis', qty: 1, unit: 'forfait', price: parseFloat(wo.estimated_price || 0) })
+            if (items.length === 0) {
+                items.push({ desc: wo.title || T.travaux, qty: 1, unit: T.forfait, price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') })
+            }
+        }
+        
         return items
     }
 
     const items = buildItems()
-    const total = items.reduce((s, i) => s + i.qty * i.price, 0)
+    
+    // Calcul seuil de surface
+    let hiddenExtra = 0
+    if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
+        const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0)
+        wo.prices.surface_thresholds.forEach(thresh => {
+            const minS = parseFloat(thresh.min_sqm || 0)
+            const maxS = parseFloat(thresh.max_sqm || 999999)
+            if (surfCheck >= minS && surfCheck < maxS) {
+                hiddenExtra += parseFloat(thresh.extra_charge || 0)
+            }
+        })
+    }
+
+    const total = items.reduce((s, i) => s + i.qty * i.price, 0) + hiddenExtra
     const devisNum = wo.quote_number || 'EST 0840'
-    const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-BE') : new Date().toLocaleDateString('fr-BE')
+    const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString(locale) : new Date().toLocaleDateString(locale)
     const primaryColor = tenant?.primary_color || '#059669'
 
     return (
-        <div className="min-h-screen bg-slate-100 print:bg-white">
-            {!token && (
+        <div className={(embeddedToken || embedded) ? '' : 'min-h-screen bg-slate-100 print:bg-white'}>
+            {!token && !embedded && (
                 <div className="print:hidden sticky top-0 z-50 bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
                     <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium text-sm transition-colors">
                         <ArrowLeft className="w-4 h-4" /> Retour
@@ -97,27 +240,27 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="text-sm text-slate-700 font-bold uppercase tracking-wider">DEVIS</div>
+                                <div className="text-sm text-slate-700 font-bold uppercase tracking-wider">{T.devis}</div>
                                 <div className="text-sm text-slate-500 font-bold mt-0.5 uppercase tracking-wider">N° {devisNum}</div>
                                 <div className="mt-3 text-xs text-slate-500 space-y-0.5">
-                                    <div>Date: <strong>{dateStr}</strong></div>
-                                    <div>Valable 30 jours</div>
+                                    <div>{T.date} <strong>{dateStr}</strong></div>
+                                    <div>{T.validDays}</div>
                                 </div>
                             </div>
                         </div>
                         <div className="mt-6 h-0.5 rounded-full" style={{ backgroundColor: primaryColor + '50' }} />
                         <div className="mt-6 grid grid-cols-2 gap-6">
                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">CLIENT</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
                                 <div className="font-bold text-slate-800">{wo.client_name || '—'}</div>
                                 {wo.client_email && <div className="text-xs text-slate-500 mt-1">{wo.client_email}</div>}
                                 {wo.client_cui && <div className="text-xs text-slate-400 mt-1">N° TVA: {wo.client_cui}</div>}
                             </div>
                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">CHANTIER / ADRESSE</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.chantier}</div>
                                 <div className="text-sm text-slate-700">{wo.site_address || '—'}</div>
                                 {wo.volumes?.[0]?.quantity && (
-                                    <div className="text-xs text-slate-500 mt-2">Surface: <strong>{wo.volumes[0].quantity} m²</strong>{wo.volumes[0].thickness && <> · Ép.: <strong>{wo.volumes[0].thickness} cm</strong></>}</div>
+                                    <div className="text-xs text-slate-500 mt-2">{T.surface}: <strong>{wo.volumes[0].quantity} m²</strong>{wo.volumes[0].thickness && <> · {T.ep}: <strong>{wo.volumes[0].thickness} cm</strong></>}</div>
                                 )}
                             </div>
                         </div>
@@ -125,11 +268,11 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                     <div className="px-10 pb-10 print:px-8">
                         <div className="space-y-2">
                             <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                <div className="col-span-5">Description</div>
-                                <div className="col-span-2 text-center">Qté</div>
-                                <div className="col-span-1 text-center">Unité</div>
-                                <div className="col-span-2 text-right">P.U. (€)</div>
-                                <div className="col-span-2 text-right">Total (€)</div>
+                                <div className="col-span-5">{T.desc}</div>
+                                <div className="col-span-2 text-center">{T.qty}</div>
+                                <div className="col-span-1 text-center">{T.unit}</div>
+                                <div className="col-span-2 text-right">{T.pu}</div>
+                                <div className="col-span-2 text-right">{T.total}</div>
                             </div>
                             {items.map((item, i) => (
                                 <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
@@ -144,7 +287,7 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                         <div className="flex justify-end mt-6">
                             <div className="w-72 space-y-1 text-sm">
                                 <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
-                                    <span>TOTAL</span>
+                                    <span>{T.totalLabel}</span>
                                     <span>{total.toFixed(2)} €</span>
                                 </div>
                             </div>
@@ -152,19 +295,19 @@ export default function DevisView({ embeddedToken, signatureElement }) {
                         <div className="mt-10 pt-6 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
                             {wo.approximate_date && (
                                 <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
-                                    <span className="font-bold text-slate-500">Date estimée d'intervention :</span>
+                                    <span className="font-bold text-slate-500">{T.dateEst}</span>
                                     <span className="font-black text-slate-800">
-                                        {new Date(wo.approximate_date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        {new Date(wo.approximate_date).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })}
                                     </span>
                                 </div>
                             )}
-                            <p className="font-bold text-slate-500 mb-1">Conditions</p>
-                            <p>Ce document est un devis estimatif. Les prix sont valables 30 jours à compter de la date d'émission. Pour confirmer, retournez ce devis signé avec la mention «Bon pour accord».</p>
+                            <p className="font-bold text-slate-500 mb-1">{T.condTitle}</p>
+                            <p>{T.condText}</p>
                         </div>
                         <div className="mt-10 grid grid-cols-2 gap-10">
                             <div className="flex flex-col">
                                 <div className="min-h-[2.5rem] text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                                    {wo?.client_name || wo?.client?.company_name || wo?.client?.first_name || 'Signature Client'}
+                                    {wo?.client_name || wo?.client?.company_name || wo?.client?.first_name || T.signClient}
                                 </div>
                                 {signatureElement ? (
                                     <div className="w-full">

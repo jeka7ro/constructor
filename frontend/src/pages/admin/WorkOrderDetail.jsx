@@ -6,7 +6,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle
 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -202,7 +202,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [signatureConfirm, setSignatureConfirm] = useState(false)
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showCamera, setShowCamera] = useState(false)
-    const [toastMessage, setToastMessage] = useState(null)
+    const [toast, setToast] = useState({ message: null, type: 'success' })
     // Calcul Edit Modal
     const [calcEditOpen, setCalcEditOpen] = useState(false)
     const [calcEditSaving, setCalcEditSaving] = useState(false)
@@ -217,8 +217,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (typeof msg === 'object' && msg !== null) {
             msg = JSON.stringify(msg);
         }
-        setToastMessage(msg)
-        setTimeout(() => setToastMessage(null), 3000)
+        setToast({ message: msg, type })
+        setTimeout(() => setToast({ message: null, type: 'success' }), 3000)
     }
 
     const handleGenerateProforma = async () => {
@@ -282,6 +282,23 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             alert(err.response?.data?.detail || 'Eroare la salvare număr factură.')
         } finally {
             setSavingInvoiceStatus(false)
+        }
+    }
+
+    const handleSendToBilltobox = async () => {
+        try {
+            setWo(prev => ({ ...prev, billtobox_status: 'pending' }))
+            showToast('Se trimite factura către Billtobox...', 'success')
+            
+            const res = await api.post(`/admin/work-orders/${id}/billtobox`)
+            
+            setWo(prev => ({ ...prev, billtobox_status: res.data.status }))
+            showToast('Factura a fost trimisă cu succes către Billtobox!', 'success')
+        } catch (error) {
+            console.error('Failed to send invoice to Billtobox:', error)
+            const msg = error.response?.data?.detail || 'A apărut o eroare la trimiterea facturii.'
+            showToast(msg, 'error')
+            setWo(prev => ({ ...prev, billtobox_status: 'error', billtobox_error: msg }))
         }
     }
 
@@ -357,7 +374,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 route_distance_km: km,
                 route_segments: updatedSegments 
             }));
-            await api.patch(`/admin/work-orders/${id}`, {
+            await api.put(`/admin/work-orders/${id}`, {
                 route_distance_km: km,
                 route_segments: updatedSegments
             });
@@ -588,7 +605,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         try {
             await api.post(`/admin/work-orders/${id}/sync-prices`);
             showToast(t('work_order_detail.sync_success', 'Les prix ont été synchronisés avec succès.'));
-            loadWorkOrder(); // reîncarcă datele pentru a afișa noile prețuri
+            load(); // reîncarcă datele pentru a afișa noile prețuri
         } catch (err) {
             console.error(err);
             showToast(t('common.error', 'Erreur lors de la synchronisation des prix.'), 'error');
@@ -791,87 +808,23 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             zoom={15}
                             geofenceRadius={geoR}
                             label={`${t('work_order_detail.location.loc_label', 'Locație: ')}${address}`}
-                            baseName={wo.assigned_team_name}
+                            baseName="Baza"
                             routeSegments={wo.route_segments}
                             onRouteCalculated={handleRouteCalculated}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
                             sandStations={SAND_STATIONS}
                             teamColor={wo.team_color || '#2563eb'}
                             leftPanelContent={
-                                <>
-                                    <div className="w-full shrink-0">
-                                        <HourlyWeather 
-                                            lat={lat || 50.8503} 
-                                            lon={lon || 4.3517} 
-                                            dateStr={wo.start_date || wo.deadline_date || wo.created_at} 
-                                            address={address}
-                                            orderTime={wo.start_time}
-                                            compact={true}
-                                        />
-                                    </div>
-                                    <div className="w-full shrink-0">
-                                        <Section className="h-full" icon={({ className }) => <TruckSVG color={wo.team_color || '#2563eb'} className={className} />} title={t('work_order_detail.planning.title', "Planificare, Echipaj & Traseu")}>
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex-1 space-y-1.5">
-                                                    <div>
-                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
-                                                        <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-1">
-                                                            <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.start_work', 'Start Lucrare')}</span>
-                                                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                                                {fmt(wo.start_date)} {wo.start_time ? `— ${wo.start_time.substring(0,5)}` : ''}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.crew', 'Echipaj Alocat')}</p>
-                                                        <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-1 mb-1">
-                                                            <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.manager', 'Responsabil')}</span>
-                                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{wo.assigned_team_name || '—'}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-1">
-                                                            <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.planning.vehicle', 'Vehicul')}</span>
-                                                            <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                                                {wo.assigned_vehicle_plate ? `${wo.assigned_vehicle_plate} — ${wo.assigned_vehicle_name || ''}` : wo.assigned_vehicle_name || '—'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><TruckSVG color={wo.team_color || '#2563eb'} className="w-3 h-3"/> {t('work_order_detail.planning.route_hops', 'Traseu (Hop-uri)')}</p>
-                                                    {(wo.route_segments && wo.route_segments.length > 0) ? (
-                                                        <>
-                                                            <div className="relative pl-6 space-y-1.5 before:absolute before:inset-y-2 before:left-[11px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
-                                                                {wo.route_segments.map((seg, idx) => (
-                                                                    <div key={idx} className="relative">
-                                                                        <div className="absolute -left-[29px] top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white dark:ring-slate-800 shadow-sm"></div>
-                                                                        <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-1.5 border border-slate-100 dark:border-slate-700/50 flex flex-col gap-1">
-                                                                            <div className="flex items-center justify-between">
-                                                                                <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                                                                    <span className="truncate max-w-[80px] sm:max-w-[120px]">{seg.from}</span>
-                                                                                    <span className="text-slate-400">→</span>
-                                                                                    <span className="truncate max-w-[80px] sm:max-w-[120px]">{seg.to}</span>
-                                                                                </div>
-                                                                                <div className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-md shrink-0">
-                                                                                    {seg.km} km
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Total Parcurs:')} (Dus-Întors)</span>
-                                                                <span className="text-sm font-black text-blue-600 dark:text-blue-400">{wo.route_distance_km ? (wo.route_distance_km * 2).toFixed(1) : '—'} km</span>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="text-xs text-slate-400 italic">{t('work_order_detail.planning.no_route', 'Nu există segmente de traseu salvate.')}</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </Section>
-                                    </div>
-                                </>
+                                <div className="w-full shrink-0">
+                                    <HourlyWeather 
+                                        lat={lat || 50.8503} 
+                                        lon={lon || 4.3517} 
+                                        dateStr={wo.start_date || wo.deadline_date || wo.created_at} 
+                                        address={address}
+                                        orderTime={wo.start_time}
+                                        compact={true}
+                                    />
+                                </div>
                             }
                         />
                     </div>
@@ -1510,7 +1463,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {(wo.proforma_path || wo.is_invoiced) && (
                             <div
                                 className="relative w-full h-[500px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
-                                onClick={() => setDocDrawerState({ url: `${window.location.origin}/proforma/${wo.id}?type=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`, type: activeDocTab })}
+                                onClick={() => setDocDrawerState({ url: activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`, type: activeDocTab })}
                             >
                                 {/* Overlay click hint */}
                                 <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
@@ -1519,7 +1472,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </span>
                                 </div>
                                 <iframe
-                                    src={`${window.location.origin}/proforma/${wo.id}?type=${activeDocTab === 'facture' ? 'invoice' : 'proforma'}`}
+                                    src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`}
                                     className="w-full h-full border-none pointer-events-none"
                                     title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
                                 />
@@ -1548,27 +1501,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                 </div>
 
-            {/* ── Devis PDF Preview ── */}
-            {wo.is_quote && (
-                <Section icon={FileText} title={t('work_order_detail.pdf_preview', 'Previzualizare Devis PDF')}>
-                    <div 
-                        className="w-full h-[800px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white relative cursor-pointer group"
-                        onClick={() => setDocDrawerState({ url: `/admin/quotes/${wo.id}/pdf`, type: 'devis' })}
-                    >
-                        {/* Overlay click hint */}
-                        <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                            <span className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-slate-700 shadow-lg">
-                                Ouvrir en plein écran
-                            </span>
-                        </div>
-                        <iframe
-                            src={`/admin/quotes/${wo.id}/pdf`}
-                            className="w-full h-full border-none pointer-events-none"
-                            title="Devis PDF"
-                        />
-                    </div>
-                </Section>
-            )}
+
 
 {/* ── Fotografii ──────────────────────────────────────────────────── */}
             <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
@@ -1835,10 +1768,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>,
                 document.body
             )}
-            {toastMessage && (
-                <div className="fixed bottom-4 right-4 z-[9999] bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    <span className="font-bold text-sm">{toastMessage}</span>
+            {toast.message && (
+                <div className={`fixed bottom-4 right-4 z-[9999] px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4 ${
+                    toast.type === 'error' 
+                        ? 'bg-red-50 text-red-700 border border-red-200' 
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                    {toast.type === 'error' ? (
+                        <XCircle className="w-5 h-5 text-red-500" />
+                    ) : (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    )}
+                    <span className="font-bold text-sm">{toast.message}</span>
                 </div>
             )}
 
@@ -1852,7 +1793,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {/* FULL PAGE PREVIEW MODAL pentru Facturi si Devize PDF */}
             {docDrawerState && createPortal(
-                <div className="fixed inset-0 z-[100] flex flex-col bg-slate-100 dark:bg-slate-950">
+                <div className="fixed inset-0 z-[99999] flex flex-col bg-slate-100 dark:bg-slate-950">
                     <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 shadow-sm">
                         <div className="flex items-center gap-4">
                             <button 
@@ -1862,12 +1803,37 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <X className="w-6 h-6" />
                             </button>
                             <div>
-                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">PREVIZUALIZARE {docDrawerState.type === 'facture' ? 'FACTURĂ' : 'DEVIZ'}</h2>
+                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">PREVIZUALIZARE {docDrawerState.type === 'facture' ? 'FACTURĂ' : docDrawerState.type === 'proforma' ? 'PROFORMĂ' : 'DEVIZ'}</h2>
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{wo?.client?.name || wo?.client_name || 'Fără Client'}</p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {(!wo?.is_invoiced && (wo?.proforma_path || wo?.is_quote)) && (
+                                <button
+                                    onClick={() => {
+                                        setDocDrawerState(null);
+                                        handleToggleInvoiced(true);
+                                    }}
+                                    className="px-6 py-2.5 rounded-full font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2"
+                                >
+                                    <CheckCircle2 className="w-5 h-5" />
+                                    {t('work_order_detail.invoicing.issue_invoice', 'Émettre la Facture')}
+                                </button>
+                            )}
+                            {wo?.is_invoiced && (
+                                <button
+                                    onClick={() => {
+                                        setDocDrawerState(null);
+                                        handleSendToBilltobox();
+                                    }}
+                                    disabled={wo?.billtobox_status === 'sent' || wo?.billtobox_status === 'pending'}
+                                    className={`px-6 py-2.5 rounded-full font-bold shadow-lg transition-all flex items-center gap-2 ${wo?.billtobox_status === 'sent' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30'}`}
+                                >
+                                    {wo?.billtobox_status === 'pending' ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (wo?.billtobox_status === 'sent' ? <CheckCircle2 className="w-5 h-5" /> : <Send className="w-5 h-5" />)}
+                                    {wo?.billtobox_status === 'sent' ? t('invoicing.sent_to_billtobox', 'Envoyé à Billtobox') : t('invoicing.send_to_billtobox', 'Envoyer à Billtobox')}
+                                </button>
+                            )}
                             <button 
                                 onClick={() => setDocDrawerState(null)}
                                 className="px-6 py-2.5 rounded-full font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"

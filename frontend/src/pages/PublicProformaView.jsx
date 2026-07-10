@@ -1,3 +1,5 @@
-// PublicProformaView — renderează identic cu WorkOrderConfirm (același token, aceeași pagină)
+// PublicProformaView — identic cu WorkOrderConfirm, cu hartă
 import WorkOrderConfirm from './public/WorkOrderConfirm'
-export default WorkOrderConfirm
+export default function PublicProformaView() {
+    return <WorkOrderConfirm />
+}

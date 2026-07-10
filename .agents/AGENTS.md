@@ -38,3 +38,13 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 ## 8. Git Commit & Push
 - **ESTE STRICT INTERZIS** să folosești comenzi precum `git commit` și `git push` FĂRĂ permisiunea clară și explicită a utilizatorului.
 - După ce scrii și testezi codul, raportează modificările și AȘTEAPTĂ până când utilizatorul spune "dă push" sau "ok, commit".
+
+## 9. PROTECȚIA BAZEI DE DATE — REGULĂ CRITICĂ ABSOLUTĂ
+- **ESTE COMPLET INTERZISĂ** orice comandă care șterge, modifică sau trunchiază date din baza de date (inclusiv `db.delete()`, `DELETE FROM`, `DROP TABLE`, `TRUNCATE`, sau orice script Python care face `db.commit()` după o operație de ștergere) **FĂRĂ confirmarea explicită și clară a utilizatorului**, cu specificarea exactă a CE date vor fi șterse.
+- **ÎNAINTE** de orice operație distructivă pe baza de date, agentul TREBUIE să:
+  1. Listeze EXACT ce rânduri/tabele vor fi afectate
+  2. Ceară confirmarea explicită a utilizatorului ("Ești sigur că vrei să ștergi X?")
+  3. Aștepte răspunsul utilizatorului înainte de a executa orice comandă
+- **ESTE STRICT INTERZIS** să folosești `venv`, executabile sau orice resurse din foldere din afara workspace-ului curent (`Client B - pontaje`). Nu se folosesc căi de tipul `../../alt_proiect/venv/...` sub NICIO formă.
+- Dacă nu există un `venv` funcțional în workspace-ul curent, raportează problema utilizatorului și cere instrucțiuni — nu improviza cu resurse din alte proiecte.
+- **CASCADE DELETE**: Înainte de a șterge orice WorkOrder sau entitate principală, agentul TREBUIE să verifice relațiile `CASCADE` și să avertizeze utilizatorul că ștergerea va elimina și toate datele legate (poze, pontaje GPS, check-in-uri, calcule materiale).

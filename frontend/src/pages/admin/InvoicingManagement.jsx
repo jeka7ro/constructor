@@ -61,7 +61,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                     {wo.proforma_path ? (
                         <>
                             <button 
-                                onClick={() => { onPreviewPdf(wo.proforma_path); setIsOpen(false); }}
+                                onClick={() => { onPreviewPdf({ url: (wo.is_quote || !wo.is_invoiced) ? `/admin/quotes/${wo.id}/pdf` : wo.proforma_path, wo }); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <FileOutput className="w-4 h-4 text-slate-400" />
@@ -232,7 +232,7 @@ export default function InvoicingManagement() {
         if (wo.proforma_data) {
             let data = { ...wo.proforma_data };
             let shouldUseFallback = !data.items || data.items.length === 0;
-            if (data.items?.length === 1 && (String(data.items[0].id).includes('default') || String(data.items[0].desc).includes('Lucrări conform deviz') || String(data.items[0].desc).includes('Manoperă'))) {
+            if (data.items?.length === 1 && (String(data.items[0].id).includes('default') || String(data.items[0].desc).includes('Lucrări conform deviz') || String(data.items[0].desc).includes('Manoperă') || String(data.items[0].desc).toLowerCase() === 'chape')) {
                 shouldUseFallback = true;
             }
             if (shouldUseFallback) {
@@ -257,7 +257,7 @@ export default function InvoicingManagement() {
                 const surface = parseFloat(vol.quantity) || 0;
                 const thickness = parseFloat(vol.thickness) || 0;
                 const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                if (labelSafe.includes('sapa') && surface > 0) {
+                if ((labelSafe.includes('sapa') || labelSafe.includes('chape')) && surface > 0) {
                     extractedSurface += surface;
                     if (thickness > extractedThickness) extractedThickness = thickness;
                     if (vol.has_foil) hasFoil = true;
@@ -443,6 +443,8 @@ export default function InvoicingManagement() {
             key: 'date',
             label: t('invoicing.col_date', 'Date'),
             className: 'w-[10%]',
+            sortable: true,
+            sortValue: (wo) => wo.start_date || wo.approximate_date || '',
             render: (wo) => (
                 <div className="flex flex-col gap-0.5">
                     <span className="text-slate-600 dark:text-slate-400 font-medium">
@@ -453,6 +455,12 @@ export default function InvoicingManagement() {
                             {wo.assigned_team_name}
                         </span>
                     )}
+                    {wo.confirmed_at && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-wide leading-none mt-0.5 whitespace-nowrap">
+                            <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+                            Confirmé client
+                        </span>
+                    )}
                 </div>
             )
         },
@@ -460,6 +468,8 @@ export default function InvoicingManagement() {
             key: 'client',
             label: t('invoicing.col_client', 'Client & Adresă'),
             className: 'w-[35%]',
+            sortable: true,
+            sortValue: (wo) => (wo.client_name || '').toLowerCase(),
             render: (wo) => (
                 <div className="flex flex-col">
                     <button 
@@ -476,6 +486,8 @@ export default function InvoicingManagement() {
         {
             key: 'details',
             label: t('invoicing.col_details', 'Suprafată / Grosime'),
+            sortable: true,
+            sortValue: (wo) => parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0),
             render: (wo) => {
                 const vol = wo.volumes?.[0]
                 const estSurf = parseFloat(vol?.quantity || wo.surface_m2 || 0)
@@ -507,6 +519,26 @@ export default function InvoicingManagement() {
         {
             key: 'price',
             label: t('invoicing.col_price', 'Preț Estimat'),
+            sortable: true,
+            sortValue: (wo) => {
+                let autoNet = 0
+                let isAuto = false
+                ;(wo.volumes || []).forEach(vol => {
+                    const surface = parseFloat(vol.quantity) || 0
+                    const thickness = parseFloat(vol.thickness) || 0
+                    const labelSafe = (vol.label || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    if ((labelSafe.includes('sapa') || labelSafe.includes('chape')) && surface > 0) {
+                        isAuto = true
+                        const extraThickness = Math.max(0, thickness - 5)
+                        autoNet += parseFloat(wo.prices?.base || 12.5) * surface
+                        autoNet += extraThickness * parseFloat(wo.prices?.extra || 1.25) * surface
+                        autoNet += vol.has_foil ? parseFloat(wo.prices?.foil || 1.2) * surface : 0
+                        autoNet += vol.has_mesh ? parseFloat(wo.prices?.mesh || 2.5) * surface : 0
+                        autoNet += vol.has_fiber ? surface * parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) : 0
+                    }
+                })
+                return isAuto ? autoNet : parseFloat((wo.estimated_price || '0').toString().replace(/[^0-9.]/g, '')) || 0
+            },
             render: (wo) => {
                 let autoNet = 0;
                 let isAuto = false;
@@ -514,7 +546,7 @@ export default function InvoicingManagement() {
                     const surface = parseFloat(vol.quantity) || 0;
                     const thickness = parseFloat(vol.thickness) || 0;
                     const labelSafe = (vol.label || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    if (labelSafe.includes('sapa') && surface > 0) {
+                    if ((labelSafe.includes('sapa') || labelSafe.includes('chape')) && surface > 0) {
                         isAuto = true;
                         const extraThickness = Math.max(0, thickness - 5);
                         autoNet += parseFloat(wo.prices?.base || 12.5) * surface;
@@ -538,39 +570,44 @@ export default function InvoicingManagement() {
         {
             key: 'status',
             label: t('invoicing.col_status', 'Status'),
+            sortable: true,
+            sortValue: (wo) => wo.is_invoiced ? 3 : wo.proforma_path ? 2 : wo.confirmed_at ? 1 : 0,
             render: (wo) => {
+                const confirmedBadge = wo.confirmed_at ? (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-wide leading-none mt-0.5">
+                        <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+                        Confirmé client
+                    </span>
+                ) : null
+
                 if (wo.is_quote && wo.status === 'planning') {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
-                            <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-                            Devis Planifié
+                        <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
+                            <span className="inline-flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Devis Planifié</span>
+                            {confirmedBadge}
                         </span>
                     )
                 }
                 if (wo.is_invoiced) {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
-                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                            {t('invoicing.status_invoiced', 'Facturat')}
+                        <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
+                            <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_invoiced', 'Facturat')}</span>
+                            {confirmedBadge}
                         </span>
                     )
                 }
                 if (wo.proforma_path) {
                     return (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-blue-600 w-fit shrink-0">
-                            <Clock className="w-3.5 h-3.5 shrink-0" />
-                            <span className="flex flex-col items-start leading-[1.1]">
-                                {t('invoicing.status_proforma', 'Proformă Emisă').split(' ').map((word, i) => (
-                                    <span key={i}>{word}</span>
-                                ))}
-                            </span>
+                        <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-blue-600 w-fit shrink-0">
+                            <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_proforma', 'Proformă Emisă')}</span>
+                            {confirmedBadge}
                         </span>
                     )
                 }
                 return (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap w-fit shrink-0">
-                        <CircleDot className="w-3.5 h-3.5 shrink-0" />
-                        {t('invoicing.status_notinvoiced', 'Nefacturat')}
+                    <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap w-fit shrink-0">
+                        <span className="inline-flex items-center gap-1.5"><CircleDot className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_notinvoiced', 'Nefacturat')}</span>
+                        {confirmedBadge}
                     </span>
                 )
             }
@@ -1041,7 +1078,7 @@ export default function InvoicingManagement() {
                 </div>
             )}
             {pdfPreviewUrl && createPortal(
-                <div className="fixed inset-0 z-[100] flex flex-col bg-slate-100 dark:bg-slate-950">
+                <div className="fixed inset-0 z-[99999] flex flex-col bg-slate-100 dark:bg-slate-950">
                     <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 shadow-sm">
                         <div className="flex items-center gap-4">
                             <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-wider">
@@ -1049,6 +1086,31 @@ export default function InvoicingManagement() {
                             </h2>
                         </div>
                         <div className="flex items-center gap-3">
+                            {(!pdfPreviewUrl.wo?.is_invoiced && (pdfPreviewUrl.wo?.proforma_path || pdfPreviewUrl.wo?.is_quote)) && (
+                                <button
+                                    onClick={() => {
+                                        handleMarkInvoiced(pdfPreviewUrl.wo.id);
+                                        setPdfPreviewUrl(null);
+                                    }}
+                                    className="px-6 py-2.5 rounded-full font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2"
+                                >
+                                    <CheckCircle2 className="w-5 h-5" />
+                                    {t('work_order_detail.invoicing.issue_invoice', 'Émettre la Facture')}
+                                </button>
+                            )}
+                            {pdfPreviewUrl.wo?.is_invoiced && (
+                                <button
+                                    onClick={() => {
+                                        handleSendToBilltobox(pdfPreviewUrl.wo.id);
+                                        setPdfPreviewUrl(null);
+                                    }}
+                                    disabled={pdfPreviewUrl.wo?.billtobox_status === 'sent' || pdfPreviewUrl.wo?.billtobox_status === 'pending'}
+                                    className={`px-6 py-2.5 rounded-full font-bold shadow-lg transition-all flex items-center gap-2 ${pdfPreviewUrl.wo?.billtobox_status === 'sent' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30'}`}
+                                >
+                                    {pdfPreviewUrl.wo?.billtobox_status === 'pending' ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (pdfPreviewUrl.wo?.billtobox_status === 'sent' ? <CheckCircle2 className="w-5 h-5" /> : <Send className="w-5 h-5" />)}
+                                    {pdfPreviewUrl.wo?.billtobox_status === 'sent' ? t('invoicing.sent_to_billtobox', 'Envoyé à Billtobox') : t('invoicing.send_to_billtobox', 'Envoyer à Billtobox')}
+                                </button>
+                            )}
                             <button 
                                 onClick={() => setPdfPreviewUrl(null)}
                                 className="px-6 py-2.5 rounded-full font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
@@ -1058,7 +1120,7 @@ export default function InvoicingManagement() {
                         </div>
                     </div>
                     <iframe
-                        src={pdfPreviewUrl}
+                        src={pdfPreviewUrl.url}
                         className="w-full flex-1 border-none bg-slate-100"
                         title="Document Preview"
                     />

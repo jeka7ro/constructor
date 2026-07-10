@@ -56,19 +56,6 @@ export default function StreetViewPhotos({ lat, lng, address, className = "" }) 
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 loading="lazy"
                             />
-                            {heading === 'auto' && (
-                                <div className="absolute top-1 left-1 z-10 pointer-events-none">
-                                    <span className="bg-emerald-500 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shadow-lg border border-emerald-400 flex items-center gap-1">
-                                        <MapPin className="w-2.5 h-2.5" />
-                                        {t('street_view.exact_address', 'ADRESSE EXACTE')}
-                                    </span>
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-100 flex items-end p-2 pointer-events-none">
-                                <span className="text-[10px] font-bold text-white uppercase bg-black/40 px-2 py-0.5 rounded-md backdrop-blur-sm shadow-sm border border-white/10">
-                                    {heading === 'auto' ? t('street_view.facade', 'Façade/Bâtiment') : `${heading}° View`}
-                                </span>
-                            </div>
                         </div>
                     ))}
                 </div>
