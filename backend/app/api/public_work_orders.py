@@ -163,7 +163,7 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "client_cui": wo.client.cui if wo.client else None,
         "client_reg_com": wo.client.reg_com if wo.client else None,
         "client_address": wo.client.address if wo.client else None,
-        "client_type": wo.client_type,
+        "client_type": wo.client.client_type if wo.client else "fizica",
         "work_type": wo.work_type,
         "requirements": wo.requirements or [],
         # Hide any material or volume containing 'nisip'/'sand'/'zand' for the public client quote
