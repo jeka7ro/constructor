@@ -6,7 +6,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2
 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -920,6 +920,60 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    </Section>
+                </div>
+                
+                <div className="h-full">
+                    <Section className="h-full" icon={Building2} title={t('work_order_detail.project_info.title', "Detalii Proiect & Construcție")}>
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.client_type', 'Tip Client')}</p>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                                        {(wo.client_type === 'pf' || wo.client_type === 'fizica') ? t('quotes.pf', 'Persoană Fizică') : 
+                                         (wo.client_type === 'pj' || wo.client_type === 'juridica') ? t('quotes.pj', 'Persoană Juridică') : '—'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('work_order_detail.project_info.construction_type', 'Tip Construcție')}</p>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                                        {wo.work_type === 'new' ? t('quotes.construction_new', 'Construcție Nouă') : 
+                                         wo.work_type === 'repair' ? t('quotes.construction_renovation', 'Renovare') : '—'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {(wo.volumes && wo.volumes.length > 0) && (
+                                <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.project_info.materials', 'Materiale Alese din Calcul')}</p>
+                                    <div className="space-y-1.5">
+                                        {wo.volumes.map((v, i) => {
+                                            const options = [];
+                                            if (v.has_foil) options.push(t('materials.foil', 'Folie'));
+                                            if (v.has_mesh) options.push(t('materials.mesh', 'Plasă metalică'));
+                                            if (v.has_duramint || v.has_fiber) options.push(t('materials.fiber', 'Fibră'));
+                                            if (v.has_sound_insulation) options.push(t('materials.sound_insulation', 'Izolație fonică'));
+                                            if (v.has_floor_heating_add) options.push(t('materials.floor_heating_add', 'Aditiv Încălzire'));
+                                            
+                                            if (options.length === 0) return null;
+                                            
+                                            return (
+                                                <div key={i} className="flex flex-wrap gap-2">
+                                                    {options.map((opt, j) => (
+                                                        <span key={j} className="inline-flex items-center bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                            ✓ {opt}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
+                                        {wo.volumes.every(v => !v.has_foil && !v.has_mesh && !v.has_duramint && !v.has_fiber && !v.has_sound_insulation && !v.has_floor_heating_add) && (
+                                            <span className="text-xs text-slate-400 font-medium italic">{t('general.none', 'Niciun material extra')}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </Section>
                 </div>
