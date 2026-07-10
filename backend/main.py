@@ -593,6 +593,7 @@ async def public_tenant_config(slug: str):
     """Fetch basic tenant info for public open graph injection"""
     from fastapi import HTTPException
     from app.database import SessionLocal
+    from app.models import Organization
     
     db = SessionLocal()
     try:
