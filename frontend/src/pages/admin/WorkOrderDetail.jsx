@@ -400,7 +400,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 // Init TVA based on client type and work type
                 if (data.prices && data.prices.useVat !== false) {
                     setVatEnabled(true)
-                    if (data.client_type === 'pj' || data.client_type === 'juridica') {
+                    if (data.prices?.vat_type !== undefined) {
+                        setVatType(String(data.prices.vat_type))
+                    } else if (data.client_type === 'pj' || data.client_type === 'juridica') {
                         setVatType('0')
                     } else {
                         setVatType(data.work_type === 'repair' ? '6' : '21')

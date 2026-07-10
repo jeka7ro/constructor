@@ -100,7 +100,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     // Auto-calcul TVA bazat pe status client / lucrare din wo.prices
     const clientType = wo.client_type || 'fizica';
     const workType = wo.work_type || 'new';
-    if (clientType === 'juridica') {
+    if (wo?.prices?.vat_type !== undefined) {
+        defaultVatRate = parseFloat(wo.prices.vat_type);
+    } else if (clientType === 'juridica') {
         defaultVatRate = parseFloat(wo.prices?.vat_legal_entity ?? 0);
     } else {
         if (workType === 'repair') {

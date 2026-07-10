@@ -216,7 +216,9 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     let vatRate = 0
     let vatEnabled = wo.prices?.useVat !== false // Default true unless explicitly false
     if (vatEnabled) {
-        if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
+        if (wo.prices?.vat_type !== undefined) {
+            vatRate = parseFloat(wo.prices.vat_type)
+        } else if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
             vatRate = 0 // Entreprise
         } else {
             vatRate = wo.work_type === 'repair' ? 6 : 21 // Particulier

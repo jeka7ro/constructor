@@ -127,7 +127,9 @@ export default function InvoiceDetails() {
     const clientType = clientData.client_type || wo.client_type || 'fizica';
     const workType = wo.work_type || 'new';
     
-    if (clientType === 'juridica') {
+    if (wo.prices?.vat_type !== undefined) {
+        defaultVatRate = parseFloat(wo.prices.vat_type);
+    } else if (clientType === 'juridica' || clientType === 'pj') {
         defaultVatRate = parseFloat(wo.prices?.vat_legal_entity ?? 0);
     } else {
         if (workType === 'repair') {
