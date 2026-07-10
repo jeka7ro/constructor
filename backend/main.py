@@ -588,6 +588,18 @@ async def upload_logo(file: UploadFile = File(...), current_admin: Admin = Depen
     
     return {"logo_url": logo_url, "message": "Logo încărcat cu succes"}
 
+@app.get("/public/tenant-config")
+async def public_tenant_config(slug: str, db: Session = Depends(get_db)):
+    """Fetch basic tenant info for public open graph injection"""
+    tenant = db.query(Organization).filter(Organization.slug == slug).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return {
+        "name": tenant.name,
+        "favicon_url": tenant.favicon_url,
+        "logo_url": tenant.logo_url
+    }
+
 # Serve frontend static files with SPA fallback
 frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
