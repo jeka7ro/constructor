@@ -53,7 +53,9 @@ export default function StreetViewPhotos({ lat, lng, address, className = "" }) 
                             <img 
                                 src={getImageUrl(heading)}
                                 alt={heading === 'auto' ? t('street_view.exact_address', 'Adresse Exacte') : `Street View ${heading}°`}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 pointer-events-none"
+                                draggable="false"
+                                style={{ WebkitUserDrag: 'none', userSelect: 'none' }}
                                 loading="lazy"
                             />
                         </div>

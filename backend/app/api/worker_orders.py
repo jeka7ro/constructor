@@ -143,7 +143,7 @@ def get_my_orders(
     ).filter(
         WorkOrder.organization_id == current_user.organization_id,
         WorkOrder.assigned_team_id.in_(team_ids),
-        WorkOrder.status.notin_(["draft", "cancelled"]),
+        WorkOrder.status.notin_(["cancelled"]),
         WorkOrder.is_quote == False,
         WorkOrder.start_date >= sixty_days_ago.date()
     ).order_by(WorkOrder.start_date.asc()).all()
