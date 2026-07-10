@@ -21,40 +21,10 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 
-const distanceCache = {};
-
 function GoogleMapsDistance({ lat1, lon1, lat2, lon2, label }) {
-    const [distance, setDistance] = React.useState(null);
-    
-    React.useEffect(() => {
-        if (!lat1 || !lon1 || !lat2 || !lon2) return;
-        if (!window.google || !window.google.maps) return;
-        
-        const key = `${lat1},${lon1}|${lat2},${lon2}`;
-        if (distanceCache[key]) {
-            setDistance(distanceCache[key]);
-            return;
-        }
-
-        const service = new window.google.maps.DistanceMatrixService();
-        service.getDistanceMatrix(
-            {
-                origins: [{ lat: parseFloat(lat1), lng: parseFloat(lon1) }],
-                destinations: [{ lat: parseFloat(lat2), lng: parseFloat(lon2) }],
-                travelMode: 'DRIVING',
-            },
-            (response, status) => {
-                if (status === 'OK' && response.rows[0].elements[0].status === 'OK') {
-                    const distStr = response.rows[0].elements[0].distance.text;
-                    distanceCache[key] = distStr;
-                    setDistance(distStr);
-                }
-            }
-        );
-    }, [lat1, lon1, lat2, lon2]);
-
-    if (!distance) return null;
-    return <span>• {distance} {label}</span>;
+    const dist = haversineDistance(lat1, lon1, lat2, lon2);
+    if (dist === null) return null;
+    return <span>• {dist.toFixed(1)} km {label}</span>;
 }
 
 export default function MobileAgenda({ orders, onOrderClick, currentDate, setCurrentDate, isHistory = false }) {
