@@ -21,10 +21,37 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 
-function GoogleMapsDistance({ lat1, lon1, lat2, lon2, label }) {
-    const dist = haversineDistance(lat1, lon1, lat2, lon2);
-    if (dist === null) return null;
-    return <span>• {dist.toFixed(1)} km {label}</span>;
+const osrmCache = {};
+
+function OsrmDistance({ lat1, lon1, lat2, lon2, label }) {
+    const [distance, setDistance] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return;
+        
+        const key = `${lat1},${lon1}|${lat2},${lon2}`;
+        if (osrmCache[key]) {
+            setDistance(osrmCache[key]);
+            return;
+        }
+
+        let isMounted = true;
+        fetch(`https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
+                    const km = (data.routes[0].distance / 1000).toFixed(1);
+                    osrmCache[key] = km;
+                    if (isMounted) setDistance(km);
+                }
+            })
+            .catch(err => console.error("OSRM error:", err));
+            
+        return () => { isMounted = false; };
+    }, [lat1, lon1, lat2, lon2]);
+
+    if (distance === null) return null;
+    return <span>• {distance} km {label}</span>;
 }
 
 export default function MobileAgenda({ orders, onOrderClick, currentDate, setCurrentDate, isHistory = false }) {
@@ -276,7 +303,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                             </span>
                                                             {prevWo ? (
                                                                 <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
-                                                                    <GoogleMapsDistance 
+                                                                    <OsrmDistance 
                                                                         lat1={prevLat} lon1={prevLng} 
                                                                         lat2={lat} lon2={lng} 
                                                                         label={t("general.from_prev", "du chantier précédent")} 
@@ -284,7 +311,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
-                                                                    <GoogleMapsDistance 
+                                                                    <OsrmDistance 
                                                                         lat1={50.88243} lon1={4.39343} 
                                                                         lat2={lat} lon2={lng} 
                                                                         label={t('general.from_base', 'de la base')}

@@ -95,6 +95,20 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
+def osrm_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate driving distance in KM using OSRM, fallback to haversine."""
+    if None in (lat1, lon1, lat2, lon2):
+        return 0.0
+    try:
+        url = f"https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
+        res = requests.get(url, timeout=3)
+        data = res.json()
+        if data.get("code") == "Ok" and data.get("routes"):
+            return data["routes"][0]["distance"] / 1000.0
+    except Exception as e:
+        print(f"OSRM Error: {e}")
+    return haversine(lat1, lon1, lat2, lon2)
+
 def calc_sand_kg(work_order: WorkOrder) -> float:
     try:
         vols = work_order.volumes if isinstance(work_order.volumes, list) else []
@@ -305,7 +319,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                     segment = None
                     # Add distance
                     if last_lat and last_lng:
-                        dist_from_prev = haversine(last_lat, last_lng, w_lat, w_lng)
+                        dist_from_prev = osrm_distance(last_lat, last_lng, w_lat, w_lng)
                         team_distance_km += dist_from_prev
                         segment = {
                             "from": "Baza" if last_name == base.name else last_name,
@@ -342,7 +356,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                 "lng": base.longitude
             })
             if last_lat and last_lng:
-                dist = haversine(last_lat, last_lng, base.latitude, base.longitude)
+                dist = osrm_distance(last_lat, last_lng, base.latitude, base.longitude)
                 team_distance_km += dist
                 
                 # Assign the return journey to the LAST work order
