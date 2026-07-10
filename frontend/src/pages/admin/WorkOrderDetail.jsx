@@ -1124,8 +1124,20 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     {(() => {
                         const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0 || wo.actual_surface_m2 || wo.actual_sand_quantity;
                         const sectionTitle = hasConsumed 
-                            ? t('work_order_detail.materials_volumes.title', "Cantități & Materiale (Estimate vs Consumate)")
-                            : t('work_order_detail.materials_volumes.title_no_consumed', "Cantități & Materiale (Estimate)");
+                            ? t('work_order_detail.materials_volumes.title', "Quantités & Matériaux (Estimés vs Consommés)")
+                            : t('work_order_detail.materials_volumes.title_no_consumed', "Quantités & Matériaux (Estimés)");
+                        
+                        let selectedMats = [];
+                        if (wo.volumes && wo.volumes.length > 0) {
+                            wo.volumes.forEach(v => {
+                                if (v.has_foil) selectedMats.push(t('materials.foil', 'Film'));
+                                if (v.has_mesh) selectedMats.push(t('materials.mesh', 'Treillis métallique'));
+                                if (v.has_duramint || v.has_fiber) selectedMats.push(t('materials.fiber', 'Fibre'));
+                                if (v.has_sound_insulation) selectedMats.push(t('materials.sound_insulation', 'Isolation acoustique'));
+                                if (v.has_floor_heating_add) selectedMats.push(t('materials.floor_heating_add', 'Additif pour chauffage'));
+                            });
+                        }
+                        selectedMats = [...new Set(selectedMats)];
                         
                         return (
                             <Section className="flex-1" icon={Wrench} title={sectionTitle} contentClassName="!p-3">
@@ -1150,23 +1162,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 </div>
                                                             </>
                                                         )}
-                                                        {(wo.materials || []).length > 0 && (
+                                                        {(wo.materials?.length > 0 || selectedMats.length > 0 || autoSandKg > 0) && (
                                                             <>
                                                                 <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
-                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Materiale Necesare')}</p>
-                                                                <div className="flex items-center gap-2">
-                                                                    {wo.materials.map((m, i) => (
-                                                                        <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials.required', 'Matériaux Requis')}</p>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    {(wo.materials || []).map((m, i) => (
+                                                                        <div key={`m-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
                                                                             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(m.name)}</span>
                                                                             <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">{m.quantity} {m.unit}</span>
                                                                         </div>
                                                                     ))}
+                                                                    {selectedMats.map((mat, i) => (
+                                                                        <div key={`sel-${i}`} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{mat}</span>
+                                                                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">✓</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {autoSandKg > 0 && (
+                                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-lg">
+                                                                            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">{t('work_order_detail.kpi.sand_est', 'Sable (estimé)')}</span>
+                                                                            <span className="text-[11px] font-bold text-amber-800 dark:text-amber-200">{(autoSandKg/1000).toFixed(1)} t</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </>
                                                         )}
                                                     </div>
-                                            {!(wo.volumes?.length) && !(wo.materials?.length) && (
-                                                <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials.no_quantity', 'Nicio cantitate înregistrată')}</p>
+                                            {!(wo.volumes?.length) && !(wo.materials?.length) && selectedMats.length === 0 && autoSandKg === 0 && (
+                                                <p className="text-sm text-slate-400 text-center py-4">{t('work_order_detail.materials.no_quantity', 'Aucune quantité enregistrée')}</p>
                                             )}
                                         
                                                 </div>
@@ -1376,54 +1400,23 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
-                                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
-                                    <div className="flex justify-between text-base font-bold text-slate-900 dark:text-white">
-                                        <span>{t('work_order_detail.invoicing.net', 'Net:')}</span>
-                                        <span className="tabular-nums">{autoNet.toFixed(2)} EUR</span>
-                                    </div>
-
-                                    {/* TVA Toggle */}
-                                    <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{t('quotes.tva_toggle', 'Appliquer TVA')}</span>
-                                            <button
-                                                onClick={() => setVatEnabled(v => !v)}
-                                                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
-                                                    vatEnabled ? 'bg-slate-800 dark:bg-slate-200' : 'bg-slate-300 dark:bg-slate-600'
-                                                }`}
-                                            >
-                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white dark:bg-slate-900 shadow transition-transform ${
-                                                    vatEnabled ? 'translate-x-5' : 'translate-x-1'
-                                                }`} />
-                                            </button>
+                                    {/* TVA Auto-calculated */}
+                                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                                            <span>{t('work_order_detail.invoicing.net_htva', 'Total Net (HTVA)')}</span>
+                                            <span className="tabular-nums">{autoNet.toFixed(2)} EUR</span>
                                         </div>
-                                        {vatEnabled && (
-                                            <div className="flex flex-col gap-2 mt-3">
-                                                {[
-                                                    { val: '21', label: t('quotes.tva_type_new', 'Construction neuve (21%)') },
-                                                    { val: '6',  label: t('quotes.tva_type_renov', 'Rénovation (6%)') },
-                                                    ...(wo.client_type === 'juridica' ? [{ val: '0', label: t('quotes.tva_type_zero', '0% TVA (Entreprise)') }] : []),
-                                                ].map(opt => (
-                                                    <label key={opt.val} className="flex items-center gap-3 cursor-pointer">
-                                                        <input
-                                                            type="radio"
-                                                            name="vatType"
-                                                            value={opt.val}
-                                                            checked={vatType === opt.val}
-                                                            onChange={() => setVatType(opt.val)}
-                                                            className="text-slate-800 dark:text-slate-200 focus:ring-slate-400 w-4 h-4"
-                                                        />
-                                                        <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{opt.label}</span>
-                                                    </label>
-                                                ))}
-                                                <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                                                    <span>TVA ({vatType}%):</span>
-                                                    <span className="tabular-nums">{autoVat.toFixed(2)} EUR</span>
-                                                </div>
+                                        
+                                        {vatEnabled ? (
+                                            <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                                <span>TVA ({vatType}%)</span>
+                                                <span className="tabular-nums">{autoVat.toFixed(2)} EUR</span>
                                             </div>
-                                        )}
-                                        {!vatEnabled && (
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">{t('quotes.tva_disabled', 'TVA non appliquée / 0%')}</p>
+                                        ) : (
+                                            <div className="flex justify-between text-slate-500 dark:text-slate-500 font-medium mt-1">
+                                                <span>{t('quotes.tva_disabled', 'TVA non appliquée')}</span>
+                                                <span className="tabular-nums">0.00 EUR</span>
+                                            </div>
                                         )}
                                     </div>
 

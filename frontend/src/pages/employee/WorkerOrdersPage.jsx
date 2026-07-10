@@ -207,19 +207,6 @@ function OrderCard({ order, onClick }) {
             className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800"
             style={bgStyle}
         >
-            {staticMapLoc && (
-                <div 
-                    className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 mix-blend-multiply" 
-                    style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
-                >
-                    <img 
-                        src={`https://maps.googleapis.com/maps/api/staticmap?center=${staticMapLoc}&zoom=14&size=400x300&maptype=roadmap&markers=color:blue%7C${staticMapLoc}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`} 
-                        alt="Map" 
-                        className="w-full h-full object-cover" 
-                    />
-                </div>
-            )}
-
             <div className="p-4 relative z-10">
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <h3 className="font-bold text-slate-900 leading-snug text-sm flex-1">
@@ -231,18 +218,8 @@ function OrderCard({ order, onClick }) {
                         )}
                     </h3>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                        
                         {order.start_date && (
                             <WeatherWidget lat={order.site_latitude || 50.8503} lon={order.site_longitude || 4.3517} dateStr={order.start_date} />
-                        )}
-                        {sandTons > 0 && (
-                            <span className="text-[10px] font-bold text-slate-500">{sandTons.toFixed(1)} T Sable</span>
-                        )}
-                        {durmitePlastic && (
-                            <span className="text-[10px] font-bold text-slate-500">{durmitePlastic} Plastic</span>
-                        )}
-                        {durmiteMetalic && (
-                            <span className="text-[10px] font-bold text-slate-500">{durmiteMetalic} Metalic</span>
                         )}
                     </div>
                 </div>
@@ -470,16 +447,49 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                         }
                                     });
                                 }
+                                let durmitePlastic = '';
+                                let durmiteMetalic = '';
+                                if (order.materials && Array.isArray(order.materials)) {
+                                    order.materials.forEach(m => {
+                                        const name = (m.name || '').toLowerCase();
+                                        if (name.includes('plastic')) durmitePlastic = m.quantity + ' ' + (m.unit || 'Kg');
+                                        else if (name.includes('metal') || name.includes('métal')) durmiteMetalic = m.quantity + ' ' + (m.unit || 'Kg');
+                                    });
+                                }
 
-                                return isDriver ? (
+                                return (
                                     <>
-                                        <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
-                                            <span className="text-sm text-amber-700 font-bold">Necesar Sable (estimat)</span>
-                                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                                                {sandTons.toFixed(1)} T
-                                            </span>
-                                        </div>
-                                        <div className="pt-2 mt-2 flex justify-center">
+                                        {(sandTons > 0 || durmitePlastic || durmiteMetalic) && (
+                                            <div className="pt-2 mt-2 border-t border-slate-100 flex flex-col gap-2">
+                                                {sandTons > 0 && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-amber-700 font-bold">Necesar Sable (estimat)</span>
+                                                        <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                                            {sandTons.toFixed(1)} T
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {durmitePlastic && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-700 font-bold">Plastic (Duramint)</span>
+                                                        <span className="text-sm font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                                                            {durmitePlastic}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {durmiteMetalic && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-700 font-bold">Metalic (Plasă)</span>
+                                                        <span className="text-sm font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                                                            {durmiteMetalic}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {isDriver && sandTons > 0 && (
+                                            <>
+                                                <div className="pt-2 mt-2 flex justify-center">
                                             <button 
                                                 onClick={() => setEnableStations(!enableStations)}
                                                 className="text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-wider px-3 py-1.5 rounded-full border border-amber-200 bg-amber-50"
@@ -537,9 +547,10 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                                 )}
                                             </div>
                                         )}
+                                            </>
+                                        )}
                                     </>
-                                ) : null;
-                            }
+                                );
                             return null;
                         })()}
                     </div>
