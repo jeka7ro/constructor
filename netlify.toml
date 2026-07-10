@@ -3,6 +3,10 @@
   command = "npm run build"
   publish = "dist"
 
+[[edge_functions]]
+  path = "/*"
+  function = "og-injector"
+
 # Proxy API calls to Railway backend
 [[redirects]]
   from = "/api/*"
