@@ -138,8 +138,6 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         
         // FALLBACK: calcul din grosimi (folosit doar dacă proforma_data lipsește)
         const items = []
-        let hasChapeVolumes = false
-        
         if (wo.volumes && wo.volumes.length > 0) {
             wo.volumes.forEach((vol, idx) => {
                 const isChape = vol.label?.toLowerCase()?.includes('sapa') || /[sșş]ap[aăâ]/i.test(vol.label || '') || /chape/i.test(vol.label || '')
@@ -148,7 +146,6 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 
                 if (surface > 0) {
                     if (isChape) {
-                        hasChapeVolumes = true
                         const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
                         const extraThick = Math.max(0, thick - stdThick)
                         
@@ -212,7 +209,23 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         })
     }
 
-    const total = items.reduce((s, i) => s + i.qty * i.price, 0)
+    const totalNet = items.reduce((s, i) => s + i.qty * i.price, 0)
+    const discountAmount = parseFloat(wo.prices?.discount || 0)
+    const netAfterDiscount = totalNet - discountAmount
+    
+    let vatRate = 0
+    let vatEnabled = wo.prices?.useVat !== false // Default true unless explicitly false
+    if (vatEnabled) {
+        if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
+            vatRate = 0 // Entreprise
+        } else {
+            vatRate = wo.work_type === 'repair' ? 6 : 21 // Particulier
+        }
+    }
+    
+    const vatAmount = netAfterDiscount * (vatRate / 100)
+    const totalGross = netAfterDiscount + vatAmount
+
     const devisNum = wo.quote_number || 'EST 0840'
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString(locale) : new Date().toLocaleDateString(locale)
     const primaryColor = tenant?.primary_color || '#059669'
@@ -295,9 +308,30 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         </div>
                         <div className="flex justify-end mt-6">
                             <div className="w-72 space-y-1 text-sm">
+                                {discountAmount > 0 && (
+                                    <div className="flex justify-between py-1 px-4 font-bold text-emerald-600">
+                                        <span>Remise (Discount)</span>
+                                        <span>- {discountAmount.toFixed(2)} €</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between py-1 px-4 text-slate-600 font-bold">
+                                    <span>Total Net (HTVA)</span>
+                                    <span>{netAfterDiscount.toFixed(2)} €</span>
+                                </div>
+                                {vatEnabled ? (
+                                    <div className="flex justify-between py-1 px-4 text-slate-600 font-bold">
+                                        <span>TVA ({vatRate}%)</span>
+                                        <span>{vatAmount.toFixed(2)} €</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-between py-1 px-4 text-slate-400 text-xs italic">
+                                        <span>TVA non appliquée</span>
+                                        <span>0.00 €</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
-                                    <span>{T.totalLabel}</span>
-                                    <span>{total.toFixed(2)} €</span>
+                                    <span>{T.totalLabel} (TVAC)</span>
+                                    <span>{totalGross.toFixed(2)} €</span>
                                 </div>
                             </div>
                         </div>

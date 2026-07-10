@@ -393,7 +393,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 api.get(`/admin/work-orders/${id}/sessions`),
                 api.get(`/admin/work-orders/${id}/photos`),
             ])
-            if (woRes.status === 'fulfilled')     setWo(woRes.value.data)
+            if (woRes.status === 'fulfilled') {
+                const data = woRes.value.data
+                setWo(data)
+                
+                // Init TVA based on client type and work type
+                if (data.prices && data.prices.useVat !== false) {
+                    setVatEnabled(true)
+                    if (data.client_type === 'pj' || data.client_type === 'juridica') {
+                        setVatType('0')
+                    } else {
+                        setVatType(data.work_type === 'repair' ? '6' : '21')
+                    }
+                } else {
+                    setVatEnabled(false)
+                }
+            }
             if (sessRes.status === 'fulfilled')   setSessions(sessRes.value.data)
             if (photosRes.status === 'fulfilled') {
                 const p = photosRes.value.data
