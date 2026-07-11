@@ -728,7 +728,16 @@ export default function TransportManagement() {
       </div>
 
       {activeMainTab === 'gps_history' && (
-        <GpsHistoryTab vehicles={vehicles} />
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 text-center flex flex-col items-center justify-center min-h-[300px]">
+            <Navigation className="w-12 h-12 text-slate-300 mb-4" />
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Historique GPS & Rapports</h3>
+            <p className="text-slate-500 mb-6 max-w-md">
+                Toutes les donnees historiques (trajets par jour, par camion, rapports de km, vitesses et infractions) se trouvent dans le module dedie de Verification GPS.
+            </p>
+            <a href="/admin/logistica/gps-verification" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">
+                Aller a la Verification GPS
+            </a>
+        </div>
       )}
 
       {activeMainTab === 'trips' && (
