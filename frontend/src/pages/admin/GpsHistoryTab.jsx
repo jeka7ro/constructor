@@ -1,32 +1,41 @@
-import React, { useState } from 'react'
-import { Calendar, Truck, AlertTriangle, Download, Search, Loader2 } from 'lucide-react'
-import axios from 'axios'
+import React, { useState, useEffect, useCallback } from 'react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
+import api from '../../lib/api'
+import DataTable from '../../components/DataTable'
 
-export default function GpsHistoryTab({ vehicles }) {
-    const [dateFrom, setDateFrom] = useState(new Date().toISOString().split('T')[0])
-    const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0])
+export default function GpsHistoryTab({ vehicles = [] }) {
+    const today = new Date().toISOString().split('T')[0];
+    const [dateFrom, setDateFrom] = useState(today)
+    const [dateTo, setDateTo] = useState(today)
     const [selectedVehicle, setSelectedVehicle] = useState('all')
     const [loading, setLoading] = useState(false)
     const [reportData, setReportData] = useState([])
     const [error, setError] = useState(null)
 
-    const generateReport = async () => {
-        try {
-            setLoading(true)
-            setError(null)
+    const fetchReport = useCallback(async () => {
+        const start = new Date(dateFrom)
+        const end = new Date(dateTo)
+        if (isNaN(start) || isNaN(end)) return;
+
+        const diffTime = end - start
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+        if (diffDays < 0) {
+            setError("Data de sfârșit trebuie să fie după data de început.")
             setReportData([])
+            return
+        }
 
-            const start = new Date(dateFrom)
-            const end = new Date(dateTo)
-            const diffTime = Math.abs(end - start)
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        if (diffDays > 7) {
+            setError("Te rugăm să selectezi un interval de maxim 7 zile pentru a evita blocarea serverului.")
+            setReportData([])
+            return
+        }
 
-            if (diffDays > 7) {
-                setError("Te rugăm să selectezi un interval de maxim 7 zile pentru a evita blocarea serverului.")
-                setLoading(false)
-                return
-            }
+        setLoading(true)
+        setError(null)
 
+        try {
             const datesToFetch = []
             let current = new Date(start)
             while (current <= end) {
@@ -34,11 +43,22 @@ export default function GpsHistoryTab({ vehicles }) {
                 current.setDate(current.getDate() + 1)
             }
 
-            let allResults = []
+            // Parallel fetch for up to 7 days
+            const promises = datesToFetch.map(d => 
+                api.get(`/admin/gps-verification/daily?date=${d}&speed_limit=90`, { validateStatus: () => true })
+                   .catch(err => ({ data: { results: [], error: err.message }, status: 500 }))
+            )
 
-            for (const d of datesToFetch) {
-                const res = await axios.get(`/api/admin/gps-verification/daily?date=${d}&speed_limit=90`)
-                const dayResults = res.data.results || []
+            const responses = await Promise.all(promises)
+            
+            let allResults = []
+            
+            responses.forEach((res, i) => {
+                if (res.status === 401) {
+                    throw new Error("Sesiune expirată sau token invalid.")
+                }
+                const dayResults = res.data?.results || []
+                const date = datesToFetch[i]
                 
                 dayResults.forEach(r => {
                     if (selectedVehicle !== 'all' && r.vehicle_plate !== selectedVehicle && r.vehicle_name !== selectedVehicle) {
@@ -46,7 +66,7 @@ export default function GpsHistoryTab({ vehicles }) {
                     }
 
                     allResults.push({
-                        date: d,
+                        date: date,
                         vehicle_name: r.vehicle_name,
                         vehicle_plate: r.vehicle_plate,
                         team_name: r.team_name,
@@ -56,22 +76,98 @@ export default function GpsHistoryTab({ vehicles }) {
                         violations: r.speed_violations_count
                     })
                 })
-            }
+            })
+
+            // Sort descending by date
+            allResults.sort((a, b) => b.date.localeCompare(a.date))
 
             setReportData(allResults)
         } catch (err) {
             console.error("Error generating report", err)
-            setError("Eroare la generarea raportului: " + (err.response?.data?.error || err.message))
+            setError("Eroare la extragerea datelor: " + (err.response?.data?.error || err.message || "Eroare rețea"))
         } finally {
             setLoading(false)
         }
-    }
+    }, [dateFrom, dateTo, selectedVehicle])
+
+    // Auto-fetch at mount and whenever filters change
+    useEffect(() => {
+        fetchReport()
+    }, [fetchReport])
 
     const totalKm = reportData.reduce((acc, row) => acc + (row.total_km || 0), 0)
     const totalViolations = reportData.reduce((acc, row) => acc + (row.violations || 0), 0)
 
+    const columns = [
+        {
+            key: 'index',
+            label: 'Nr. Crt.',
+            render: (row, idx) => <span className="text-slate-500 font-medium">{idx + 1}</span>
+        },
+        {
+            key: 'date',
+            label: 'Dată',
+            sortable: true,
+            render: row => <span className="font-bold text-slate-700">{row.date}</span>
+        },
+        {
+            key: 'vehicle',
+            label: 'Vehicul',
+            sortable: true,
+            sortValue: row => row.vehicle_name,
+            render: row => (
+                <div>
+                    <div className="font-bold text-slate-900">{row.vehicle_name}</div>
+                    <div className="text-[11px] text-slate-400 font-mono mt-0.5">{row.vehicle_plate}</div>
+                </div>
+            )
+        },
+        {
+            key: 'team',
+            label: 'Echipă',
+            sortable: true,
+            sortValue: row => row.team_name,
+            render: row => (
+                <span className="inline-block px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: (row.team_color || '#ccc') + '20', color: row.team_color || '#666' }}>
+                    {row.team_name || 'Fără echipă'}
+                </span>
+            )
+        },
+        {
+            key: 'total_km',
+            label: 'Distanță (KM)',
+            sortable: true,
+            render: row => <span className="font-bold text-slate-800">{row.total_km} km</span>
+        },
+        {
+            key: 'max_speed',
+            label: 'Vit. Max',
+            sortable: true,
+            render: row => (
+                <span className={`font-bold ${row.max_speed > 90 ? 'text-red-600' : 'text-slate-800'}`}>
+                    {row.max_speed} km/h
+                </span>
+            )
+        },
+        {
+            key: 'violations',
+            label: 'Încălcări Viteză',
+            sortable: true,
+            render: row => (
+                row.violations > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-md text-xs font-bold border border-red-100">
+                        <AlertTriangle className="w-3 h-3" /> {row.violations}
+                    </span>
+                ) : (
+                    <span className="text-emerald-500 font-bold">0</span>
+                )
+            )
+        }
+    ]
+
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 mt-6">
+            {/* Filtre */}
             <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <div className="flex-1 w-full">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Data Început</label>
@@ -104,16 +200,6 @@ export default function GpsHistoryTab({ vehicles }) {
                         ))}
                     </select>
                 </div>
-                <div className="w-full md:w-auto">
-                    <button 
-                        onClick={generateReport}
-                        disabled={loading}
-                        className="w-full md:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                        Generează Raport
-                    </button>
-                </div>
             </div>
 
             {error && (
@@ -122,72 +208,37 @@ export default function GpsHistoryTab({ vehicles }) {
                 </div>
             )}
 
-            {reportData.length > 0 && (
-                <div className="mb-4 flex items-center gap-4 text-sm font-bold text-slate-600">
-                    <span className="bg-slate-100 px-3 py-1 rounded-lg">Total Rânduri: {reportData.length}</span>
-                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">Total KM: {totalKm.toFixed(1)} km</span>
-                    <span className="bg-red-50 text-red-700 px-3 py-1 rounded-lg">Total Încălcări: {totalViolations}</span>
+            {/* Sumare rapide */}
+            {reportData.length > 0 && !loading && (
+                <div className="mb-4 flex flex-wrap items-center gap-3 text-sm font-bold text-slate-600">
+                    <span className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                        Total Rânduri: <span className="text-slate-800">{reportData.length}</span>
+                    </span>
+                    <span className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                        Total KM: <span className="text-blue-700">{totalKm.toFixed(1)} km</span>
+                    </span>
+                    <span className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
+                        Total Încălcări: <span className="text-red-700">{totalViolations}</span>
+                    </span>
                 </div>
             )}
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50">
-                        <tr>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Nr. Crt.</th>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Dată</th>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Vehicul</th>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Echipă</th>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Distanță (KM)</th>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Vit. Max</th>
-                            <th className="px-4 py-3 font-bold border-b border-slate-200">Încălcări Viteză</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {reportData.length === 0 && !loading && (
-                            <tr>
-                                <td colSpan="7" className="px-4 py-8 text-center text-slate-400 font-medium">
-                                    Niciun rezultat. Selectează intervalul și apasă pe "Generează Raport".
-                                </td>
-                            </tr>
-                        )}
-                        {loading && (
-                            <tr>
-                                <td colSpan="7" className="px-4 py-8 text-center text-blue-500 font-bold flex items-center justify-center gap-2">
-                                    <Loader2 className="w-5 h-5 animate-spin" /> Se extrag datele GPS...
-                                </td>
-                            </tr>
-                        )}
-                        {!loading && reportData.map((row, i) => (
-                            <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td className="px-4 py-3 font-medium text-slate-500">{i + 1}</td>
-                                <td className="px-4 py-3 font-bold text-slate-700">{row.date}</td>
-                                <td className="px-4 py-3">
-                                    <div className="font-bold text-slate-900">{row.vehicle_name}</div>
-                                    <div className="text-xs text-slate-400">{row.vehicle_plate}</div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span className="inline-block px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: (row.team_color || '#ccc') + '30', color: row.team_color || '#666' }}>
-                                        {row.team_name || 'Fără echipă'}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 font-bold text-slate-800">{row.total_km} km</td>
-                                <td className="px-4 py-3 font-bold text-slate-800">
-                                    <span className={row.max_speed > 90 ? 'text-red-600' : ''}>{row.max_speed} km/h</span>
-                                </td>
-                                <td className="px-4 py-3">
-                                    {row.violations > 0 ? (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-md text-xs font-bold border border-red-100">
-                                            <AlertTriangle className="w-3 h-3" /> {row.violations}
-                                        </span>
-                                    ) : (
-                                        <span className="text-emerald-500 font-bold">0</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white">
+                {loading ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        <p className="text-sm font-bold">Se extrag datele GPS... poate dura câteva secunde.</p>
+                    </div>
+                ) : (
+                    <DataTable 
+                        columns={columns} 
+                        data={reportData} 
+                        defaultPageSize={25}
+                        emptyText="Niciun rezultat găsit pentru filtrele selectate."
+                        searchable={true}
+                        searchPlaceholder="Caută după vehicul sau echipă..."
+                    />
+                )}
             </div>
         </div>
     )

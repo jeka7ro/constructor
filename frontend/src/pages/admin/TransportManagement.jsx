@@ -955,7 +955,6 @@ export default function TransportManagement() {
           onCreated={() => loadAll()}
         />
       )}
-      )}
       {showSchedule && (
         <ScheduleModal
           onClose={() => setShowSchedule(false)}
