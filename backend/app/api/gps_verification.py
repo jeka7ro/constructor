@@ -412,6 +412,7 @@ def daily_verification(
                 "vehicle_id": vehicle.id,
                 "vehicle_name": vehicle.name,
                 "vehicle_plate": vehicle.plate_number,
+                "team_id": team.id if team else None,
                 "team_name": team.name if team else "Non assigne",
                 "team_color": team.color if team else "#64748b",
                 "gps_points": len(track),

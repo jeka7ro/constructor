@@ -97,17 +97,17 @@ export default function LiveTracking() {
     : [50.85045, 4.34878]; // Brussels default
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-white overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 text-slate-800 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-slate-900 border-b border-slate-800 shrink-0 z-10">
+      <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-slate-200 shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Radio className="w-5 h-5 text-emerald-400" />
+            <Radio className="w-5 h-5 text-emerald-500" />
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-wide uppercase text-white">Live Tracking</h1>
-            <p className="text-[10px] text-slate-400">
+            <h1 className="text-sm font-bold tracking-wide uppercase text-slate-800">Live Tracking</h1>
+            <p className="text-[10px] text-slate-500">
               {lastUpdate ? `Actualizat ${lastUpdate.toLocaleTimeString('ro-RO')}` : 'Se încarcă...'}
             </p>
           </div>
@@ -116,45 +116,45 @@ export default function LiveTracking() {
         <div className="flex items-center gap-3">
           {/* Status */}
           <div className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
-            connected ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700' : 'bg-red-900/50 text-red-400 border border-red-700'
+            connected ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
           }`}>
             {connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            {connected ? t("tracking.online") : t("tracking.offline")}
+            {connected ? t("tracking.online", "Online") : t("tracking.offline", "Offline")}
           </div>
           {/* Vehicle count */}
-          <div className="flex items-center gap-1.5 text-xs font-medium bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
-            <Users className="w-3 h-3 text-blue-400" />
+          <div className="flex items-center gap-1.5 text-xs font-medium bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200 text-slate-700">
+            <Users className="w-3 h-3 text-blue-500" />
             <span>{vehicles.length} activ{vehicles.length !== 1 ? 'i' : ''}</span>
           </div>
           {/* Manual refresh */}
           <button
             onClick={fetchLive}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+            className="p-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 transition-colors shadow-sm"
             title="Reîmprospătează"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-300" />
+            <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-72 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto">
-          <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-800">
+        <div className="w-72 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
+          <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100 bg-slate-50">
             Vehicule active
           </div>
 
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-5 h-5 text-slate-500 animate-spin" />
+              <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
             </div>
           )}
 
           {!loading && vehicles.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
-              <Radio className="w-8 h-8 text-slate-700" />
-              <p className="text-slate-500 text-sm">{t("tracking.no_active")}</p>
-              <p className="text-slate-600 text-xs">{t("tracking.no_active_hint")}</p>
+              <Radio className="w-8 h-8 text-slate-300" />
+              <p className="text-slate-500 text-sm">{t("tracking.no_active", "Niciun vehicul activ")}</p>
+              <p className="text-slate-400 text-xs">{t("tracking.no_active_hint", "Asigurați-vă că dispozitivele GPS sunt pornite.")}</p>
             </div>
           )}
 
@@ -164,25 +164,25 @@ export default function LiveTracking() {
             return (
               <div
                 key={v.id}
-                className="px-3 py-2.5 border-b border-slate-800/60 hover:bg-slate-800/50 transition-colors cursor-pointer"
+                className="px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2.5">
                   {/* Color dot */}
                   <div
-                    className="w-3 h-3 rounded-full shrink-0 ring-2 ring-slate-900"
+                    className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
                     style={{ backgroundColor: v.team_color }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-white truncate">{v.name}</div>
+                    <div className="text-sm font-semibold text-slate-800 truncate">{v.name}</div>
                     {v.team_name && (
-                      <div className="text-[10px] text-slate-400 truncate">{v.team_name}</div>
+                      <div className="text-[10px] text-slate-500 truncate">{v.team_name}</div>
                     )}
                   </div>
                   {/* Stale indicator */}
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${isStale ? 'bg-yellow-500' : 'bg-emerald-500 animate-pulse'}`} />
+                  <div className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${isStale ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`} />
                 </div>
 
-                <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500">
+                <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500 font-medium">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {formatLastSeen(v.last_seen)}
@@ -236,17 +236,17 @@ export default function LiveTracking() {
           )}
 
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-[1000]">
               <div className="flex flex-col items-center gap-3">
                 <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" />
-                <p className="text-slate-400 text-sm">{t("tracking.loading")}</p>
+                <p className="text-slate-600 font-medium text-sm">{t("tracking.loading", "Se încarcă...")}</p>
               </div>
             </div>
           )}
 
           {/* Refresh countdown */}
-          <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-400 flex items-center gap-2 z-[1000]">
-            <RefreshCw className="w-3 h-3" />
+          <div className="absolute bottom-4 right-4 bg-white/90 shadow-lg backdrop-blur border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600 font-medium flex items-center gap-2 z-[1000]">
+            <RefreshCw className="w-3 h-3 text-slate-400" />
             Auto-refresh la 30s
           </div>
         </div>

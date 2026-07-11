@@ -15,7 +15,7 @@ function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
         </svg>
     )
 }
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-routing-machine'
@@ -198,6 +198,7 @@ export default function LogisticsDashboard() {
     const [activeTeams, setActiveTeams] = useState([])
     const [selectedWork, setSelectedWork] = useState(null)
     const [isMapFull, setIsMapFull] = useState(false)
+    const [gpsData, setGpsData] = useState(null)
     const [showSandStations, setShowSandStations] = useState(() => {
         try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
     })
@@ -236,9 +237,17 @@ export default function LogisticsDashboard() {
     const fetchRoutes = async () => {
         try {
             setLoading(true)
-            const res = await api.get(`/admin/logistics/daily-routes?target_date=${targetDate}`)
+            const [res, gpsRes] = await Promise.all([
+                api.get(`/admin/logistics/daily-routes?target_date=${targetDate}`),
+                api.get(`/admin/gps-verification/daily?date=${targetDate}&speed_limit=90`).catch(() => ({ data: null }))
+            ])
             setData(res.data)
             setActiveTeams(res.data.routes.map(r => r.team_id))
+            if (gpsRes.data?.results) {
+                setGpsData(gpsRes.data.results)
+            } else {
+                setGpsData(null)
+            }
         } catch (error) {
             console.error("Error fetching daily routes:", error)
         } finally {
@@ -406,14 +415,33 @@ export default function LogisticsDashboard() {
 
                                 return (
                                     <React.Fragment key={`map-route-${route.team_id}`}>
-                                        {/* Linia de traseu — doar daca exista minim 2 puncte si nu e doar baza */}
+                                        {/* Linia de traseu (Virtual) */}
                                         {positions.length > 1 && !hasOnlyBase && (
                                             <RoutingMachine
                                                 positions={positions}
                                                 color={route.team_color}
                                                 weight={4}
-                                                opacity={0.8}
+                                                opacity={0.3} // Mai transparent pentru a pune în evidență traseul GPS
                                             />
+                                        )}
+
+                                        {/* Traseul GPS real (daca exista) */}
+                                        {gpsData && (
+                                            (() => {
+                                                const teamGps = gpsData.find(g => g.team_id === route.team_id);
+                                                if (teamGps && teamGps.track && teamGps.track.length > 1) {
+                                                    const gpsPositions = teamGps.track.map(p => [p.lat, p.lng]);
+                                                    return (
+                                                        <Polyline
+                                                            positions={gpsPositions}
+                                                            color={route.team_color}
+                                                            weight={5}
+                                                            opacity={0.8}
+                                                        />
+                                                    );
+                                                }
+                                                return null;
+                                            })()
                                         )}
 
                                         {validWps.map((wp, idx) => {
