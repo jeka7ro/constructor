@@ -303,6 +303,7 @@ def build_itinerary(track, base, orders):
 @router.get("/daily")
 def daily_verification(
     date: str = Query(..., description="YYYY-MM-DD"),
+    speed_limit: int = Query(90, description="Speed limit fallback"),
     db: Session = Depends(get_db),
     admin = Depends(get_current_admin),
 ):
