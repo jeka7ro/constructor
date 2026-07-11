@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -302,31 +303,35 @@ function VehicleCard({ result }) {
                             </button>
 
                             {showMap && (
-                                <div className={isMapFullscreen ? "fixed inset-0 z-[9999] bg-white flex flex-col" : "mt-3 rounded-xl overflow-hidden border border-slate-200 relative"}>
-                                    {isMapFullscreen && (
-                                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
-                                            <div className="font-bold text-slate-800 flex items-center gap-2">
-                                                <MapPin className="w-4 h-4 text-blue-600" /> Trace GPS: {result.vehicle_name}
-                                            </div>
-                                            <button onClick={() => setIsMapFullscreen(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors">Fermer</button>
-                                        </div>
-                                    )}
-                                    <button 
-                                        onClick={() => setIsMapFullscreen(!isMapFullscreen)}
-                                        className={`absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition-colors`}
-                                        style={{ zIndex: 99999 }}
-                                        title={isMapFullscreen ? "Reduire" : "Plein ecran"}
-                                    >
-                                        {isMapFullscreen ? (
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-                                        ) : (
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                                        )}
-                                    </button>
-                                    <div style={{ height: isMapFullscreen ? '100vh' : 340 }} className="flex-1 w-full">
-                                        <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className={`w-full h-full ${!isMapFullscreen && 'rounded-b-xl'}`} scrollWheelZoom={isMapFullscreen}>
-                                            <MapResizer isFullscreen={isMapFullscreen} />
-                                            <TileLayer
+                                (() => {
+                                    const mapContent = (
+                                        <div className={isMapFullscreen ? "fixed inset-0 z-[99999] bg-white flex flex-col" : "mt-3 rounded-xl overflow-hidden border border-slate-200 relative"}>
+                                            {isMapFullscreen && (
+                                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white shadow-sm shrink-0">
+                                                    <div className="font-bold text-slate-800 flex items-center gap-2">
+                                                        <MapPin className="w-4 h-4 text-blue-600" /> Trace GPS: {result.vehicle_name}
+                                                    </div>
+                                                    <button onClick={() => setIsMapFullscreen(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                                                        Fermer
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <button 
+                                                onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+                                                className={`absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition-colors`}
+                                                style={{ zIndex: 99999 }}
+                                                title={isMapFullscreen ? "Reduire" : "Plein ecran"}
+                                            >
+                                                {isMapFullscreen ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                                                )}
+                                            </button>
+                                            <div style={{ height: isMapFullscreen ? '100vh' : 340 }} className="flex-1 w-full min-h-0">
+                                                <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className={`w-full h-full ${!isMapFullscreen && 'rounded-b-xl'}`} scrollWheelZoom={isMapFullscreen}>
+                                                    <MapResizer isFullscreen={isMapFullscreen} />
+                                                    <TileLayer
                                                 url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                                                 attribution="&copy; Google Maps"
                                                 maxZoom={20}

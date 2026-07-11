@@ -45,11 +45,11 @@ def get_dynamic_speed_limits(track):
             reduced.append(p)
             continue
         last = reduced[-1]
-        if haversine_m(last["lat"], last["lng"], p["lat"], p["lng"]) > 200:
+        if haversine_m(last["lat"], last["lng"], p["lat"], p["lng"]) > 400:
             reduced.append(p)
             
     ways = []
-    chunk_size = 30
+    chunk_size = 100
     for i in range(0, len(reduced), chunk_size):
         chunk = reduced[i:i+chunk_size]
         query = "[out:json];("
@@ -59,10 +59,10 @@ def get_dynamic_speed_limits(track):
         
         try:
             import requests
-            resp = requests.get("https://overpass-api.de/api/interpreter", 
-                                params={"data": query}, 
+            resp = requests.post("https://overpass-api.de/api/interpreter", 
+                                data={"data": query}, 
                                 headers={"User-Agent": "SmartTimesheet/1.0"},
-                                timeout=15)
+                                timeout=10)
             if resp.status_code == 200:
                 data = resp.json()
                 for el in data.get("elements", []):
