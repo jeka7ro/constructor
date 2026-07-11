@@ -35,6 +35,17 @@ function MapFitter({ all }) {
     return null
 }
 
+function MapResizer({ isFullscreen }) {
+    const map = useMap()
+    useEffect(() => {
+        const t = setTimeout(() => {
+            map.invalidateSize()
+        }, 100)
+        return () => clearTimeout(t)
+    }, [isFullscreen, map])
+    return null
+}
+
 function speedColor(speed) {
     if (speed < 30) return '#22c55e'
     if (speed < 70) return '#3b82f6'
@@ -299,6 +310,7 @@ function VehicleCard({ result }) {
                                     </button>
                                     <div style={{ height: isMapFullscreen ? '100%' : 340 }} className="flex-1">
                                         <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className={`w-full h-full ${!isMapFullscreen && 'rounded-b-xl'}`} scrollWheelZoom={isMapFullscreen}>
+                                            <MapResizer isFullscreen={isMapFullscreen} />
                                             <TileLayer
                                                 url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                                                 attribution="&copy; Google Maps"
