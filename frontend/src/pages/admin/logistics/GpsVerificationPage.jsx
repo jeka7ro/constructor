@@ -147,7 +147,7 @@ function VehicleCard({ result }) {
             {expanded && (
                 <div className="p-4 space-y-4 border-t border-slate-100">
                     {/* Stats */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         <div className="bg-slate-50 rounded-xl p-3 text-center">
                             <p className="text-xs text-slate-400 mb-1">{t('gps.distance', 'Distance')}</p>
                             <p className="text-lg font-bold text-slate-800">{result.total_km} <span className="text-xs font-normal">km</span></p>
@@ -156,6 +156,12 @@ function VehicleCard({ result }) {
                             <p className="text-xs text-slate-400 mb-1">{t('gps.max_speed', 'Vit. max')}</p>
                             <p className={`text-lg font-bold ${result.max_speed_kmh > 90 ? 'text-red-600' : 'text-slate-800'}`}>
                                 {result.max_speed_kmh} <span className="text-xs font-normal">km/h</span>
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 text-center">
+                            <p className="text-xs text-slate-400 mb-1">Vitesse actuelle</p>
+                            <p className={`text-lg font-bold ${isMoving ? 'text-blue-600' : 'text-slate-400'}`}>
+                                {isMoving ? lastPoint.speed : 0} <span className="text-xs font-normal">km/h</span>
                             </p>
                         </div>
                         <div className="bg-slate-50 rounded-xl p-3 text-center">
