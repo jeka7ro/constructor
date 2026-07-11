@@ -79,6 +79,16 @@ function VehicleCard({ result }) {
     const [showMap, setShowMap] = useState(false)
     const [isMapFullscreen, setIsMapFullscreen] = useState(false)
 
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && isMapFullscreen) {
+                setIsMapFullscreen(false)
+            }
+        }
+        window.addEventListener('keydown', handleEsc)
+        return () => window.removeEventListener('keydown', handleEsc)
+    }, [isMapFullscreen])
+
     // Calculate vehicle status (In Miscare vs Stationeaza)
     const lastPoint = result.track && result.track.length > 0 ? result.track[result.track.length - 1] : null;
     const isRecentlyUpdated = lastPoint ? (Date.now() / 1000 - lastPoint.ts) < 900 : false; // within 15 minutes
@@ -303,12 +313,17 @@ function VehicleCard({ result }) {
                                     )}
                                     <button 
                                         onClick={() => setIsMapFullscreen(!isMapFullscreen)}
-                                        className={`absolute ${isMapFullscreen ? 'hidden' : 'top-2 right-2'} z-[1000] bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition-colors`}
+                                        className={`absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition-colors`}
+                                        style={{ zIndex: 99999 }}
                                         title={isMapFullscreen ? "Reduire" : "Plein ecran"}
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                                        {isMapFullscreen ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                                        )}
                                     </button>
-                                    <div style={{ height: isMapFullscreen ? '100%' : 340 }} className="flex-1">
+                                    <div style={{ height: isMapFullscreen ? '100vh' : 340 }} className="flex-1 w-full">
                                         <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className={`w-full h-full ${!isMapFullscreen && 'rounded-b-xl'}`} scrollWheelZoom={isMapFullscreen}>
                                             <MapResizer isFullscreen={isMapFullscreen} />
                                             <TileLayer
