@@ -68,42 +68,10 @@ function MapBoundsFitter({ data, activeTeams }) {
 }
 
 function RoutingMachine({ positions, color, weight, opacity }) {
-    const map = useMap();
-
-    useEffect(() => {
-        if (!map || positions.length < 2) return;
-
-        const waypoints = positions.map(pos => L.latLng(pos[0], pos[1]));
-
-        const routingControl = L.Routing.control({
-            waypoints,
-            lineOptions: {
-                styles: [{ color, weight, opacity }],
-                extendToWaypoints: false,
-                missingRouteTolerance: 0
-            },
-            show: false,          
-            addWaypoints: false,  
-            routeWhileDragging: false,
-            fitSelectedRoutes: false,
-            showAlternatives: false,
-            createMarker: () => null // Hide default green/red routing markers, we use our own
-        }).addTo(map);
-
-        // Hide the routing container div entirely to avoid visual bugs
-        const container = routingControl.getContainer();
-        if (container) {
-            container.style.display = 'none';
-        }
-
-        return () => {
-            if (map && routingControl) {
-                map.removeControl(routingControl);
-            }
-        };
-    }, [map, positions, color, weight, opacity]);
-
-    return null;
+    // Instead of OSRM routing which hangs the browser and hits rate limits on the demo server,
+    // we draw a simple Polyline to show the intended route between jobs.
+    if (!positions || positions.length < 2) return null;
+    return <Polyline positions={positions} color={color} weight={weight} opacity={opacity} dashArray="5, 10" />;
 }
 
 const TRUCK_SVG = (color) => `
@@ -271,21 +239,26 @@ export default function LogisticsDashboard() {
     const fetchRoutes = async () => {
         try {
             setLoading(true)
-            const [res, gpsRes] = await Promise.all([
-                api.get(`/admin/logistics/daily-routes?target_date=${targetDate}`),
-                api.get(`/admin/gps-verification/daily?date=${targetDate}&speed_limit=90`).catch(() => ({ data: null }))
-            ])
+            // Load routes immediately — does NOT wait for slow Flespi GPS call
+            const res = await api.get(`/admin/logistics/daily-routes?target_date=${targetDate}`)
             setData(res.data)
             setActiveTeams(res.data.routes.map(r => r.team_id))
+        } catch (error) {
+            console.error("Error fetching daily routes:", error)
+        } finally {
+            setLoading(false)
+        }
+
+        // GPS data loads in background — won't block the page
+        try {
+            const gpsRes = await api.get(`/admin/gps-verification/daily?date=${targetDate}&speed_limit=90`)
             if (gpsRes.data?.results) {
                 setGpsData(gpsRes.data.results)
             } else {
                 setGpsData(null)
             }
-        } catch (error) {
-            console.error("Error fetching daily routes:", error)
-        } finally {
-            setLoading(false)
+        } catch {
+            setGpsData(null)
         }
     }
 

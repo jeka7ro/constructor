@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx'
 import Pagination from '../../components/Pagination'
 
 const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, searchPlaceholder, displayFn }) => {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const wrapperRef = useRef(null)
@@ -25,7 +26,7 @@ const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, sear
     return (
         <div ref={wrapperRef} className="relative w-full">
             <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm flex items-center justify-between">
-                <span className="truncate">{selectedIds.length > 0 ? `${selectedIds.length} selectați` : placeholder}</span>
+                <span className="truncate">{selectedIds.length > 0 ? `${selectedIds.length} ${t('common.selected', 'selectați')}` : placeholder}</span>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             
@@ -48,10 +49,10 @@ const MultiSelectDropdown = ({ options, selectedIds, onChange, placeholder, sear
                                 if (allChecked) onChange(selectedIds.filter(id => !filtered.find(o => o.id === id)))
                                 else onChange([...new Set([...selectedIds, ...filtered.map(o => o.id)])])
                             }} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                            Selectează Toți
+                            {t('common.select_all', 'Selectează Toți')}
                         </label>
                         {filtered.length === 0 ? (
-                            <div className="px-3 py-4 text-center text-xs text-slate-400">Nu s-au găsit rezultate.</div>
+                            <div className="px-3 py-4 text-center text-xs text-slate-400">{t('common.no_results', 'Nu s-au găsit rezultate.')}</div>
                         ) : filtered.map(o => (
                             <label key={o.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full cursor-pointer text-sm transition-colors">
                                 <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={(e) => {
@@ -130,16 +131,16 @@ const SingleSelectDropdown = ({ options, selectedId, onChange, placeholder, sear
     )
 }
 
-const unitOptions = [
-    { id: 'buc', name: 'buc (Bucăți)' },
-    { id: 'L', name: 'L (Litri)' },
-    { id: 'kg', name: 'kg (Kilograme)' },
-    { id: 'm', name: 'm (Metri)' },
-    { id: 'ml', name: 'ml (Metri liniari)' },
-    { id: 'mp', name: 'mp (Metri pătrați)' },
-    { id: 'rolă', name: 'rolă' },
-    { id: 'set', name: 'set' },
-    { id: 'cutie', name: 'cutie' },
+const getUnitOptions = (t) => [
+    { id: 'buc', name: t('warehouse.units.buc', 'buc (Bucăți)') },
+    { id: 'L', name: t('warehouse.units.l', 'L (Litri)') },
+    { id: 'kg', name: t('warehouse.units.kg', 'kg (Kilograme)') },
+    { id: 'm', name: t('warehouse.units.m', 'm (Metri)') },
+    { id: 'ml', name: t('warehouse.units.ml', 'ml (Metri liniari)') },
+    { id: 'mp', name: t('warehouse.units.mp', 'mp (Metri pătrați)') },
+    { id: 'rolă', name: t('warehouse.units.roll', 'rolă') },
+    { id: 'set', name: t('warehouse.units.set', 'set') },
+    { id: 'cutie', name: t('warehouse.units.box', 'cutie') },
 ]
 const getCategories = (t) => [
     { id: 'TOATE', label: t('warehouse.all'), icon: Package },
@@ -226,16 +227,16 @@ export default function WarehouseManagement() {
         try {
             await api.post('/warehouse/confirm-return', { item_id: itemId, condition })
             showToast(
-                condition === 'functional' ? 'Sculă primită — FUNCȚIONALĂ' :
-                condition === 'defective' ? 'Sculă primită — DEFECTĂ' :
-                'Sculă marcată ca PIERDUTĂ',
+                condition === 'functional' ? t('warehouse.tool_functional', 'Sculă primită — FUNCȚIONALĂ') :
+                condition === 'defective' ? t('warehouse.tool_defective', 'Sculă primită — DEFECTĂ') :
+                t('warehouse.tool_lost', 'Sculă marcată ca PIERDUTĂ'),
                 condition === 'functional' ? 'success' : 'warning'
             )
             setConfirmReturnModal(null)
             fetchPendingReturns()
             fetchItems()
         } catch (e) {
-            showToast('Eroare la confirmare', 'error')
+            showToast(t('warehouse.errors.confirm', 'Eroare la confirmare'), 'error')
         } finally {
             setConfirmReturnLoading(false)
         }
@@ -247,7 +248,7 @@ export default function WarehouseManagement() {
             const res = await api.get('/warehouse/items', { params: { category: activeTab !== 'TOATE' ? activeTab : undefined, site_id: selectedSite || undefined } })
             setItems(res.data)
         } catch (error) {
-            showToast('Eroare la încărcarea stocurilor', 'error')
+            showToast(t('warehouse.errors.load_stock', 'Eroare la încărcarea stocurilor'), 'error')
         } finally {
             setLoading(false)
         }
@@ -287,7 +288,7 @@ export default function WarehouseManagement() {
             setTransactions(res.data)
             setSelectedTxIds([])
         } catch (error) {
-            showToast('Eroare la încărcarea istoricului', 'error')
+            showToast(t('warehouse.errors.load_history', 'Eroare la încărcarea istoricului'), 'error')
         }
     }
 
@@ -308,17 +309,17 @@ export default function WarehouseManagement() {
     const handleDeleteTx = (txId) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Ștergere Tranzacție',
-            message: 'Sigur doriți să ștergeți tranzacția? Stocul va fi actualizat automat.',
+            title: t('warehouse.delete_tx.title', 'Supprimerre Tranzacție'),
+            message: t('warehouse.delete_tx.message', 'Sigur doriți să ștergeți tranzacția? Stocul va fi actualizat automat.'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/warehouse/transactions/${txId}`)
-                    showToast('Tranzacție ștearsă', 'success')
+                    showToast(t('warehouse.tx_deleted', 'Tranzacție ștearsă'), 'success')
                     fetchTransactions(selectedItem.id)
                     fetchItems()
                     fetchSites()
                 } catch (error) {
-                    showToast('Eroare la ștergerea tranzacției', 'error')
+                    showToast(t('warehouse.errors.delete_tx', 'Eroare la ștergerea tranzacției'), 'error')
                 }
             }
         })
@@ -327,20 +328,20 @@ export default function WarehouseManagement() {
     const handleBatchDeleteTx = () => {
         setConfirmModal({
             isOpen: true,
-            title: 'Ștergere Multiplă',
-            message: `Sigur doriți să ștergeți ${selectedTxIds.length} tranzacții? Stocul va fi actualizat automat.`,
+            title: t('warehouse.delete_multi.title', 'Supprimerre Multiplă'),
+            message: t('warehouse.delete_multi.message', 'Sigur doriți să ștergeți {{count}} tranzacții? Stocul va fi actualizat automat.', { count: selectedTxIds.length }),
             onConfirm: async () => {
                 try {
                     for (const id of selectedTxIds) {
                         await api.delete(`/warehouse/transactions/${id}`)
                     }
-                    showToast('Tranzacții șterse', 'success')
+                    showToast(t('warehouse.txs_deleted', 'Tranzacții șterse'), 'success')
                     setSelectedTxIds([])
                     fetchTransactions(selectedItem.id)
                     fetchItems()
                     fetchSites()
                 } catch (error) {
-                    showToast('Eroare la ștergerea tranzacțiilor', 'error')
+                    showToast(t('warehouse.errors.delete_txs', 'Eroare la ștergerea tranzacțiilor'), 'error')
                 }
             }
         })
@@ -360,7 +361,7 @@ export default function WarehouseManagement() {
             
             if (selectedItem) {
                 await api.put(`/warehouse/items/${selectedItem.id}`, { name: itemForm.name, unit: itemForm.unit, model: itemForm.model, inventory_code: itemForm.inventory_code })
-                showToast('Articol actualizat', 'success')
+                showToast(t('warehouse.item_updated', 'Articol actualizat'), 'success')
             } else {
                 const res = await api.post('/warehouse/items', payload)
                 const newItemId = res.data?.id
@@ -371,20 +372,20 @@ export default function WarehouseManagement() {
                         site_id: itemForm.site_id,
                         date: new Date().toISOString().split('T')[0]
                     })
-                    showToast('Sculă creată și adăugată direct pe șantier', 'success')
+                    showToast(t('warehouse.tool_created_assigned', 'Sculă creată și adăugată direct pe șantier'), 'success')
                 } else if (itemForm.site_id) {
                     // Pentru materiale de volum, resetăm filtrul pentru a i se permite să adauge tranzacția de intrare
                     if (selectedSite) setSelectedSite('')
-                    showToast('Articol creat! Adaugă acum o tranzacție de Intrare pentru a adăuga stoc.', 'success')
+                    showToast(t('warehouse.item_created_add_tx', 'Articol creat! Ajouter acum o tranzacție de Intrare pentru a adăuga stoc.'), 'success')
                 } else {
-                    showToast('Articol creat', 'success')
+                    showToast(t('warehouse.item_created', 'Articol creat'), 'success')
                 }
             }
             setShowItemModal(false)
             fetchItems()
             fetchSites()
         } catch (error) {
-            showToast('Eroare la salvare', 'error')
+            showToast(t('common.save_error', 'Eroare la salvare'), 'error')
         } finally {
             setIsSubmittingItem(false)
         }
@@ -393,16 +394,16 @@ export default function WarehouseManagement() {
     const handleDeleteItem = (itemId) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Ștergere Articol',
-            message: 'Sigur dorești să ștergi acest articol? Tot istoricul va fi pierdut.',
+            title: t('warehouse.delete_item.title', 'Supprimerre Articol'),
+            message: t('warehouse.delete_item.message', 'Sigur dorești să ștergi acest articol? Tot istoricul va fi pierdut.'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/warehouse/items/${itemId}`)
-                    showToast('Articol șters', 'success')
+                    showToast(t('warehouse.item_deleted', 'Articol șters'), 'success')
                     fetchItems()
                     fetchSites()
                 } catch (error) {
-                    showToast('Eroare la ștergerea articolului', 'error')
+                    showToast(t('warehouse.errors.delete_item', 'Eroare la ștergerea articolului'), 'error')
                 }
             }
         })
@@ -418,12 +419,12 @@ export default function WarehouseManagement() {
                 user_id: toolModal.userId,
                 date: toolModal.date
             })
-            showToast('Sculă repartizată cu succes', 'success')
+            showToast(t('warehouse.tool_assigned', 'Sculă repartizată cu succes'), 'success')
             setToolModal({ ...toolModal, isOpen: false })
             fetchItems()
             fetchSites()
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la repartizare', 'error')
+            showToast(error.response?.data?.detail || t('warehouse.errors.assign', 'Eroare la repartizare'), 'error')
         } finally {
             setIsSubmittingTool(false)
         }
@@ -432,18 +433,18 @@ export default function WarehouseManagement() {
     const handleCheckIn = async (item) => {
         if (isSubmittingTool) return
         
-        let msg = 'Sunteți sigur că ați primit scula înapoi?';
+        let msg = t('warehouse.checkin_confirm.default', 'Sunteți sigur că ați primit scula înapoi?');
         if (item.current_site_name && item.current_holder_name) {
-            msg = `Sunteți sigur că ați primit scula înapoi de la ${item.current_holder_name} (șantierul ${item.current_site_name})?`
+            msg = t('warehouse.checkin_confirm.both', 'Sunteți sigur că ați primit scula înapoi de la {{name}} (șantierul {{site}})?', { name: item.current_holder_name, site: item.current_site_name })
         } else if (item.current_site_name) {
-            msg = `Sunteți sigur că ați primit scula înapoi de pe șantierul ${item.current_site_name}?`
+            msg = t('warehouse.checkin_confirm.site', 'Sunteți sigur că ați primit scula înapoi de pe șantierul {{site}}?', { site: item.current_site_name })
         } else if (item.current_holder_name) {
-            msg = `Sunteți sigur că ați primit scula înapoi de la ${item.current_holder_name}?`
+            msg = t('warehouse.checkin_confirm.holder', 'Sunteți sigur că ați primit scula înapoi de la {{name}}?', { name: item.current_holder_name })
         }
 
         setConfirmModal({
             isOpen: true,
-            title: 'Primire Sculă în Magazie',
+            title: t('warehouse.checkin_tool', 'Primire Sculă în Magazie'),
             message: msg,
             onConfirm: async () => {
                 try {
@@ -451,11 +452,11 @@ export default function WarehouseManagement() {
                     await api.post(`/warehouse/items/${item.id}/checkin`, {
                         date: new Date().toISOString().split('T')[0]
                     })
-                    showToast('Sculă primită în magazie', 'success')
+                    showToast(t('warehouse.tool_received', 'Sculă primită în magazie'), 'success')
                     fetchItems()
                     fetchSites()
                 } catch (error) {
-                    showToast(error.response?.data?.detail || 'Eroare la primire', 'error')
+                    showToast(error.response?.data?.detail || t('warehouse.errors.receive', 'Eroare la primire'), 'error')
                 } finally {
                     setIsSubmittingTool(false)
                 }
@@ -467,11 +468,11 @@ export default function WarehouseManagement() {
         e.stopPropagation();
         try {
             await api.post(`/warehouse/items/${item.id}/toggle-defective`)
-            showToast(item.is_defective ? 'Scula a fost marcată ca funcțională' : 'Scula a fost marcată ca defectă', 'success')
+            showToast(item.is_defective ? t('warehouse.tool_functional_marked', 'Scula a fost marcată ca funcțională') : t('warehouse.tool_defective_marked', 'Scula a fost marcată ca defectă'), 'success')
             fetchItems()
             fetchSites()
         } catch (error) {
-            showToast('Eroare la actualizarea stării', 'error')
+            showToast(t('warehouse.errors.update_status', 'Eroare la actualizarea stării'), 'error')
         }
     }
 
@@ -481,7 +482,7 @@ export default function WarehouseManagement() {
         e.preventDefault()
         if (isSubmittingTx) return
         if (!txForm.quantity || Number(txForm.quantity) <= 0) {
-            showToast('Introduceți o cantitate validă', 'error')
+            showToast(t('warehouse.invalid_quantity', 'Introduceți o cantitate validă'), 'error')
             return
         }
 
@@ -501,7 +502,7 @@ export default function WarehouseManagement() {
                 await api.put(`/warehouse/transactions/${editingTx.id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 })
-                showToast('Tranzacție actualizată', 'success')
+                showToast(t('warehouse.tx_updated', 'Tranzacție actualizată'), 'success')
             } else {
                 const uIds = txForm.assigned_to_user_ids.length > 0 ? txForm.assigned_to_user_ids : [null]
                 const vIds = txForm.assigned_to_vehicle_ids.length > 0 ? txForm.assigned_to_vehicle_ids : [null]
@@ -524,7 +525,7 @@ export default function WarehouseManagement() {
                         })
                     }
                 }
-                showToast('Tranzacții salvate cu succes', 'success')
+                showToast(t('warehouse.txs_saved', 'Tranzacții salvate cu succes'), 'success')
             }
             
             setShowTxModal(false)
@@ -534,7 +535,7 @@ export default function WarehouseManagement() {
                 fetchTransactions(selectedItem.id)
             }
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la salvare tranzacție', 'error')
+            showToast(error.response?.data?.detail || t('warehouse.errors.save_tx', 'Eroare la salvare tranzacție'), 'error')
         } finally {
             setIsSubmittingTx(false)
         }
@@ -563,14 +564,14 @@ export default function WarehouseManagement() {
 
     const handleExportExcel = () => {
         const dataToExport = filteredItems.map(item => ({
-            'Articol': item.name,
-            'Categorie': activeTab,
-            'Stoc Curent': item.total_quantity,
-            'Unitate de Măsură': item.unit
+            [t('warehouse.item', 'Articol')]: item.name,
+            [t('warehouse.category', 'Categorie')]: activeTab,
+            [t('warehouse.current_stock', 'Stoc Curent')]: item.total_quantity,
+            [t('warehouse.unit', 'Unitate de Măsură')]: item.unit
         }))
         const ws = XLSX.utils.json_to_sheet(dataToExport)
         const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, "Stoc")
+        XLSX.utils.book_append_sheet(wb, ws, t('warehouse.stock', "Stoc"))
         XLSX.writeFile(wb, `Stoc_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`)
     }
 
@@ -619,15 +620,15 @@ export default function WarehouseManagement() {
                                 <p className="text-sm text-slate-500 mt-1">
                                     Status: <span className={`font-bold ${(historyItem.current_holder_id || historyItem.current_site_id) ? 'text-amber-600' : 'text-emerald-600'}`}>
                                         {historyItem.current_holder_name
-                                            ? `În teren · ${historyItem.current_holder_name}${historyItem.current_site_name ? ` · ${historyItem.current_site_name}` : ''}`
+                                            ? `${t('warehouse.status.in_field', 'În teren')} · ${historyItem.current_holder_name}${historyItem.current_site_name ? ` · ${historyItem.current_site_name}` : ''}`
                                             : historyItem.current_site_name
-                                                ? `La șantier · ${historyItem.current_site_name}`
-                                                : 'La magazie'
+                                                ? `${t('warehouse.status.at_site', 'La șantier')} · ${historyItem.current_site_name}`
+                                                : t('warehouse.status.in_warehouse', 'La magazie')
                                         }
                                     </span>
                                 </p>
                             ) : (
-                                <p className="text-sm text-slate-500 mt-1">Stoc curent: <span className="font-bold text-slate-800 dark:text-slate-200">{historyItem.total_quantity} {historyItem.unit}</span></p>
+                                <p className="text-sm text-slate-500 mt-1">{t('warehouse.current_stock_label', 'Stoc curent:')} <span className="font-bold text-slate-800 dark:text-slate-200">{historyItem.total_quantity} {historyItem.unit}</span></p>
                             )}
                         </div>
                         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -635,7 +636,7 @@ export default function WarehouseManagement() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                                 <input
                                     type="text"
-                                    placeholder="Caută în istoric..."
+                                    placeholder={t('warehouse.search_history', "Rechercher dans l'historique...")}
                                     value={historySearch}
                                     onChange={e => setHistorySearch(e.target.value)}
                                     className="w-full pl-9 pr-10 py-2 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all h-10"
@@ -655,13 +656,13 @@ export default function WarehouseManagement() {
                                     onClick={() => openTxModal(historyItem, 'IN')}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                                 >
-                                    <ArrowDownRight className="w-4 h-4" /> Intrare
+                                    <ArrowDownRight className="w-4 h-4" /> {t('warehouse.in', 'Intrare')}
                                 </button>
                                 <button
                                     onClick={() => openTxModal(historyItem, 'OUT')}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                                 >
-                                    <ArrowUpRight className="w-4 h-4" /> Ieșire
+                                    <ArrowUpRight className="w-4 h-4" /> {t('warehouse.out', 'Ieșire')}
                                 </button>
                             </div>
                         </div>
@@ -671,19 +672,19 @@ export default function WarehouseManagement() {
                     {linkedRequest && historyItem.inventory_code && (
                         <div className="mx-6 mb-4 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                             <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Traseul sculei</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('warehouse.tool_path', 'Traseul sculei')}</span>
                             </div>
                             <table className="w-full text-sm">
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     <tr>
-                                        <td className="px-4 py-2 w-28 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Solicitat</td>
+                                        <td className="px-4 py-2 w-28 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">{t('warehouse.requested', 'Solicitat')}</td>
                                         <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.requested_by}</td>
                                         <td className="px-4 py-2 text-xs text-slate-500">{linkedRequest.site_name || '—'}</td>
                                         <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.requested_at ? new Date(linkedRequest.requested_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
                                     </tr>
                                     {linkedRequest.approved_by && (
                                         <tr>
-                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Aprobat</td>
+                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">{t('warehouse.approved', 'Aprobat')}</td>
                                             <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.approved_by}</td>
                                             <td className="px-4 py-2 text-xs text-slate-500">—</td>
                                             <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.approved_at ? new Date(linkedRequest.approved_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
@@ -691,7 +692,7 @@ export default function WarehouseManagement() {
                                     )}
                                     {linkedRequest.approved_at && (
                                         <tr>
-                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Predat</td>
+                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">{t('warehouse.handed_over', 'Predat')}</td>
                                             <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.approved_by}</td>
                                             <td className="px-4 py-2 text-xs text-slate-500">{linkedRequest.site_name || '—'}</td>
                                             <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.approved_at ? new Date(linkedRequest.approved_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
@@ -699,9 +700,9 @@ export default function WarehouseManagement() {
                                     )}
                                     {linkedRequest.confirmed_by && (
                                         <tr className="bg-slate-50 dark:bg-slate-800/50">
-                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Confirmat</td>
+                                            <td className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">{t('warehouse.confirmed', 'Confirmat')}</td>
                                             <td className="px-4 py-2 font-semibold text-slate-800 dark:text-slate-100">{linkedRequest.confirmed_by}</td>
-                                            <td className="px-4 py-2 text-xs text-slate-500">Semnat digital</td>
+                                            <td className="px-4 py-2 text-xs text-slate-500">{t('warehouse.digitally_signed', 'Semnat digital')}</td>
                                             <td className="px-4 py-2 text-xs text-slate-400 text-right whitespace-nowrap">{linkedRequest.confirmed_at ? new Date(linkedRequest.confirmed_at).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
                                         </tr>
                                     )}
@@ -721,7 +722,7 @@ export default function WarehouseManagement() {
                                 <div className="flex items-center gap-2">
                                     <MapPin className="w-3.5 h-3.5 text-white" />
                                     <span className="text-[11px] font-black text-white uppercase tracking-widest">
-                                        {isOut ? 'In teren' : 'In magazie — disponibil'}
+                                        {isOut ? t('warehouse.status.in_field', 'In teren') : t('warehouse.status.in_warehouse_available', 'In magazie — disponibil')}
                                     </span>
                                 </div>
                                 <button
@@ -729,23 +730,23 @@ export default function WarehouseManagement() {
                                     className="flex items-center gap-1 text-[10px] font-bold text-white/80 hover:text-white transition-colors"
                                 >
                                     <Edit2 className="w-3 h-3" />
-                                    {showAssignPanel ? 'Anuleaza' : 'Modifica'}
+                                    {showAssignPanel ? t('common.cancel', 'Anuleaza') : t('common.modify', 'Modifica')}
                                 </button>
                             </div>
                             {!showAssignPanel && isOut && (
                                 <div className="px-4 py-3 bg-white dark:bg-slate-900 grid grid-cols-3 gap-4">
                                     <div>
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Muncitor</p>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('warehouse.worker', 'Muncitor')}</p>
                                         <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{holderName}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Santier</p>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('warehouse.site', 'Santier')}</p>
                                         <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{siteName || '—'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Sursa</p>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('warehouse.source', 'Sursa')}</p>
                                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                            {isFromWorkerRequest || linkedRequest?.status === 'completed' ? 'Cerere muncitor' : 'Atribuit de admin'}
+                                            {isFromWorkerRequest || linkedRequest?.status === 'completed' ? t('warehouse.worker_request', 'Cerere muncitor') : t('warehouse.admin_assigned', 'Atribuit de admin')}
                                         </span>
                                     </div>
                                 </div>
@@ -754,16 +755,16 @@ export default function WarehouseManagement() {
                                 <div className="px-4 py-3 bg-white dark:bg-slate-900">
                                     <div className="flex flex-wrap gap-3 items-end">
                                         <div className="flex-1 min-w-[160px]">
-                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Muncitor</label>
+                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">{t('warehouse.worker', 'Muncitor')}</label>
                                             <select value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                                <option value="">— Nimeni (inapoi in magazie) —</option>
+                                                <option value="">{t('warehouse.nobody_warehouse', '— Nimeni (inapoi in magazie) —')}</option>
                                                 {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                                             </select>
                                         </div>
                                         <div className="flex-1 min-w-[160px]">
-                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">Santier</label>
+                                            <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1 block">{t('warehouse.site', 'Santier')}</label>
                                             <select value={assignSiteId} onChange={e => setAssignSiteId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                                                <option value="">— Alege santier —</option>
+                                                <option value="">{t('warehouse.choose_site', '— Alege santier —')}</option>
                                                 {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                             </select>
                                         </div>
@@ -775,7 +776,7 @@ export default function WarehouseManagement() {
                                                         site_id: assignSiteId || null,
                                                         date: new Date().toISOString().split('T')[0]
                                                     })
-                                                    showToast('Detinatorul actualizat!', 'success')
+                                                    showToast(t('warehouse.holder_updated', 'Detinatorul actualizat!'), 'success')
                                                     setShowAssignPanel(false)
                                                     setHistoryItem(prev => ({
                                                         ...prev,
@@ -784,12 +785,12 @@ export default function WarehouseManagement() {
                                                         total_quantity: (assignUserId || assignSiteId) ? 0 : 1
                                                     }))
                                                 } catch(e) {
-                                                    showToast('Eroare la actualizare', 'error')
+                                                    showToast(t('warehouse.errors.update', 'Eroare la actualizare'), 'error')
                                                 }
                                             }}
                                             className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors"
                                         >
-                                            Salveaza
+                                            {t('common.save', 'Salveaza')}
                                         </button>
                                     </div>
                                 </div>
@@ -802,13 +803,13 @@ export default function WarehouseManagement() {
                     {selectedTxIds.length > 0 && (
                         <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
                             <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">
-                                {selectedTxIds.length} tranzacții selectate
+                                {selectedTxIds.length} {t('warehouse.transactions_selected', 'tranzacții selectate')}
                             </span>
                             <button
                                 onClick={handleBatchDeleteTx}
                                 className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md shadow-sm transition-colors font-medium"
                             >
-                                Șterge Selectatele
+                                {t('warehouse.delete_selected', 'Supprimer Selectatele')}
                             </button>
                         </div>
                     )}
@@ -825,21 +826,21 @@ export default function WarehouseManagement() {
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:checked:bg-blue-500"
                                         />
                                     </th>
-                                    <th className="px-6 py-4">Dată</th>
-                                    <th className="px-6 py-4">Tip</th>
+                                    <th className="px-6 py-4">{t('warehouse.date', 'Dată')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.type', 'Tip')}</th>
                                     {!historyItem?.inventory_code && (
-                                        <th className="px-6 py-4 text-right">Cantitate</th>
+                                        <th className="px-6 py-4 text-right">{t('warehouse.quantity', 'Cantitate')}</th>
                                     )}
-                                    <th className="px-6 py-4">Șantier</th>
-                                    <th className="px-6 py-4">Destinatar</th>
-                                    <th className="px-6 py-4">Notițe / Atașament</th>
-                                    <th className="px-6 py-4">Operator</th>
-                                    <th className="px-6 py-4 text-right">Acțiuni</th>
+                                    <th className="px-6 py-4">{t('warehouse.site', 'Șantier')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.recipient', 'Destinatar')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.notes_attachment', 'Notițe / Atașament')}</th>
+                                    <th className="px-6 py-4">{t('warehouse.operator', 'Operator')}</th>
+                                    <th className="px-6 py-4 text-right">{t('warehouse.actions', 'Acțiuni')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredHistory.length === 0 ? (
-                                    <tr><td colSpan={historyItem?.inventory_code ? "8" : "9"} className="px-6 py-12 text-center text-slate-500">Nu s-au găsit tranzacții.</td></tr>
+                                    <tr><td colSpan={historyItem?.inventory_code ? "8" : "9"} className="px-6 py-12 text-center text-slate-500">{t('warehouse.no_transactions', 'Nu s-au găsit tranzacții.')}</td></tr>
                                 ) : (
                                     filteredHistory.slice((historyCurrentPage - 1) * historyItemsPerPage, historyCurrentPage * historyItemsPerPage).map(t => (
                                         <tr key={t.id} className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors ${selectedTxIds.includes(t.id) ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
@@ -856,7 +857,7 @@ export default function WarehouseManagement() {
                                                     <span className="text-slate-700 dark:text-slate-300 font-bold">{t.date}</span>
                                                     {t.created_at && (
                                                         <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded w-fit mt-1">
-                                                            Ora: {new Date(t.created_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute:'2-digit'})}
+                                                            {t('warehouse.time', 'Ora:')} {new Date(t.created_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute:'2-digit'})}
                                                         </span>
                                                     )}
                                                 </div>
@@ -889,7 +890,7 @@ export default function WarehouseManagement() {
                                                     {t.attachment_url && (
                                                         <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 px-2.5 py-1.5 rounded-md w-fit transition-colors">
                                                             <FileText className="w-3.5 h-3.5" />
-                                                            Vezi Document
+                                                            {t('warehouse.view_document', 'Vezi Document')}
                                                         </a>
                                                     )}
                                                 </div>
@@ -897,10 +898,10 @@ export default function WarehouseManagement() {
                                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{t.operator}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => openTxModal(historyItem, t.transaction_type, t)} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică tranzacție">
+                                                    <button onClick={() => openTxModal(historyItem, t.transaction_type, t)} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title={t('warehouse.edit_transaction', 'Modifică tranzacție')}>
                                                         <Edit2 className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => handleDeleteTx(t.id)} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title="Șterge tranzacție">
+                                                    <button onClick={() => handleDeleteTx(t.id)} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title={t('warehouse.delete_transaction', 'Supprimer tranzacție')}>
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -931,10 +932,10 @@ export default function WarehouseManagement() {
                 <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-3xl overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-3 bg-amber-400">
                         <h3 className="font-black text-white text-sm uppercase tracking-wider">
-                            {pendingReturns.length} Sculă{pendingReturns.length > 1 ? ' în' : ''} așteptare confirmare
+                            {t('warehouse.pending_return_count', '{{count}} Sculă în așteptare confirmare', { count: pendingReturns.length })}
                         </h3>
                         <span className="ml-auto text-[11px] font-bold text-amber-900 bg-amber-200 px-3 py-1 rounded-full">
-                            Muncitorii au predat — confirmați starea
+                            {t('warehouse.workers_returned_confirm', 'Muncitorii au predat — confirmați starea')}
                         </span>
                     </div>
                     <div className="divide-y divide-amber-200">
@@ -945,7 +946,7 @@ export default function WarehouseManagement() {
                                     <p className="text-xs text-slate-500 mt-0.5">
                                         {pr.inventory_code && <span className="font-mono mr-2">{pr.inventory_code}</span>}
                                         {pr.model && <span className="mr-2">· {pr.model}</span>}
-                                        · Predat de <strong>{pr.returned_by}</strong>
+                                        · {t('warehouse.handed_over_by', 'Predat de')} <strong>{pr.returned_by}</strong>
                                         {pr.pending_return_at && (
                                             <span className="ml-2 text-amber-600">
                                                 {new Date(pr.pending_return_at).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
@@ -958,17 +959,17 @@ export default function WarehouseManagement() {
                                         onClick={() => confirmPendingReturn(pr.id, 'functional')}
                                         disabled={confirmReturnLoading}
                                         className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-full transition-colors disabled:opacity-50"
-                                    >Funcțională</button>
+                                    >{t('warehouse.functional', 'Funcțională')}</button>
                                     <button
                                         onClick={() => confirmPendingReturn(pr.id, 'defective')}
                                         disabled={confirmReturnLoading}
                                         className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-full transition-colors disabled:opacity-50"
-                                    >Defectă</button>
+                                    >{t('warehouse.defective', 'Defectă')}</button>
                                     <button
                                         onClick={() => confirmPendingReturn(pr.id, 'lost')}
                                         disabled={confirmReturnLoading}
                                         className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-full transition-colors disabled:opacity-50"
-                                    >Pierdută</button>
+                                    >{t('warehouse.lost', 'Pierdută')}</button>
                                 </div>
                             </div>
                         ))}
@@ -986,7 +987,7 @@ export default function WarehouseManagement() {
                         </div>
                         <input
                             type="text"
-                            placeholder="Caută articol..."
+                            placeholder={t('warehouse.search_item', 'Rechercher un article...')}
                             value={searchQuery}
                             onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
@@ -1029,7 +1030,7 @@ export default function WarehouseManagement() {
                             onChange={(e) => setSelectedSite(e.target.value)}
                             className="h-10 px-4 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="">Toate Șantierele</option>
+                            <option value="">{t('common.all_sites', 'Toate Șantierele')}</option>
                             {allSites.map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
@@ -1040,7 +1041,7 @@ export default function WarehouseManagement() {
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden sm:inline">Export</span>
+                            <span className="hidden sm:inline">{t('common.export', 'Export')}</span>
                         </button>
 
                         <button
@@ -1048,7 +1049,7 @@ export default function WarehouseManagement() {
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
-                            Articol
+                            {t('warehouse.item', 'Articol')}
                         </button>
                     </div>
                 </div>
@@ -1056,16 +1057,16 @@ export default function WarehouseManagement() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
-                                <th className="px-3 py-3 w-10 text-center">Nr.</th>
-                                <th className="px-3 py-3">Articol</th>
-                                <th className="px-3 py-3 text-center">UM</th>
-                                <th className="px-3 py-3 text-center">Intr.</th>
-                                <th className="px-3 py-3 text-center">Ieș.</th>
-                                <th className="px-3 py-3 text-center">Total</th>
-                                <th className="px-3 py-3 text-center text-amber-600 dark:text-amber-500">Rezervat</th>
-                                <th className="px-3 py-3 text-center text-emerald-600 dark:text-emerald-500">Disponibil</th>
-                                <th className="px-3 py-3 text-center">Șantier</th>
-                                <th className="px-3 py-3 text-right">Acțiuni</th>
+                                <th className="px-3 py-3 w-10 text-center">{t('common.no', 'Nr.')}</th>
+                                <th className="px-3 py-3">{t('warehouse.item', 'Articol')}</th>
+                                <th className="px-3 py-3 text-center">{t('warehouse.um', 'UM')}</th>
+                                <th className="px-3 py-3 text-center">{t('warehouse.in_abbr', 'Intr.')}</th>
+                                <th className="px-3 py-3 text-center">{t('warehouse.out_abbr', 'Ieș.')}</th>
+                                <th className="px-3 py-3 text-center">{t('warehouse.total', 'Total')}</th>
+                                <th className="px-3 py-3 text-center text-amber-600 dark:text-amber-500">{t('warehouse.reserved', 'Rezervat')}</th>
+                                <th className="px-3 py-3 text-center text-emerald-600 dark:text-emerald-500">{t('warehouse.available', 'Disponibil')}</th>
+                                <th className="px-3 py-3 text-center">{t('warehouse.site', 'Șantier')}</th>
+                                <th className="px-3 py-3 text-right">{t('warehouse.actions', 'Acțiuni')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1078,7 +1079,7 @@ export default function WarehouseManagement() {
                             ) : paginatedItems.length === 0 ? (
                                 <tr>
                                     <td colSpan="10" className="px-4 py-8 text-center text-slate-500">
-                                        Nu s-au găsit articole.
+                                        {t('warehouse.no_items', 'Nu s-au găsit articole.')}
                                     </td>
                                 </tr>
                             ) : (
@@ -1104,7 +1105,7 @@ export default function WarehouseManagement() {
                                                 <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{item.name}</span>
                                                 {item.inventory_code && (
                                                     <div className="flex items-center gap-1.5">
-                                                        {item.model && <span className="text-[11px] text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-2">Mod: {item.model}</span>}
+                                                        {item.model && <span className="text-[11px] text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-2">{t('warehouse.mod', 'Mod:')} {item.model}</span>}
                                                         <span className="text-[10px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{item.inventory_code}</span>
                                                         
                                                         {/* Inline Assignment Status */}
@@ -1112,7 +1113,7 @@ export default function WarehouseManagement() {
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                                                 <span className="text-[11px] text-amber-700 font-semibold">
-                                                                    {item.current_holder_name || 'Repartizat'}
+                                                                    {item.current_holder_name || t('warehouse.assigned', 'Repartizat')}
                                                                     {item.current_site_name && <span className="text-amber-500 font-normal"> · {item.current_site_name}</span>}
                                                                 </span>
                                                             </div>
@@ -1120,7 +1121,7 @@ export default function WarehouseManagement() {
                                                             <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
                                                                 <span className={`w-1.5 h-1.5 rounded-full ${item.is_defective ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
                                                                 <span className={`text-[11px] font-semibold ${item.is_defective ? 'text-red-600 uppercase tracking-wider' : 'text-emerald-600'}`}>
-                                                                    {item.is_defective ? 'Defect' : 'In Depozit'}
+                                                                    {item.is_defective ? t('warehouse.status.defective', 'Defect') : t('warehouse.status.in_warehouse', 'In Depozit')}
                                                                 </span>
                                                             </div>
                                                         )}
@@ -1210,39 +1211,39 @@ export default function WarehouseManagement() {
                                                         <button 
                                                             onClick={(e) => handleToggleDefective(item, e)} 
                                                             className={`flex items-center justify-center px-2 h-8 rounded-full border text-xs font-bold transition-colors ${item.is_defective ? 'border-red-500 bg-red-500 text-white' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                                                            title={item.is_defective ? "Marchează funcțională" : "Marchează defectă"}
+                                                            title={item.is_defective ? t('warehouse.mark_functional', "Marchează funcțională") : t('warehouse.mark_defective', "Marchează defectă")}
                                                         >
-                                                            Defect
+                                                            {t('warehouse.status.defective', 'Defect')}
                                                         </button>
                                                         {item.current_site_id || item.current_holder_id ? (
-                                                            <button onClick={(e) => { e.stopPropagation(); handleCheckIn(item); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-bold" title="Primire">
-                                                                Primire
+                                                            <button onClick={(e) => { e.stopPropagation(); handleCheckIn(item); }} className="flex items-center justify-center px-3 h-8 rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors text-xs font-bold" title={t('warehouse.receive', "Primire")}>
+                                                                {t('warehouse.receive', 'Primire')}
                                                             </button>
                                                         ) : (
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); setToolModal({ isOpen: true, item, siteId: '', userId: '', date: new Date().toISOString().split('T')[0] }); }} 
                                                                 className={`flex items-center justify-center px-3 h-8 rounded-full border border-blue-200 dark:border-blue-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-xs font-bold ${item.is_defective ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                title="Repartizare"
+                                                                title={t('warehouse.assign', "Repartizare")}
                                                                 disabled={item.is_defective}
                                                             >
-                                                                Repartizare
+                                                                {t('warehouse.assign', 'Repartizare')}
                                                             </button>
                                                         )}
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'IN'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Adaugă Intrare">
+                                                        <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'IN'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title={t('warehouse.add_in', "Ajouter Intrare")}>
                                                             <ArrowDownRight className="w-4 h-4" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'OUT'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title="Adaugă Ieșire">
+                                                        <button onClick={(e) => { e.stopPropagation(); openTxModal(item, 'OUT'); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors" title={t('warehouse.add_out', "Ajouter Ieșire")}>
                                                             <ArrowUpRight className="w-4 h-4" />
                                                         </button>
                                                     </>
                                                 )}
-                                                <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit, model: item.model || '', inventory_code: item.inventory_code || '', site_id: item.site_id || '' }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title="Modifică articol">
+                                                <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setItemForm({ name: item.name, unit: item.unit, model: item.model || '', inventory_code: item.inventory_code || '', site_id: item.site_id || '' }); setShowItemModal(true); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors" title={t('warehouse.edit_item', "Modifică articol")}>
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title="Șterge articol">
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors" title={t('warehouse.delete_item_title', "Supprimer articol")}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -1256,7 +1257,7 @@ export default function WarehouseManagement() {
 
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
                     <div className="flex items-center gap-2">
-                        <span className="uppercase tracking-wide">Afișare</span>
+                        <span className="uppercase tracking-wide">{t('common.show', 'Afișare')}</span>
                         <select
                             value={itemsPerPage}
                             onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
@@ -1269,7 +1270,7 @@ export default function WarehouseManagement() {
                         </select>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span>Pagina {currentPage} din {Math.max(1, totalPages)}</span>
+                        <span>{t('common.page_of', 'Pagina {{current}} din {{total}}', { current: currentPage, total: Math.max(1, totalPages) })}</span>
                         <div className="flex gap-1">
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -1307,7 +1308,7 @@ export default function WarehouseManagement() {
                                     onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                                     className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
                                 >
-                                    Anulează
+                                    {t('common.cancel', 'Anulează')}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -1316,7 +1317,7 @@ export default function WarehouseManagement() {
                                     }}
                                     className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm shadow-red-600/20 transition-all"
                                 >
-                                    Da, Șterge
+                                    {t('common.yes_delete', 'Da, Supprimer')}
                                 </button>
                             </div>
                         </div>
@@ -1330,7 +1331,7 @@ export default function WarehouseManagement() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm shadow-xl border border-slate-200 dark:border-slate-800 transform scale-100 opacity-100 transition-all flex flex-col">
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                Repartizare pe Șantier
+                                {t('warehouse.assign_to_site', 'Repartizare pe Șantier')}
                             </h2>
                             <button onClick={() => setToolModal({ ...toolModal, isOpen: false })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                                 <X className="w-5 h-5" />
@@ -1342,32 +1343,32 @@ export default function WarehouseManagement() {
                                 <div className="space-y-4">
                                     {/* Searchable Site Select using SingleSelectDropdown */}
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier Destinație (Opțional)</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.destination_site_optional', 'Șantier Destinație (Opțional)')}</label>
                                         <SingleSelectDropdown
                                             options={sites}
                                             selectedId={toolModal.siteId}
                                             onChange={val => setToolModal({ ...toolModal, siteId: val })}
-                                            placeholder="Nu asocia cu șantier..."
-                                            searchPlaceholder="Caută șantier..."
+                                            placeholder={t('warehouse.no_site', 'Nu asocia cu șantier...')}
+                                            searchPlaceholder={t('common.search_site', 'Rechercher un chantier...')}
                                             displayFn={s => s.name}
                                         />
                                     </div>
 
                                     {/* Searchable User Select using SingleSelectDropdown */}
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană (Opțional)</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.employee_person_optional', 'Angajat / Persoană (Opțional)')}</label>
                                         <SingleSelectDropdown
                                             options={users}
                                             selectedId={toolModal.userId}
                                             onChange={val => setToolModal({ ...toolModal, userId: val })}
-                                            placeholder="Nu asocia cu angajat..."
-                                            searchPlaceholder="Caută angajat..."
+                                            placeholder={t('warehouse.no_employee', 'Nu asocia cu angajat...')}
+                                            searchPlaceholder={t('common.search_employee', 'Rechercher un employé...')}
                                             displayFn={u => `${u.full_name}${u.employee_code ? ` (${u.employee_code})` : ''}`}
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Data Repartizare</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.assign_date', 'Data Repartizare')}</label>
                                     <input type="date" required value={toolModal.date} onChange={e => setToolModal({ ...toolModal, date: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                 </div>
                                 <div className="flex gap-3 justify-end pt-4 mt-2">
@@ -1376,14 +1377,14 @@ export default function WarehouseManagement() {
                                         onClick={() => setToolModal({ ...toolModal, isOpen: false })}
                                         className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
                                     >
-                                        Anulează
+                                        {t('common.cancel', 'Anulează')}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingTool}
                                         className="px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all disabled:opacity-50"
                                     >
-                                        {isSubmittingTool ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmă Predarea'}
+                                        {isSubmittingTool ? <Loader2 className="w-4 h-4 animate-spin" /> : t('warehouse.confirm_handover', 'Confirmă Predarea')}
                                     </button>
                                 </div>
                             </form>
@@ -1399,7 +1400,7 @@ export default function WarehouseManagement() {
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Package className="w-5 h-5 text-slate-500" />
-                                {selectedItem ? 'Modifică Articol' : t('warehouse.add_new_item')}
+                                {selectedItem ? t('warehouse.edit_item', 'Modifică articol') : t('warehouse.add_new_item')}
                             </h2>
                             <button onClick={() => setShowItemModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                                 <X className="w-5 h-5" />
@@ -1418,8 +1419,8 @@ export default function WarehouseManagement() {
                                             options={activeTab === 'COMBUSTIBIL' ? [{id: 'L', name: 'L (Litri)'}] : unitOptions}
                                             selectedId={itemForm.unit}
                                             onChange={val => setItemForm({ ...itemForm, unit: val })}
-                                            placeholder="Alege unitatea..."
-                                            searchPlaceholder="Caută..."
+                                            placeholder={t('warehouse.choose_unit', 'Alege unitatea...')}
+                                            searchPlaceholder={t('common.search', 'Rechercher...')}
                                             displayFn={o => o.name}
                                         />
                                     </div>
@@ -1428,11 +1429,11 @@ export default function WarehouseManagement() {
                                 {activeTab === 'SCULE' && (
                                     <>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Model (Opțional)</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.model_optional', 'Model (Opțional)')}</label>
                                             <input type="text" value={itemForm.model} onChange={e => setItemForm({ ...itemForm, model: e.target.value })} placeholder="ex. GSB 18V-110 C" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Cod Inventar (Opțional)</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.inventory_code_optional', 'Cod Inventar (Opțional)')}</label>
                                             <input type="text" value={itemForm.inventory_code} onChange={e => setItemForm({ ...itemForm, inventory_code: e.target.value })} placeholder="ex. INV-001" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                         </div>
                                     </>
@@ -1440,23 +1441,23 @@ export default function WarehouseManagement() {
                                 
                                 {!selectedItem && (
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Alocă direct pe Șantier (Opțional)</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.allocate_to_site_optional', 'Alocă direct pe Șantier (Opțional)')}</label>
                                         <SingleSelectDropdown
                                             options={allSites}
                                             selectedId={itemForm.site_id}
                                             onChange={val => setItemForm({ ...itemForm, site_id: val })}
-                                            placeholder="— Nu (Magazia Generală) —"
-                                            searchPlaceholder="Caută șantier..."
+                                            placeholder={t('warehouse.no_general_warehouse', '— Nu (Magazia Generală) —')}
+                                            searchPlaceholder={t('common.search_site', 'Rechercher un chantier...')}
                                             displayFn={s => s.name}
                                         />
                                     </div>
                                 )}
                                 
                                 <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
-                                    <button type="button" onClick={() => setShowItemModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">Anulează</button>
+                                    <button type="button" onClick={() => setShowItemModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">{t('common.cancel', 'Anulează')}</button>
                                     <button type="submit" className="px-5 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-sm font-bold shadow-sm shadow-blue-500/20 transition-all flex items-center gap-2">
                                         <Save className="w-4 h-4" />
-                                        Salvează
+                                        {t('common.save', 'Enregistrer')}
                                     </button>
                                 </div>
                             </form>
@@ -1471,7 +1472,7 @@ export default function WarehouseManagement() {
                         <div className={`px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between rounded-t-2xl shrink-0 ${txType === 'IN' ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-orange-50/50 dark:bg-orange-900/10'}`}>
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 {txType === 'IN' ? <ArrowDownRight className="w-5 h-5 text-blue-600" /> : <ArrowUpRight className="w-5 h-5 text-orange-600" />}
-                                {editingTx ? 'Modifică Tranzacție' : (txType === 'IN' ? 'Intrare Stoc' : 'Ieșire Stoc')}
+                                {editingTx ? t('warehouse.edit_transaction', 'Modifică Tranzacție') : (txType === 'IN' ? t('warehouse.stock_in', 'Intrare Stoc') : t('warehouse.stock_out', 'Ieșire Stoc'))}
                                 <span className="text-sm font-normal text-slate-500 ml-2 block truncate">
                                     {selectedItem?.name}
                                 </span>
@@ -1485,11 +1486,11 @@ export default function WarehouseManagement() {
                             <form onSubmit={handleSaveTx} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Cantitate ({selectedItem.unit})</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.quantity', 'Cantitate')} ({selectedItem.unit})</label>
                                         <input type="number" step="0.01" min="0.01" required value={txForm.quantity} onChange={e => setTxForm({ ...txForm, quantity: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Data</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.date', 'Data')}</label>
                                         <input type="date" required value={txForm.date} onChange={e => setTxForm({ ...txForm, date: e.target.value })} className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                                     </div>
                                 </div>
@@ -1497,13 +1498,13 @@ export default function WarehouseManagement() {
                                 {txType === 'OUT' && (
                                     <>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Șantier (Opțional)</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.site_optional', 'Șantier (Opțional)')}</label>
                                             <select
                                                 value={txForm.site_id || ''}
                                                 onChange={e => setTxForm({ ...txForm, site_id: e.target.value })}
                                                 className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                             >
-                                                <option value="">Companie General</option>
+                                                <option value="">{t('warehouse.company_general', 'Companie General')}</option>
                                                 {sites.map(s => (
                                                     <option key={s.id} value={s.id}>{s.name}</option>
                                                 ))}
@@ -1521,24 +1522,24 @@ export default function WarehouseManagement() {
                                                 return (
                                                     <>
                                                         <div>
-                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Angajat / Persoană</label>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.employee_person', 'Angajat / Persoană')}</label>
                                                             <MultiSelectDropdown
                                                                 options={filteredUsers}
                                                                 selectedIds={txForm.assigned_to_user_ids}
                                                                 onChange={ids => setTxForm({ ...txForm, assigned_to_user_ids: ids })}
-                                                                placeholder="Alege angajați..."
-                                                                searchPlaceholder="Caută angajat..."
+                                                                placeholder={t('warehouse.choose_employees', 'Alege angajați...')}
+                                                                searchPlaceholder={t('common.search_employee', 'Rechercher un employé...')}
                                                                 displayFn={u => `${u.full_name}${u.employee_code ? ` (${u.employee_code})` : ''}`}
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Utilaj / Mașină</label>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.vehicle_machine', 'Utilaj / Mașină')}</label>
                                                             <MultiSelectDropdown
                                                                 options={filteredVehicles}
                                                                 selectedIds={txForm.assigned_to_vehicle_ids}
                                                                 onChange={ids => setTxForm({ ...txForm, assigned_to_vehicle_ids: ids })}
-                                                                placeholder="Alege utilaje..."
-                                                                searchPlaceholder="Caută utilaj..."
+                                                                placeholder={t('warehouse.choose_vehicles', 'Alege utilaje...')}
+                                                                searchPlaceholder={t('warehouse.search_vehicle', 'Rechercher un engin...')}
                                                                 displayFn={v => `${v.name}${v.plate_number ? ` (${v.plate_number})` : ''}`}
                                                             />
                                                         </div>
@@ -1550,7 +1551,7 @@ export default function WarehouseManagement() {
                                 )}
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Atașament (Opțional)</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.attachment_optional', 'Atașament (Opțional)')}</label>
                                     <div className="relative">
                                         <input
                                             type="file"
@@ -1560,21 +1561,21 @@ export default function WarehouseManagement() {
                                         />
                                         <Paperclip className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">
-                                            {txForm.file ? txForm.file.name : "Alege fisier..."}
+                                            {txForm.file ? txForm.file.name : t('warehouse.choose_file', "Alege fisier...")}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Notițe (Opțional)</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('warehouse.notes_optional', 'Notițe (Opțional)')}</label>
                                     <textarea rows={2} value={txForm.notes} onChange={e => setTxForm({ ...txForm, notes: e.target.value })} className="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm custom-scrollbar" />
                                 </div>
 
                                 <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
-                                    <button type="button" onClick={() => setShowTxModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">Anulează</button>
+                                    <button type="button" onClick={() => setShowTxModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-100 dark:bg-slate-800/50">{t('common.cancel', 'Anulează')}</button>
                                     <button type="submit" className={`px-5 h-10 text-white rounded-full text-sm font-bold shadow-sm transition-all flex items-center gap-2 ${txType === 'IN' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'}`}>
                                         <Save className="w-4 h-4" />
-                                        Salvează {txType === 'IN' ? 'Intrarea' : 'Ieșirea'}
+                                        {t('common.save', 'Enregistrer')} {txType === 'IN' ? t('warehouse.in', 'Intrarea') : t('warehouse.out', 'Ieșirea')}
                                     </button>
                                 </div>
                             </form>

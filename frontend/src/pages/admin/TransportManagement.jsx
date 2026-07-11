@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Truck, MapPin, Clock, Gauge, Route, Calendar,
   Plus, Download, CheckCircle, XCircle, AlertTriangle,
@@ -9,28 +10,29 @@ import {
 import KPICard from '../../components/KPICard';
 import GpsHistoryTab from './GpsHistoryTab';
 import api from '../../lib/api';
+import { useTenantStore } from '../../store/tenantStore';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 const STATUS_MAP = {
-  in_progress:  { label: 'În desfășurare', color: '#f59e0b', bg: '#fef3c7', dot: true },
-  completed:    { label: 'Finalizat',       color: '#10b981', bg: '#d1fae5', dot: false },
-  approved:     { label: 'Aprobat',         color: '#2563eb', bg: '#dbeafe', dot: false },
-  rejected:     { label: 'Respins',         color: '#ef4444', bg: '#fee2e2', dot: false },
-  cancelled:    { label: 'Anulat',          color: '#6b7280', bg: '#f3f4f6', dot: false },
+  in_progress:  { labelKey: 'transport.status_in_progress', fallback: 'En cours', color: '#f59e0b', bg: '#fef3c7', dot: true },
+  completed:    { labelKey: 'transport.status_completed', fallback: 'Terminé', color: '#10b981', bg: '#d1fae5', dot: false },
+  approved:     { labelKey: 'transport.status_approved', fallback: 'Approuvé', color: '#2563eb', bg: '#dbeafe', dot: false },
+  rejected:     { labelKey: 'transport.status_rejected', fallback: 'Rejeté', color: '#ef4444', bg: '#fee2e2', dot: false },
+  cancelled:    { labelKey: 'transport.status_cancelled', fallback: 'Annulé', color: '#6b7280', bg: '#f3f4f6', dot: false },
 };
 
 const PURPOSE_LABELS = {
-  transport_materiale:  '🏗️ Transport materiale',
-  deplasare_personal:   '👤 Deplasare personal',
-  service:              '🔧 Service / Reparații',
-  livrare:              '📦 Livrare',
-  alte:                 '📋 Alte',
+  transport_materiale:  { key: 'transport.purpose_materials', fallback: '🏗️ Transport matériaux' },
+  deplasare_personal:   { key: 'transport.purpose_personnel', fallback: '👤 Déplacement personnel' },
+  service:              { key: 'transport.purpose_service', fallback: '🔧 Service / Réparations' },
+  livrare:              { key: 'transport.purpose_delivery', fallback: '📦 Livraison' },
+  alte:                 { key: 'transport.purpose_other', fallback: '📋 Autres' },
 };
 
-const DAY_NAMES = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 function fmt(n, unit = '') {
   if (n == null) return '—';
@@ -69,7 +71,8 @@ async function apiFetch(path, opts = {}) {
 // ─── Status Badge ──────────────────────────────────────────────────────────
 
 function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || { label: status, color: '#6b7280', bg: '#f3f4f6' };
+  const { t } = useTranslation();
+  const s = STATUS_MAP[status] || { labelKey: status, fallback: status, color: '#6b7280', bg: '#f3f4f6' };
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border"
       style={{ background: s.bg, color: s.color, borderColor: s.color + '33' }}>
@@ -80,7 +83,7 @@ function StatusBadge({ status }) {
           <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: s.color }} />
         </span>
       )}
-      {s.label}
+      {t(s.labelKey, s.fallback)}
     </span>
   );
 }
@@ -89,17 +92,18 @@ function StatusBadge({ status }) {
 // ─── Schedule Warning Banner ────────────────────────────────────────────────
 
 function ScheduleBanner({ schedule }) {
+  const { t } = useTranslation();
   if (!schedule || schedule.can_start_trip) return null;
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4 flex items-start gap-3 mb-6">
       <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
       <div>
-        <p className="font-bold text-amber-800 dark:text-amber-400 text-sm">Program transport inactiv</p>
+        <p className="font-bold text-amber-800 dark:text-amber-400 text-sm">{t('transport.schedule_inactive', 'Programme de transport inactif')}</p>
         <p className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">{schedule.message}</p>
         <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-          Program: <strong>{schedule.schedule?.start_time}–{schedule.schedule?.end_time}</strong> |
-          Zile: <strong>{schedule.schedule?.allowed_day_names?.join(', ')}</strong>
-          {schedule.schedule?.strict && <span className="ml-2 text-red-600 font-bold">• Strict (drumuri blocate)</span>}
+          {t('transport.schedule', 'Programme')}: <strong>{schedule.schedule?.start_time}–{schedule.schedule?.end_time}</strong> |
+          {t('transport.days', 'Jours')}: <strong>{schedule.schedule?.allowed_day_names?.join(', ')}</strong>
+          {schedule.schedule?.strict && <span className="ml-2 text-red-600 font-bold">• {t('transport.strict_blocked', 'Strict (routes bloquées)')}</span>}
         </p>
       </div>
     </div>
@@ -109,6 +113,7 @@ function ScheduleBanner({ schedule }) {
 // ─── Leaflet Map Component ─────────────────────────────────────────────────
 
 function TripMap({ trip }) {
+  const { t } = useTranslation();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
 
@@ -136,7 +141,7 @@ function TripMap({ trip }) {
         className: '', iconAnchor: [7, 7]
       });
       L.marker(latlngs[0], { icon: startIcon })
-        .bindPopup(`<b>Start</b><br/>${trip.start_address || '—'}<br/>${fmtTime(trip.start_time)}`)
+        .bindPopup(`<b>${t('transport.start', 'Démarrage')}</b><br/>${trip.start_address || '—'}<br/>${fmtTime(trip.start_time)}`)
         .addTo(map);
 
       // End marker (red) — only if trip completed
@@ -146,7 +151,7 @@ function TripMap({ trip }) {
           className: '', iconAnchor: [7, 7]
         });
         L.marker(latlngs[latlngs.length - 1], { icon: endIcon })
-          .bindPopup(`<b>Stop</b><br/>${trip.end_address || '—'}<br/>${fmtTime(trip.end_time)}`)
+          .bindPopup(`<b>${t('transport.stop', 'Arrêt')}</b><br/>${trip.end_address || '—'}<br/>${fmtTime(trip.end_time)}`)
           .addTo(map);
       }
 
@@ -158,13 +163,13 @@ function TripMap({ trip }) {
     }
 
     return () => { map.remove(); mapInstanceRef.current = null; };
-  }, [trip]);
+  }, [trip, t]);
 
   return (
     <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative" style={{ height: 320 }}>
       {!window.L && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
-          <p className="text-sm text-slate-500">Hartă indisponibilă (Leaflet JS lipsă)</p>
+          <p className="text-sm text-slate-500">{t('transport.map_unavailable', 'Carte indisponible (Leaflet JS manquant)')}</p>
         </div>
       )}
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
@@ -175,6 +180,7 @@ function TripMap({ trip }) {
 // ─── Trip Detail Modal ─────────────────────────────────────────────────────
 
 function TripDetail({ trip, onClose, onApprove }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [rejNote, setRejNote] = useState('');
 
@@ -204,7 +210,7 @@ function TripDetail({ trip, onClose, onApprove }) {
             <StatusBadge status={trip.status} />
             {trip.out_of_schedule && (
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> Afara programului
+                <AlertTriangle className="w-3 h-3" /> {t('transport.out_of_schedule_badge', 'Hors programme')}
               </span>
             )}
             <button onClick={onClose} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center transition-colors">
@@ -217,10 +223,10 @@ function TripDetail({ trip, onClose, onApprove }) {
           {/* Stats Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: Route, label: 'KM Parcurși', value: fmt(trip.distance_km, ' km'), color: '#2563eb' },
-              { icon: Clock, label: 'Durată', value: fmtDuration(trip.duration_minutes), color: '#10b981' },
-              { icon: Gauge, label: 'Vit. Medie', value: fmt(trip.avg_speed_kmh, ' km/h'), color: '#8b5cf6' },
-              { icon: Gauge, label: 'Vit. Maximă', value: fmt(trip.max_speed_kmh, ' km/h'), color: '#f59e0b' },
+              { icon: Route, label: t('transport.km_driven', 'KM parcourus'), value: fmt(trip.distance_km, ' km'), color: '#2563eb' },
+              { icon: Clock, label: t('transport.duration', 'Durée'), value: fmtDuration(trip.duration_minutes), color: '#10b981' },
+              { icon: Gauge, label: t('transport.avg_speed', 'Vit. moyenne'), value: fmt(trip.avg_speed_kmh, ' km/h'), color: '#8b5cf6' },
+              { icon: Gauge, label: t('transport.max_speed', 'Vit. max'), value: fmt(trip.max_speed_kmh, ' km/h'), color: '#f59e0b' },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="rounded-xl border border-slate-100 dark:border-slate-800 p-3 text-center">
                 <Icon className="w-4 h-4 mx-auto mb-1" style={{ color }} />
@@ -235,21 +241,21 @@ function TripDetail({ trip, onClose, onApprove }) {
             <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Plecare · {fmtTime(trip.start_time)}</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">{t('transport.departure', 'Départ')} · {fmtTime(trip.start_time)}</span>
               </div>
               <p className="text-sm font-semibold text-slate-800 dark:text-white">{trip.start_address || '—'}</p>
               {trip.start_odometer != null && (
-                <p className="text-xs text-slate-500 mt-1">Odometru start: <strong>{trip.start_odometer} km</strong></p>
+                <p className="text-xs text-slate-500 mt-1">{t('transport.start_odometer', 'Odomètre départ')}: <strong>{trip.start_odometer} km</strong></p>
               )}
             </div>
             <div className="rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-3 h-3 rounded-full bg-rose-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-rose-700">Sosire · {fmtTime(trip.end_time)}</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-rose-700">{t('transport.arrival', 'Arrivée')} · {fmtTime(trip.end_time)}</span>
               </div>
               <p className="text-sm font-semibold text-slate-800 dark:text-white">{trip.end_address || trip.site_name || '—'}</p>
               {trip.end_odometer != null && (
-                <p className="text-xs text-slate-500 mt-1">Odometru stop: <strong>{trip.end_odometer} km</strong></p>
+                <p className="text-xs text-slate-500 mt-1">{t('transport.end_odometer', 'Odomètre arrivée')}: <strong>{trip.end_odometer} km</strong></p>
               )}
             </div>
           </div>
@@ -257,7 +263,9 @@ function TripDetail({ trip, onClose, onApprove }) {
           {/* Scop + GPS count */}
           <div className="flex flex-wrap gap-3 text-sm">
             <span className="px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 font-semibold border border-blue-100">
-              {PURPOSE_LABELS[trip.purpose_category] || trip.purpose_category || '—'}
+              {trip.purpose_category && PURPOSE_LABELS[trip.purpose_category] 
+                  ? t(PURPOSE_LABELS[trip.purpose_category].key, PURPOSE_LABELS[trip.purpose_category].fallback) 
+                  : trip.purpose_category || '—'}
             </span>
             {trip.purpose_notes && (
               <span className="px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
@@ -266,7 +274,7 @@ function TripDetail({ trip, onClose, onApprove }) {
             )}
             <span className="px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
               <Navigation className="w-3.5 h-3.5" />
-              {trip.gps_points_count || 0} puncte GPS înregistrate
+              {trip.gps_points_count || 0} {t('transport.gps_points_recorded', 'points GPS enregistrés')}
             </span>
           </div>
 
@@ -275,9 +283,9 @@ function TripDetail({ trip, onClose, onApprove }) {
             <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-xs font-bold text-amber-800">Drum în afara programului de transport</p>
+                <p className="text-xs font-bold text-amber-800">{t('transport.trip_out_of_schedule', 'Trajet en dehors des heures de transport')}</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Program alocat: {trip.scheduled_start_time}–{trip.scheduled_end_time}
+                  {t('transport.allocated_schedule', 'Programme alloué')}: {trip.scheduled_start_time}–{trip.scheduled_end_time}
                 </p>
                 {trip.out_of_schedule_note && (
                   <p className="text-xs text-amber-600 mt-0.5">{trip.out_of_schedule_note}</p>
@@ -290,26 +298,26 @@ function TripDetail({ trip, onClose, onApprove }) {
           {trip.visited_points?.length > 0 ? (
             <div>
               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-blue-500" /> Traseu GPS
+                <MapPin className="w-4 h-4 text-blue-500" /> {t('transport.gps_route', 'Itinéraire GPS')}
               </h3>
               <TripMap trip={trip} />
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-6 text-center">
               <Navigation className="w-6 h-6 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-400">Nu există puncte GPS înregistrate pentru acest drum.</p>
+              <p className="text-sm text-slate-400">{t('transport.no_gps_points_recorded', 'Aucun point GPS enregistré pour ce trajet.')}</p>
             </div>
           )}
 
           {/* Actions */}
           {trip.status === 'completed' && (
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Validare foaie de parcurs</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">{t('transport.validate_trip', 'Validation de la feuille de route')}</p>
               <div className="space-y-3">
                 <input
                   value={rejNote}
                   onChange={e => setRejNote(e.target.value)}
-                  placeholder="Motiv respingere (opțional)..."
+                  placeholder={t('transport.reject_reason_optional', 'Motif de rejet (facultatif)...')}
                   className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none transition-all"
                 />
                 <div className="flex gap-3">
@@ -319,14 +327,14 @@ function TripDetail({ trip, onClose, onApprove }) {
                     className="flex-1 px-5 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                    Aprobă
+                    {t('transport.approve', 'Approuver')}
                   </button>
                   <button
                     onClick={() => handleAction('reject')}
                     disabled={loading}
                     className="flex-1 px-5 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
                   >
-                    <XCircle className="w-4 h-4" /> Respinge
+                    <XCircle className="w-4 h-4" /> {t('transport.reject', 'Rejeter')}
                   </button>
                 </div>
               </div>
@@ -341,6 +349,7 @@ function TripDetail({ trip, onClose, onApprove }) {
 // ─── Schedule Config Modal ─────────────────────────────────────────────────
 
 function ScheduleModal({ onClose, onSaved }) {
+  const { t } = useTranslation();
   const [cfg, setCfg] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
@@ -372,7 +381,7 @@ function ScheduleModal({ onClose, onSaved }) {
           transport_strict_schedule: cfg.transport_strict_schedule,
         }),
       });
-      setToast({ type: 'success', msg: 'Program salvat!' });
+      setToast({ type: 'success', msg: t('transport.schedule_saved', 'Programme enregistré !') });
       setTimeout(() => { onSaved(); onClose(); }, 900);
     } catch (e) {
       setToast({ type: 'error', msg: e.message });
@@ -386,7 +395,7 @@ function ScheduleModal({ onClose, onSaved }) {
       <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-blue-500" /> Program Transport
+            <Settings className="w-5 h-5 text-blue-500" /> {t('transport.schedule_settings', 'Programme de transport')}
           </h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
             <XCircle className="w-4 h-4 text-slate-500" />
@@ -402,11 +411,11 @@ function ScheduleModal({ onClose, onSaved }) {
             {/* Interval orar */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-                Interval Orar Permis
+                {t('transport.allowed_time_interval', 'Intervalle horaire autorisé')}
               </label>
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <p className="text-[11px] text-slate-400 mb-1">De la</p>
+                  <p className="text-[11px] text-slate-400 mb-1">{t('transport.from_time', 'De')}</p>
                   <input
                     type="time" value={cfg.transport_start_time || '06:00'}
                     onChange={e => setCfg(c => ({ ...c, transport_start_time: e.target.value }))}
@@ -415,7 +424,7 @@ function ScheduleModal({ onClose, onSaved }) {
                 </div>
                 <span className="text-slate-300 font-bold mt-5">→</span>
                 <div className="flex-1">
-                  <p className="text-[11px] text-slate-400 mb-1">Până la</p>
+                  <p className="text-[11px] text-slate-400 mb-1">{t('transport.to_time', 'À')}</p>
                   <input
                     type="time" value={cfg.transport_end_time || '20:00'}
                     onChange={e => setCfg(c => ({ ...c, transport_end_time: e.target.value }))}
@@ -428,7 +437,7 @@ function ScheduleModal({ onClose, onSaved }) {
             {/* Zile permise */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-                Zile Lucrătoare Transport
+                {t('transport.allowed_working_days', 'Jours ouvrables de transport')}
               </label>
               <div className="flex flex-wrap gap-2">
                 {DAY_NAMES.map((name, idx) => {
@@ -452,10 +461,10 @@ function ScheduleModal({ onClose, onSaved }) {
             {/* Mod strict */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <div>
-                <p className="text-sm font-bold text-slate-800 dark:text-white">Program Strict</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">{t('transport.strict_schedule_title', 'Programme strict')}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Dacă activ — drumurile <strong>sunt blocate</strong> complet în afara programului.
-                  Dacă inactiv — sunt permise, dar marcate cu avertisment.
+                  {t('transport.strict_schedule_active_desc', 'Si actif — les trajets sont complètement bloqués en dehors des heures.')}<br/>
+                  {t('transport.strict_schedule_inactive_desc', 'Si inactif — autorisés, mais marqués avec un avertissement.')}
                 </p>
               </div>
               <button
@@ -478,7 +487,7 @@ function ScheduleModal({ onClose, onSaved }) {
               className="w-full px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-              Salvează Program
+              {t('transport.save_schedule', 'Enregistrer le programme')}
             </button>
           </div>
         )}
@@ -490,6 +499,7 @@ function ScheduleModal({ onClose, onSaved }) {
 // ─── New Trip Modal ────────────────────────────────────────────────────────
 
 function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     vehicle_id: '', driver_id: '', site_id: '',
     purpose_category: 'transport_materiale', purpose_notes: '',
@@ -501,7 +511,7 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
 
   const submit = async () => {
     if (!form.vehicle_id || !form.driver_id) {
-      setError('Selectați vehiculul și șoferul.');
+      setError(t('transport.select_vehicle_driver_error', 'Veuillez sélectionner le véhicule et le chauffeur.'));
       return;
     }
     setSaving(true);
@@ -529,7 +539,7 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
       <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Play className="w-5 h-5 text-emerald-500" /> Pornire Drum Nou
+            <Play className="w-5 h-5 text-emerald-500" /> {t('transport.start_new_trip', 'Démarrer un nouveau trajet')}
           </h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
             <XCircle className="w-4 h-4 text-slate-500" />
@@ -538,10 +548,10 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
         <div className="p-6 space-y-4">
           {/* Vehicul */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Vehicul *</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{t('transport.vehicle', 'Véhicule')} *</label>
             <select value={form.vehicle_id} onChange={e => set('vehicle_id', e.target.value)}
               className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none">
-              <option value="">— Selectați —</option>
+              <option value="">— {t('transport.select', 'Sélectionner')} —</option>
               {vehicles.map(v => (
                 <option key={v.id} value={v.id}>{v.name} {v.plate_number ? `(${v.plate_number})` : ''}</option>
               ))}
@@ -549,10 +559,10 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
           </div>
           {/* Șofer */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Șofer *</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{t('transport.driver', 'Chauffeur')} *</label>
             <select value={form.driver_id} onChange={e => set('driver_id', e.target.value)}
               className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none">
-              <option value="">— Selectați —</option>
+              <option value="">— {t('transport.select', 'Sélectionner')} —</option>
               {drivers.map(u => (
                 <option key={u.id} value={u.id}>{u.full_name} ({u.employee_code})</option>
               ))}
@@ -561,33 +571,33 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
           {/* Destinație */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Destinație (șantier)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{t('transport.destination_site', 'Destination (chantier)')}</label>
               <select value={form.site_id} onChange={e => set('site_id', e.target.value)}
                 className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none">
-                <option value="">— Fără destinație —</option>
+                <option value="">— {t('transport.no_destination', 'Sans destination')} —</option>
                 {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">KM Start (odometru)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{t('transport.km_start_odometer', 'KM Départ (odomètre)')}</label>
               <input type="number" value={form.start_odometer} onChange={e => set('start_odometer', e.target.value)}
-                placeholder="ex: 125430"
+                placeholder={t('transport.ex_odometer', 'ex: 125430')}
                 className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none" />
             </div>
           </div>
           {/* Scop */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Scopul deplasării</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{t('transport.trip_purpose', 'But du déplacement')}</label>
             <select value={form.purpose_category} onChange={e => set('purpose_category', e.target.value)}
               className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none">
-              {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{t(v.key, v.fallback)}</option>)}
             </select>
           </div>
           <input value={form.purpose_notes} onChange={e => set('purpose_notes', e.target.value)}
-            placeholder="Detalii scop (opțional)..."
+            placeholder={t('transport.purpose_details_optional', 'Détails du but (facultatif)...')}
             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none" />
           <input value={form.start_address} onChange={e => set('start_address', e.target.value)}
-            placeholder="Adresa de pornire (opțional)..."
+            placeholder={t('transport.start_address_optional', 'Adresse de départ (facultatif)...')}
             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none" />
 
           {error && (
@@ -598,7 +608,7 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
           <button onClick={submit} disabled={saving}
             className="w-full px-5 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            Pornește Drumul
+            {t('transport.start_trip_button', 'Démarrer le trajet')}
           </button>
         </div>
       </div>
@@ -609,7 +619,10 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────
 
 export default function TransportManagement() {
-  const [activeMainTab, setActiveMainTab] = useState('trips'); // 'trips' | 'gps_history'
+  const { t } = useTranslation();
+  const getCurrentSubdomain = useTenantStore(state => state.getCurrentSubdomain);
+  const isDavideChape = getCurrentSubdomain() === 'davidechape';
+  const [activeMainTab, setActiveMainTab] = useState('gps_history'); // 'trips' | 'gps_history'
   const [trips, setTrips] = useState([]);
   const [stats, setStats] = useState(null);
   const [schedule, setSchedule] = useState(null);
@@ -669,7 +682,7 @@ export default function TransportManagement() {
       method: 'PUT',
       body: JSON.stringify({ action, rejection_note: note }),
     });
-    showToast('success', action === 'approve' ? 'Foaia aprobată!' : 'Foaia respinsă!');
+    showToast('success', action === 'approve' ? t('transport.trip_approved', 'Feuille approuvée !') : t('transport.trip_rejected', 'Feuille rejetée !'));
     loadAll();
   };
 
@@ -706,16 +719,18 @@ export default function TransportManagement() {
 
       {/* Main Tab Switch */}
       <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl w-fit">
-        <button
-          onClick={() => setActiveMainTab('trips')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-            activeMainTab === 'trips'
-              ? 'bg-white dark:bg-slate-700 text-blue-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Route className="w-4 h-4" /> Feuilles de Route
-        </button>
+        {!isDavideChape && (
+            <button
+              onClick={() => setActiveMainTab('trips')}
+              className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                activeMainTab === 'trips'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Route className="w-4 h-4" /> {t('transport.route_sheets', 'Feuilles de Route')}
+            </button>
+        )}
         <button
           onClick={() => setActiveMainTab('gps_history')}
           className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
@@ -724,7 +739,7 @@ export default function TransportManagement() {
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <Navigation className="w-4 h-4" /> Historique GPS
+          <Navigation className="w-4 h-4" /> {t('transport.gps_history_tab', 'Historique GPS')}
         </button>
       </div>
 
@@ -747,15 +762,15 @@ export default function TransportManagement() {
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowSchedule(true)}
             className="px-5 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2">
-            <Settings className="w-4 h-4" /> Program
+            <Settings className="w-4 h-4" /> {t('transport.schedule', 'Programme')}
           </button>
           <button onClick={exportExcel}
             className="px-5 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors flex items-center gap-2">
-            <Download className="w-4 h-4" /> Export
+            <Download className="w-4 h-4" /> {t('transport.export', 'Exporter')}
           </button>
           <button onClick={() => setShowNew(true)}
             className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Drum Nou
+            <Plus className="w-4 h-4" /> {t('transport.new_trip', 'Nouveau trajet')}
           </button>
         </div>
       </div>
@@ -766,10 +781,10 @@ export default function TransportManagement() {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <KPICard icon={Route}   label="KM Totali"      value={`${stats.total_km ?? '—'} km`}  colorTheme="blue" />
-          <KPICard icon={Truck}   label="Drumuri Totale" value={stats.total_trips ?? '—'}        colorTheme="purple" />
-          <KPICard icon={Gauge}   label="Vit. Medie"     value={`${stats.avg_speed_kmh ?? '—'} km/h`} colorTheme="orange" />
-          <KPICard icon={Clock}   label="Ore Condus"     value={`${stats.total_duration_hours ?? '—'} h`} colorTheme="green" />
+          <KPICard icon={Route}   label={t('transport.total_km', 'KM Totaux')}      value={`${stats.total_km ?? '—'} km`}  colorTheme="blue" />
+          <KPICard icon={Truck}   label={t('transport.total_trips_kpi', 'Trajets Totaux')} value={stats.total_trips ?? '—'}        colorTheme="purple" />
+          <KPICard icon={Gauge}   label={t('transport.avg_speed_kpi', 'Vit. moyenne')}     value={`${stats.avg_speed_kmh ?? '—'} km/h`} colorTheme="orange" />
+          <KPICard icon={Clock}   label={t('transport.driving_hours', 'Heures de conduite')}     value={`${stats.total_duration_hours ?? '—'} h`} colorTheme="green" />
         </div>
       )}
 
@@ -783,13 +798,13 @@ export default function TransportManagement() {
             className="px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none" />
           <select value={filters.vehicle_id} onChange={e => setFilter('vehicle_id', e.target.value)}
             className="px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none">
-            <option value="">Toate vehiculele</option>
+            <option value="">{t('transport.all_vehicles', 'Tous les véhicules')}</option>
             {vehicles.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
           <select value={filters.status} onChange={e => setFilter('status', e.target.value)}
             className="px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none">
-            <option value="">Toate statusurile</option>
-            {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            <option value="">{t('transport.all_statuses', 'Tous les statuts')}</option>
+            {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{t(v.labelKey, v.fallback)}</option>)}
           </select>
           <button onClick={loadAll} className="w-10 h-10 rounded-full border border-slate-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 flex items-center justify-center transition-colors">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -806,14 +821,14 @@ export default function TransportManagement() {
         ) : trips.length === 0 ? (
           <div className="p-12 text-center">
             <Truck className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">Nu există foi de parcurs pentru filtrele selectate.</p>
+            <p className="text-slate-500 font-medium">{t('transport.no_trips_found', 'Aucune feuille de route pour les filtres sélectionnés.')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                  {['Data', 'Vehicul', 'Șofer', 'Plecare → Destinație', 'Orar', 'KM', 'Durată', 'Vit. Medie', 'Status', ''].map(h => (
+                  {[t('transport.col_date', 'Date'), t('transport.col_vehicle', 'Véhicule'), t('transport.col_driver', 'Chauffeur'), t('transport.col_route', 'Départ → Destination'), t('transport.col_schedule', 'Horaire'), t('transport.col_km', 'KM'), t('transport.col_duration', 'Durée'), t('transport.col_avg_speed', 'Vit. Moyenne'), t('transport.col_status', 'Statut'), ''].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       {h}
                     </th>
@@ -865,7 +880,7 @@ export default function TransportManagement() {
                         <StatusBadge status={t.status} />
                         {t.out_of_schedule && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 inline-flex items-center gap-1 w-fit">
-                            <AlertTriangle className="w-2.5 h-2.5" /> Afara prog.
+                            <AlertTriangle className="w-2.5 h-2.5" /> {t('transport.out_of_sched_short', 'Hors prog.')}
                           </span>
                         )}
                       </div>
@@ -890,7 +905,7 @@ export default function TransportManagement() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-500" /> Top Șoferi (KM)
+                <User className="w-4 h-4 text-blue-500" /> {t('transport.top_drivers', 'Top Chauffeurs (KM)')}
               </h3>
             </div>
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -902,7 +917,7 @@ export default function TransportManagement() {
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-slate-800 dark:text-white">{d.name}</p>
-                      <p className="text-[11px] text-slate-400">{d.trips} drum{d.trips !== 1 ? 'uri' : ''}</p>
+                      <p className="text-[11px] text-slate-400">{d.trips} {t('transport.trips', 'trajets')}</p>
                     </div>
                   </div>
                   <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{d.km} km</span>
@@ -915,7 +930,7 @@ export default function TransportManagement() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-500" /> Top Vehicule (KM)
+                <Truck className="w-4 h-4 text-blue-500" /> {t('transport.top_vehicles', 'Top Véhicules (KM)')}
               </h3>
             </div>
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -927,7 +942,7 @@ export default function TransportManagement() {
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-slate-800 dark:text-white">{v.name}</p>
-                      <p className="text-[11px] text-slate-400">{v.plate} · {v.trips} drum{v.trips !== 1 ? 'uri' : ''}</p>
+                      <p className="text-[11px] text-slate-400">{v.plate} · {v.trips} {t('transport.trips', 'trajets')}</p>
                     </div>
                   </div>
                   <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{v.km} km</span>

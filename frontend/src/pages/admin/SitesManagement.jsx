@@ -27,6 +27,7 @@ import { useUIStore } from '../../store/uiStore'
 import SiteDetailView from '../../components/SiteDetailView'
 import { reverseGeocode } from '../../lib/geocode'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const PAGE_ID = 'admin-sites'
 
@@ -56,15 +57,17 @@ const EMPTY_SITE = {
 }
 
 // ─── Urgency badge ────────────────────────────────────────────────────────────
-const URGENCY_MAP = {
-    on_track:  { label: 'In grafic',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900' },
-    urgent:    { label: 'Urgent',      cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900' },
-    overdue:   { label: 'Depasit',     cls: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900' },
-    completed: { label: 'Finalizat',   cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900' },
-}
+const URGENCY_MAP = (t) => ({
+    on_track:  { label: t('sites.urgency.on_track', 'En bonne voie'),   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900' },
+    urgent:    { label: t('sites.urgency.urgent', 'Urgent'),      cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900' },
+    overdue:   { label: t('sites.urgency.overdue', 'En retard'),     cls: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900' },
+    completed: { label: t('sites.urgency.completed', 'Terminé'),   cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900' },
+})
 
 function UrgencyBadge({ urgency }) {
-    const u = URGENCY_MAP[urgency] || URGENCY_MAP.on_track
+    const { t } = useTranslation()
+    const map = URGENCY_MAP(t)
+    const u = map[urgency] || map.on_track
     return (
         <span className={`px-3 py-1 rounded-full text-xs font-bold border ${u.cls}`}>{u.label}</span>
     )
@@ -86,6 +89,7 @@ function ProgressBar({ pct, urgency }) {
 
 
 export default function SitesManagement() {
+    const { t } = useTranslation()
     const { showDialog, showToast } = useUIStore()
     const { token, admin } = useAdminStore()
     const { tenant } = useTenantStore()
@@ -210,7 +214,7 @@ export default function SitesManagement() {
             const res = await api.get(`/admin/sites/${site.id}/final-report/excel`, { responseType: 'blob' })
             const url = URL.createObjectURL(res.data)
             const a = document.createElement('a')
-            a.href = url; a.download = `Raport_${site.name}.xlsx`; a.click()
+            a.href = url; a.download = `Rapport_${site.name}.xlsx`; a.click()
             URL.revokeObjectURL(url)
         } catch (e) { console.error('download report error:', e) }
     }
@@ -228,7 +232,7 @@ export default function SitesManagement() {
     const handleSaveNewClient = async (e) => {
         e.preventDefault()
         if (!newClientData.name.trim()) {
-            showToast('Numele clientului este obligatoriu!', 'error')
+            showToast(t('sites.client_name_required', 'Le nom du client est obligatoire!'), 'error')
             return
         }
         setSavingClient(true)
@@ -239,9 +243,9 @@ export default function SitesManagement() {
             setFormData(prev => ({ ...prev, client_id: newClient.id, client_name: newClient.name }))
             setShowNewClientModal(false)
             setNewClientData({ name: '', address: '', phone: '' })
-            showToast('Client adăugat cu succes!', 'success')
+            showToast(t('sites.client_added', 'Client ajouté avec succès!'), 'success')
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la salvare client', 'error')
+            showToast(error.response?.data?.detail || t('sites.client_save_error', "Erreur lors de l'enregistrement du client"), 'error')
         } finally {
             setSavingClient(false)
         }
@@ -324,11 +328,11 @@ export default function SitesManagement() {
 
     const handleDetectLocation = () => {
         if (!navigator.geolocation) {
-            showToast('Geolocația nu este suportată de browserul tău.', 'error')
+            showToast(t('sites.geo_not_supported', "La géolocalisation n'est pas supportée par votre navigateur."), 'error')
             return
         }
 
-        showToast('Se detectează locația...', 'info')
+        showToast(t('sites.geo_detecting', "Détection de l'emplacement..."), 'info')
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude
@@ -351,11 +355,11 @@ export default function SitesManagement() {
                     longitude: lon,
                     address: fetchedAddress
                 }))
-                showToast('Locație preluată cu succes!', 'success')
+                showToast(t('sites.geo_success', 'Emplacement récupéré avec succès!'), 'success')
             },
             (error) => {
                 console.error("GPS Error:", error)
-                showToast('Eroare la preluarea locației. Verifică permisiunile GPS.', 'error')
+                showToast(t('sites.geo_error', "Erreur lors de la récupération de l'emplacement. Vérifiez les permissions GPS."), 'error')
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         )
@@ -363,7 +367,7 @@ export default function SitesManagement() {
 
     const handleSaveSite = async () => {
         if (!formData.name.trim()) {
-            showToast('Numele șantierului este obligatoriu!', 'error')
+            showToast(t('sites.name_required', 'Le nom du chantier est obligatoire!'), 'error')
             return
         }
 
@@ -395,9 +399,9 @@ export default function SitesManagement() {
             setShowEditModal(false)
             fetchSites()
             fetchStats()
-            showToast('Șantier salvat cu succes!', 'success')
+            showToast(t('sites.save_success', 'Chantier enregistré avec succès!'), 'success')
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la salvare', 'error')
+            showToast(error.response?.data?.detail || t('sites.save_error', "Erreur lors de l'enregistrement"), 'error')
         } finally {
             setSaving(false)
         }
@@ -405,18 +409,18 @@ export default function SitesManagement() {
 
     const handleDeleteSite = async (siteId) => {
         showDialog({
-            title: 'Ștergere Șantier',
-            message: 'Sigur doriți să suspendați temporar sau să ștergeți acest șantier?',
+            title: t('sites.delete_title', 'Supprimer le chantier'),
+            message: t('sites.delete_message', 'Êtes-vous sûr de vouloir suspendre ou supprimer ce chantier ?'),
             type: 'danger',
-            confirmText: 'Șterge',
+            confirmText: t('common.delete', 'Supprimer'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/sites/${siteId}`)
                     fetchSites()
                     fetchStats()
-                    showToast('Șantier sters cu succes.', 'success')
+                    showToast(t('sites.delete_success', 'Chantier supprimé avec succès.'), 'success')
                 } catch (error) {
-                    showToast(error.response?.data?.detail || 'Eroare la ștergere', 'error')
+                    showToast(error.response?.data?.detail || t('sites.delete_error', 'Erreur lors de la suppression'), 'error')
                 }
             }
         })
@@ -434,19 +438,19 @@ export default function SitesManagement() {
     const handleBulkDelete = () => {
         if (selectedSiteIds.length === 0) return
         showDialog({
-            title: 'Ștergere Multiplă',
-            message: `Ești sigur că vrei să ștergi (suspenzi) cele ${selectedSiteIds.length} șantiere selectate?`,
+            title: t('sites.bulk_delete_title', 'Suppression multiple'),
+            message: t('sites.bulk_delete_message', 'Êtes-vous sûr de vouloir supprimer/suspendre les {{count}} chantiers sélectionnés ?', { count: selectedSiteIds.length }),
             type: 'danger',
-            confirmText: 'Șterge Selecția',
+            confirmText: t('sites.bulk_delete_confirm', 'Supprimer la sélection'),
             onConfirm: async () => {
                 try {
                     await Promise.all(selectedSiteIds.map(id => api.delete(`/admin/sites/${id}`)))
                     setSelectedSiteIds([])
                     fetchSites()
                     fetchStats()
-                    showToast('Șantierele selectate au fost șterse.', 'success')
+                    showToast(t('sites.bulk_delete_success', 'Les chantiers sélectionnés ont été supprimés.'), 'success')
                 } catch (error) {
-                    showToast('Eroare la ștergerea în masă', 'error')
+                    showToast(t('sites.bulk_delete_error', 'Erreur lors de la suppression en masse'), 'error')
                 }
             }
         })
@@ -468,9 +472,9 @@ export default function SitesManagement() {
             industrial: 'bg-slate-100 text-slate-700'
         }
         const labels = {
-            residential: 'Rezidențial',
-            commercial: 'Comercial',
-            industrial: 'Industrial'
+            residential: t('sites.types.residential', 'Résidentiel'),
+            commercial: t('sites.types.commercial', 'Commercial'),
+            industrial: t('sites.types.industrial', 'Industriel')
         }
         return (
             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${badges[type] || badges.residential}`}>
@@ -483,19 +487,19 @@ export default function SitesManagement() {
         if (status === 'active') return (
             <span className="flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
                 <CheckCircle className="w-3 h-3" />
-                Activ
+                {t('sites.status.active', 'Actif')}
             </span>
         )
         if (status === 'completed') return (
             <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                 <CheckCircle className="w-3 h-3" />
-                Finalizat
+                {t('sites.status.completed', 'Terminé')}
             </span>
         )
         return (
             <span className="flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
                 <XCircle className="w-3 h-3" />
-                Suspendat
+                {t('sites.status.suspended', 'Suspendu')}
             </span>
         )
     }
@@ -524,7 +528,7 @@ export default function SitesManagement() {
                                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                     >
-                        Santiere Standard
+                        {t('sites.tab_standard', 'Chantiers Standard')}
                     </button>
                     <button
                         id="tab-short-term"
@@ -536,7 +540,7 @@ export default function SitesManagement() {
                         }`}
                     >
                         <Timer className="w-3.5 h-3.5" />
-                        Intervenții / Lucrări
+                        {t('sites.tab_short_term', 'Interventions / Travaux')}
                         {shortTermSites.filter(s => s.urgency === 'urgent' || s.urgency === 'overdue').length > 0 && (
                             <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">
                                 {shortTermSites.filter(s => s.urgency === 'urgent' || s.urgency === 'overdue').length}
@@ -551,13 +555,13 @@ export default function SitesManagement() {
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {workOrders.length} comenzi de lucru
+                            {t('sites.work_orders_count', '{{count}} commandes de travail', { count: workOrders.length })}
                         </p>
                         <button
                             onClick={() => navigate('/admin/work-orders/new')}
                             className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all flex items-center gap-2"
                         >
-                            <Plus className="w-4 h-4" /> Comandă Nouă
+                            <Plus className="w-4 h-4" /> {t('sites.new_work_order', 'Nouvelle commande')}
                         </button>
                     </div>
 
@@ -568,8 +572,8 @@ export default function SitesManagement() {
                     ) : workOrders.length === 0 ? (
                         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center">
                             <Timer className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-                            <p className="text-slate-500 font-semibold">Nu exista comenzi de lucru active.</p>
-                            <p className="text-sm text-slate-400 mt-1">Apasa "Comanda Noua" pentru a crea prima comanda.</p>
+                            <p className="text-slate-500 font-semibold">{t('sites.no_active_work_orders', "Il n'y a pas de commandes de travail actives.")}</p>
+                            <p className="text-sm text-slate-400 mt-1">{t('sites.click_new_work_order', 'Cliquez sur "Nouvelle commande" pour créer la première commande.')}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -583,12 +587,12 @@ export default function SitesManagement() {
                                     signed:      'bg-green-50 text-green-700',
                                 }
                                 const statusLabel = {
-                                    draft:       'Ciornă',
-                                    assigned:    'Atribuit',
-                                    acknowledged:'Confirmat',
-                                    in_progress: 'În lucru',
-                                    completed:   'Finalizat',
-                                    signed:      'Semnat',
+                                    draft:       t('sites.wo_status.draft', 'Brouillon'),
+                                    assigned:    t('sites.wo_status.assigned', 'Attribué'),
+                                    acknowledged:t('sites.wo_status.acknowledged', 'Confirmé'),
+                                    in_progress: t('sites.wo_status.in_progress', 'En cours'),
+                                    completed:   t('sites.wo_status.completed', 'Terminé'),
+                                    signed:      t('sites.wo_status.signed', 'Signé'),
                                 }
                                 return (
                                 <div key={wo.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
@@ -621,7 +625,7 @@ export default function SitesManagement() {
                                             {wo.assigned_team_id && (
                                                 <span className="flex items-center gap-1">
                                                     <Users className="w-3.5 h-3.5" />
-                                                    Echipă
+                                                    {t('sites.team', 'Équipe')}
                                                 </span>
                                             )}
                                         </div>
@@ -629,7 +633,7 @@ export default function SitesManagement() {
                                             onClick={() => navigate(`/admin/work-orders/${wo.id}`)}
                                             className="px-3 h-8 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5"
                                         >
-                                            <Edit2 className="w-3.5 h-3.5" /> Deschide
+                                            <Edit2 className="w-3.5 h-3.5" /> {t('common.open', 'Ouvrir')}
                                         </button>
                                     </div>
                                 </div>
@@ -649,7 +653,7 @@ export default function SitesManagement() {
                         </div>
                         <input
                             type="text"
-                            placeholder="Caută după nume, client, locație..."
+                            placeholder={t('sites.search_placeholder', 'Rechercher par nom, client, emplacement...')}
                             value={search}
                             onChange={(e) => {setSearch(e.target.value); setCurrentPage(PAGE_ID, 1)}}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
@@ -676,10 +680,10 @@ export default function SitesManagement() {
                             className="h-10 pl-4 pr-8 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em 1em' }}
                         >
-                            <option value="active">Active</option>
-                            <option value="completed">Finalizate</option>
-                            <option value="suspended">Suspendate</option>
-                            <option value="all">Toate Statusurile</option>
+                            <option value="active">{t('sites.status.active', 'Actif')}</option>
+                            <option value="completed">{t('sites.status.completed', 'Terminés')}</option>
+                            <option value="suspended">{t('sites.status.suspended', 'Suspendus')}</option>
+                            <option value="all">{t('sites.status.all', 'Tous les statuts')}</option>
                         </select>
 
                         <ViewToggle
@@ -694,7 +698,7 @@ export default function SitesManagement() {
                                 className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                             >
                                 <Trash2 className="w-4 h-4" />
-                                <span className="hidden sm:inline">Șterge ({selectedSiteIds.length})</span>
+                                <span className="hidden sm:inline">{t('common.delete', 'Supprimer')} ({selectedSiteIds.length})</span>
                             </button>
                         )}
                         <button
@@ -702,7 +706,7 @@ export default function SitesManagement() {
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
-                            Adaugă Șantier
+                            {t('sites.add_site', 'Ajouter un chantier')}
                         </button>
                     </div>
                 </div>
@@ -720,13 +724,13 @@ export default function SitesManagement() {
                                         <th className="px-6 py-4 text-center w-16">
                                             <input type="checkbox" checked={sites.length > 0 && selectedSiteIds.length === sites.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                                         </th>
-                                        <th className="px-6 py-4">Șantier</th>
-                                        <th className="px-6 py-4">Client</th>
-                                        <th className="px-6 py-4">Sistem</th>
-                                        <th className="px-6 py-4">Tip</th>
-                                        <th className="px-6 py-4">Program</th>
-                                        <th className="px-6 py-4 text-center">Status</th>
-                                        <th className="px-6 py-4 text-right">Acțiuni</th>
+                                        <th className="px-6 py-4">{t('sites.site', 'Chantier')}</th>
+                                        <th className="px-6 py-4">{t('sites.client', 'Client')}</th>
+                                        <th className="px-6 py-4">{t('sites.system', 'Système')}</th>
+                                        <th className="px-6 py-4">{t('sites.type', 'Type')}</th>
+                                        <th className="px-6 py-4">{t('sites.schedule', 'Programme')}</th>
+                                        <th className="px-6 py-4 text-center">{t('common.status', 'Statut')}</th>
+                                        <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
@@ -740,7 +744,7 @@ export default function SitesManagement() {
                                                     <button onClick={() => setDetailSite(site)} className="text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors text-left">{site.name}</button>
                                                     <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                                                         <MapPin className="w-3 h-3" />
-                                                        <span className="truncate max-w-[200px]">{site.address || 'Fără adresă'}</span>
+                                                        <span className="truncate max-w-[200px]">{site.address || t('sites.no_address', 'Sans adresse')}</span>
                                                     </p>
                                                 </div>
                                             </td>
@@ -775,21 +779,21 @@ export default function SitesManagement() {
                                             <button
                                                 onClick={() => handlePhotoClick(site)}
                                                 className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                                title="Fotografii"
+                                                title={t('sites.photos', 'Photos')}
                                             >
                                                 <Camera className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleEditSite(site)}
                                                 className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                                title="Editează"
+                                                title={t('common.edit', 'Éditer')}
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteSite(site.id)}
                                                 className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400"
-                                                title="Șterge"
+                                                title={t('common.delete', 'Supprimer')}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -815,11 +819,11 @@ export default function SitesManagement() {
                             <div className="space-y-3 mb-4">
                                 <p className="text-sm text-slate-600 flex items-center gap-2">
                                     <MapPin className="w-4 h-4" />
-                                    {site.address || 'Fără adresă'}
+                                    {site.address || t('sites.no_address', 'Sans adresse')}
                                 </p>
                                 {site.client_name && (
                                     <p className="text-sm text-slate-900 font-medium">
-                                        Client: {site.client_name}
+                                        {t('sites.client', 'Client')}: {site.client_name}
                                     </p>
                                 )}
                                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-full p-3">
@@ -830,7 +834,7 @@ export default function SitesManagement() {
                                         </span>
                                         <span className="flex items-center gap-1 text-amber-600">
                                             <Hash className="w-5 h-5" />
-                                            {site.panel_count || 0} panouri
+                                            {site.panel_count || 0} {t('sites.panels', 'panneaux')}
                                         </span>
                                     </div>
                                 </div>
@@ -848,19 +852,19 @@ export default function SitesManagement() {
                                     className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors flex items-center justify-center gap-2"
                                 >
                                     <Camera className="w-4 h-4" />
-                                    Fotografii
+                                    {t('sites.photos', 'Photos')}
                                 </button>
                                 <button
                                     onClick={() => handleEditSite(site)}
                                     className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-medium transition-colors flex items-center gap-2"
                                 >
                                     <Edit2 className="w-4 h-4" />
-                                    Editează
+                                    {t('common.edit', 'Éditer')}
                                 </button>
                                 <button
                                     onClick={() => handleDeleteSite(site.id)}
                                     className="p-2 hover:bg-red-50 rounded-full transition-colors"
-                                    title="Șterge"
+                                    title={t('common.delete', 'Supprimer')}
                                 >
                                     <Trash2 className="w-4 h-4 text-red-600" />
                                 </button>
@@ -894,8 +898,8 @@ export default function SitesManagement() {
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Building2 className="w-5 h-5 text-slate-500" />
                                 {editingSite
-                                    ? (editingSite.project_type === 'short_term' ? 'Editează Lucrare' : 'Editează Șantier')
-                                    : (formData.project_type === 'short_term' ? 'Adaugă Lucrare Scurtă' : 'Adaugă Șantier Nou')
+                                    ? (editingSite.project_type === 'short_term' ? t('sites.edit_short_term', 'Éditer le travail') : t('sites.edit_site', 'Éditer le chantier'))
+                                    : (formData.project_type === 'short_term' ? t('sites.add_short_term', 'Ajouter un travail court') : t('sites.add_site_new', 'Ajouter un nouveau chantier'))
                                 }
                             </h2>
                             <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -908,13 +912,13 @@ export default function SitesManagement() {
                                 onClick={() => setActiveModalTab('info')}
                                 className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${activeModalTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                             >
-                                Informații
+                                {t('sites.information', 'Informations')}
                             </button>
                             <button
                                 onClick={() => setActiveModalTab('teams')}
                                 className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${activeModalTab === 'teams' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                             >
-                                Echipe Alocate
+                                {t('sites.assigned_teams', 'Équipes allouées')}
                             </button>
                         </div>
 
@@ -923,43 +927,43 @@ export default function SitesManagement() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">
-                                            {formData.project_type === 'short_term' ? 'Titlu Lucrare *' : 'Nume Șantier *'}
+                                            {formData.project_type === 'short_term' ? t('sites.work_title', 'Titre du travail *') : t('sites.site_name', 'Nom du chantier *')}
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            placeholder={formData.project_type === 'short_term' ? 'ex: Revizie instalatie electrica - Familia Pop' : 'ex: Instalare Panouri Solare - Familia Ionescu'}
+                                            placeholder={formData.project_type === 'short_term' ? t('sites.work_title_placeholder', 'ex: Révision électrique') : t('sites.site_name_placeholder', 'ex: Installation Panneaux Solaires')}
                                         />
                                     </div>
 
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Adresă</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('common.address', 'Adresse')}</label>
                                         <input
                                             type="text"
                                             value={formData.address}
                                             onChange={e => setFormData({ ...formData, address: e.target.value })}
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            placeholder="Strada, Număr, Oraș"
+                                            placeholder={t('sites.address_placeholder', 'Rue, Numéro, Ville')}
                                         />
                                     </div>
 
                                     <div className="md:col-span-2 bg-white dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                                         <div className="flex items-center justify-between mb-4">
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Coordonate GPS</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('sites.gps_coordinates', 'Coordonnées GPS')}</label>
                                             <button
                                                 type="button"
                                                 onClick={handleDetectLocation}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800"
                                             >
                                                 <MapPin className="w-3.5 h-3.5" />
-                                                Detectează automat
+                                                {t('sites.auto_detect', 'Détection automatique')}
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Latitudine</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">{t('sites.latitude', 'Latitude')}</label>
                                                 <input
                                                     type="number"
                                                     step="any"
@@ -970,7 +974,7 @@ export default function SitesManagement() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Longitudine</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">{t('sites.longitude', 'Longitude')}</label>
                                                 <input
                                                     type="number"
                                                     step="any"
@@ -981,7 +985,7 @@ export default function SitesManagement() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">Rază Geofence (m)</label>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1 ml-1">{t('sites.geofence_radius', 'Rayon Geofence (m)')}</label>
                                                 <input
                                                     type="number"
                                                     value={formData.geofence_radius}
@@ -993,7 +997,7 @@ export default function SitesManagement() {
                                                 />
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-400 mt-3 mb-2 ml-1">Sunt folosite pentru geofencing. Dacă nu sunt setate, se va încerca preluarea din adresă la salvare.</p>
+                                        <p className="text-xs text-slate-400 mt-3 mb-2 ml-1">{t('sites.geofence_hint', "Utilisées pour le geofencing. Si elles ne sont pas définies, nous tenterons de les récupérer à partir de l'adresse lors de l'enregistrement.")}</p>
                                         <MiniMapSelector 
                                             latitude={formData.latitude} 
                                             longitude={formData.longitude} 
@@ -1003,13 +1007,13 @@ export default function SitesManagement() {
 
                                     <div>
                                         <div className="flex items-center justify-between mb-1 ml-1">
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Client</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('sites.client', 'Client')}</label>
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowNewClientModal(true)}
                                                 className="text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                                             >
-                                                + Client Nou
+                                                + {t('sites.new_client', 'Nouveau Client')}
                                             </button>
                                         </div>
                                         <select
@@ -1017,7 +1021,7 @@ export default function SitesManagement() {
                                             onChange={e => setFormData({ ...formData, client_id: e.target.value })}
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                         >
-                                            <option value="">-- Fără client asociat --</option>
+                                            <option value="">-- {t('sites.no_client_associated', 'Aucun client associé')} --</option>
                                             {clients.map(c => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
@@ -1027,15 +1031,15 @@ export default function SitesManagement() {
                                     {/* Tip Instalare — doar pentru santiere standard */}
                                     {formData.project_type !== 'short_term' && (
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Tip Instalare</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.installation_type', "Type d'installation")}</label>
                                         <select
                                             value={formData.installation_type}
                                             onChange={e => setFormData({ ...formData, installation_type: e.target.value })}
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                         >
-                                            <option value="residential">Rezidențial</option>
-                                            <option value="commercial">Comercial</option>
-                                            <option value="industrial">Industrial</option>
+                                            <option value="residential">{t('sites.types.residential', 'Résidentiel')}</option>
+                                            <option value="commercial">{t('sites.types.commercial', 'Commercial')}</option>
+                                            <option value="industrial">{t('sites.types.industrial', 'Industriel')}</option>
                                         </select>
                                     </div>
                                     )}
@@ -1043,7 +1047,7 @@ export default function SitesManagement() {
                                     {/* Putere (kW) si Numar Panouri — doar pentru santiere standard */}
                                     {formData.project_type !== 'short_term' && (<>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Putere Sistem (kW)</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.system_power', 'Puissance du système (kW)')}</label>
                                         <input
                                             type="number"
                                             step="0.1"
@@ -1055,7 +1059,7 @@ export default function SitesManagement() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Număr Panouri</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.panel_count', 'Nombre de panneaux')}</label>
                                         <input
                                             type="number"
                                             value={formData.panel_count}
@@ -1067,26 +1071,26 @@ export default function SitesManagement() {
                                     </>)}
 
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Status</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('common.status', 'Statut')}</label>
                                         <select
                                             value={formData.status}
                                             onChange={e => setFormData({ ...formData, status: e.target.value })}
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                         >
-                                            <option value="active">Activ</option>
-                                            <option value="completed">Finalizat</option>
-                                            <option value="suspended">Suspendat</option>
+                                            <option value="active">{t('sites.status.active', 'Actif')}</option>
+                                            <option value="completed">{t('sites.status.completed', 'Terminé')}</option>
+                                            <option value="suspended">{t('sites.status.suspended', 'Suspendu')}</option>
                                         </select>
                                     </div>
 
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Descriere</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('common.description', 'Description')}</label>
                                         <textarea
                                             value={formData.description}
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                                             rows={3}
                                             className="w-full px-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none"
-                                            placeholder="Detalii despre șantier..."
+                                            placeholder={t('sites.description_placeholder', 'Détails sur le chantier...')}
                                         />
                                     </div>
                                 </div>
@@ -1096,11 +1100,11 @@ export default function SitesManagement() {
                                 <div className="border-t border-slate-200 dark:border-slate-800 pt-5 mt-5">
                                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
                                         <Clock className="w-4 h-4 text-blue-500" />
-                                        Program Lucru Șantier
+                                        {t('sites.work_schedule', 'Programme de travail du chantier')}
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Început Program</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.start_time', 'Heure de début')}</label>
                                             <input
                                                 type="time"
                                                 value={formData.work_start_time}
@@ -1109,7 +1113,7 @@ export default function SitesManagement() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Sfârșit Program</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.end_time', 'Heure de fin')}</label>
                                             <input
                                                 type="time"
                                                 value={formData.work_end_time}
@@ -1118,7 +1122,7 @@ export default function SitesManagement() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Overtime Max (min)</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.max_overtime', 'Heures supplémentaires max (min)')}</label>
                                             <input
                                                 type="number"
                                                 value={formData.max_overtime_minutes}
@@ -1130,7 +1134,7 @@ export default function SitesManagement() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Început Pauză Masă</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.lunch_start', 'Début de pause déjeuner')}</label>
                                             <input
                                                 type="time"
                                                 value={formData.lunch_break_start}
@@ -1139,7 +1143,7 @@ export default function SitesManagement() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">Sfârșit Pauză Masă</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.lunch_end', 'Fin de pause déjeuner')}</label>
                                             <input
                                                 type="time"
                                                 value={formData.lunch_break_end}
@@ -1148,7 +1152,7 @@ export default function SitesManagement() {
                                             />
                                         </div>
                                     </div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1">Pontajul se poate face cu max 30 min înainte. Overtime fără aprobare: {formData.max_overtime_minutes || 120} minute.</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1">{t('sites.schedule_hint', 'Le pointage peut se faire max 30 min avant. Heures supp sans approbation: {{minutes}} minutes.', { minutes: formData.max_overtime_minutes || 120 })}</p>
                                 </div>
                                 )}
                             </div>
@@ -1156,7 +1160,7 @@ export default function SitesManagement() {
                             <div className={activeModalTab !== 'teams' ? 'hidden' : ''}>
                                 <div className="space-y-4">
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                                        Bifează echipele care lucrează pe acest șantier. Orice modificare va actualiza forța de muncă din aplicație.
+                                        {t('sites.teams_hint', "Cochez les équipes qui travaillent sur ce chantier. Toute modification mettra à jour la main-d'œuvre dans l'application.")}
                                     </p>
                                     <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                                         {teams.map(team => (
@@ -1173,13 +1177,13 @@ export default function SitesManagement() {
                                                     />
                                                     <div>
                                                         <p className="text-sm font-bold text-slate-900 dark:text-white">{team.name}</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Șef: {team.team_leader_name} · {team.member_count} Muncitori</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('sites.team_leader', 'Chef')}: {team.team_leader_name} · {t('sites.workers_count', '{{count}} Travailleurs', { count: team.member_count })}</p>
                                                     </div>
                                                 </div>
                                             </label>
                                         ))}
                                         {teams.length === 0 && (
-                                            <p className="text-sm text-slate-400 text-center py-6">Nu există echipe create în sistem.</p>
+                                            <p className="text-sm text-slate-400 text-center py-6">{t('sites.no_teams', "Il n'y a pas d'équipes créées dans le système.")}</p>
                                         )}
                                     </div>
                                 </div>
@@ -1191,7 +1195,7 @@ export default function SitesManagement() {
                                 onClick={() => setShowEditModal(false)}
                                 className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                             >
-                                Anulează
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={handleSaveSite}
@@ -1200,8 +1204,8 @@ export default function SitesManagement() {
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 {editingSite
-                                    ? 'Salvează'
-                                    : (formData.project_type === 'short_term' ? 'Creează Lucrare' : 'Creează Șantier')
+                                    ? t('common.save', 'Enregistrer')
+                                    : (formData.project_type === 'short_term' ? t('sites.create_short_term', 'Créer le travail') : t('sites.create_site', 'Créer le chantier'))
                                 }
                             </button>
                         </div>
@@ -1219,7 +1223,7 @@ export default function SitesManagement() {
                                     <Camera className="w-6 h-6" />
                                     {selectedSite.name}
                                 </h2>
-                                <p className="text-white/80 mt-1 ml-8 text-sm">Fotografii șantier</p>
+                                <p className="text-white/80 mt-1 ml-8 text-sm">{t('sites.site_photos', 'Photos du chantier')}</p>
                             </div>
                             <button
                                 onClick={() => setShowPhotoModal(false)}
@@ -1257,7 +1261,7 @@ export default function SitesManagement() {
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <UserCheck className="w-5 h-5 text-blue-500" />
-                                Alocare Muncitori — {workerAssignModal.name}
+                                {t('sites.assign_workers', 'Allocation de travailleurs')} — {workerAssignModal.name}
                             </h2>
                             <button onClick={() => setWorkerAssignModal(null)} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
                                 <X className="w-4 h-4 text-slate-500" />
@@ -1266,7 +1270,7 @@ export default function SitesManagement() {
                         <div className="p-4 max-h-96 overflow-y-auto">
                             <input
                                 type="text"
-                                placeholder="Cauta muncitor..."
+                                placeholder={t('sites.search_worker', 'Rechercher un travailleur...')}
                                 value={workerSearch}
                                 onChange={e => setWorkerSearch(e.target.value)}
                                 className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm mb-3 outline-none focus:border-blue-500"
@@ -1296,14 +1300,14 @@ export default function SitesManagement() {
                             })}
                         </div>
                         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-                            <button onClick={() => setWorkerAssignModal(null)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">Anuleaza</button>
+                            <button onClick={() => setWorkerAssignModal(null)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">{t('common.cancel', 'Annuler')}</button>
                             <button
                                 onClick={() => handleAssignWorkers(workerAssignModal.assigned_worker_ids || [])}
                                 disabled={assigningSite}
                                 className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-all flex items-center gap-2 disabled:opacity-60"
                             >
                                 {assigningSite ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
-                                Salveaza Alocarea
+                                {t('sites.save_allocation', "Enregistrer l'allocation")}
                             </button>
                         </div>
                     </div>
@@ -1317,7 +1321,7 @@ export default function SitesManagement() {
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <ClipboardList className="w-5 h-5 text-blue-500" />
-                                Raport Final — {reportModal.site.name}
+                                {t('sites.final_report', 'Rapport final')} — {reportModal.site.name}
                             </h2>
                             <div className="flex items-center gap-2">
                                 {reportModal.data && (
@@ -1325,7 +1329,7 @@ export default function SitesManagement() {
                                         onClick={() => downloadFinalReport(reportModal.site)}
                                         className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5"
                                     >
-                                        <FileText className="w-3.5 h-3.5" /> Export Excel
+                                        <FileText className="w-3.5 h-3.5" /> {t('sites.export_excel', 'Exporter vers Excel')}
                                     </button>
                                 )}
                                 <button onClick={() => setReportModal(null)} className="w-8 h-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center">
@@ -1341,10 +1345,10 @@ export default function SitesManagement() {
                             <div className="p-6 space-y-5">
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     {[
-                                        { label: 'Muncitori', value: reportModal.data.summary.total_workers },
-                                        { label: 'Ore Lucrate', value: reportModal.data.summary.total_hours + 'h' },
-                                        { label: 'Materiale', value: reportModal.data.summary.total_material_types },
-                                        { label: 'KM Total', value: reportModal.data.summary.total_km_trips + ' km' },
+                                        { label: t('common.workers', 'Travailleurs'), value: reportModal.data.summary.total_workers },
+                                        { label: t('sites.hours_worked', 'Heures travaillées'), value: reportModal.data.summary.total_hours + 'h' },
+                                        { label: t('sites.materials', 'Matériaux'), value: reportModal.data.summary.total_material_types },
+                                        { label: t('sites.total_km', 'KM Total'), value: reportModal.data.summary.total_km_trips + ' km' },
                                     ].map(kpi => (
                                         <div key={kpi.label} className="rounded-xl border border-slate-100 dark:border-slate-800 p-3 text-center">
                                             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">{kpi.label}</p>
@@ -1355,12 +1359,12 @@ export default function SitesManagement() {
 
                                 {reportModal.data.workers.length > 0 && (
                                     <div>
-                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Muncitori</p>
+                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">{t('common.workers', 'Travailleurs')}</p>
                                         <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                                             <table className="w-full text-sm">
                                                 <thead className="bg-slate-50 dark:bg-slate-800">
                                                     <tr>
-                                                        {['Cod', 'Nume', 'Ore', 'Zile'].map(h => (
+                                                        {[t('sites.code', 'Code'), t('common.name', 'Nom'), t('sites.hours', 'Heures'), t('sites.days', 'Jours')].map(h => (
                                                             <th key={h} className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">{h}</th>
                                                         ))}
                                                     </tr>
@@ -1371,7 +1375,7 @@ export default function SitesManagement() {
                                                             <td className="px-3 py-2 text-slate-500 font-mono text-xs">{w.code}</td>
                                                             <td className="px-3 py-2 font-semibold text-slate-800 dark:text-white">{w.name}</td>
                                                             <td className="px-3 py-2 font-bold text-blue-600">{w.total_hours}h</td>
-                                                            <td className="px-3 py-2 text-slate-500">{w.days_worked} zile</td>
+                                                            <td className="px-3 py-2 text-slate-500">{w.days_worked} {t('sites.days_worked', 'jours')}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -1382,12 +1386,12 @@ export default function SitesManagement() {
 
                                 {reportModal.data.materials.length > 0 && (
                                     <div>
-                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Materiale Folosite</p>
+                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">{t('sites.used_materials', 'Matériaux utilisés')}</p>
                                         <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                                             <table className="w-full text-sm">
                                                 <thead className="bg-slate-50 dark:bg-slate-800">
                                                     <tr>
-                                                        {['Denumire', 'Categorie', 'Cantitate'].map(h => (
+                                                        {[t('sites.material_name', 'Dénomination'), t('sites.category', 'Catégorie'), t('sites.quantity', 'Quantité')].map(h => (
                                                             <th key={h} className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">{h}</th>
                                                         ))}
                                                     </tr>
@@ -1415,14 +1419,14 @@ export default function SitesManagement() {
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800" onClick={e => e.stopPropagation()}>
                         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-                            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Adaugă Client Rapid</h2>
+                            <h2 className="text-sm font-bold text-slate-900 dark:text-white">{t('sites.add_client_quick', 'Ajouter un client rapide')}</h2>
                             <button onClick={() => setShowNewClientModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
                         <form onSubmit={handleSaveNewClient} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">Nume Companie *</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.company_name', "Nom de l'entreprise *")}</label>
                                 <input
                                     type="text"
                                     required
@@ -1432,7 +1436,7 @@ export default function SitesManagement() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">Adresă Sediu</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('sites.hq_address', 'Adresse du siège')}</label>
                                 <input
                                     type="text"
                                     className="w-full px-4 h-9 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
@@ -1441,7 +1445,7 @@ export default function SitesManagement() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">Telefon</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('common.phone', 'Téléphone')}</label>
                                 <input
                                     type="text"
                                     className="w-full px-4 h-9 text-sm rounded-xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none"
@@ -1455,7 +1459,7 @@ export default function SitesManagement() {
                                     onClick={() => setShowNewClientModal(false)}
                                     className="px-4 h-9 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                                 >
-                                    Anulează
+                                    {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button
                                     type="submit"
@@ -1463,7 +1467,7 @@ export default function SitesManagement() {
                                     className="px-4 h-9 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 disabled:opacity-70"
                                 >
                                     {savingClient ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                    Salvează
+                                    {t('common.save', 'Enregistrer')}
                                 </button>
                             </div>
                         </form>

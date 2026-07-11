@@ -1344,6 +1344,24 @@
         "gps_timeout": "Délai expiré. Vérifiez si le navigateur a l'autorisation d'accéder à la localisation.",
         "gps_error": "Erreur de détection GPS: "
     },
+    "gps": {
+        "start_date": "Date de début",
+        "end_date": "Date de fin",
+        "vehicle": "Véhicule",
+        "all_vehicles": "Tous les véhicules",
+        "total_rows": "Total des lignes",
+        "total_km": "Kilométrage total",
+        "total_violations": "Total infractions",
+        "extracting_data": "Extraction des données GPS... cela peut prendre quelques secondes.",
+        "no_results": "Aucun résultat trouvé pour les filtres sélectionnés.",
+        "search_placeholder": "Rechercher par véhicule ou équipe...",
+        "date": "Date",
+        "team": "Équipe",
+        "no_team": "Sans équipe",
+        "route_km": "KM du trajet",
+        "max_speed": "Vitesse max.",
+        "speed_violations_count": "Infractions vitesse"
+    },
     "countries": {
         "ro": "Roumanie",
         "fr": "France",

@@ -47,7 +47,7 @@ export default function ClientsManagement() {
             }
         } catch (error) {
             console.error('VIES Error:', error);
-            alert(t('clients.vies_error', 'Firma nu a fost găsită sau serviciul VIES este indisponibil. Verificați codul TVA.'));
+            alert(t('clients.vies_error', "L'entreprise n'a pas été trouvée ou le service VIES est indisponible. Vérifiez le numéro de TVA."));
         } finally {
             setIsSearchingVies(false);
         }
@@ -78,7 +78,7 @@ export default function ClientsManagement() {
             }
         } catch (error) {
             console.error('KBO Error:', error);
-            alert(t('clients.kbo_error', 'Firma nu a fost găsită în KBO sau serviciul este indisponibil. Verificați numărul de întreprindere.'));
+            alert(t('clients.kbo_error', "L'entreprise n'a pas été trouvée dans la BCE ou le service est indisponible. Vérifiez le numéro d'entreprise."));
         } finally {
             setIsSearchingKbo(false);
         }
@@ -313,7 +313,7 @@ export default function ClientsManagement() {
                         </div>
                         <input
                             type="text"
-                            placeholder={t('clients.search_placeholder', 'Caută client...')}
+                            placeholder={t('clients.search_placeholder', 'Rechercher un client...')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
@@ -339,7 +339,7 @@ export default function ClientsManagement() {
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
-                            {t('clients.add_btn', 'Client Nou')}
+                            {t('clients.add_btn', 'Nouveau Client')}
                         </button>
                     </div>
                 </div>
@@ -351,11 +351,11 @@ export default function ClientsManagement() {
                             <tr>
                                 <th className="px-6 py-4 w-12 text-center">{t('common.col_nr', 'NR.')}</th>
                                 <th className="px-6 py-4">{t('clients.col_client', 'CLIENT')}</th>
-                                <th className="px-6 py-4">{t('clients.col_cui', 'CUI / REG. COM.')}</th>
+                                <th className="px-6 py-4">{t('clients.col_cui', 'TVA / BCE')}</th>
                                 <th className="px-6 py-4">{t('clients.col_contact', 'CONTACT')}</th>
-                                <th className="px-6 py-4">{t('clients.col_phone_email', 'TELEFON / EMAIL')}</th>
-                                <th className="px-6 py-4 text-center">{t('common.col_status', 'STATUS')}</th>
-                                <th className="px-6 py-4 text-right">{t('common.col_actions', 'ACȚIUNI')}</th>
+                                <th className="px-6 py-4">{t('clients.col_phone_email', 'TÉLÉPHONE / EMAIL')}</th>
+                                <th className="px-6 py-4 text-center">{t('common.col_status', 'STATUT')}</th>
+                                <th className="px-6 py-4 text-right">{t('common.col_actions', 'ACTIONS')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -370,7 +370,7 @@ export default function ClientsManagement() {
                                     <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center">
                                             <Building className="h-10 w-10 text-slate-300 dark:text-slate-600 mb-3" />
-                                            <p>{searchQuery ? t('clients.no_results', 'Nu există clienți care să corespundă căutării.') : t('clients.no_clients', 'Nu s-au găsit clienți.')}</p>
+                                            <p>{searchQuery ? t('clients.no_results', 'Aucun client ne correspond à votre recherche.') : t('clients.no_clients', 'Aucun client trouvé.')}</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -424,7 +424,7 @@ export default function ClientsManagement() {
                                                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                             }`}>
-                                                {client.is_active ? t('common.active', 'Activ') : t('common.inactive', 'Inactiv')}
+                                                {client.is_active ? t('common.active', 'Actif') : t('common.inactive', 'Inactif')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -438,21 +438,21 @@ export default function ClientsManagement() {
                                                                     ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-500' 
                                                                     : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800'
                                                             }`}
-                                                            title={client.is_favorite ? t('clients.remove_favorite', 'Scoate de la favorite') : t('clients.add_favorite', 'Adaugă la favorite')}
+                                                            title={client.is_favorite ? t('clients.remove_favorite', 'Retirer des favoris') : t('clients.add_favorite', 'Ajouter aux favoris')}
                                                         >
                                                             <Star className="w-4 h-4" fill={client.is_favorite ? "currentColor" : "none"} />
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleOpenModal(client); }}
                                                             className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors"
-                                                            title={t('common.edit', 'Editează')}
+                                                            title={t('common.edit', 'Modifier')}
                                                         >
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setDeleteModal({ show: true, id: client.id, name: client.name }); }}
                                                             className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors"
-                                                            title={t('common.delete', 'Șterge')}
+                                                            title={t('common.delete', 'Supprimer')}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
@@ -475,7 +475,7 @@ export default function ClientsManagement() {
                         <div className="px-6 py-5 bg-blue-600 dark:bg-slate-800 flex items-center justify-between shrink-0">
                             <h2 className="text-lg font-bold text-white flex items-center gap-2">
                                 <Briefcase className="w-5 h-5 text-white" />
-                                {editingClient ? t('clients.modal_edit_title', 'Editează Client') : t('clients.modal_add_title', 'Adaugă Client Nou')}
+                                {editingClient ? t('clients.modal_edit_title', 'Modifier Client') : t('clients.modal_add_title', 'Ajouter Nouveau Client')}
                             </h2>
                             <button onClick={handleCloseModal} className="text-blue-100 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
                                 <X className="w-5 h-5" />
@@ -488,11 +488,11 @@ export default function ClientsManagement() {
                                 <div className="flex gap-2 mb-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
                                     <button type="button" onClick={() => setFormData({...formData, client_type: 'juridica'})}
                                         className={`flex-1 px-4 h-8 rounded-full text-xs font-bold transition-all ${formData.client_type === 'juridica' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                                        {t('clients.legal_entity', 'Persoană Juridică')}
+                                        {t('clients.legal_entity', 'Personne Morale')}
                                     </button>
                                     <button type="button" onClick={() => setFormData({...formData, client_type: 'fizica'})}
                                         className={`flex-1 px-4 h-8 rounded-full text-xs font-bold transition-all ${formData.client_type === 'fizica' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                                        {t('clients.individual', 'Persoană Fizică')}
+                                        {t('clients.individual', 'Personne Physique')}
                                     </button>
                                 </div>
 
@@ -500,7 +500,7 @@ export default function ClientsManagement() {
                                     <>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             <div className="sm:col-span-2">
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.company_name', 'Nume Companie')} *</label>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.company_name', 'Nom de la Société')} *</label>
                                                 <input
                                                     type="text" required
                                                     className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
@@ -508,7 +508,7 @@ export default function ClientsManagement() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.country', 'Țară')}</label>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.country', 'Pays')}</label>
                                                 <select
                                                     className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                                     value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}
@@ -549,7 +549,7 @@ export default function ClientsManagement() {
                                                             onClick={handleViesSearch}
                                                             disabled={isSearchingVies || !formData.cui}
                                                             className="w-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
-                                                            title="Caută firmă în VIES"
+                                                            title={t('clients.search_vies', 'Rechercher entreprise dans VIES')}
                                                         >
                                                             {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                                         </button>
@@ -559,7 +559,7 @@ export default function ClientsManagement() {
                                                                 onClick={handleKboSearch}
                                                                 disabled={isSearchingKbo || !formData.cui}
                                                                 className="w-8 flex items-center justify-center rounded-full bg-amber-50 text-amber-600 hover:text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 font-bold text-[9px]"
-                                                                title="Caută în KBO (Belgia)"
+                                                                title={t('clients.search_kbo', 'Rechercher dans BCE (Belgique)')}
                                                             >
                                                                 {isSearchingKbo ? <Loader2 className="w-4 h-4 animate-spin" /> : "KBO"}
                                                             </button>
@@ -569,7 +569,7 @@ export default function ClientsManagement() {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">
-                                                    {formData.country === 'RO' ? t('clients.reg_com', 'Nr. Reg. Comerțului') : 'Registration Number'}
+                                                    {formData.country === 'RO' ? t('clients.reg_com', "N° d'entreprise") : 'Registration Number'}
                                                 </label>
                                                 <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.reg_com} onChange={e => setFormData({...formData, reg_com: e.target.value})} />
                                             </div>
@@ -577,13 +577,13 @@ export default function ClientsManagement() {
                                         <div>
                                             <label className="flex items-center gap-2 cursor-pointer mb-3">
                                                 <input type="checkbox" checked={showBankDetails} onChange={e => setShowBankDetails(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('clients.add_bank_details', 'Adaugă detalii bancare (Bancă, IBAN, SWIFT)')}</span>
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('clients.add_bank_details', 'Ajouter détails bancaires (Banque, IBAN, SWIFT)')}</span>
                                             </label>
                                             
                                             {showBankDetails && (
                                                 <div className="space-y-4">
                                                     <div>
-                                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.bank_name', 'Nume Bancă')}</label>
+                                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.bank_name', 'Nom de la Banque')}</label>
                                                         <input type="text" className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.bank_name} onChange={e => setFormData({...formData, bank_name: e.target.value})} />
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
@@ -603,18 +603,18 @@ export default function ClientsManagement() {
                                 ) : (
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.last_name', 'Nume')} *</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.last_name', 'Nom')} *</label>
                                             <input type="text" required className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.first_name', 'Prenume')} *</label>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.first_name', 'Prénom')} *</label>
                                             <input type="text" required className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">{t('clients.address_label', 'Adresă (Sediu / Domiciliu)')}</label>
+                                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">{t('clients.address_label', 'Adresse (Siège / Domicile)')}</label>
                                     <AddressAutocomplete 
                                         value={formData.address} 
                                         onChange={(addr, lat, lon) => {
@@ -631,24 +631,24 @@ export default function ClientsManagement() {
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                                     <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-700">
                                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300 tracking-wider">
-                                            {t('clients.gps_coords', 'COORDONATE GPS')}
+                                            {t('clients.gps_coords', 'COORDONNÉES GPS')}
                                         </span>
                                         <button type="button" onClick={handleDetectGPS} disabled={detecting}
                                             className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 disabled:opacity-50 transition-colors">
                                             <RotateCw className={`w-3.5 h-3.5 ${detecting ? 'animate-spin' : ''}`} />
-                                            {detecting ? t('clients.detecting', 'Detectare...') : t('clients.detect_auto', 'Detectează automat')}
+                                            {detecting ? t('clients.detecting', 'Détection...') : t('clients.detect_auto', 'Détecter auto')}
                                         </button>
                                     </div>
                                     <div className="p-3">
                                         <MiniMapSelector latitude={formData.latitude} longitude={formData.longitude} onLocationChange={(lat, lon) => setFormData({...formData, latitude: lat, longitude: lon})} />
                                         <div className="grid grid-cols-2 gap-3 mt-3">
                                             <div>
-                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">{t('clients.latitude', 'Latitudine')}</label>
-                                                <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.latitude || ''} placeholder={t('clients.latitude', 'Latitudine')} />
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">{t('clients.latitude', 'Latitude')}</label>
+                                                <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.latitude || ''} placeholder={t('clients.latitude', 'Latitude')} />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">{t('clients.longitude', 'Longitudine')}</label>
-                                                <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.longitude || ''} placeholder={t('clients.longitude', 'Longitudine')} />
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 ml-1">{t('clients.longitude', 'Longitude')}</label>
+                                                <input type="text" readOnly className="w-full px-3 py-2 text-xs bg-slate-100/50 text-slate-500 rounded-xl border border-slate-200 outline-none" value={formData.longitude || ''} placeholder={t('clients.longitude', 'Longitude')} />
                                             </div>
                                         </div>
                                     </div>
@@ -656,7 +656,7 @@ export default function ClientsManagement() {
 
                                 {formData.client_type === 'juridica' && (
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.contact_person', 'Persoană de Contact')}</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.contact_person', 'Personne de Contact')}</label>
                                         <input
                                             type="text"
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
@@ -668,7 +668,7 @@ export default function ClientsManagement() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.phone', 'Telefon')}</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.phone', 'Téléphone')}</label>
                                         <input
                                             type="text"
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
@@ -686,7 +686,7 @@ export default function ClientsManagement() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.preferred_lang', 'Limba Preferată')}</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 ml-1">{t('clients.preferred_lang', 'Langue Préférée')}</label>
                                         <select
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                             value={formData.preferred_language}
@@ -708,7 +708,7 @@ export default function ClientsManagement() {
                                         onClick={handleCloseModal}
                                         className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                     >
-                                        {t('common.cancel', 'Anulează')}
+                                        {t('common.cancel', 'Annuler')}
                                     </button>
                                     <button
                                         type="submit"
@@ -716,7 +716,7 @@ export default function ClientsManagement() {
                                         className="px-5 h-10 rounded-full text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-600/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                        {t('common.save', 'Salvează')}
+                                        {t('common.save', 'Enregistrer')}
                                     </button>
                                 </div>
                             </form>
@@ -733,22 +733,22 @@ export default function ClientsManagement() {
                             <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 className="w-8 h-8 text-red-600 dark:text-red-500" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('clients.delete_title', 'Șterge Client')}</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('clients.delete_title', 'Supprimer le Client')}</h3>
                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-                                {t('clients.delete_confirm', 'Ești sigur că vrei să ștergi clientul')} <span className="font-bold text-slate-700 dark:text-slate-300">{deleteModal.name}</span>?
+                                {t('clients.delete_confirm', 'Êtes-vous sûr de vouloir supprimer le client')} <span className="font-bold text-slate-700 dark:text-slate-300">{deleteModal.name}</span>?
                             </p>
                             <div className="flex gap-3 justify-center">
                                 <button
                                     onClick={() => setDeleteModal({ show: false, id: null, name: '' })}
                                     className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
                                 >
-                                    {t('common.cancel', 'Anulează')}
+                                    {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button
                                     onClick={handleDelete}
                                     className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all"
                                 >
-                                    {t('common.delete', 'Șterge')}
+                                    {t('common.delete', 'Supprimer')}
                                 </button>
                             </div>
                         </div>

@@ -123,7 +123,7 @@ export default function WorkOrderCalculations() {
                     data={orders}
                     loading={loading}
                     searchable={true}
-                    searchPlaceholder="Caută lucrare..."
+                    searchPlaceholder={t("common.search_work", "Rechercher un ouvrage...")}
                     emptyText="Nu există lucrări finalizate cu măsurători declarate."
                 />
             </div>

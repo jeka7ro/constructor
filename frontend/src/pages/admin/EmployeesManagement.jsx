@@ -179,11 +179,11 @@ export default function EmployeesManagement() {
         try {
             setAssigningSite(true)
             await api.put(`/admin/users/${assignTargetUserId}`, { site_id: assignSiteId })
-            showToast('Șantier atașat cu succes', 'success')
+            showToast(t('employees.site_attached_success', 'Șantier atașat cu succes'), 'success')
             setShowAssignSiteModal(false)
             fetchUsers()
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Eroare la atașarea șantierului', 'error')
+            showToast(error.response?.data?.detail || t('employees.site_attach_error', 'Eroare la atașarea șantierului'), 'error')
         } finally {
             setAssigningSite(false)
         }
@@ -601,7 +601,7 @@ export default function EmployeesManagement() {
                             title="Exportă"
                         >
                             <FileSpreadsheet className="w-4 h-4" />
-                            <span className="hidden sm:inline">Export Excel</span>
+                            <span className="hidden sm:inline">{t('common.export_excel', 'Export Excel')}</span>
                         </button>
 
                         {!detailUser && selectedUserIds.length > 0 && (
@@ -714,7 +714,7 @@ export default function EmployeesManagement() {
                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                                     <CreditCard className="w-3.5 h-3.5" />
-                                    Carte de Identitate
+                                    {t('employees.id_card', 'Carte de Identitate')}
                                 </h3>
                                 <div className="flex items-start gap-4">
                                     <div className="flex-1">
@@ -741,8 +741,8 @@ export default function EmployeesManagement() {
                                                 className="w-full h-20 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all"
                                             >
                                                 <Upload className="w-6 h-6 mb-1" />
-                                                <span className="text-sm font-medium">Încarcă poză CI</span>
-                                                <span className="text-xs text-blue-400 mt-0.5">JPG, PNG, max 10MB</span>
+                                                <span className="text-sm font-medium">{t('employees.upload_id_pic', 'Încarcă poză CI')}</span>
+                                                <span className="text-xs text-blue-400 mt-0.5">{t('employees.upload_id_hint', 'JPG, PNG, max 10MB')}</span>
                                             </button>
                                         )}
                                     </div>
@@ -753,7 +753,7 @@ export default function EmployeesManagement() {
                                             className="px-4 h-10 bg-violet-500 hover:bg-violet-600 text-white rounded-full text-sm font-bold transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap shadow-sm"
                                         >
                                             {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
-                                            Scanează CI
+                                            {t('employees.scan_id', 'Scanează CI')}
                                         </button>
                                     )}
                                 </div>
@@ -761,60 +761,60 @@ export default function EmployeesManagement() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Cod Angajat *</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.employee_code', 'Cod Angajat')} *</label>
                                     <input
                                         type="text"
                                         value={formData.employee_code}
                                         onChange={e => setFormData({ ...formData, employee_code: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="ex: EMP001"
+                                        placeholder={t('employees.emp_code_placeholder', 'ex: EMP001')}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Nume *</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('users_modal.last_name', 'Nume')} *</label>
                                     <input
                                         type="text"
                                         value={formData.last_name}
                                         onChange={e => setFormData({ ...formData, last_name: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="ex: Popescu"
+                                        placeholder={t('users_modal.last_name_placeholder', 'ex: Popescu')}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Prenume *</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('users_modal.first_name', 'Prenume')} *</label>
                                     <input
                                         type="text"
                                         value={formData.first_name}
                                         onChange={e => setFormData({ ...formData, first_name: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="ex: Ion"
+                                        placeholder={t('users_modal.first_name_placeholder', 'ex: Ion')}
                                     />
                                 </div>
 
                                 {!editingUser && (
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">PIN *</label>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('users_modal.pin', 'PIN')} *</label>
                                         <input
                                             type="password"
                                             value={formData.pin}
                                             onChange={e => setFormData({ ...formData, pin: e.target.value })}
                                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                            placeholder="4-6 cifre"
+                                            placeholder={t('users_modal.pin_placeholder', '4-6 cifre')}
                                             maxLength={6}
                                         />
                                     </div>
                                 )}
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Rol *</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('users_modal.role', 'Rol')} *</label>
                                     <select
                                         value={formData.role_id}
                                         onChange={e => setFormData({ ...formData, role_id: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                                     >
-                                        <option value="">Selectează rol...</option>
+                                        <option value="">{t('users_modal.select_role', 'Selectează rol...')}</option>
                                         {roles.filter(r => !['Administrator', 'Super Administrator', 'ADMIN'].includes(r.name)).map(role => (
                                             <option key={role.id} value={role.id}>{role.name}</option>
                                         ))}
@@ -822,7 +822,7 @@ export default function EmployeesManagement() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">CNP</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.cnp', 'CNP')}</label>
                                     <input
                                         type="text"
                                         value={formData.cnp}
@@ -836,25 +836,25 @@ export default function EmployeesManagement() {
                                             setFormData(updates)
                                         }}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="13 cifre"
+                                        placeholder={t('employees.cnp_placeholder', '13 cifre')}
                                         maxLength={13}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Serie Buletin</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.id_series', 'Serie Buletin')}</label>
                                     <input
                                         type="text"
                                         value={formData.id_card_series}
                                         onChange={e => setFormData({ ...formData, id_card_series: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="ex: RD 123456"
+                                        placeholder={t('employees.id_series_placeholder', 'ex: RD 123456')}
                                         maxLength={20}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Data Nașterii</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.birth_date', 'Data Nașterii')}</label>
                                     <input
                                         type="date"
                                         value={formData.birth_date}
@@ -864,53 +864,53 @@ export default function EmployeesManagement() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Loc Naștere</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.birth_place', 'Loc Naștere')}</label>
                                     <input
                                         type="text"
                                         value={formData.birth_place}
                                         onChange={e => setFormData({ ...formData, birth_place: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="ex: București"
+                                        placeholder={t('employees.birth_place_placeholder', 'ex: București')}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Telefon</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.phone', 'Telefon')}</label>
                                     <input
                                         type="tel"
                                         value={formData.phone}
                                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="07xx xxx xxx"
+                                        placeholder={t('employees.phone_placeholder', '07xx xxx xxx')}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Email</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.email', 'Email')}</label>
                                     <input
                                         type="email"
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="email@example.com"
+                                        placeholder={t('employees.email_placeholder', 'email@example.com')}
                                     />
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Domiciliu</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{t('employees.address', 'Domiciliu')}</label>
                                     <input
                                         type="text"
                                         value={formData.address}
                                         onChange={e => setFormData({ ...formData, address: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="Strada, Număr, Oraș"
+                                        placeholder={t('employees.address_placeholder', 'Strada, Număr, Oraș')}
                                     />
                                 </div>
 
                                 {/* Hourly Rate */}
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
-                                        Tarif Orar (Lei/h) <span className="normal-case font-normal">confidential</span>
+                                        {t('employees.hourly_rate', 'Tarif Orar (Lei/h)')} <span className="normal-case font-normal">{t('employees.confidential', 'confidential')}</span>
                                     </label>
                                     <input
                                         type="number"
@@ -919,7 +919,7 @@ export default function EmployeesManagement() {
                                         value={formData.hourly_rate}
                                         onChange={e => setFormData({ ...formData, hourly_rate: e.target.value })}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
-                                        placeholder="ex: 25.00"
+                                        placeholder={t('employees.hourly_rate_placeholder', 'ex: 25.00')}
                                     />
                                 </div>
 
@@ -932,7 +932,7 @@ export default function EmployeesManagement() {
                                                 onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                                                 className="w-5 h-5 rounded border-slate-300"
                                             />
-                                            <span className="text-sm font-semibold text-slate-700">Cont activ</span>
+                                            <span className="text-sm font-semibold text-slate-700">{t('users_modal.active_account', 'Cont activ')}</span>
                                         </label>
                                     </div>
                                 )}
@@ -943,7 +943,7 @@ export default function EmployeesManagement() {
                                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700">
                                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                                                 <FileText className="w-3.5 h-3.5" />
-                                                Contract de Muncă
+                                                {t('employees.work_contract', 'Contract de Muncă')}
                                             </h3>
                                             {editingUser.contract_path ? (
                                                 <div className="flex items-center gap-3">
@@ -954,7 +954,7 @@ export default function EmployeesManagement() {
                                                         className="flex items-center gap-2 px-4 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full text-slate-700 dark:text-slate-300 hover:border-blue-400 text-sm font-medium transition-colors"
                                                     >
                                                         <Eye className="w-4 h-4" />
-                                                        Vizualizează Contract
+                                                        {t('employees.view_contract', 'Vizualizează Contract')}
                                                     </a>
                                                     <input type="file" ref={contractInputRef} accept=".pdf,.jpg,.jpeg,.png" onChange={async (e) => {
                                                         const file = e.target.files[0]
@@ -965,8 +965,8 @@ export default function EmployeesManagement() {
                                                             fd.append('file', file)
                                                             const resp = await api.post(`/admin/users/${editingUser.id}/upload-contract`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                                                             setEditingUser({ ...editingUser, contract_path: resp.data.contract_path })
-                                                            openDialog({ type: 'info', title: 'Succes', message: 'Contract încărcat cu succes!', confirmText: 'OK', cancelText: null })
-                                                        } catch (err) { openDialog({ type: 'danger', title: 'Eroare', message: 'Eroare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null }) }
+                                                            openDialog({ type: 'info', title: t('common.success', 'Succes'), message: t('employees.contract_upload_success', 'Contract încărcat cu succes!'), confirmText: 'OK', cancelText: null })
+                                                        } catch (err) { openDialog({ type: 'danger', title: t('common.error', 'Eroare'), message: t('common.error', 'Eroare') + ': ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null }) }
                                                         finally { setUploadingContract(false); if (contractInputRef.current) contractInputRef.current.value = '' }
                                                     }} className="hidden" />
                                                     <button
@@ -975,7 +975,7 @@ export default function EmployeesManagement() {
                                                         className="flex items-center gap-2 px-4 h-10 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-sm font-bold transition-colors disabled:opacity-50"
                                                     >
                                                         {uploadingContract ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                                        Înlocuiește
+                                                        {t('employees.replace', 'Înlocuiește')}
                                                     </button>
                                                 </div>
                                             ) : (
@@ -989,8 +989,8 @@ export default function EmployeesManagement() {
                                                             fd.append('file', file)
                                                             const resp = await api.post(`/admin/users/${editingUser.id}/upload-contract`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                                                             setEditingUser({ ...editingUser, contract_path: resp.data.contract_path })
-                                                            openDialog({ type: 'info', title: 'Succes', message: 'Contract încărcat cu succes!', confirmText: 'OK', cancelText: null })
-                                                        } catch (err) { openDialog({ type: 'danger', title: 'Eroare', message: 'Eroare: ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null }) }
+                                                            openDialog({ type: 'info', title: t('common.success', 'Succes'), message: t('employees.contract_upload_success', 'Contract încărcat cu succes!'), confirmText: 'OK', cancelText: null })
+                                                        } catch (err) { openDialog({ type: 'danger', title: t('common.error', 'Eroare'), message: t('common.error', 'Eroare') + ': ' + (err.response?.data?.detail || err.message), confirmText: 'OK', cancelText: null }) }
                                                         finally { setUploadingContract(false); if (contractInputRef.current) contractInputRef.current.value = '' }
                                                     }} className="hidden" />
                                                     <button
@@ -999,7 +999,7 @@ export default function EmployeesManagement() {
                                                         className="w-full h-14 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center gap-2 text-slate-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all"
                                                     >
                                                         {uploadingContract ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
-                                                        <span className="text-sm font-medium">Încarcă Contract (PDF, JPG, PNG)</span>
+                                                        <span className="text-sm font-medium">{t('employees.upload_contract_hint', 'Încarcă Contract (PDF, JPG, PNG)')}</span>
                                                     </button>
                                                 </div>
                                             )}
@@ -1015,7 +1015,7 @@ export default function EmployeesManagement() {
                                 onClick={() => setShowEditModal(false)}
                                 className="px-5 h-10 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors bg-slate-50 dark:bg-slate-800/50"
                             >
-                                Anulează
+                                {t('common.cancel', 'Anulează')}
                             </button>
                             <button
                                 onClick={handleSaveUser}
@@ -1036,13 +1036,13 @@ export default function EmployeesManagement() {
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-slate-900">Resetare PIN</h2>
+                            <h2 className="text-xl font-bold text-slate-900">{t('users_modal.reset_pin', 'Resetare PIN')}</h2>
                             <button onClick={() => setShowPinModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-slate-600" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">PIN Nou (4-6 cifre)</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('users_modal.new_pin_label', 'PIN Nou (4-6 cifre)')}</label>
                             <input
                                 type="password"
                                 value={newPin}
@@ -1055,7 +1055,7 @@ export default function EmployeesManagement() {
                         </div>
                         <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
                             <button onClick={() => setShowPinModal(false)} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
-                                Anulează
+                                {t('common.cancel', 'Anulează')}
                             </button>
                             <button
                                 onClick={handleSavePin}
@@ -1063,7 +1063,7 @@ export default function EmployeesManagement() {
                                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
                             >
                                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Key className="w-5 h-5" />}
-                                Resetează PIN
+                                {t('users_modal.reset_pin_button', 'Resetează PIN')}
                             </button>
                         </div>
                     </div>
@@ -1082,8 +1082,8 @@ export default function EmployeesManagement() {
                         const resp = await api.post(`/admin/users/${editingUser.id}/upload-avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                         setEditingUser({ ...editingUser, avatar_path: resp.data.avatar_path })
                         fetchUsers()
-                        showToast('Avatar actualizat', 'success')
-                    } catch (err) { console.error('Avatar upload error:', err); showToast('Eroare la actualizare avatar', 'error') }
+                        showToast(t('employees.avatar_updated', 'Avatar actualizat'), 'success')
+                    } catch (err) { console.error('Avatar upload error:', err); showToast(t('employees.avatar_update_error', 'Eroare la actualizare avatar'), 'error') }
                     setAvatarCropImage(null)
                 }}
             />
@@ -1095,31 +1095,31 @@ export default function EmployeesManagement() {
                         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-orange-500" />
-                                Atașează Șantier
+                                {t('employees.attach_site', 'Atașează Șantier')}
                             </h2>
                             <button onClick={() => setShowAssignSiteModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-slate-600" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Selectează Șantierul</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('employees.select_site', 'Selectează Șantierul')}</label>
                             <select
                                 value={assignSiteId}
                                 onChange={e => setAssignSiteId(e.target.value)}
                                 className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm"
                             >
-                                <option value="">Niciun șantier (Anulează atașarea)</option>
+                                <option value="">{t('employees.no_site', 'Niciun șantier (Anulează atașarea)')}</option>
                                 {sites.map(site => (
                                     <option key={site.id} value={site.id}>{site.name}</option>
                                 ))}
                             </select>
                             <p className="mt-3 text-xs text-slate-500">
-                                Angajatul va fi transferat direct pe acest șantier, ocolind necesitatea asocierii într-o Echipă dedicată.
+                                {t('employees.attach_site_hint', 'Angajatul va fi transferat direct pe acest șantier, ocolind necesitatea asocierii într-o Echipă dedicată.')}
                             </p>
                         </div>
                         <div className="p-6 border-t border-slate-200 flex items-center justify-end gap-3">
                             <button onClick={() => setShowAssignSiteModal(false)} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
-                                Anulează
+                                {t('common.cancel', 'Anulează')}
                             </button>
                             <button
                                 onClick={handleSaveSiteAssignment}
@@ -1127,7 +1127,7 @@ export default function EmployeesManagement() {
                                 className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-amber-700 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
                             >
                                 {assigningSite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                Salvează
+                                {t('common.save', 'Enregistrer')}
                             </button>
                         </div>
                     </div>
@@ -1141,37 +1141,37 @@ export default function EmployeesManagement() {
                         <div className="p-6 border-b border-slate-200">
                             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
                                 <Trash2 className="w-6 h-6 text-red-500" />
-                                Ștergere Angajat: {deleteModalData.last_name} {deleteModalData.first_name}
+                                {t('employees.delete_employee', 'Supprimerre Angajat:')} {deleteModalData.last_name} {deleteModalData.first_name}
                             </h2>
                         </div>
                         <div className="p-6 space-y-4">
                             <p className="text-slate-600">
-                                Ai ales să elimini acest angajat din lista curentă. Te rugăm să alegi cum dorești să fie procesat:
+                                {t('employees.delete_employee_hint', 'Ai ales să elimini acest angajat din lista curentă. Te rugăm să alegi cum dorești să fie procesat:')}
                             </p>
                             
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => executeDelete(false)}>
                                 <h3 className="font-bold text-blue-900 flex items-center gap-2 mb-1">
                                     <UserX className="w-5 h-5 text-blue-700" />
-                                    Mută în Arhivă (Recomandat)
+                                    {t('users.archive_recommended', 'Mută în Arhivă (Recomandat)')}
                                 </h3>
                                 <p className="text-sm text-blue-800/80">
-                                    Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.
+                                    {t('users.archive_hint', 'Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.')}
                                 </p>
                             </div>
 
                             <div className="bg-red-50 border border-red-200 rounded-xl p-4 cursor-pointer hover:bg-red-100 transition-colors" onClick={() => executeDelete(true)}>
                                 <h3 className="font-bold text-red-900 flex items-center gap-2 mb-1">
                                     <Trash2 className="w-5 h-5 text-red-700" />
-                                    Șterge Definitiv
+                                    {t('users.delete_permanent', 'Supprimer Definitiv')}
                                 </h3>
                                 <p className="text-sm text-red-800/80">
-                                    <strong>Atenție!</strong> Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.
+                                    <strong>{t('common.attention', 'Atenție!')}</strong> {t('users.delete_hint', 'Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.')}
                                 </p>
                             </div>
                         </div>
                         <div className="p-4 border-t border-slate-200 flex justify-end">
                             <button onClick={() => setDeleteModalData(null)} className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">
-                                Anulează
+                                {t('common.cancel', 'Anulează')}
                             </button>
                         </div>
                     </div>
@@ -1278,22 +1278,22 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                             </td>
                             <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1 transition-opacity">
-                                    <button onClick={() => onView(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Vizualizează">
+                                    <button onClick={() => onView(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title={t('common.view', 'Vizualizează')}>
                                         <Eye className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => onAssignSite(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Atașează Șantier">
+                                    <button onClick={() => onAssignSite(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title={t('employees.attach_site', 'Atașează Șantier')}>
                                         <MapPin className="w-4 h-4" />
                                     </button>
                                     <button onClick={() => onToggleActive(user.id, user.is_active)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title={user.is_active ? t('users.deactivate') : t('users.activate')}>
                                         {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                                     </button>
-                                    <button onClick={() => onResetPin(user.id)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Resetează PIN">
+                                    <button onClick={() => onResetPin(user.id)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title={t('users_modal.reset_pin', 'Resetează PIN')}>
                                         <Key className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => onEdit(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" title="Editează">
+                                    <button onClick={() => onEdit(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" title={t('common.edit', 'Éditer')}>
                                         <Edit2 className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => onDelete(user.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400" title="Șterge">
+                                    <button onClick={() => onDelete(user.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400" title={t('common.delete', 'Supprimer')}>
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -1368,19 +1368,19 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                     </div>
 
                     <div className="flex items-center gap-1 pt-4 border-t border-slate-100" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title="Vizualizează">
+                        <button onClick={() => onView(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title={t('common.view', 'Vizualizează')}>
                             <Eye className="w-4 h-4 text-blue-600" />
                         </button>
                         <button onClick={() => onToggleActive(user.id, user.is_active)} className="flex-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-full text-sm font-medium transition-colors border border-slate-200">
                             {user.is_active ? t('users.deactivate') : t('users.activate')}
                         </button>
-                        <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-full transition-colors" title="Resetează PIN">
+                        <button onClick={() => onResetPin(user.id)} className="p-2 hover:bg-violet-100 rounded-full transition-colors" title={t('users_modal.reset_pin', 'Resetează PIN')}>
                             <Key className="w-4 h-4 text-violet-600" />
                         </button>
-                        <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title="Editează">
+                        <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title={t('common.edit', 'Éditer')}>
                             <Edit2 className="w-4 h-4 text-blue-600" />
                         </button>
-                        <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-full transition-colors" title="Șterge">
+                        <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-full transition-colors" title={t('common.delete', 'Supprimer')}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
                     </div>

@@ -255,7 +255,7 @@ export default function TimesheetApprovalPage() {
             render: (w) => (
                 <div>
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{w.days_count || 1}</span>
-                    <span className="text-xs text-slate-400 ml-1">zile</span>
+                    <span className="text-xs text-slate-400 ml-1">{t('common.days_label', 'jours')}</span>
                 </div>
             )
         }] : [{
@@ -265,11 +265,11 @@ export default function TimesheetApprovalPage() {
             render: (w) => (
                 <div>
                     <div className="text-sm text-slate-700 dark:text-slate-300">
-                        {w.check_in_time ? new Date(w.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}
+                        {w.check_in_time ? new Date(w.check_in_time).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}
                     </div>
                     {w.check_out_time && (
                         <div className="text-xs text-slate-400">
-                            → {new Date(w.check_out_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
+                            → {new Date(w.check_out_time).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
                         </div>
                     )}
                 </div>
@@ -334,7 +334,7 @@ export default function TimesheetApprovalPage() {
                     >
                         <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100 font-medium group-hover:bg-blue-100 transition-colors">
                             <Activity className="w-3 h-3" />
-                            {w.activities.length} activit{w.activities.length === 1 ? 'ate' : 'ăți'}
+                            {w.activities.length} activité{w.activities.length === 1 ? '' : 's'}
                         </span>
                     </button>
                 ) : <span className="text-xs text-slate-400">—</span>
@@ -367,7 +367,7 @@ export default function TimesheetApprovalPage() {
                                 link.remove()
                                 window.URL.revokeObjectURL(url)
                             } catch (error) {
-                                openDialog({ type: 'danger', title: 'Eroare Export', message: 'Eroare la export: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
+                                openDialog({ type: 'danger', title: 'Erreur d\'exportation', message: 'Erreur d\'exportation: ' + (error.response?.data?.detail || error.message), confirmText: 'OK', cancelText: null })
                             }
                         }}
                         className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
@@ -377,10 +377,10 @@ export default function TimesheetApprovalPage() {
                     </button>
                     <button onClick={fetchWorkers} className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
                         <RefreshCw className="w-4 h-4" /> 
-                        <span className="hidden sm:inline">Refresh</span>
+                        <span className="hidden sm:inline">{t('common.refresh', 'Actualiser')}</span>
                     </button>
                     {lastRefresh && (
-                        <span className="text-xs text-slate-400">{lastRefresh.toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        <span className="text-xs text-slate-400">{lastRefresh.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                     )}
                 </div>
             </div>
@@ -445,7 +445,7 @@ export default function TimesheetApprovalPage() {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="absolute bottom-1.5 left-1.5 right-1.5">
                                         <p className="text-white text-[10px] font-medium truncate">{photo.uploaded_by_name}</p>
-                                        <p className="text-white/70 text-[9px]">{photo.site_name} • {new Date(photo.uploaded_at).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</p>
+                                        <p className="text-white/70 text-[9px]">{photo.site_name} • {new Date(photo.uploaded_at).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}</p>
                                     </div>
                                 </div>
                             </div>
@@ -461,7 +461,7 @@ export default function TimesheetApprovalPage() {
                         <img src={`${API_BASE}${selectedPhoto.url}`} alt="" className="w-full rounded-2xl max-h-[80vh] object-contain bg-black" />
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-2xl">
                             <p className="text-white text-base font-medium">{selectedPhoto.uploaded_by_name}</p>
-                            <p className="text-white/70 text-sm">{selectedPhoto.site_name} • {new Date(selectedPhoto.uploaded_at).toLocaleString('ro-RO')}</p>
+                            <p className="text-white/70 text-sm">{selectedPhoto.site_name} • {new Date(selectedPhoto.uploaded_at).toLocaleString('fr-FR')}</p>
                             {selectedPhoto.description && <p className="text-white/80 text-sm mt-1">{selectedPhoto.description}</p>}
                         </div>
                         <button onClick={() => setShowPhotoModal(false)} className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"><X className="w-5 h-5" /></button>
@@ -481,7 +481,7 @@ export default function TimesheetApprovalPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Caută muncitor sau șantier..."
+                        placeholder={t('timesheets.search_placeholder', 'Rechercher un ouvrier ou un chantier...')}
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
@@ -490,10 +490,10 @@ export default function TimesheetApprovalPage() {
                 {workers.length > 0 && (
                     <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl shadow-sm">
                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {workers.length} {workers.length !== 1 ? 'muncitori' : 'muncitor'} • {activeCount} {activeCount !== 1 ? 'activi' : 'activ'} • {finishedCount} terminat{finishedCount !== 1 ? 'e' : ''}
+                            {workers.length} ouvrier{workers.length !== 1 ? 's' : ''} • {activeCount} actif{activeCount !== 1 ? 's' : ''} • {finishedCount} terminé{finishedCount !== 1 ? 's' : ''}
                         </span>
                         <div className="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Total Ore: {formatHours(totalWorked)}</span>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('timesheets.total_hours', 'Heures totales')} : {formatHours(totalWorked)}</span>
                     </div>
                 )}
             </div>
@@ -593,7 +593,7 @@ export default function TimesheetApprovalPage() {
                                     {workerDetail.worker.birth_date && workerDetail.worker.birth_date !== 'None' && (
                                         <div className="flex items-center gap-3 text-sm">
                                             <Calendar className="w-4 h-4 text-slate-400" />
-                                            <span className="text-slate-700">{t('timesheets.birth_date')}: {new Date(workerDetail.worker.birth_date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' })}</span>
+                                            <span className="text-slate-700">{t('timesheets.birth_date')}: {new Date(workerDetail.worker.birth_date).toLocaleDateString('fr-FR', { timeZone: 'Europe/Berlin' })}</span>
                                         </div>
                                     )}
                                     {workerDetail.worker.cnp && (
@@ -628,7 +628,7 @@ export default function TimesheetApprovalPage() {
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                                                {new Date(entry.date).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin',  weekday: 'short', day: 'numeric', month: 'short' })}
+                                                                {new Date(entry.date).toLocaleDateString('fr-FR', { timeZone: 'Europe/Berlin',  weekday: 'short', day: 'numeric', month: 'short' })}
                                                             </span>
                                                             <StatusBadge status={entry.status} />
                                                         </div>
@@ -639,8 +639,8 @@ export default function TimesheetApprovalPage() {
                                                         {entry.check_in && (
                                                             <span className="flex items-center gap-1">
                                                                 <Clock className="w-3 h-3" />
-                                                                {new Date(entry.check_in).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
-                                                                {entry.check_out && ` - ${new Date(entry.check_out).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}`}
+                                                                {new Date(entry.check_in).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}
+                                                                {entry.check_out && ` - ${new Date(entry.check_out).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' })}`}
                                                             </span>
                                                         )}
                                                         {entry.break_hours > 0 && <span className="text-orange-500">☕ {formatHours(entry.break_hours)}</span>}

@@ -8,9 +8,10 @@ import { useTranslation } from 'react-i18next'
 import {
     Navigation, Truck, Clock, AlertTriangle,
     CheckCircle2, XCircle, MapPin, RefreshCw,
-    Loader2, ChevronDown, ChevronUp
+    Loader2, ChevronDown, ChevronUp, ArrowLeft
 } from 'lucide-react'
 import api from '../../../lib/api'
+import DataTable from '../../../components/DataTable'
 
 function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371; // km
@@ -91,11 +92,13 @@ function VehicleCard({ result }) {
     const [expanded, setExpanded] = useState(true)
     const [showMap, setShowMap] = useState(false)
     const [isMapFullscreen, setIsMapFullscreen] = useState(false)
+    const [focusedTrip, setFocusedTrip] = useState(null)
 
     useEffect(() => {
         const handleEsc = (e) => {
             if (e.key === 'Escape' && isMapFullscreen) {
                 setIsMapFullscreen(false)
+                setFocusedTrip(null)
             }
         }
         window.addEventListener('keydown', handleEsc)
@@ -160,6 +163,67 @@ function VehicleCard({ result }) {
         iconAnchor: [12, 12],
     })
 
+    const handleTripClick = (trip, tripIndex) => {
+        trip.index = tripIndex;
+        setFocusedTrip(trip);
+        setShowMap(true);
+        setIsMapFullscreen(true);
+    };
+
+    let displaySegments = segments;
+    let displayPoints = allMapPoints;
+    let displayStartPoint = trackPoints.length > 0 ? trackPoints[0] : null;
+    let displayEndPoint = trackPoints.length > 1 ? trackPoints[trackPoints.length - 1] : null;
+    let displayStartTime = result.track?.[0]?.time_local;
+    let displayStartSpeed = result.track?.[0]?.speed;
+    let displayEndTime = result.track?.[result.track.length - 1]?.time_local;
+    let displayEndSpeed = result.track?.[result.track.length - 1]?.speed;
+    let focusedTripDetails = null;
+
+    if (focusedTrip) {
+        displaySegments = [];
+        let distKm = 0;
+        let maxSpeed = 0;
+        
+        for (let i = 0; i < focusedTrip.length - 1; i++) {
+            if (focusedTrip[i].speed > maxSpeed) maxSpeed = focusedTrip[i].speed;
+            distKm += haversineKm(focusedTrip[i].lat, focusedTrip[i].lng, focusedTrip[i+1].lat, focusedTrip[i+1].lng);
+            
+            displaySegments.push({
+                positions: [[focusedTrip[i].lat, focusedTrip[i].lng], [focusedTrip[i+1].lat, focusedTrip[i+1].lng]],
+                color: speedColor(focusedTrip[i].speed),
+            });
+        }
+        if (focusedTrip.length > 0 && focusedTrip[focusedTrip.length - 1].speed > maxSpeed) {
+             maxSpeed = focusedTrip[focusedTrip.length - 1].speed;
+        }
+
+        const first = focusedTrip[0];
+        const last = focusedTrip[focusedTrip.length - 1];
+        const violations = result.speed_violations.filter(v => v.time >= first.time_local && v.time <= last.time_local).length;
+        
+        let durationStr = '--';
+        const diffMin = Math.round((last.ts - first.ts) / 60);
+        const h = Math.floor(diffMin / 60);
+        const m = diffMin % 60;
+        durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+
+        focusedTripDetails = {
+            maxSpeed: maxSpeed.toFixed(1),
+            distance: distKm.toFixed(1),
+            violations: violations,
+            duration: durationStr
+        };
+
+        displayPoints = focusedTrip.map(p => [p.lat, p.lng]);
+        displayStartPoint = [first.lat, first.lng];
+        displayEndPoint = [last.lat, last.lng];
+        displayStartTime = first.time_local;
+        displayStartSpeed = first.speed;
+        displayEndTime = last.time_local;
+        displayEndSpeed = last.speed;
+    }
+
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div
@@ -206,60 +270,93 @@ function VehicleCard({ result }) {
             {expanded && (
                 <div className="p-4 space-y-4 border-t border-slate-100">
                     {/* Detalii Trasee */}
-                    {trips.length > 0 && (
-                        <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-slate-600">
-                                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                                        <tr>
-                                            <th className="px-4 py-3">#</th>
-                                            <th className="px-4 py-3">{t('gps.start_time', 'Heure depart')}</th>
-                                            <th className="px-4 py-3">{t('gps.end_time', 'Heure arrivee')}</th>
-                                            <th className="px-4 py-3">{t('gps.time_on_road', 'Temps en route')}</th>
-                                            <th className="px-4 py-3">{t('gps.distance', 'Distance')}</th>
-                                            <th className="px-4 py-3">{t('gps.max_speed', 'Vit. max')}</th>
-                                            <th className="px-4 py-3">{t('gps.violations', 'Infractions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {trips.map((trip, idx) => {
-                                            const first = trip[0]
-                                            const last = trip[trip.length - 1]
-                                            
-                                            let durationStr = '--'
-                                            const diffMin = Math.round((last.ts - first.ts) / 60)
-                                            const h = Math.floor(diffMin / 60)
-                                            const m = diffMin % 60
-                                            durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`
+                    {trips.length > 0 && (() => {
+                        const tableData = trips.map((trip, idx) => {
+                            const first = trip[0]
+                            const last = trip[trip.length - 1]
+                            let durationStr = '--'
+                            const diffMin = Math.round((last.ts - first.ts) / 60)
+                            const h = Math.floor(diffMin / 60)
+                            const m = diffMin % 60
+                            durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`
 
-                                            let distKm = 0
-                                            let maxSpeed = 0
-                                            for(let j = 0; j < trip.length; j++) {
-                                                if (trip[j].speed > maxSpeed) maxSpeed = trip[j].speed
-                                                if (j > 0) {
-                                                    distKm += haversineKm(trip[j-1].lat, trip[j-1].lng, trip[j].lat, trip[j].lng)
-                                                }
-                                            }
-                                            
-                                            const violations = result.speed_violations.filter(v => v.time >= first.time_local && v.time <= last.time_local).length
-                                            
-                                            return (
-                                                <tr key={idx} className="hover:bg-slate-50">
-                                                    <td className="px-4 py-3 font-semibold text-slate-900">{t('gps.route', 'Trajet')} {idx + 1}</td>
-                                                    <td className="px-4 py-3">{first.time_local.slice(0, 5)}</td>
-                                                    <td className="px-4 py-3">{last.time_local.slice(0, 5)}</td>
-                                                    <td className="px-4 py-3">{durationStr}</td>
-                                                    <td className="px-4 py-3 font-semibold text-slate-800">{distKm.toFixed(1)} km</td>
-                                                    <td className={`px-4 py-3 font-semibold ${maxSpeed > 90 ? 'text-red-600' : ''}`}>{maxSpeed.toFixed(1)} km/h</td>
-                                                    <td className={`px-4 py-3 font-semibold ${violations > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{violations}</td>
-                                                </tr>
+                            let distKm = 0
+                            let maxSpeed = 0
+                            for(let j = 0; j < trip.length; j++) {
+                                if (trip[j].speed > maxSpeed) maxSpeed = trip[j].speed
+                                if (j > 0) {
+                                    distKm += haversineKm(trip[j-1].lat, trip[j-1].lng, trip[j].lat, trip[j].lng)
+                                }
+                            }
+                            
+                            const violations = result.speed_violations.filter(v => v.time >= first.time_local && v.time <= last.time_local).length
+                            return {
+                                id: idx + 1,
+                                trip,
+                                startTime: first.time_local.slice(0, 5),
+                                endTime: last.time_local.slice(0, 5),
+                                durationStr,
+                                distKm: distKm.toFixed(1),
+                                maxSpeed: maxSpeed.toFixed(1),
+                                violations
+                            }
+                        })
+
+                        // Filtreaza traseele fantoma (un singur punct GPS = 0 km)
+                        const filteredData = tableData.filter(row => parseFloat(row.distKm) > 0.1)
+
+                        if (filteredData.length === 0) return null
+
+                        return (
+                            <div className="mb-6">
+                                <DataTable
+                                    data={filteredData}
+                                    defaultPageSize={10}
+                                    pageSizeOptions={[10, 15, 25, 50, 99999]}
+                                    onRowClick={(row) => handleTripClick(row.trip, row.id)}
+                                    columns={[
+                                        {
+                                            key: 'id',
+                                            label: 'Nr. Crt.',
+                                            render: (row) => (
+                                                <span className="font-semibold text-slate-900 group-hover:text-blue-600 flex items-center gap-2">
+                                                    <MapPin className="w-3 h-3 opacity-0 group-hover:opacity-100 text-blue-500" />
+                                                    {t('gps.route', 'Trajet')} {row.id}
+                                                </span>
                                             )
-                                        })}
-                                    </tbody>
-                                </table>
+                                        },
+                                        {
+                                            key: 'startTime',
+                                            label: t('gps.start_time', 'Heure depart'),
+                                        },
+                                        {
+                                            key: 'endTime',
+                                            label: t('gps.end_time', 'Heure arrivee'),
+                                        },
+                                        {
+                                            key: 'durationStr',
+                                            label: t('gps.time_on_road', 'Temps en route'),
+                                        },
+                                        {
+                                            key: 'distKm',
+                                            label: t('gps.distance', 'Distance'),
+                                            render: (row) => <span className="font-semibold text-slate-800">{row.distKm} km</span>
+                                        },
+                                        {
+                                            key: 'maxSpeed',
+                                            label: t('gps.max_speed', 'Vit. max'),
+                                            render: (row) => <span className={`font-semibold ${parseFloat(row.maxSpeed) > 90 ? 'text-red-600' : ''}`}>{row.maxSpeed} km/h</span>
+                                        },
+                                        {
+                                            key: 'violations',
+                                            label: t('gps.violations', 'Infractions'),
+                                            render: (row) => <span className={`font-semibold ${row.violations > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{row.violations}</span>
+                                        }
+                                    ]}
+                                />
                             </div>
-                        </div>
-                    )}
+                        )
+                    })()}
 
                     {/* Itinerar Chronologic */}
                     {result.itinerary && result.itinerary.length > 0 && (
@@ -338,104 +435,132 @@ function VehicleCard({ result }) {
                     {trackPoints.length >= 2 && (
                         <div>
                             <button
-                                onClick={() => setShowMap(m => !m)}
+                                onClick={() => { setShowMap(m => !m); setFocusedTrip(null); setIsMapFullscreen(false); }}
                                 className="w-full flex items-center justify-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-xl py-2 hover:bg-blue-100 transition-colors"
                             >
                                 <MapPin className="w-3.5 h-3.5" />
-                                {showMap ? t('gps.hide_map', 'Masquer la carte') : t('gps.show_map', 'Voir le trace GPS sur la carte')}
+                                {showMap && !focusedTrip ? t('gps.hide_map', 'Masquer la carte') : t('gps.show_map', 'Voir le trace GPS sur la carte')}
                             </button>
 
                             {showMap && (
                                 (() => {
-                                    const mapContent = (
-                                        <div className={isMapFullscreen ? "fixed inset-0 z-[99999] bg-white flex flex-col" : "mt-3 rounded-xl overflow-hidden border border-slate-200 relative"}>
-                                            {isMapFullscreen && (
-                                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white shadow-sm shrink-0">
-                                                    <div className="font-bold text-slate-800 flex items-center gap-2">
-                                                        <MapPin className="w-4 h-4 text-blue-600" /> Trace GPS: {result.vehicle_name}
-                                                    </div>
-                                                    <button onClick={() => setIsMapFullscreen(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                                    const mapContent = isMapFullscreen ? (
+                                        <div className="fixed top-[76px] left-[272px] right-0 bottom-0 z-[9999] bg-slate-50 flex flex-col shadow-2xl border-l border-slate-200">
+                                            <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={() => { setIsMapFullscreen(false); setFocusedTrip(null); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                                                    </button>
+                                                    <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                        <MapPin className="w-5 h-5 text-blue-600" />
+                                                        {focusedTrip ? `Trajet ${focusedTrip.index} - ${result.vehicle_name}` : `Trace GPS: ${result.vehicle_name}`}
+                                                    </h1>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {focusedTrip && (
+                                                        <button onClick={() => setFocusedTrip(null)} className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold rounded-xl text-sm transition-colors">
+                                                            Voir tout le parcours
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => { setIsMapFullscreen(false); setFocusedTrip(null); }} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors">
                                                         Fermer
                                                     </button>
                                                 </div>
-                                            )}
-                                            <button 
-                                                onClick={() => setIsMapFullscreen(!isMapFullscreen)}
-                                                className={`absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition-colors`}
-                                                style={{ zIndex: 99999 }}
-                                                title={isMapFullscreen ? "Reduire" : "Plein ecran"}
-                                            >
-                                                {isMapFullscreen ? (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-                                                ) : (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                                            </div>
+                                            <div className="flex-1 flex overflow-hidden">
+                                                {focusedTrip && focusedTripDetails && (
+                                                    <div className="w-96 bg-white border-r border-slate-200 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 overflow-y-auto">
+                                                        <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-blue-50/50 to-white">
+                                                            <div className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">{t('gps.trip_details', 'Details du trajet')}</div>
+                                                            <div className="text-2xl font-black text-slate-800">{focusedTripDetails.duration}</div>
+                                                            <div className="text-sm font-semibold text-slate-500 mt-2 flex items-center gap-1.5">
+                                                                <Clock className="w-4 h-4 text-blue-500" />
+                                                                {displayStartTime} &rarr; {displayEndTime}
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-6 space-y-4 flex-1">
+                                                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
+                                                                <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+                                                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Distance</span>
+                                                                    <span className="font-bold text-slate-800 text-sm">{focusedTripDetails.distance} km</span>
+                                                                </div>
+                                                                <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+                                                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Vitesse Max</span>
+                                                                    <span className={`font-bold text-sm ${parseFloat(focusedTripDetails.maxSpeed) > 90 ? 'text-red-600' : 'text-slate-800'}`}>{focusedTripDetails.maxSpeed} km/h</span>
+                                                                </div>
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Infractions</span>
+                                                                    {focusedTripDetails.violations > 0 ? (
+                                                                        <span className="inline-flex items-center gap-1 text-red-600 font-bold text-sm bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">
+                                                                            <AlertTriangle className="w-3.5 h-3.5" /> {focusedTripDetails.violations}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-emerald-600 font-bold text-sm bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">0</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 )}
+                                                <div className="flex-1 relative bg-slate-100">
+                                                    <MapContainer center={[displayStartPoint?.[0] || 50.85, displayStartPoint?.[1] || 4.35]} zoom={11} className="w-full h-full" scrollWheelZoom={true}>
+                                                        <MapResizer isFullscreen={true} />
+                                                        <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
+                                                        <MapFitter all={displayPoints} />
+                                                        {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} color={seg.color} weight={5} opacity={0.9} />)}
+                                                        {displayStartPoint && (
+                                                            <CircleMarker center={displayStartPoint} radius={8} color="#22c55e" fillColor="#22c55e" fillOpacity={1}>
+                                                                <Popup><div style={{ fontSize: 12, fontWeight: 'bold', color: '#16a34a' }}>Depart: {displayStartTime}<br/>Vitesse: {displayStartSpeed} km/h</div></Popup>
+                                                            </CircleMarker>
+                                                        )}
+                                                        {displayEndPoint && (
+                                                            <CircleMarker center={displayEndPoint} radius={8} color="#ef4444" fillColor="#ef4444" fillOpacity={1}>
+                                                                <Popup><div style={{ fontSize: 12, fontWeight: 'bold', color: '#dc2626' }}>Arrivee: {displayEndTime}<br/>Vitesse: {displayEndSpeed} km/h</div></Popup>
+                                                            </CircleMarker>
+                                                        )}
+                                                    </MapContainer>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 relative bg-white">
+                                            <button 
+                                                onClick={() => setIsMapFullscreen(true)}
+                                                className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-md shadow-sm border border-slate-200 text-slate-700 p-2.5 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                                title="Plein ecran"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                                             </button>
-                                            <div style={{ height: isMapFullscreen ? '100vh' : 340 }} className="flex-1 w-full min-h-0">
-                                                <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className={`w-full h-full ${!isMapFullscreen && 'rounded-b-xl'}`} scrollWheelZoom={isMapFullscreen}>
-                                                    <MapResizer isFullscreen={isMapFullscreen} />
-                                                    <TileLayer
-                                                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-                                                attribution="&copy; Google Maps"
-                                                maxZoom={20}
-                                            />
-                                            <MapFitter all={allMapPoints} />
-
-                                            {segments.map((seg, i) => (
-                                                <Polyline key={i} positions={seg.positions} color={seg.color} weight={4} opacity={0.85} />
-                                            ))}
-
-                                            {sitePoints.map(wo => (
-                                                <Marker
-                                                    key={wo.id}
-                                                    position={[wo.site_lat, wo.site_lng]}
-                                                    icon={dotIcon(result.team_color)}
-                                                >
-                                                    <Popup>
-                                                        <div style={{ fontSize: 12 }}>
-                                                            <strong>{wo.client_name}</strong><br />
-                                                            <span style={{ color: '#64748b' }}>{wo.site_address}</span><br />
-                                                            {t('gps.planned', 'Prevu')}: <strong>{wo.planned_time}</strong><br />
-                                                            {wo.arrived && <>{t('gps.arrived', 'Arrive')}: <strong style={{ color: '#2563eb' }}>{wo.arrived}</strong><br /></>}
-                                                            {wo.departed && <>{t('gps.departure', 'Depart')}: <strong>{wo.departed}</strong></>}
-                                                        </div>
-                                                    </Popup>
-                                                </Marker>
-                                            ))}
-
-                                            {trackPoints.length > 0 && (
-                                                <CircleMarker center={trackPoints[0]} radius={7} color="#22c55e" fillColor="#22c55e" fillOpacity={1}>
-                                                    <Popup>
-                                                        <div style={{ fontSize: 11, fontWeight: 'bold', color: '#16a34a' }}>
-                                                            Depart: {result.track[0]?.time_local}<br/>
-                                                            Vitesse: {result.track[0]?.speed} km/h
-                                                        </div>
-                                                    </Popup>
-                                                </CircleMarker>
-                                            )}
-                                            {trackPoints.length > 1 && (
-                                                <CircleMarker center={trackPoints[trackPoints.length - 1]} radius={7} color="#ef4444" fillColor="#ef4444" fillOpacity={1}>
-                                                    <Popup>
-                                                        <div style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>
-                                                            Fin / Actuel: {result.track[result.track.length - 1]?.time_local}<br/>
-                                                            Vitesse: {result.track[result.track.length - 1]?.speed} km/h
-                                                        </div>
-                                                    </Popup>
-                                                </CircleMarker>
-                                            )}
-                                        </MapContainer>
-                                    </div>
-                                    <div className="flex items-center justify-center gap-4 py-2 bg-slate-50 text-[10px] font-semibold border-t border-slate-100">
-                                        <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-green-500 inline-block" /> &lt;30 km/h</span>
-                                        <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-blue-500 inline-block" /> 30-70</span>
-                                        <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-amber-500 inline-block" /> 70-90</span>
-                                        <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-red-500 inline-block" /> &gt;90 km/h</span>
-                                    </div>
-                                </div>
-                            );
-                            return isMapFullscreen ? createPortal(mapContent, document.body) : mapContent;
-                        })()
-                    )}
+                                            <div style={{ height: 340 }} className="w-full relative">
+                                                <MapContainer center={[displayStartPoint?.[0] || 50.85, displayStartPoint?.[1] || 4.35]} zoom={11} className="w-full h-full" scrollWheelZoom={false}>
+                                                    <MapResizer isFullscreen={false} />
+                                                    <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
+                                                    <MapFitter all={displayPoints} />
+                                                    {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} color={seg.color} weight={4} opacity={0.85} />)}
+                                                    {!focusedTrip && sitePoints.map(wo => <Marker key={wo.id} position={[wo.site_lat, wo.site_lng]} icon={dotIcon(result.team_color)}><Popup><strong>{wo.client_name}</strong><br/>{wo.site_address}</Popup></Marker>)}
+                                                    {displayStartPoint && (
+                                                        <CircleMarker center={displayStartPoint} radius={7} color="#22c55e" fillColor="#22c55e" fillOpacity={1}>
+                                                            <Popup><div style={{ fontSize: 11, fontWeight: 'bold', color: '#16a34a' }}>Depart: {displayStartTime}<br/>Vitesse: {displayStartSpeed} km/h</div></Popup>
+                                                        </CircleMarker>
+                                                    )}
+                                                    {displayEndPoint && (
+                                                        <CircleMarker center={displayEndPoint} radius={7} color="#ef4444" fillColor="#ef4444" fillOpacity={1}>
+                                                            <Popup><div style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>Arrivee: {displayEndTime}<br/>Vitesse: {displayEndSpeed} km/h</div></Popup>
+                                                        </CircleMarker>
+                                                    )}
+                                                </MapContainer>
+                                            </div>
+                                            <div className="flex items-center justify-center gap-4 py-2 bg-slate-50 text-[10px] font-semibold border-t border-slate-100">
+                                                <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-green-500 inline-block" /> &lt;30 km/h</span>
+                                                <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-blue-500 inline-block" /> 30-70</span>
+                                                <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-amber-500 inline-block" /> 70-90</span>
+                                                <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-red-500 inline-block" /> &gt;90 km/h</span>
+                                            </div>
+                                        </div>
+                                    );
+                                    return isMapFullscreen ? createPortal(mapContent, document.body) : mapContent;
+                                })()
+                            )}
                 </div>
             )}
 
@@ -471,7 +596,10 @@ export default function GpsVerificationPage() {
         setLoading(true)
         setError(null)
         try {
-            const res = await api.get(`/admin/gps-verification/daily?date=${date}&speed_limit=${speedLimit}`, {
+            let endpoint = `/admin/gps-verification/daily?date=${date}&speed_limit=${speedLimit}`;
+            if (urlVehicle) endpoint += `&vehicle=${encodeURIComponent(urlVehicle)}`;
+            
+            const res = await api.get(endpoint, {
                 validateStatus: () => true,   // previne interceptorul de redirect
                 timeout: 30000,
             })
@@ -489,7 +617,7 @@ export default function GpsVerificationPage() {
         } finally {
             setLoading(false)
         }
-    }, [date, speedLimit])
+    }, [date, speedLimit, urlVehicle])
 
     useEffect(() => { load() }, [load])
 
@@ -497,7 +625,10 @@ export default function GpsVerificationPage() {
     useEffect(() => {
         if (date === today) {
             const intervalId = setInterval(() => {
-                api.get(`/admin/gps-verification/daily?date=${date}&speed_limit=${speedLimit}`, {
+                let endpoint = `/admin/gps-verification/daily?date=${date}&speed_limit=${speedLimit}`;
+                if (urlVehicle) endpoint += `&vehicle=${encodeURIComponent(urlVehicle)}`;
+                
+                api.get(endpoint, {
                     validateStatus: () => true,
                     timeout: 20000,
                 }).then(res => {
@@ -506,7 +637,7 @@ export default function GpsVerificationPage() {
             }, 30000) // 30 seconds
             return () => clearInterval(intervalId)
         }
-    }, [date, today, speedLimit])
+    }, [date, today, speedLimit, urlVehicle])
 
     const filteredResults = data?.results?.filter(r => urlVehicle ? r.vehicle_plate === urlVehicle : true) || []
     const totalViolations = filteredResults.reduce((s, r) => s + r.speed_violations_count, 0)
@@ -514,9 +645,9 @@ export default function GpsVerificationPage() {
     const vehiclesWithData = filteredResults.filter(r => r.gps_points > 0).length
 
     return (
-        <div className="p-4 md:p-6 space-y-5 max-w-4xl mx-auto">
+        <div className="p-6 md:p-8 min-h-screen">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => navigate(-1)}
@@ -588,7 +719,7 @@ export default function GpsVerificationPage() {
                 <div className="flex items-center justify-center py-16">
                     <div className="text-center">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
-                        <p className="text-sm text-slate-500">{t('gps.fetching', 'Recuperation des donnees GPS Flespi...')}</p>
+                        <p className="text-sm text-slate-500">{t('gps.fetching', 'Récupération des données GPS en cours...')}</p>
                     </div>
                 </div>
             )}

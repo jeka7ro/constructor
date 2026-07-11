@@ -25,13 +25,13 @@ export default function GpsHistoryTab({ vehicles = [] }) {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
         if (diffDays < 0) {
-            setError("Data de sfârșit trebuie să fie după data de început.")
+            setError(t('gps.error_end_date_before_start', "La date de fin doit être après la date de début."))
             setReportData([])
             return
         }
 
         if (diffDays > 7) {
-            setError("Te rugăm să selectezi un interval de maxim 7 zile pentru a evita blocarea serverului.")
+            setError(t('gps.error_max_7_days', "Veuillez sélectionner un intervalle de maximum 7 jours pour éviter de bloquer le serveur."))
             setReportData([])
             return
         }
@@ -59,7 +59,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
             
             responses.forEach((res, i) => {
                 if (res.status === 401) {
-                    throw new Error("Sesiune expirată sau token invalid.")
+                    throw new Error(t('gps.error_session_expired', "Session expirée ou jeton invalide."))
                 }
                 const dayResults = res.data?.results || []
                 const date = datesToFetch[i]
@@ -88,7 +88,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
             setReportData(allResults)
         } catch (err) {
             console.error("Error generating report", err)
-            setError("Eroare la extragerea datelor: " + (err.response?.data?.error || err.message || "Eroare rețea"))
+            setError(t('gps.error_fetch_prefix', "Erreur lors de l'extraction des données : ") + (err.response?.data?.error || err.message || t('gps.error_network', "Erreur réseau")))
         } finally {
             setLoading(false)
         }
@@ -105,13 +105,13 @@ export default function GpsHistoryTab({ vehicles = [] }) {
     const columns = [
         {
             key: 'date',
-            label: t('gps.date', 'Dată'),
+            label: t('gps.date', 'Date'),
             sortable: true,
             render: row => <span className="font-bold text-slate-700">{row.date}</span>
         },
         {
             key: 'vehicle',
-            label: t('gps.vehicle', 'Vehicul'),
+            label: t('gps.vehicle', 'Véhicule'),
             sortable: true,
             sortValue: row => row.vehicle_name,
             render: row => (
@@ -123,18 +123,18 @@ export default function GpsHistoryTab({ vehicles = [] }) {
         },
         {
             key: 'team',
-            label: t('gps.team', 'Echipă'),
+            label: t('gps.team', 'Équipe'),
             sortable: true,
             sortValue: row => row.team_name,
             render: row => (
                 <span className="font-semibold text-slate-700">
-                    {row.team_name || t('gps.no_team', 'Fără echipă')}
+                    {row.team_name || t('gps.no_team', 'Sans équipe')}
                 </span>
             )
         },
         {
             key: 'total_km',
-            label: t('gps.route_km', 'KM Traseu'),
+            label: t('gps.route_km', 'KM Trajet'),
             sortable: true,
             render: row => <span className="font-bold text-slate-800">{row.total_km} km</span>
         },
@@ -150,7 +150,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
         },
         {
             key: 'violations',
-            label: t('gps.speed_violations_count', 'Încălcări Viteză'),
+            label: t('gps.speed_violations_count', 'Excès de Vitesse'),
             sortable: true,
             render: row => (
                 row.violations > 0 ? (
@@ -169,31 +169,33 @@ export default function GpsHistoryTab({ vehicles = [] }) {
             {/* Filtre */}
             <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t('gps.start_date', 'Data Început')}</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t('gps.start_date', 'Date de Début')}</label>
                     <input 
                         type="date" 
                         value={dateFrom} 
                         onChange={e => setDateFrom(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                        style={{ appearance: 'none', WebkitAppearance: 'none' }}
                     />
                 </div>
                 <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t('gps.end_date', 'Data Sfârșit')}</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t('gps.end_date', 'Date de Fin')}</label>
                     <input 
                         type="date" 
                         value={dateTo} 
                         onChange={e => setDateTo(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                        style={{ appearance: 'none', WebkitAppearance: 'none' }}
                     />
                 </div>
                 <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t('gps.vehicle', 'Vehicul')}</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{t('gps.vehicle', 'Véhicule')}</label>
                     <select 
                         value={selectedVehicle}
                         onChange={e => setSelectedVehicle(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
                     >
-                        <option value="all">{t('gps.all_vehicles', 'Toate vehiculele')}</option>
+                        <option value="all">{t('gps.all_vehicles', 'Tous les véhicules')}</option>
                         {vehicles.map(v => (
                             <option key={v.id} value={v.plate}>{v.name} ({v.plate})</option>
                         ))}
@@ -211,13 +213,13 @@ export default function GpsHistoryTab({ vehicles = [] }) {
             {reportData.length > 0 && !loading && (
                 <div className="mb-4 flex flex-wrap items-center gap-3 text-sm font-bold text-slate-600">
                     <span className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                        {t('gps.total_rows', 'Total Rânduri')}: <span className="text-slate-800">{reportData.length}</span>
+                        {t('gps.total_rows', 'Total Lignes')}: <span className="text-slate-800">{reportData.length}</span>
                     </span>
                     <span className="bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
                         {t('gps.total_km', 'Total KM')}: <span className="text-blue-700">{totalKm.toFixed(1)} km</span>
                     </span>
                     <span className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
-                        {t('gps.total_violations', 'Total Încălcări')}: <span className="text-red-700">{totalViolations}</span>
+                        {t('gps.total_violations', 'Total Infractions')}: <span className="text-red-700">{totalViolations}</span>
                     </span>
                 </div>
             )}
@@ -226,17 +228,17 @@ export default function GpsHistoryTab({ vehicles = [] }) {
                 {loading ? (
                     <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                        <p className="text-sm font-bold">{t('gps.extracting_data', 'Se extrag datele GPS... poate dura câteva secunde.')}</p>
+                        <p className="text-sm font-bold">{t('gps.extracting_data', 'Extraction des données GPS... cela peut prendre quelques secondes.')}</p>
                     </div>
                 ) : (
                     <DataTable 
                         columns={columns} 
                         data={reportData} 
                         defaultPageSize={25}
-                        emptyText={t('gps.no_results', 'Niciun rezultat găsit pentru filtrele selectate.')}
+                        emptyText={t('gps.no_results', 'Aucun résultat trouvé pour les filtres sélectionnés.')}
                         searchable={true}
-                        searchPlaceholder={t('gps.search_placeholder', 'Caută după vehicul sau echipă...')}
-                        onRowClick={row => navigate(`/admin/tracking?date=${row.date}&vehicle=${row.vehicle_plate}`)}
+                        searchPlaceholder={t('gps.search_placeholder', 'Rechercher par véhicule ou équipe...')}
+                        onRowClick={row => navigate(`/admin/logistica/gps-verification?date=${row.date}&vehicle=${row.vehicle_plate}`)}
                     />
                 )}
             </div>

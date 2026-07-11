@@ -222,7 +222,7 @@ export default function AdminOverview() {
                 await document.exitFullscreen();
             }
         } catch (err) {
-            console.error("Eroare la activarea fullscreen", err);
+            console.error(t('overview.fullscreen_error', 'Erreur lors de l\'activation du plein écran'), err);
         }
     };
 
@@ -497,7 +497,7 @@ export default function AdminOverview() {
             fetchWorkOrdersStats()
         } catch (error) {
             console.error("Error assigning team:", error)
-            alert("Eroare la asignarea echipei.")
+            alert(t('overview.team_assign_error', 'Erreur lors de l\'affectation de l\'équipe.'));
             fetchWorkOrdersStats()
         }
     }
@@ -526,7 +526,7 @@ export default function AdminOverview() {
             fetchWorkOrdersStats()
         } catch (error) {
             console.error("Error assigning client:", error)
-            alert("Eroare la asignarea clientului.")
+            alert(t('overview.client_assign_error', 'Erreur lors de l\'affectation du client.'));
             fetchWorkOrdersStats()
         }
     }
@@ -539,14 +539,14 @@ export default function AdminOverview() {
     const handleDetectGPS = () => {
         setDetectingLocation(true)
         if (!navigator.geolocation) {
-            alert('Geolocația nu este suportată de browser.');
+            alert(t('overview.geo_not_supported', 'La géolocalisation n\'est pas supportée par le navigateur.'));
             setDetectingLocation(false);
             return;
         }
 
         const gpsTimeout = setTimeout(() => {
             setDetectingLocation(false);
-            alert('Timpul a expirat. Verifică setările de permisiuni GPS.');
+            alert(t('overview.geo_timeout', 'Délai dépassé. Vérifiez les paramètres de permission GPS.'));
         }, 8000);
 
         navigator.geolocation.getCurrentPosition(
@@ -561,7 +561,7 @@ export default function AdminOverview() {
                         setQuickCreateForm(p => ({ ...p, address: address, latitude: lat, longitude: lon }))
                     }
                 } catch (e) {
-                    console.error('Eroare reverse geocoding:', e)
+                    console.error(t('overview.geocode_error', 'Erreur de géocodage inversé :'), e)
                 } finally {
                     setDetectingLocation(false)
                 }
@@ -569,7 +569,7 @@ export default function AdminOverview() {
             err => {
                 clearTimeout(gpsTimeout);
                 setDetectingLocation(false);
-                alert('Eroare la detectarea locației.');
+                alert(t('overview.location_detect_error', 'Erreur lors de la détection de la localisation.'));
             },
             { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
         );
@@ -676,7 +676,7 @@ export default function AdminOverview() {
             setQuickCreateStep(1)
         } catch (error) {
             console.error("Error creating client:", error)
-            alert("Eroare la crearea clientului.")
+            alert(t('overview.client_create_error', 'Erreur lors de la création du client.'));
         } finally {
             setQuickCreateSaving(false)
         }
@@ -734,7 +734,7 @@ export default function AdminOverview() {
             }
         } catch (error) {
             console.error("Error quick creating work order:", error)
-            alert("A apărut o eroare la crearea rapidă a comenzii.")
+            alert(t('overview.quick_create_error', 'Une erreur est survenue lors de la création rapide de la commande.'));
         } finally {
             setQuickCreateSaving(false)
         }
@@ -785,7 +785,7 @@ export default function AdminOverview() {
             fetchWorkOrdersStats()
         } catch (error) {
             console.error("Error quick editing work order:", error)
-            alert("A apărut o eroare la salvarea modificărilor.")
+            alert(t('overview.save_changes_error', 'Une erreur est survenue lors de l\'enregistrement des modifications.'));
         } finally {
             setQuickEditSaving(false)
         }
@@ -1071,7 +1071,7 @@ export default function AdminOverview() {
                                 
                                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar min-h-0">
                                     {pendingQuotes.length === 0 && (
-                                        <p className="text-xs text-slate-400 p-2 text-center italic">Aucun devis en attente</p>
+                                        <p className="text-xs text-slate-400 p-2 text-center italic">{t('overview.no_pending_quotes', 'Aucun devis en attente')}</p>
                                     )}
                                     {pendingQuotes.map(quote => (
                                         <div 
@@ -1123,7 +1123,7 @@ export default function AdminOverview() {
                                                             · {getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0)} km
                                                         </span>
                                                     ) : (
-                                                        <span className="font-semibold text-red-500/50 dark:text-red-400/50" title="Lipsă coordonate GPS. Selectează adresa din Google Maps când editezi devizul.">
+                                                        <span className="font-semibold text-red-500/50 dark:text-red-400/50" title={t('overview.missing_gps_tooltip', 'Coordonnées GPS manquantes. Sélectionnez l\'adresse dans Google Maps lors de l\'édition du devis.')}>
                                                             · ? km
                                                         </span>
                                                     )
@@ -1205,7 +1205,7 @@ export default function AdminOverview() {
                         <div className="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
                             <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <Activity className="w-3.5 h-3.5 text-purple-400" />
-                                Activități Raportate
+                                {t('overview.reported_activities', 'Activités Signalées')}
                             </h4>
                             <button onClick={() => setActivityPopup(null)} className="p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
                                 <X className="w-3.5 h-3.5" />
@@ -1363,10 +1363,10 @@ export default function AdminOverview() {
                                         </div>
                                     </div>
                                     <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 -mt-1 pl-1">
-                                        {t('dashboard.quick_create.sand_estimated', 'Nisip estimat:')} {calculatedSand > 0 ? (
-                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tone')}</span>
+                                        {t('dashboard.quick_create.sand_estimated', 'Sable estimé :')} {calculatedSand > 0 ? (
+                                            <span className="text-blue-600 dark:text-blue-500">{Math.round(calculatedSand)} {t('common.tons', 'Tonnes')}</span>
                                         ) : (
-                                            <span className="opacity-60">- {t('dashboard.quick_create.enter_sqm', '(Introduceți m² și grosime)')}</span>
+                                            <span className="opacity-60">- {t('dashboard.quick_create.enter_sqm', '(Entrez m² et épaisseur)')}</span>
                                         )}
                                     </div>
                                     <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -1404,10 +1404,10 @@ export default function AdminOverview() {
                                             value={quickCreateData.teamId || ''}
                                             onChange={val => setQuickCreateData(p => ({...p, teamId: val}))}
                                             options={[
-                                                { value: '', label: t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --') },
+                                                { value: '', label: t('dashboard.quick_create.no_team', '-- Sans équipe (Brouillon) --') },
                                                 ...teams.map(t => ({ value: String(t.id), label: t.name }))
                                             ]}
-                                            placeholder={t('dashboard.quick_create.no_team', '-- Fără echipă (Draft) --')}
+                                            placeholder={t('dashboard.quick_create.no_team', '-- Sans équipe (Brouillon) --')}
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                             menuPosition="top"
                                         />
@@ -1419,21 +1419,21 @@ export default function AdminOverview() {
                                 <>
                                     <div className="flex items-center gap-2 mb-2">
                                         <button type="button" onClick={() => setQuickCreateStep(1)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
-                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('dashboard.quick_create.add_new_client', 'Adaugă Client Nou')}</span>
+                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('dashboard.quick_create.add_new_client', 'Ajouter un Nouveau Client')}</span>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_type', 'Tip Client')}</label>
                                         <div className="flex gap-2">
                                             <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'fizica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> {t('dashboard.quick_create.individual', 'Fizică')}
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'fizica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'fizica'}))} /> {t('dashboard.quick_create.individual', 'Particulier')}
                                             </label>
                                             <label className={`flex-1 flex items-center justify-center gap-2 p-2 border rounded-full cursor-pointer transition-colors ${quickCreateClientForm.type === 'juridica' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> {t('dashboard.quick_create.legal_entity', 'Juridică')}
+                                                <input type="radio" className="hidden" checked={quickCreateClientForm.type === 'juridica'} onChange={() => setQuickCreateClientForm(p => ({...p, type: 'juridica'}))} /> {t('dashboard.quick_create.legal_entity', 'Entreprise')}
                                             </label>
                                         </div>
                                     </div>
                                     <div className="relative z-50">
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_name', 'Nume Client *')}</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.client_name', 'Nom du Client *')}</label>
                                         <input 
                                             type="text" 
                                             autoFocus 
@@ -1450,7 +1450,7 @@ export default function AdminOverview() {
                                                 if (clientSearchResults.length > 0) setShowClientDropdown(true);
                                             }}
                                             className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" 
-                                            placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Popescu Ion / Firma SRL')} 
+                                            placeholder={t('dashboard.quick_create.client_name_placeholder', 'Ex: Jean Dupont / Entreprise SARL')} 
                                         />
                                         {isSearchingClients && (
                                             <div className="absolute right-3 top-[34px]">
@@ -1462,7 +1462,7 @@ export default function AdminOverview() {
                                             <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-64 overflow-y-auto z-50">
                                                 {clientSearchResults.length > 0 && (
                                                     <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase text-slate-500">
-                                                        {t('clients.from_database', 'Din Baza de Date')}
+                                                        {t('clients.from_database', 'Depuis la Base de Données')}
                                                     </div>
                                                 )}
                                                 {clientSearchResults.map(client => (
@@ -1495,7 +1495,7 @@ export default function AdminOverview() {
                                                 {placesSearchResults.length > 0 && (
                                                     <>
                                                         <div className="p-2 bg-amber-50 dark:bg-slate-800 border-y border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase text-amber-600 flex items-center gap-1">
-                                                            <MapPin className="w-3 h-3" /> Google Maps (Firme Noi)
+                                                            <MapPin className="w-3 h-3" /> {t('overview.google_maps_new', 'Google Maps (Nouvelles entreprises)')}
                                                         </div>
                                                         {placesSearchResults.map(place => (
                                                             <div 
@@ -1531,19 +1531,19 @@ export default function AdminOverview() {
                                         )}
                                         {showClientDropdown && clientSearchQuery.length >= 2 && clientSearchResults.length === 0 && placesSearchResults.length === 0 && !isSearchingClients && (
                                             <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 text-center text-xs text-slate-500 z-50">
-                                                {t('clients.no_results', 'Niciun client găsit în baza de date. Vă rugăm continuați crearea.')}
+                                                {t('clients.no_results', 'Aucun client trouvé dans la base de données. Veuillez continuer la création.')}
                                             </div>
                                         )}
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'CNP (Opțional)') : t('dashboard.quick_create.cui', 'CUI / TVA (Opțional)')}</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{quickCreateClientForm.type === 'fizica' ? t('dashboard.quick_create.cnp', 'NISS (Optionnel)') : t('dashboard.quick_create.cui', 'N° TVA (Optionnel)')}</label>
                                         <div className="flex gap-2">
                                             {quickCreateClientForm.type === 'juridica' && (
                                                 <select 
                                                     value={quickCreateClientForm.country} 
                                                     onChange={e => setQuickCreateClientForm(p => ({...p, country: e.target.value}))} 
                                                     className="w-24 h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                                    title={t('dashboard.quick_create.country', 'Țară')}
+                                                    title={t('dashboard.quick_create.country', 'Pays')}
                                                 >
                                                     <option value="BE">🇧🇪 BE</option>
                                                     <option value="RO">🇷🇴 RO</option>
@@ -1590,7 +1590,7 @@ export default function AdminOverview() {
                                                         onClick={handleQuickViesSearch}
                                                         disabled={isSearchingVies || !quickCreateClientForm.identifier}
                                                         className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                                                        title="Caută firmă în VIES"
+                                                        title={t('overview.search_vies', 'Rechercher l\'entreprise dans VIES')}
                                                     >
                                                         {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                                     </button>
@@ -1600,7 +1600,7 @@ export default function AdminOverview() {
                                                             onClick={handleQuickKboSearch}
                                                             disabled={isSearchingKbo || !quickCreateClientForm.identifier}
                                                             className="w-9 h-9 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 font-bold text-[10px]"
-                                                            title="Caută în KBO (Belgia)"
+                                                            title={t('overview.search_kbo', 'Rechercher dans KBO (Belgique)')}
                                                         >
                                                             {isSearchingKbo ? <Loader2 className="w-4 h-4 animate-spin" /> : "KBO"}
                                                         </button>
@@ -1613,12 +1613,12 @@ export default function AdminOverview() {
                                     {quickCreateClientForm.type === 'juridica' && (
                                         <div className="space-y-3">
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresă Sediu')}</label>
+                                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('clients.address', 'Adresse du Siège')}</label>
                                                 <input 
                                                     type="text" 
                                                     value={quickCreateClientForm.address} 
                                                     onChange={e => setQuickCreateClientForm(p => ({...p, address: e.target.value}))} 
-                                                    placeholder={t('clients.address_placeholder', 'Completează sau caută automat cu lupa →')}
+                                                    placeholder={t('clients.address_placeholder', 'Complétez ou recherchez automatiquement avec la loupe →')}
                                                     className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" 
                                                 />
                                             </div>
@@ -1659,7 +1659,7 @@ export default function AdminOverview() {
                                     )}
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.phone', 'Telefon')}</label>
+                                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.phone', 'Téléphone')}</label>
                                             <input type="text" value={quickCreateClientForm.phone} onChange={e => setQuickCreateClientForm(p => ({...p, phone: e.target.value}))} className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
                                         </div>
                                         <div>
@@ -1669,10 +1669,10 @@ export default function AdminOverview() {
                                     </div>
                                     <div className="flex gap-2 pt-3">
                                         <button type="button" onClick={() => setQuickCreateStep(1)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                            {t('common.back', 'Înapoi')}
+                                            {t('common.back', 'Retour')}
                                         </button>
                                         <button type="button" onClick={handleQuickCreateClient} disabled={quickCreateSaving || !quickCreateClientForm.name} className="flex-1 h-11 font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.save_client', 'Salvează Client')}
+                                            {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.save_client', 'Enregistrer le Client')}
                                         </button>
                                     </div>
                                 </>
@@ -1681,10 +1681,10 @@ export default function AdminOverview() {
                         {/* Sticky footer — always visible */}
                         <div className="flex gap-2 p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900 rounded-b-2xl">
                             <button type="button" onClick={() => setQuickCreateData(null)} className="h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                {t('common.cancel', 'Anulează')}
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button type="button" onClick={(e) => handleQuickCreateSubmit(e, false)} disabled={quickCreateSaving || !quickCreateForm.clientId || !quickCreateForm.surface || !quickCreateForm.thickness || parseFloat(quickCreateForm.thickness) < 4} className="flex-1 h-11 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full shadow-sm transition-all flex items-center justify-center gap-2">
-                                {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmă Comanda')}
+                                {quickCreateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Confirmer la Commande')}
                             </button>
                         </div>
                         </form>
@@ -1699,7 +1699,7 @@ export default function AdminOverview() {
                         <div className="px-5 py-4 bg-slate-100 dark:bg-slate-800 flex items-center justify-between rounded-t-2xl border-b border-slate-200 dark:border-slate-700">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                 <Edit2 className="w-4 h-4 text-blue-600" />
-                                {t('dashboard.quick_edit.title', 'Editare Rapidă')}
+                                {t('dashboard.quick_edit.title', 'Édition Rapide')}
                             </h3>
                             <button onClick={() => setQuickEditOrder(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1">
                                 <X className="w-5 h-5" />
@@ -1722,13 +1722,13 @@ export default function AdminOverview() {
                                         }))
                                     }}
                                     options={clients.map(c => ({ value: String(c.id), label: c.name }))}
-                                    placeholder={t('dashboard.quick_create.choose_client', '-- Alege client --')}
+                                    placeholder={t('dashboard.quick_create.choose_client', '-- Choisir un client --')}
                                     buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.address_optional', 'Adresă / Localitate')}</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.address_optional', 'Adresse / Localité')}</label>
                                 <AddressAutocomplete 
                                     value={quickEditForm.address}
                                     onChange={(addr, lat, lon) => {
@@ -1779,7 +1779,7 @@ export default function AdminOverview() {
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_foil: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                     />
-                                    {t('dashboard.quick_create.include_foil', 'Include Folie plastic')}
+                                    {t('dashboard.quick_create.include_foil', 'Include Film plastique')}
                                 </label>
                                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                     <input 
@@ -1788,7 +1788,7 @@ export default function AdminOverview() {
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_mesh: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                     />
-                                    {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică')}
+                                    {t('dashboard.quick_create.include_mesh', 'Include Treillis métallique')}
                                 </label>
                                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                     <input 
@@ -1797,7 +1797,7 @@ export default function AdminOverview() {
                                         onChange={e => setQuickEditForm({ ...quickEditForm, has_fiber: e.target.checked })}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                     />
-                                    {t('dashboard.quick_create.include_fiber', 'Include Fibre')}
+                                    {t('dashboard.quick_create.include_fiber', 'Include Fibres')}
                                 </label>
                                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                     <input 
@@ -1810,25 +1810,25 @@ export default function AdminOverview() {
                                 </label>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Echipă Alocată')}</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.allocated_team', 'Équipe Allouée')}</label>
                                 <SearchableSelect
                                     value={quickEditForm.teamId || ''}
                                     onChange={val => setQuickEditForm(p => ({...p, teamId: val}))}
                                     options={[
-                                        { value: '', label: t('dashboard.quick_create.no_team', '-- Neasignat --') },
+                                        { value: '', label: t('dashboard.quick_create.no_team', '-- Non assigné --') },
                                         ...teams.map(t => ({ value: String(t.id), label: t.name }))
                                     ]}
-                                    placeholder={t('dashboard.quick_create.no_team', '-- Neasignat --')}
+                                    placeholder={t('dashboard.quick_create.no_team', '-- Non assigné --')}
                                     buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                     menuPosition="top"
                                 />
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
                                 <button type="button" onClick={() => setQuickEditOrder(null)} className="flex-1 h-11 px-4 font-bold text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-colors">
-                                    {t('common.cancel', 'Anulează')}
+                                    {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button type="submit" disabled={quickEditSaving || (quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 4)} className="flex-1 h-11 px-4 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Salvează')}
+                                    {quickEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('dashboard.quick_create.confirm_order', 'Enregistrer')}
                                 </button>
                             </div>
                         </form>
@@ -1999,8 +1999,8 @@ export default function AdminOverview() {
                                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="" hide />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', backgroundColor: isDark ? '#1e293b' : '#fff', color: isDark ? '#e2e8f0' : '#1e293b' }}
-                                    formatter={(value, name) => [name === 'hours' ? `${value}h` : value, name === 'hours' ? 'Ore' : 'Muncitori']}
-                                    labelFormatter={(label) => `Data: ${label}`}
+                                    formatter={(value, name) => [name === 'hours' ? `${value}h` : value, name === 'hours' ? 'Heures' : t('dashboard.workers')]}
+                                    labelFormatter={(label) => `Date: ${label}`}
                                 />
                                 <defs>
                                     <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -2052,7 +2052,7 @@ export default function AdminOverview() {
                                         {site.active > 0 && (
                                             <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
                                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                                {site.active} activ{site.active > 1 ? 'i' : ''}
+                                                {site.active} actif{site.active > 1 ? 's' : ''}
                                             </span>
                                         )}
                                         {site.onBreak > 0 && (
@@ -2184,7 +2184,7 @@ export default function AdminOverview() {
                         <div>
                             <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
-                                Alerte Flotă (Documente)
+                                {t('dashboard.fleet_alerts', 'Alertes Flotte (Documents)')}
                             </h3>
                             <div className="space-y-2">
                                 {fleetAlerts.map((a, i) => (
@@ -2192,7 +2192,7 @@ export default function AdminOverview() {
                                         <div className="flex justify-between items-start">
                                             <span className="font-bold text-slate-800 dark:text-white truncate" title={a.document_name}>{a.document_name}</span>
                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${a.status === 'expired' ? 'bg-red-200 text-red-700' : 'bg-orange-200 text-orange-700'}`}>
-                                                {a.status === 'expired' ? 'Expirat' : `Expiră în ${a.days_left} zile`}
+                                                {a.status === 'expired' ? t('common.expired', 'Expiré') : t('common.expires_in_days', 'Expire dans {{count}} jours', { count: a.days_left })}
                                             </span>
                                         </div>
                                         <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
@@ -2400,7 +2400,7 @@ export default function AdminOverview() {
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                             <Package className="w-4 h-4 text-blue-500" />
-                            Necesar de Livrat
+                            {t('dashboard.need_to_deliver', 'Nécessaire à Livrer')}
                             {necesar.length > 0 && (
                                 <span className="ml-1 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
                                     {necesar.length}
@@ -2408,13 +2408,13 @@ export default function AdminOverview() {
                             )}
                         </h3>
                         <button onClick={() => navigate('/admin/material-requests')} className="text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1">
-                            <ChevronRight className="w-3 h-3" /> Toate
+                            <ChevronRight className="w-3 h-3" /> {t('common.all', 'Toutes')}
                         </button>
                     </div>
                     {necesar.length === 0 ? (
                         <div className="px-5 py-5 text-center">
                             <CheckCircle className="w-7 h-7 text-emerald-400 mx-auto mb-1" />
-                            <p className="text-sm text-slate-500 font-medium">Totul a fost livrat</p>
+                            <p className="text-sm text-slate-500 font-medium">{t('dashboard.all_delivered', 'Tout a été livré')}</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -2424,12 +2424,12 @@ export default function AdminOverview() {
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <AvatarImg path={req.avatar_path} name={req.user_name} size="w-7 h-7" textSize="text-[10px]" />
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</p>
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{req.user_name || t('common.worker', 'Travailleur')}</p>
                                                 <p className="text-xs text-slate-500 truncate mt-0.5">{req.items_text?.split('\n')[0]?.substring(0, 50)}</p>
                                             </div>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">APROBAT</span>
+                                            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{t('common.approved_upper', 'APPROUVÉ')}</span>
                                             <p className="text-[10px] text-slate-400 mt-1">{req.site_name || '—'}</p>
                                         </div>
                                     </div>
@@ -2443,7 +2443,7 @@ export default function AdminOverview() {
                         <div className="px-5 py-2 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <CheckCircle className="w-3 h-3 text-emerald-500" />
-                                Livrat Recent
+                                {t('dashboard.recently_delivered', 'Récemment Livré')}
                                 {livrat.length > 0 && (
                                     <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{livrat.length}</span>
                                 )}
@@ -2451,7 +2451,7 @@ export default function AdminOverview() {
                         </div>
                         {livrat.length === 0 ? (
                             <div className="px-5 py-4 text-center">
-                                <p className="text-xs text-slate-400">Nicio livrare înregistrată</p>
+                                <p className="text-xs text-slate-400">{t('dashboard.no_deliveries', 'Aucune livraison enregistrée')}</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-52 overflow-y-auto">
@@ -2461,7 +2461,7 @@ export default function AdminOverview() {
                                         <div className="flex items-center justify-between mb-1 gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <AvatarImg path={req.avatar_path} name={req.user_name} size="w-6 h-6" textSize="text-[9px]" />
-                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || 'Muncitor'}</span>
+                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{req.user_name || t('common.worker', 'Travailleur')}</span>
                                             </div>
                                             <span className="text-[10px] text-slate-400 shrink-0">
                                                 {req.updated_at ? new Date(req.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : ''}
@@ -2560,7 +2560,7 @@ export default function AdminOverview() {
                                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 cursor-pointer hover:bg-violet-200 transition-colors"
                                     >
                                         <Activity className="w-3 h-3" />
-                                        {worker.activities.length} {worker.activities.length === 1 ? 'activitate' : 'activități'}
+                                        {worker.activities.length} {worker.activities.length === 1 ? t('dashboard.activity_singular', 'activité') : t('dashboard.activity_plural', 'activités')}
                                     </button>
                                 </div>
                             ) : <span className="text-xs text-slate-400">—</span>
@@ -2598,7 +2598,7 @@ export default function AdminOverview() {
                                         columns={columns}
                                         data={liveWorkers}
                                         searchable={true}
-                                        searchPlaceholder="Caută muncitor..."
+                                        searchPlaceholder={t('dashboard.search_worker', 'Rechercher un travailleur...')}
                                         pagination={true}
                                         itemsPerPage={10}
                                     />
@@ -2619,7 +2619,7 @@ export default function AdminOverview() {
                                         columns={columns}
                                         data={doneWorkers}
                                         searchable={true}
-                                        searchPlaceholder="Caută muncitor terminat..."
+                                        searchPlaceholder={t('dashboard.search_finished_worker', 'Rechercher un travailleur terminé...')}
                                         pagination={true}
                                         itemsPerPage={5}
                                     />
@@ -2703,7 +2703,7 @@ export default function AdminOverview() {
                                             <div className="text-lg font-bold text-slate-700">
                                                 {selectedWorker.check_in_time ? new Date(selectedWorker.check_in_time).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Berlin',  hour: '2-digit', minute: '2-digit' }) : '—'}
                                             </div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">Check-in</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">{t('dashboard.check_in', 'Pointage')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2773,7 +2773,7 @@ export default function AdminOverview() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center py-20 text-slate-400"><p>Eroare la încărcarea datelor</p></div>
+                            <div className="flex items-center justify-center py-20 text-slate-400"><p>{t('common.error_loading', 'Erreur de chargement des données')}</p></div>
                         )}
                     </div>
                 </div>,

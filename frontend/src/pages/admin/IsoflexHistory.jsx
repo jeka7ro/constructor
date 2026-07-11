@@ -5,6 +5,7 @@ import {
     MapPin, User, Calendar, Package, Building2, Search, X,
     CheckCircle2, Clock, AlertCircle
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
 
@@ -16,10 +17,10 @@ const fmt = (d) => {
     return `${day}/${m}/${y}`
 }
 
-const statusLabel = (s) => {
+const statusLabel = (s, t) => {
     const map = {
-        open: 'Deschisă', closed: 'Închisă', cancelled: 'Anulată',
-        planned: 'Planificată', completed: 'Finalizată', draft: 'Ciornă'
+        open: t('isoflex.status_open', 'Deschisă'), closed: t('isoflex.status_closed', 'Închisă'), cancelled: t('isoflex.status_cancelled', 'Anulată'),
+        planned: t('isoflex.status_planned', 'Planificată'), completed: t('isoflex.status_completed', 'Finalizată'), draft: t('isoflex.status_draft', 'Ciornă')
     }
     return map[s?.toLowerCase()] || s || '—'
 }
@@ -35,6 +36,7 @@ const statusColor = (s) => {
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
 
 function DetailModal({ item, onClose }) {
+    const { t } = useTranslation();
     if (!item) return null
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -49,7 +51,7 @@ function DetailModal({ item, onClose }) {
                             <span className="text-xs font-mono text-slate-400 dark:text-slate-500">#{item.ext_id}</span>
                             {item.in_db && (
                                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800">
-                                    <CheckCircle2 size={10} /> În sistem
+                                    <CheckCircle2 size={10} /> {t('isoflex.in_system', 'În sistem')}
                                 </span>
                             )}
                         </div>
@@ -63,10 +65,10 @@ function DetailModal({ item, onClose }) {
                 {/* Body */}
                 <div className="p-5 space-y-4">
                     <div className="grid grid-cols-2 gap-3">
-                        <InfoRow icon={<Calendar size={14} />} label="Dată" value={fmt(item.date)} />
-                        <InfoRow icon={<Building2 size={14} />} label="Client" value={item.client_name || '—'} />
-                        <InfoRow icon={<User size={14} />} label="Echipă" value={item.team_name} />
-                        <InfoRow icon={<Package size={14} />} label="Volum total" value={item.total_volume > 0 ? `${item.total_volume} m²` : '—'} />
+                        <InfoRow icon={<Calendar size={14} />} label={t('isoflex.date', 'Dată')} value={fmt(item.date)} />
+                        <InfoRow icon={<Building2 size={14} />} label={t('isoflex.client', 'Client')} value={item.client_name || '—'} />
+                        <InfoRow icon={<User size={14} />} label={t('isoflex.team', 'Echipă')} value={item.team_name} />
+                        <InfoRow icon={<Package size={14} />} label={t('isoflex.total_volume', 'Volum total')} value={item.total_volume > 0 ? `${item.total_volume} m²` : '—'} />
                     </div>
 
                     {item.address && (
@@ -78,14 +80,14 @@ function DetailModal({ item, onClose }) {
 
                     {item.materials_summary && (
                         <div>
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Materiale / Lucrări</p>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('isoflex.materials_works', 'Materiale / Lucrări')}</p>
                             <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{item.materials_summary}</p>
                         </div>
                     )}
 
                     {item.raw?.notes && (
                         <div>
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Note</p>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('isoflex.notes', 'Note')}</p>
                             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{item.raw.notes}</p>
                         </div>
                     )}
@@ -94,7 +96,7 @@ function DetailModal({ item, onClose }) {
                     <div className="flex items-center justify-between pt-1">
                         <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${statusColor(item.status)}`}>
                             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-                            {statusLabel(item.status)}
+                            {statusLabel(item.status, t)}
                         </span>
                         <a
                             href={`https://app.robaws.com/#/work-orders/${item.ext_id}`}
@@ -102,7 +104,7 @@ function DetailModal({ item, onClose }) {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                         >
-                            <ExternalLink size={12} /> Deschide în Robaws
+                            <ExternalLink size={12} /> {t('isoflex.open_robaws', 'Deschide în Robaws')}
                         </a>
                     </div>
                 </div>
@@ -124,6 +126,7 @@ function InfoRow({ icon, label, value }) {
 
 export default function IsoflexHistory() {
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const [items, setItems] = useState([])
     const [teamsMeta, setTeamsMeta] = useState([])
     const [loading, setLoading] = useState(false)
@@ -149,7 +152,7 @@ export default function IsoflexHistory() {
             setTeamsMeta(res.data.teams || [])
             setPage(p)
         } catch (e) {
-            setError(e.response?.data?.detail || 'Eroare la încărcare')
+            setError(e.response?.data?.detail || t('isoflex.load_error', 'Eroare la încărcare'))
         } finally {
             setLoading(false)
         }
@@ -163,7 +166,7 @@ export default function IsoflexHistory() {
             await api.post('/admin/sync-robaws')
             await load(0, filterTeam)
         } catch (e) {
-            setError(e.response?.data?.detail || 'Eroare la sincronizare')
+            setError(e.response?.data?.detail || t('isoflex.sync_error', 'Eroare la sincronizare'))
         } finally {
             setSyncing(false)
         }
@@ -188,7 +191,7 @@ export default function IsoflexHistory() {
                     setSyncing(false)
                 }
             } catch (e) {
-                setError(e.response?.data?.detail || 'Eroare')
+                setError(e.response?.data?.detail || t('isoflex.error', 'Eroare'))
             } finally {
                 setLoading(false)
                 setSyncing(false)
@@ -223,7 +226,7 @@ export default function IsoflexHistory() {
 
         {
             key: 'date',
-            label: 'Dată',
+            label: t('isoflex.col_date', 'Dată'),
             sortable: true,
             render: (row) => (
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -233,7 +236,7 @@ export default function IsoflexHistory() {
         },
         {
             key: 'title',
-            label: 'Titlu',
+            label: t('isoflex.col_title', 'Titlu'),
             sortable: true,
             render: (row) => (
                 <div className="min-w-0">
@@ -246,7 +249,7 @@ export default function IsoflexHistory() {
         },
         {
             key: 'team_name',
-            label: 'Echipă',
+            label: t('isoflex.col_team', 'Echipă'),
             sortable: true,
             render: (row) => (
                 <span className="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.team_name}</span>
@@ -254,14 +257,14 @@ export default function IsoflexHistory() {
         },
         {
             key: 'address',
-            label: 'Adresă',
+            label: t('isoflex.col_address', 'Adresă'),
             render: (row) => (
                 <span className="text-xs text-slate-500 dark:text-slate-400 max-w-[180px] truncate block">{row.address || '—'}</span>
             )
         },
         {
             key: 'total_volume',
-            label: 'Volum',
+            label: t('isoflex.col_volume', 'Volum'),
             sortable: true,
             render: (row) => (
                 <span className="text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -271,19 +274,19 @@ export default function IsoflexHistory() {
         },
         {
             key: 'status',
-            label: 'Status Robaws',
+            label: t('isoflex.col_status', 'Status Robaws'),
             render: (row) => (
                 <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${statusColor(row.status)}`}>
-                    {statusLabel(row.status)}
+                    {statusLabel(row.status, t)}
                 </span>
             )
         },
         {
             key: 'in_db',
-            label: 'În sistem',
+            label: t('isoflex.col_in_system', 'În sistem'),
             render: (row) => row.in_db
-                ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400"><CheckCircle2 size={13} /> Da</span>
-                : <span className="inline-flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400"><Clock size={13} /> Nu</span>
+                ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400"><CheckCircle2 size={13} /> {t('isoflex.yes', 'Da')}</span>
+                : <span className="inline-flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400"><Clock size={13} /> {t('isoflex.no', 'Nu')}</span>
         },
     ]
 
@@ -301,7 +304,7 @@ export default function IsoflexHistory() {
                                 : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                         >
-                            <span className="font-medium">Toate</span>
+                            <span className="font-medium">{t('isoflex.all', 'Toate')}</span>
                             <span className="text-slate-400 dark:text-slate-500">• {totalInRobaws}</span>
                         </button>
                         {teamsMeta.map(t => (
@@ -332,7 +335,7 @@ export default function IsoflexHistory() {
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Caută titlu, client, adresă..."
+                        placeholder={t('isoflex.search_placeholder', 'Rechercher titre, client, adresse...')}
                         className="w-full pl-8 pr-8 py-1.5 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                     />
                     {search && (
@@ -351,18 +354,18 @@ export default function IsoflexHistory() {
                     }`}
                 >
                     <Clock size={13} />
-                    Neimportate
+                    {t('isoflex.not_imported', 'Neimportate')}
                 </button>
 
                 {/* Sync from Robaws */}
                 <button
                     onClick={syncFromRobaws}
                     disabled={syncing || loading}
-                    title="Sincronizează din Robaws"
+                    title={t('isoflex.sync_title', 'Sincronizează din Robaws')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
                 >
                     <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-                    {syncing ? 'Sync...' : ''}
+                    {syncing ? t('isoflex.syncing', 'Sync...') : ''}
                 </button>
             </div>
 
@@ -383,7 +386,7 @@ export default function IsoflexHistory() {
                 defaultSortKey="date"
                 defaultSortDir="desc"
                 searchable={false}
-                emptyText={loading ? 'Se încarcă...' : 'Nu s-au găsit lucrări.'}
+                emptyText={loading ? t('isoflex.loading', 'Se încarcă...') : t('isoflex.no_results', 'Nu s-au găsit lucrări.')}
                 onRowClick={(row) => {
                     if (row.local_id) {
                         navigate(`/admin/work-orders/${row.local_id}`)
@@ -402,15 +405,15 @@ export default function IsoflexHistory() {
                         disabled={page === 0 || loading}
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                        <ChevronLeft size={14} /> Precedenta
+                        <ChevronLeft size={14} /> {t('isoflex.prev_page', 'Precedenta')}
                     </button>
-                    <span className="text-sm text-slate-500 dark:text-slate-400 px-2">Pagina {page + 1}</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400 px-2">{t('isoflex.page', 'Pagina')} {page + 1}</span>
                     <button
                         onClick={() => load(page + 1, filterTeam)}
                         disabled={loading || teamsMeta.every(t => (page + 1) >= (t.total_pages || 1))}
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                        Următoarea <ChevronRight size={14} />
+                        {t('isoflex.next_page', 'Următoarea')} <ChevronRight size={14} />
                     </button>
                 </div>
             )}

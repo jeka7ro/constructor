@@ -1,15 +1,8 @@
 import sys
 import os
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
-
-from app.database import SessionLocal
+sys.path.insert(0, os.path.abspath('backend'))
+from app.db.session import SessionLocal
 from app.models import Organization
-
 db = SessionLocal()
-try:
-    orgs = db.query(Organization).all()
-    print(f"Success! Found {len(orgs)} organizations.")
-    if len(orgs) > 0:
-        print(f"First org country: {orgs[0].country}")
-except Exception as e:
-    print(f"Error querying organizations: {e}")
+org = db.query(Organization).first()
+print(type(org.transport_allowed_days), repr(org.transport_allowed_days))

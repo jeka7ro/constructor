@@ -143,7 +143,7 @@ export default function ActivitiesManagement() {
                     fetchData()
                 } catch (error) {
                     console.error('Error deleting category:', error)
-                    showDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_category'), confirmText: 'OK', cancelText: null })
+                    showDialog({ type: 'danger', title: t('common.error', 'Erreur'), message: error.response?.data?.detail || t('activities.errors.delete_category'), confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -171,7 +171,7 @@ export default function ActivitiesManagement() {
             fetchData()
         } catch (error) {
             console.error('Error saving activity:', error)
-            showDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.save_activity'), confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: t('common.error', 'Erreur'), message: error.response?.data?.detail || t('activities.errors.save_activity'), confirmText: 'OK', cancelText: null })
         }
     }
 
@@ -203,7 +203,7 @@ export default function ActivitiesManagement() {
             type: 'danger',
             title: t('activities.delete.activity_title'),
             message: t('activities.delete.activity_message'),
-            confirmText: 'Șterge',
+            confirmText: t('common.delete', 'Supprimer'),
             onConfirm: async () => {
                 try {
                     const response = await api.delete(`/admin/activities/${id}`)
@@ -219,7 +219,7 @@ export default function ActivitiesManagement() {
                     fetchData()
                 } catch (error) {
                     console.error('Error deleting activity:', error)
-                    showDialog({ type: 'danger', title: 'Eroare', message: error.response?.data?.detail || t('activities.errors.delete_activity'), confirmText: 'OK', cancelText: null })
+                    showDialog({ type: 'danger', title: t('common.error', 'Erreur'), message: error.response?.data?.detail || t('activities.errors.delete_activity'), confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -283,7 +283,7 @@ export default function ActivitiesManagement() {
                             onChange={(e) => setShowInactive(e.target.checked)} 
                             className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
                         />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Arhiva (Inactive)</span>
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('activities.archive_inactive', 'Archive (Inactives)')}</span>
                     </label>
 
                     <button
@@ -418,7 +418,7 @@ export default function ActivitiesManagement() {
                                                 <button
                                                     onClick={() => handleDeleteCategory(cat.id)}
                                                     className="p-2 hover:bg-red-50 rounded-full transition-colors"
-                                                    title="Șterge categoria"
+                                                    title={t('activities.delete_category', 'Supprimer la catégorie')}
                                                 >
                                                     <Trash2 className="w-4 h-4 text-red-600" />
                                                 </button>
@@ -499,7 +499,7 @@ export default function ActivitiesManagement() {
                                                                     <button
                                                                         onClick={() => handleDeleteActivity(activity.id)}
                                                                         className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400"
-                                                                        title="Șterge"
+                                                                        title={t('common.delete', 'Supprimer')}
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
                                                                     </button>

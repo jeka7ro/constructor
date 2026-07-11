@@ -53,7 +53,7 @@ export default function SitePhotosPage() {
             type: 'danger',
             title: t('common.delete_photo'),
             message: t('photos.delete_single_confirm'),
-            confirmText: 'Șterge',
+            confirmText: 'Supprimer',
             onConfirm: async () => {
                 try {
                     await api.delete(`/site-photos/${id}`)
@@ -68,9 +68,9 @@ export default function SitePhotosPage() {
         if (selected.size === 0) return
         openDialog({
             type: 'danger',
-            title: 'Șterge Poze Selectate',
+            title: 'Supprimer Poze Selectate',
             message: t('photos.delete_multiple_confirm', { count: selected.size }),
-            confirmText: 'Șterge',
+            confirmText: 'Supprimer',
             onConfirm: async () => {
                 try {
                     await Promise.all([...selected].map(id => api.delete(`/site-photos/${id}`)))
@@ -193,7 +193,7 @@ export default function SitePhotosPage() {
                                         onClick={handleBulkDelete}
                                         className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                                     >
-                                        <Trash2 className="w-3.5 h-3.5" /> Șterge
+                                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
                                     </button>
                                 </div>
                             )}
@@ -251,10 +251,10 @@ export default function SitePhotosPage() {
                                         <button onClick={(e) => { e.stopPropagation(); handleDownload(photo) }} className="p-1.5 bg-white/90 hover:bg-white text-slate-600 rounded-lg shadow-sm" title={t('common.download')}>
                                             <Download className="w-3.5 h-3.5" />
                                         </button>
-                                        <button onClick={(e) => { e.stopPropagation(); startEdit(photo) }} className="p-1.5 bg-white/90 hover:bg-white text-slate-600 rounded-lg shadow-sm" title="Editează">
+                                        <button onClick={(e) => { e.stopPropagation(); startEdit(photo) }} className="p-1.5 bg-white/90 hover:bg-white text-slate-600 rounded-lg shadow-sm" title="Éditer">
                                             <Edit3 className="w-3.5 h-3.5" />
                                         </button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(photo.id) }} className="p-1.5 bg-red-500/80 hover:bg-red-600 text-white rounded-lg shadow-sm" title="Șterge">
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(photo.id) }} className="p-1.5 bg-red-500/80 hover:bg-red-600 text-white rounded-lg shadow-sm" title="Supprimer">
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
@@ -280,7 +280,7 @@ export default function SitePhotosPage() {
                                         </p>
                                     ) : (
                                         <button onClick={() => startEdit(photo)} className="text-xs text-slate-400 hover:text-violet-500 mb-2 flex items-center gap-1">
-                                            <Edit3 className="w-3 h-3" /> Adaugă descriere
+                                            <Edit3 className="w-3 h-3" /> Ajouter descriere
                                         </button>
                                     )}
                                     <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -373,10 +373,10 @@ export default function SitePhotosPage() {
                                                 <button onClick={() => handleDownload(photo)} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title={t('common.download')}>
                                                     <Download className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => startEdit(photo)} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Editează">
+                                                <button onClick={() => startEdit(photo)} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors" title="Éditer">
                                                     <Edit3 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDelete(photo.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Șterge">
+                                                <button onClick={() => handleDelete(photo.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Supprimer">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>

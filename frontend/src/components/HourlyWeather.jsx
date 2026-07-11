@@ -17,7 +17,10 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
         }
 
         const targetDate = dateStr.split('T')[0];
-        const cacheKey = `hourly_${parseFloat(lat).toFixed(2)}_${parseFloat(lon).toFixed(2)}_${targetDate}`;
+        // Round to 1 decimal (~11km) to drastically increase cache hits and reduce API calls
+        const roundedLat = parseFloat(lat).toFixed(1);
+        const roundedLon = parseFloat(lon).toFixed(1);
+        const cacheKey = `hourly_${roundedLat}_${roundedLon}_${targetDate}`;
 
         const targetHour = orderTime ? parseInt(orderTime.split(':')[0], 10) : 8;
 
@@ -59,14 +62,21 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
         };
 
         if (weatherCache[cacheKey]) {
+            if (weatherCache[cacheKey]?._error && (Date.now() - weatherCache[cacheKey]._ts) < 600000) {
+                setError(true);
+                return;
+            }
             if (weatherCache[cacheKey] instanceof Promise) {
                 setLoading(true);
                 weatherCache[cacheKey].then(res => {
-                    if (res) processData(res);
+                    if (res && !res._error) processData(res);
+                    else setError(true);
                     setLoading(false);
                 });
-            } else {
+            } else if (!weatherCache[cacheKey]?._error) {
                 processData(weatherCache[cacheKey]);
+            } else {
+                setError(true);
             }
             return;
         }
@@ -76,26 +86,36 @@ export default function HourlyWeather({ lat, lon, dateStr, address, orderTime, c
         const today = new Date();
         const diffDays = (today - dateObj) / (1000 * 60 * 60 * 24);
         
-        let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature&timezone=auto&start_date=${targetDate}&end_date=${targetDate}`;
+        let url = `https://api.open-meteo.com/v1/forecast?latitude=${roundedLat}&longitude=${roundedLon}&hourly=temperature_2m,precipitation_probability,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature&timezone=auto&start_date=${targetDate}&end_date=${targetDate}`;
         if (diffDays > 80) {
-            url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${targetDate}&end_date=${targetDate}&hourly=temperature_2m,precipitation,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature&timezone=auto`;
+            url = `https://archive-api.open-meteo.com/v1/archive?latitude=${roundedLat}&longitude=${roundedLon}&start_date=${targetDate}&end_date=${targetDate}&hourly=temperature_2m,precipitation,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature&timezone=auto`;
         }
         
         const promise = fetch(url)
             .then(res => res.json())
             .then(resData => {
-                const h = resData?.hourly;
+                if (resData.error || !resData.hourly) {
+                    const errObj = { _error: true, _ts: Date.now() };
+                    weatherCache[cacheKey] = errObj;
+                    return errObj;
+                }
+                const h = resData.hourly;
                 weatherCache[cacheKey] = h;
                 return h;
             })
             .catch(() => {
-                weatherCache[cacheKey] = null;
-                return null;
+                const errObj = { _error: true, _ts: Date.now() };
+                weatherCache[cacheKey] = errObj;
+                return errObj;
             });
             
         weatherCache[cacheKey] = promise;
         promise.then(res => {
-            processData(res);
+            if (res && !res._error) {
+                processData(res);
+            } else {
+                setError(true);
+            }
             setLoading(false);
         });
 

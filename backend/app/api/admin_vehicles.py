@@ -82,32 +82,38 @@ class EquipmentLogCreate(BaseModel):
 
 def get_vehicle_with_ids(vehicle: Vehicle, db: Session) -> dict:
     """Build response dict with associated site_ids and user_ids."""
-    site_ids = [
-        a.site_id for a in db.query(VehicleSiteAssignment)
-        .filter(VehicleSiteAssignment.vehicle_id == vehicle.id, VehicleSiteAssignment.is_active == True)
-        .all()
-    ]
-    user_ids = [
-        a.user_id for a in db.query(VehicleUserAssignment)
-        .filter(VehicleUserAssignment.vehicle_id == vehicle.id, VehicleUserAssignment.is_active == True)
-        .all()
-    ]
-    return {
-        "id": vehicle.id,
-        "name": vehicle.name,
-        "plate_number": vehicle.plate_number,
-        "chassis_number": vehicle.chassis_number,
-        "flespi_device_id": vehicle.flespi_device_id,
-        "imei": vehicle.imei,
-        "type": vehicle.type,
-        "year": vehicle.year,
-        "status": vehicle.status,
-        "notes": vehicle.notes,
-        "documents": vehicle.documents,
-        "site_ids": site_ids,
-        "user_ids": user_ids,
-        "created_at": vehicle.created_at,
-    }
+    try:
+        site_ids = [
+            a.site_id for a in db.query(VehicleSiteAssignment)
+            .filter(VehicleSiteAssignment.vehicle_id == vehicle.id, VehicleSiteAssignment.is_active == True)
+            .all()
+        ]
+        user_ids = [
+            a.user_id for a in db.query(VehicleUserAssignment)
+            .filter(VehicleUserAssignment.vehicle_id == vehicle.id, VehicleUserAssignment.is_active == True)
+            .all()
+        ]
+        return {
+            "id": vehicle.id,
+            "name": vehicle.name,
+            "plate_number": vehicle.plate_number,
+            "chassis_number": vehicle.chassis_number,
+            "flespi_device_id": vehicle.flespi_device_id,
+            "imei": vehicle.imei,
+            "type": vehicle.type,
+            "year": vehicle.year,
+            "status": vehicle.status,
+            "notes": vehicle.notes,
+            "documents": vehicle.documents,
+            "site_ids": site_ids,
+            "user_ids": user_ids,
+            "created_at": vehicle.created_at,
+        }
+    except Exception as e:
+        import traceback
+        with open("error.log", "a") as f:
+            f.write(traceback.format_exc())
+        raise
 
 
 def sync_assignments(vehicle_id: str, new_site_ids: List[str], new_user_ids: List[str], db: Session):
@@ -364,9 +370,20 @@ def update_vehicle(
             db,
         )
 
-    db.commit()
-    db.refresh(v)
-    return get_vehicle_with_ids(v, db)
+    try:
+        db.commit()
+        db.refresh(v)
+        return get_vehicle_with_ids(v, db)
+    except Exception as e:
+        db.rollback()
+        err_str = str(e).lower()
+        if "unique" in err_str or "duplicate" in err_str:
+            if "imei" in err_str:
+                raise HTTPException(status_code=422, detail="Cet IMEI est déjà utilisé par un autre véhicule.")
+            if "flespi_device_id" in err_str:
+                raise HTTPException(status_code=422, detail="Cet ID GPS est déjà utilisé par un autre véhicule.")
+            raise HTTPException(status_code=422, detail="Une valeur en double a été détectée. Vérifiez l'IMEI et l'ID GPS.")
+        raise HTTPException(status_code=500, detail="Erreur lors de la sauvegarde.")
 
 
 @router.delete("/{vehicle_id}", status_code=204)

@@ -48,7 +48,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                 ref={btnRef} 
                 onClick={toggle} 
                 className="p-1.5 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-md transition-colors border border-slate-200 shadow-sm"
-                title={t('invoicing.menu_actions', 'Meniu Acțiuni')}
+                title={t('invoicing.menu_actions', 'Menu Actions')}
             >
                 <MoreVertical className="w-4 h-4" />
             </button>
@@ -65,21 +65,21 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <FileOutput className="w-4 h-4 text-slate-400" />
-                                {t('invoicing.view_pdf', 'Descarcă / Vezi PDF')}
+                                {t('invoicing.view_pdf', 'Télécharger / Voir PDF')}
                             </button>
                             <button 
                                 onClick={() => { onEdit(wo); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 <Pencil className="w-4 h-4 text-slate-400" />
-                                {t('invoicing.edit_doc', 'Editează Document')}
+                                {t('invoicing.edit_doc', 'Éditer le Document')}
                             </button>
                             <button
                                 onClick={() => { onCopyLink(wo); setIsOpen(false); }}
                                 className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             >
                                 {copiedToken === wo.token ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                                {t('invoicing.copy_link', 'Copiază Link Client')}
+                                {t('invoicing.copy_link', 'Copier le Lien Client')}
                             </button>
 
                             {wo.is_invoiced && (
@@ -89,14 +89,14 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                                         className="w-full text-left px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
                                     >
                                         {wo.billtobox_status === 'sent' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Send className="w-4 h-4 text-emerald-500" />}
-                                        {wo.billtobox_status === 'sent' ? 'Retrimite la Billtobox' : 'Trimite la Billtobox'}
+                                        {wo.billtobox_status === 'sent' ? t('invoicing.resend_billtobox', 'Renvoyer à Billtobox') : t('invoicing.send_billtobox', 'Envoyer à Billtobox')}
                                     </button>
                                     <button
                                         onClick={() => { onStorno(wo.id); setIsOpen(false); }}
                                         className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2"
                                     >
                                         <XCircle className="w-4 h-4 text-red-500" />
-                                        {t('invoicing.storno', 'Storno / Anulează Factura')}
+                                        {t('invoicing.storno', 'Annuler la Facture')}
                                     </button>
                                 </>
                             )}
@@ -107,7 +107,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                             className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                         >
                             <FileOutput className="w-4 h-4 text-slate-400" />
-                            {t('invoicing.generate_proforma', 'Generează Proformă')}
+                            {t('invoicing.generate_proforma', 'Générer la Proforma')}
                         </button>
                     )}
                     
@@ -117,7 +117,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                             className="w-full text-left px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 border-t border-slate-100 mt-1 pt-2 font-bold"
                         >
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            {t('invoicing.mark_invoiced', 'Emite Factură Fiscală')}
+                            {t('invoicing.mark_invoiced', 'Émettre la Facture')}
                         </button>
                     )}
 
@@ -127,7 +127,7 @@ const ActionMenu = ({ wo, onEdit, onMarkInvoiced, onStorno, onCopyLink, copiedTo
                         className="w-full text-left px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 flex items-center gap-2"
                     >
                         <ExternalLink className="w-4 h-4 text-slate-400" />
-                        {t('invoicing.view_details', 'Vezi Detalii Lucrare')}
+                        {t('invoicing.view_details', 'Voir les Détails du Travail')}
                     </button>
                 </div>,
                 document.body
@@ -180,25 +180,25 @@ export default function InvoicingManagement() {
         const extraThickForAuto = Math.max(0, parseFloat(config.thickness || 5) - 5);
         
         if (config.useAutoCalc) {
-            items.push({ id: Date.now().toString() + '-base', desc: tFunc('proforma.items.base', 'Șapă de bază (≤5cm)'), qty: surfaceForAuto, price: parseFloat(wo.prices?.base || 12.5) });
+            items.push({ id: Date.now().toString() + '-base', desc: tFunc('proforma.items.base', 'Chape de base (≤5cm)'), qty: surfaceForAuto, price: parseFloat(wo.prices?.base || 12.5) });
             
             if (extraThickForAuto > 0) {
                 const unitPriceExtra = parseFloat(wo.prices?.extra || 1.25);
                 items.push({ 
                     id: Date.now().toString() + '-extra', 
-                    desc: `${tFunc('proforma.items.extra', 'Grosime extra (>5cm)')} (${extraThickForAuto} cm)`, 
+                    desc: `${tFunc('proforma.items.extra', 'Épaisseur extra (>5cm)')} (${extraThickForAuto} cm)`, 
                     qty: surfaceForAuto, 
                     price: extraThickForAuto * unitPriceExtra 
                 });
             }
             if (wo.has_foil || wo.actual_has_foil || config.hasFoilFromVol) {
-                items.push({ id: Date.now().toString() + '-foil', desc: tFunc('proforma.items.foil', 'Folie plastic'), qty: surfaceForAuto, price: parseFloat(wo.prices?.foil || 1.2) });
+                items.push({ id: Date.now().toString() + '-foil', desc: tFunc('proforma.items.foil', 'Film plastique'), qty: surfaceForAuto, price: parseFloat(wo.prices?.foil || 1.2) });
             }
             if (wo.has_mesh || wo.actual_has_mesh || config.hasMeshFromVol) {
-                items.push({ id: Date.now().toString() + '-mesh', desc: tFunc('proforma.items.mesh', 'Plasă metalică'), qty: surfaceForAuto, price: parseFloat(wo.prices?.mesh || 2.5) });
+                items.push({ id: Date.now().toString() + '-mesh', desc: tFunc('proforma.items.mesh', 'Treillis métallique'), qty: surfaceForAuto, price: parseFloat(wo.prices?.mesh || 2.5) });
             }
             if (wo.has_fiber || wo.actual_has_fiber || config.hasSapaFromVol) { // Include fiber for sapa, matching WorkOrderDetail
-                items.push({ id: Date.now().toString() + '-fiber', desc: tFunc('proforma.items.fiber', 'Fibre'), qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
+                items.push({ id: Date.now().toString() + '-fiber', desc: tFunc('proforma.items.fiber', 'Fibres'), qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
             }
         } else {
             let totalSum = surfaceForAuto * parseFloat(wo.prices?.base || 12.5);
@@ -220,7 +220,7 @@ export default function InvoicingManagement() {
 
             items.push({
                 id: Date.now().toString(),
-                desc: `${tFunc('proforma.items.custom_work', 'Lucrări conform deviz')} (${wo.title || tFunc('proforma.items.labor_materials', 'Manoperă și materiale')})`,
+                desc: `${tFunc('proforma.items.custom_work', 'Travaux selon devis')} (${wo.title || tFunc('proforma.items.labor_materials', 'Main-d\'œuvre et matériaux')})`,
                 qty: 1,
                 price: finalPrice
             });
@@ -344,7 +344,7 @@ export default function InvoicingManagement() {
             }
         } catch (error) {
             console.error('VIES Error:', error);
-            showToast(t('clients.vies_error', 'Firma nu a fost găsită sau serviciul VIES este indisponibil. Verificați codul TVA.'), 'error');
+            showToast(t('clients.vies_error', 'L\'entreprise n\'a pas été trouvée ou le service VIES est indisponible. Vérifiez le code TVA.'), 'error');
         } finally {
             setIsSearchingVies(false);
         }
@@ -365,12 +365,12 @@ export default function InvoicingManagement() {
                     } : wo
                 ))
             }
-            showToast('Proforma a fost generată cu succes!', 'success')
+            showToast(t('invoicing.proforma_generated_success', 'Proforma générée avec succès !'), 'success')
             setPreviewWo(null)
             navigate(`/admin/invoices/${woId}`)
         } catch (error) {
             console.error('Failed to generate proforma:', error)
-            showToast('A apărut o eroare la generarea proformei.', 'error')
+            showToast(t('invoicing.proforma_generation_error', 'Une erreur est survenue lors de la génération de la proforma.'), 'error')
         } finally {
             setGeneratingId(null)
         }
@@ -382,10 +382,10 @@ export default function InvoicingManagement() {
             setWorkOrders(prev => prev.map(wo => 
                 wo.id === woId ? { ...wo, is_invoiced: true, invoiced_at: new Date().toISOString() } : wo
             ))
-            showToast(t('invoicing.mark_invoiced_success', 'Lucrarea a fost marcată ca facturată!'), 'success')
+            showToast(t('invoicing.mark_invoiced_success', 'Le travail a été marqué comme facturé !'), 'success')
         } catch (error) {
             console.error('Failed to update invoice status:', error)
-            showToast(t('invoicing.mark_invoiced_error', 'A apărut o eroare.'), 'error')
+            showToast(t('invoicing.mark_invoiced_error', 'Une erreur est survenue.'), 'error')
         }
     }
 
@@ -395,10 +395,10 @@ export default function InvoicingManagement() {
             setWorkOrders(prev => prev.map(wo => 
                 wo.id === woId ? { ...wo, is_invoiced: false } : wo
             ))
-            showToast('Factura a fost anulată (Storno) și a revenit la stadiul de Proformă.', 'success')
+            showToast(t('invoicing.storno_success', 'La facture a été annulée (Storno) et est revenue au stade de Proforma.'), 'success')
         } catch (error) {
             console.error('Failed to storno invoice status:', error)
-            showToast('A apărut o eroare la anularea facturii.', 'error')
+            showToast(t('invoicing.storno_error', 'Une erreur est survenue lors de l\'annulation de la facture.'), 'error')
         }
     }
 
@@ -408,9 +408,9 @@ export default function InvoicingManagement() {
             navigator.clipboard.writeText(link);
             setCopiedToken(wo.token);
             setTimeout(() => setCopiedToken(null), 2000);
-            showToast('Link copiat în clipboard!', 'success');
+            showToast(t('invoicing.link_copied', 'Lien copié dans le presse-papiers !'), 'success');
         } else {
-            showToast("Token indisponibil pentru această lucrare.", 'error');
+            showToast(t('invoicing.token_unavailable', 'Jeton indisponible pour ce travail.'), 'error');
         }
     };
 
@@ -419,17 +419,17 @@ export default function InvoicingManagement() {
             setWorkOrders(prev => prev.map(wo => 
                 wo.id === woId ? { ...wo, billtobox_status: 'pending' } : wo
             ))
-            showToast('Se trimite factura către Billtobox...', 'success')
+            showToast(t('invoicing.sending_billtobox', 'Envoi de la facture à Billtobox...'), 'success')
             
             const res = await api.post(`/admin/work-orders/${woId}/billtobox`)
             
             setWorkOrders(prev => prev.map(wo => 
                 wo.id === woId ? { ...wo, billtobox_status: res.data.status } : wo
             ))
-            showToast('Factura a fost trimisă cu succes către Billtobox!', 'success')
+            showToast(t('invoicing.billtobox_success', 'La facture a été envoyée avec succès à Billtobox !'), 'success')
         } catch (error) {
             console.error('Failed to send invoice to Billtobox:', error)
-            const msg = error.response?.data?.detail || 'A apărut o eroare la trimiterea facturii.'
+            const msg = error.response?.data?.detail || t('invoicing.billtobox_error', 'Une erreur est survenue lors de l\'envoi de la facture.')
             showToast(msg, 'error')
             
             setWorkOrders(prev => prev.map(wo => 
@@ -466,7 +466,7 @@ export default function InvoicingManagement() {
         },
         {
             key: 'client',
-            label: t('invoicing.col_client', 'Client & Adresă'),
+            label: t('invoicing.col_client', 'Client & Adresse'),
             className: 'w-[35%]',
             sortable: true,
             sortValue: (wo) => (wo.client_name || '').toLowerCase(),
@@ -475,17 +475,17 @@ export default function InvoicingManagement() {
                     <button 
                         onClick={() => navigate(`/admin/invoices/${wo.id}`)}
                         className="font-bold text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300 line-clamp-1 transition-colors text-left text-[14px]" 
-                        title={wo.client_name || t('invoicing.no_client', 'Fără Client')}
+                        title={wo.client_name || t('invoicing.no_client', 'Sans Client')}
                     >
-                        {wo.client_name || t('invoicing.no_client', 'Fără Client')}
+                        {wo.client_name || t('invoicing.no_client', 'Sans Client')}
                     </button>
-                    <span className="text-[11px] text-slate-500 line-clamp-2 mt-0.5" title={wo.site_name || wo.site_address}>{wo.site_name || wo.site_address || t('invoicing.no_address', 'Fără adresă')}</span>
+                    <span className="text-[11px] text-slate-500 line-clamp-2 mt-0.5" title={wo.site_name || wo.site_address}>{wo.site_name || wo.site_address || t('invoicing.no_address', 'Sans adresse')}</span>
                 </div>
             )
         },
         {
             key: 'details',
-            label: t('invoicing.col_details', 'Suprafată / Grosime'),
+            label: t('invoicing.col_details', 'Surface / Épaisseur'),
             sortable: true,
             sortValue: (wo) => parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0),
             render: (wo) => {
@@ -518,7 +518,7 @@ export default function InvoicingManagement() {
         },
         {
             key: 'price',
-            label: t('invoicing.col_price', 'Preț Estimat'),
+            label: t('invoicing.col_price', 'Prix Estimé'),
             sortable: true,
             sortValue: (wo) => {
                 let autoNet = 0
@@ -591,7 +591,7 @@ export default function InvoicingManagement() {
                 if (wo.is_invoiced) {
                     return (
                         <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-emerald-600 whitespace-nowrap w-fit shrink-0">
-                            <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_invoiced', 'Facturat')}</span>
+                            <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_invoiced', 'Facturé')}</span>
                             {confirmedBadge}
                         </span>
                     )
@@ -599,14 +599,14 @@ export default function InvoicingManagement() {
                 if (wo.proforma_path) {
                     return (
                         <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-blue-600 w-fit shrink-0">
-                            <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_proforma', 'Proformă Emisă')}</span>
+                            <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_proforma', 'Proforma Émise')}</span>
                             {confirmedBadge}
                         </span>
                     )
                 }
                 return (
                     <span className="inline-flex flex-col items-start gap-0 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap w-fit shrink-0">
-                        <span className="inline-flex items-center gap-1.5"><CircleDot className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_notinvoiced', 'Nefacturat')}</span>
+                        <span className="inline-flex items-center gap-1.5"><CircleDot className="w-3.5 h-3.5 shrink-0" />{t('invoicing.status_notinvoiced', 'Non facturé')}</span>
                         {confirmedBadge}
                     </span>
                 )
@@ -614,7 +614,7 @@ export default function InvoicingManagement() {
         },
         {
             key: 'actions',
-            label: t('invoicing.col_actions', 'Acțiuni'),
+            label: t('invoicing.col_actions', 'Actions'),
             render: (wo) => (
                 <div className="flex justify-end pr-2">
                     <ActionMenu 
@@ -642,7 +642,7 @@ export default function InvoicingManagement() {
     const handleAddItem = () => {
         setProformaConfig(p => ({
             ...p,
-            items: [...p.items, { id: Date.now().toString(), desc: 'Material/Serviciu nou', qty: 1, price: 0 }]
+            items: [...p.items, { id: Date.now().toString(), desc: t('invoicing.new_item_default', 'Nouveau matériel/service'), qty: 1, price: 0 }]
         }))
     }
 
@@ -724,7 +724,7 @@ export default function InvoicingManagement() {
                     columns={columns}
                     loading={loading}
                     searchable
-                    searchPlaceholder={t('invoicing.search', 'Caută factură/client...')}
+                    searchPlaceholder={t('invoicing.search', 'Rechercher facture/client...')}
                     defaultSortKey="start_date"
                     defaultSortDir="desc"
                 />
@@ -743,8 +743,8 @@ export default function InvoicingManagement() {
                                 <X className="w-6 h-6" />
                             </button>
                             <div>
-                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('invoicing.preview_title', 'PREVIZUALIZARE PROFORMĂ')}</h2>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{previewWo.client_name || t('invoicing.no_client', 'Fără Client')}</p>
+                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{t('invoicing.preview_title', 'APERÇU PROFORMA')}</h2>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{previewWo.client_name || t('invoicing.no_client', 'Sans Client')}</p>
                             </div>
                         </div>
 
@@ -753,7 +753,7 @@ export default function InvoicingManagement() {
                                 onClick={() => setPreviewWo(null)}
                                 className="px-6 py-2.5 rounded-full font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                             >
-                                {t('invoicing.cancel', 'Anulează')}
+                                {t('invoicing.cancel', 'Annuler')}
                             </button>
                             <button 
                                 onClick={confirmGeneration}
@@ -763,7 +763,7 @@ export default function InvoicingManagement() {
                                 {generatingId === previewWo.id ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> ...</>
                                 ) : (
-                                    <><CheckCircle2 className="w-5 h-5" /> {t('invoicing.confirm_issue', 'Confirmă și Emite')}</>
+                                    <><CheckCircle2 className="w-5 h-5" /> {t('invoicing.confirm_issue', 'Confirmer et Émettre')}</>
                                 )}
                             </button>
                         </div>
@@ -774,15 +774,15 @@ export default function InvoicingManagement() {
                         {/* Left sidebar - Settings */}
                         <div className="w-full md:w-[350px] bg-white border-r border-slate-200 p-4 flex flex-col gap-3 overflow-y-auto shrink-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.02)]">
                             <div>
-                                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-2">{t('invoicing.settings_title', 'Setări Proformă')}</h3>
+                                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-2">{t('invoicing.settings_title', 'Paramètres Proforma')}</h3>
                                 
                                 {/* Deviz Info */}
                                 <div className="mb-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.initial_quote', 'Detalii Deviz inițial')}</p>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.initial_quote', 'Détails du Devis initial')}</p>
                                     <div className="text-[11px] text-slate-700 font-medium space-y-0.5">
                                         <p className="line-clamp-1" title={previewWo.title}>{previewWo.title}</p>
                                         <p className="text-slate-500">
-                                            {t('invoicing.surface', 'Suprafață')}: {
+                                            {t('invoicing.surface', 'Surface')}: {
                                                 previewWo.actual_surface_m2 ? previewWo.actual_surface_m2 : 
                                                 previewWo.surface_m2 ? previewWo.surface_m2 : 
                                                 (() => {
@@ -794,17 +794,17 @@ export default function InvoicingManagement() {
                                                 })()
                                             } m²
                                         </p>
-                                        <p className="text-slate-500">Preț Brut: {previewWo.estimated_price ? parseFloat(previewWo.estimated_price.replace(/[^0-9.]/g, '')).toFixed(2) : '0.00'} €</p>
+                                        <p className="text-slate-500">{t('invoicing.gross_price', 'Prix Brut :')} {previewWo.estimated_price ? parseFloat(previewWo.estimated_price.replace(/[^0-9.]/g, '')).toFixed(2) : '0.00'} €</p>
                                     </div>
                                 </div>
 
                                 {/* Client Selection */}
                                 <div className="space-y-2 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.client_billing', 'Date Facturare Client')}</p>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.client_billing', 'Données de Facturation Client')}</p>
                                     
                                     <div className="flex items-center gap-2 flex-wrap mb-2">
                                         <div className="flex gap-0.5 bg-slate-200 dark:bg-slate-800 p-0.5 rounded-full">
-                                            {[['existing', t('proforma.client_mode.existing', 'Existent')], ['new', t('proforma.client_mode.new', 'Nou')]].map(([m, label]) => (
+                                            {[['existing', t('proforma.client_mode.existing', 'Existant')], ['new', t('proforma.client_mode.new', 'Nouveau')]].map(([m, label]) => (
                                                 <button key={m} type="button" onClick={() => setProformaConfig(p => ({ ...p, client_mode: m }))}
                                                     className={`px-2 h-5 rounded-full text-[10px] font-bold transition-all ${proformaConfig.client_mode === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>
                                                     {label}
@@ -813,7 +813,7 @@ export default function InvoicingManagement() {
                                         </div>
                                         {proformaConfig.client_mode === 'new' && (
                                             <div className="flex gap-0.5 bg-slate-200 dark:bg-slate-800 p-0.5 rounded-full">
-                                                {[['fizica', t('proforma.client_type.individual', 'Fizică')], ['juridica', t('proforma.client_type.company', 'Juridică')]].map(([m, label]) => (
+                                                {[['fizica', t('proforma.client_type.individual', 'Particulier')], ['juridica', t('proforma.client_type.company', 'Entreprise')]].map(([m, label]) => (
                                                     <button key={m} type="button" onClick={() => setProformaConfig(p => ({ ...p, client_type: m }))}
                                                         className={`px-2 h-5 rounded-full text-[10px] font-bold transition-all ${proformaConfig.client_type === m ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}>
                                                         {label}
@@ -847,7 +847,7 @@ export default function InvoicingManagement() {
                                                         }
                                                     }}
                                                     options={clients.map(c => ({ value: c.id, label: c.name }))}
-                                                    placeholder={t('proforma.search_client', 'Caută client...')}
+                                                    placeholder={t('proforma.search_client', 'Rechercher un client...')}
                                                 />
                                             </div>
                                         </div>
@@ -866,12 +866,12 @@ export default function InvoicingManagement() {
                                             )}
                                             
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{proformaConfig.client_type === 'juridica' ? t('proforma.company_name', 'Nume Companie *') : t('proforma.client_name', 'Nume Client *')}</label>
+                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{proformaConfig.client_type === 'juridica' ? t('proforma.company_name', 'Nom de l\'entreprise *') : t('proforma.client_name', 'Nom du client *')}</label>
                                                 <input type="text" value={proformaConfig.clientName || ''} onChange={e => setProformaConfig(p => ({ ...p, clientName: e.target.value }))} className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded focus:border-blue-500 outline-none" />
                                             </div>
                                             
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('proforma.address_google', 'Adresă (Google)')}</label>
+                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('proforma.address_google', 'Adresse (Google)')}</label>
                                                 <AddressAutocomplete
                                                     value={proformaConfig.client_address || ''}
                                                     onChange={(val) => {
@@ -882,7 +882,7 @@ export default function InvoicingManagement() {
                                                         const details = [address, proformaConfig.client_company_vat ? `CIF: ${proformaConfig.client_company_vat}` : null].filter(Boolean).join('\n');
                                                         setProformaConfig(p => ({ ...p, client_address: address, clientDetails: details }))
                                                     }}
-                                                    placeholder={t('proforma.search_address', 'Caută adresa...')}
+                                                    placeholder={t('proforma.search_address', 'Rechercher l\'adresse...')}
                                                     className="w-full px-2 py-1 h-7 text-[11px] bg-white border border-slate-200 rounded focus:border-blue-500 outline-none"
                                                 />
                                             </div>
@@ -890,7 +890,7 @@ export default function InvoicingManagement() {
                                     )}
 
                                     <div className="mt-2">
-                                        <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.client_details', 'Detalii (Adresă, CIF, Email)')}</label>
+                                        <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.client_details', 'Détails (Adresse, TVA, Email)')}</label>
                                         <textarea 
                                             value={proformaConfig.clientDetails || ''} 
                                             onChange={e => setProformaConfig(p => ({ ...p, clientDetails: e.target.value }))} 
@@ -902,7 +902,7 @@ export default function InvoicingManagement() {
 
                                 {/* Language selection */}
                                 <div className="space-y-1.5 mb-3">
-                                    <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.proforma_lang', 'Limba Proformă')}</label>
+                                    <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.proforma_lang', 'Langue Proforma')}</label>
                                     <select 
                                         value={proformaConfig.lang}
                                         onChange={(e) => {
@@ -914,17 +914,17 @@ export default function InvoicingManagement() {
                                         }}
                                         className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded focus:border-blue-500 outline-none"
                                     >
-                                        <option value="ro">🇷🇴 Română</option>
-                                        <option value="fr">🇫🇷 Franceză</option>
-                                        <option value="en">🇬🇧 Engleză</option>
-                                        <option value="de">🇩🇪 Germană</option>
-                                        <option value="nl">🇳🇱 Olandeză</option>
+                                        <option value="ro">🇷🇴 Roumain</option>
+                                        <option value="fr">🇫🇷 Français</option>
+                                        <option value="en">🇬🇧 Anglais</option>
+                                        <option value="de">🇩🇪 Allemand</option>
+                                        <option value="nl">🇳🇱 Néerlandais</option>
                                     </select>
                                 </div>
 
                                 {/* Calculation Mode */}
                                 <div className="space-y-1.5 mb-3">
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('invoicing.calc_mode', 'Mod Calcul (Detalii/Deviz)')}</p>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('invoicing.calc_mode', 'Mode de Calcul (Détails/Devis)')}</p>
                                     <label className="flex items-center gap-1.5 p-1.5 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 transition-colors">
                                         <input 
                                             type="checkbox" 
@@ -936,13 +936,13 @@ export default function InvoicingManagement() {
                                             }}
                                             className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500"
                                         />
-                                        <span className="text-[10px] font-bold text-slate-700">{t('invoicing.detailed_calc', 'Calcul Detaliat (Șapă / Materiale)')}</span>
+                                        <span className="text-[10px] font-bold text-slate-700">{t('invoicing.detailed_calc', 'Calcul Détaillé (Chape / Matériaux)')}</span>
                                     </label>
 
                                     {proformaConfig.useAutoCalc && (
                                         <div className="flex gap-2 mt-1.5">
                                             <div className="flex-1">
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.surface', 'Suprafață')} (m²)</label>
+                                                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.surface', 'Surface')} (m²)</label>
                                                 <input 
                                                     type="number" 
                                                     value={proformaConfig.surface}
@@ -955,7 +955,7 @@ export default function InvoicingManagement() {
                                                 />
                                             </div>
                                             <div className="flex-1">
-                                                <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.thickness', 'Grosime (cm)')}</label>
+                                                <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.thickness', 'Épaisseur (cm)')}</label>
                                                 <input 
                                                     type="number" 
                                                     value={proformaConfig.thickness}
@@ -980,11 +980,11 @@ export default function InvoicingManagement() {
                                             onChange={(e) => setProformaConfig(p => ({ ...p, useVat: e.target.checked }))}
                                             className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500"
                                         />
-                                        <span className="text-[10px] font-bold text-slate-700">{t('invoicing.apply_vat', 'Aplică TVA (Conform regim)')}</span>
+                                        <span className="text-[10px] font-bold text-slate-700">{t('invoicing.apply_vat', 'Appliquer la TVA (Selon le régime)')}</span>
                                     </label>
 
                                     <div>
-                                        <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{t('invoicing.discount', 'Discount (%)')}</label>
+                                        <label className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{t('invoicing.discount', 'Remise (%)')}</label>
                                         <div className="relative">
                                             <input 
                                                 type="number" 
@@ -1001,12 +1001,12 @@ export default function InvoicingManagement() {
                                 {/* Items Editor */}
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <h3 className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('invoicing.materials_services', 'Materiale / Servicii')}</h3>
+                                        <h3 className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('invoicing.materials_services', 'Matériaux / Services')}</h3>
                                         <button 
                                             onClick={handleAddItem}
                                             className="text-[9px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
                                         >
-                                            {t('invoicing.add_row', '+ Adaugă rând')}
+                                            {t('invoicing.add_row', '+ Ajouter une ligne')}
                                         </button>
                                     </div>
 
@@ -1021,7 +1021,7 @@ export default function InvoicingManagement() {
                                                 </button>
                                                 <div className="space-y-1.5">
                                                     <div>
-                                                        <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.desc', 'Descriere')}</label>
+                                                        <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.desc', 'Description')}</label>
                                                         <input 
                                                             type="text" 
                                                             value={item.desc}
@@ -1031,7 +1031,7 @@ export default function InvoicingManagement() {
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <div className="flex-1">
-                                                            <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.qty', 'Cantitate')}</label>
+                                                            <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.qty', 'Quantité')}</label>
                                                             <input 
                                                                 type="number" 
                                                                 min="0.01" step="0.01"
@@ -1041,7 +1041,7 @@ export default function InvoicingManagement() {
                                                             />
                                                         </div>
                                                         <div className="flex-1">
-                                                            <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.unit_price', 'Preț Unitar (€)')}</label>
+                                                            <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.unit_price', 'Prix Unitaire (€)')}</label>
                                                             <input 
                                                                 type="number" 
                                                                 min="0" step="0.01"
@@ -1082,7 +1082,7 @@ export default function InvoicingManagement() {
                     <div className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 shadow-sm">
                         <div className="flex items-center gap-4">
                             <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                                {t('work_order_detail.pdf_preview', 'PREVIZUALIZARE DEVIZ')}
+                                {t('work_order_detail.pdf_preview', 'APERÇU DU DEVIS')}
                             </h2>
                         </div>
                         <div className="flex items-center gap-3">

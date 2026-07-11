@@ -55,7 +55,7 @@ const EditablePrice = ({ row, onUpdate }) => {
                     onChange={e => setPrice(e.target.value)}
                     onBlur={handleBlur}
                     className="w-full text-right text-sm text-slate-700 border border-slate-300 focus:border-blue-500 rounded pl-2 pr-6 py-1 bg-white transition-colors outline-none"
-                    placeholder="Preț..."
+                    placeholder={t('quotes.price_placeholder', 'Prix...')}
                     disabled={isSaving}
                     autoFocus
                 />
@@ -112,7 +112,7 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
                 onChange={e => setPrice(e.target.value)}
                 onBlur={handleBlur}
                 className="w-full text-sm border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 bg-transparent transition-colors outline-none"
-                placeholder="Preț/m²..."
+                placeholder={t('quotes.price_per_sqm_placeholder', 'Prix/m²...')}
                 disabled={isSaving}
             />
             {isSaving && <Loader2 className="w-3 h-3 animate-spin absolute right-2 top-2 text-slate-400" />}
@@ -263,7 +263,7 @@ export default function QuotesManagement() {
             }
         } catch (error) {
             console.error('VIES Error:', error);
-            showToast(t('clients.vies_error', 'Firma nu a fost găsită sau serviciul VIES este indisponibil. Verificați codul TVA.'), 'error');
+            showToast(t('clients.vies_error', "L'entreprise n'a pas été trouvée ou le service VIES est indisponible. Vérifiez le numéro de TVA."), 'error');
         } finally {
             setIsSearchingVies(false);
         }
@@ -343,9 +343,9 @@ export default function QuotesManagement() {
             setEditingId(null)
             setQuickAddStep(1)
             fetchQuotes()
-            showToast(t('quotes.success_create', 'Devizul a fost salvat cu succes.'), 'success')
+            showToast(t('quotes.success_create', 'Le devis a été enregistré avec succès.'), 'success')
         } catch (e) {
-            showToast(t('quotes.err_create', 'Eroare la salvarea ofertei'), 'error')
+            showToast(t('quotes.err_create', "Erreur lors de l'enregistrement du devis"), 'error')
             console.error(e)
         } finally {
             setIsSaving(false)
@@ -589,7 +589,7 @@ export default function QuotesManagement() {
                                 isOpen: true,
                                 title: 'Supprimer le devis',
                                 message: 'Êtes-vous sûr de vouloir supprimer définitivement ce devis ? Cette action est irréversible.',
-                                confirmText: 'Șterge Deviz',
+                                confirmText: 'Supprimer le devis',
                                 type: 'danger',
                                 action: async () => {
                                     try {
@@ -599,7 +599,7 @@ export default function QuotesManagement() {
                                         setConfirmModal(prev => ({ ...prev, isOpen: false }));
                                     } catch (err) {
                                         console.error(err);
-                                        alert('Eroare la ștergerea devizului.');
+                                        showToast(t('quotes.err_delete', 'Erreur lors de la suppression du devis.'), 'error');
                                     }
                                 }
                             });
@@ -753,7 +753,7 @@ export default function QuotesManagement() {
                                         <div className="flex gap-1">
                                             <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.cui} onChange={e => setNewClient({...newClient, cui: e.target.value})} />
                                             {newClient.client_type === 'juridica' && (
-                                                <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Caută firmă în VIES">
+                                                <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Rechercher l'entreprise dans VIES">
                                                     {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                                 </button>
                                             )}
@@ -892,7 +892,7 @@ export default function QuotesManagement() {
                                     )})}
                                     <div className="flex justify-end">
                                         <button type="button" onClick={addVolume} className="flex items-center justify-center gap-1 px-3 h-8 border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-xl text-[11px] font-bold transition-colors w-fit">
-                                            <Plus className="w-3 h-3" /> Ajouter un autre
+                                            <Plus className="w-3 h-3" /> {t('quotes.add_another', 'Ajouter un autre')}
                                         </button>
                                     </div>
                                 </div>
@@ -1090,13 +1090,13 @@ export default function QuotesManagement() {
                                 </div>
 
                                 <div className="md:col-span-3">
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Tip Lucrare</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('quotes.field_title', 'Type de Travail')}</label>
                                     <select 
                                         className="w-full h-10 border border-slate-200 rounded-xl px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                                         value={form.volumes[0].label}
                                         onChange={e => setForm(p => ({ ...p, volumes: [{ ...p.volumes[0], label: e.target.value }] }))}
                                     >
-                                        <option value="">- Activitate -</option>
+                                        <option value="">- {t('common.activities', 'Activité')} -</option>
                                         {activities.map(a => <option key={a.id || a.name} value={a.name}>{a.name}</option>)}
                                     </select>
                                 </div>
@@ -1151,7 +1151,7 @@ export default function QuotesManagement() {
                                         <span>{t('quotes.field_address', 'Adresse')}</span>
                                         {form.latitude && form.longitude && (
                                             <span className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded text-[10px] font-bold">
-                                                Dus: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude))).toFixed(1)}km | Întors: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude)) * 2).toFixed(1)}km
+                                                Aller: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude))).toFixed(1)}km | Retour: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude)) * 2).toFixed(1)}km
                                             </span>
                                         )}
                                     </label>
@@ -1165,7 +1165,7 @@ export default function QuotesManagement() {
 
 
                                 <div className="md:col-span-7">
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">Detalii / Observații</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">{t('quotes.details_notes', 'Détails / Observations')}</label>
                                     <input type="text" placeholder="..."
                                         className="w-full h-10 border border-slate-200 rounded-xl px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={form.notes ?? ''}
@@ -1200,32 +1200,32 @@ export default function QuotesManagement() {
                                 {isAutoRender && (
                                     <div className="md:col-span-12 bg-indigo-50/50 rounded-lg p-2.5 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 text-[11px] shadow-sm">
                                         <div className="flex items-center gap-4 flex-wrap">
-                                            <span className="font-extrabold text-indigo-700 uppercase tracking-tight">Calcul:</span>
+                                            <span className="font-extrabold text-indigo-700 uppercase tracking-tight">{t('quotes.calc_label', 'CALCUL:')}</span>
                                             <div className="flex items-center gap-1.5" title="Chape de base">
-                                                <span className="text-slate-500 font-medium text-[10px] uppercase">Bază</span>
+                                                <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.base', 'BASE')}</span>
                                                 <input type="number" step="0.1" value={form.prices?.base ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                             </div>
                                             {extraThickForAuto > 0 && (
                                                 <div className="flex items-center gap-1.5" title={`Épaisseur extra ${extraThickForAuto}cm`}>
-                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">Épais.({extraThickForAuto})</span>
+                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.extra_cm', 'EXTRA CM')}</span>
                                                     <input type="number" step="0.1" value={form.prices?.extra ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                             {form.volumes.some(v => v.has_foil) && (
                                                 <div className="flex items-center gap-1.5" title="Film plastique">
-                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">Folie</span>
+                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.foil', 'FOLIE')}</span>
                                                     <input type="number" step="0.1" value={form.prices?.foil ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                             {form.volumes.some(v => v.has_mesh) && (
                                                 <div className="flex items-center gap-1.5" title="Treillis métallique">
-                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">Plasă</span>
+                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.mesh', 'TREILLIS')}</span>
                                                     <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}
                                             {form.volumes.some(v => v.has_fiber || v.has_duramint) && (
                                                 <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
-                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">Fibră</span>
+                                                    <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.duramint', 'FIBRE')}</span>
                                                     <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
                                                 </div>
                                             )}

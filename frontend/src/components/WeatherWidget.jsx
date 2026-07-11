@@ -13,10 +13,17 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
     useEffect(() => {
         if (!lat || !lon || !dateStr) return;
         
-        const cacheKey = `${parseFloat(lat).toFixed(2)}_${parseFloat(lon).toFixed(2)}`;
+        // Round to 1 decimal (~11km) to drastically increase cache hits and reduce API calls
+        const roundedLat = parseFloat(lat).toFixed(1);
+        const roundedLon = parseFloat(lon).toFixed(1);
+        const cacheKey = `${roundedLat}_${roundedLon}`;
         const targetDate = dateStr.split('T')[0];
 
         const processData = (daily) => {
+            if (!daily || !daily.time) {
+                setData({ error: true });
+                return;
+            }
             const index = daily.time.findIndex(t => t === targetDate);
             if (index !== -1) {
                 setData({
@@ -30,35 +37,51 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
         };
 
         if (weatherCache[cacheKey]) {
-            if (weatherCache[cacheKey]?._error && (Date.now() - weatherCache[cacheKey]._ts) < 600000) return;
+            if (weatherCache[cacheKey]?._error && (Date.now() - weatherCache[cacheKey]._ts) < 600000) {
+                setData({ error: true });
+                return;
+            }
             if (weatherCache[cacheKey] instanceof Promise) {
                 setLoading(true);
                 weatherCache[cacheKey].then(daily => {
-                    if (daily) processData(daily);
+                    if (daily && !daily._error) processData(daily);
+                    else setData({ error: true });
                     setLoading(false);
                 });
             } else if (!weatherCache[cacheKey]?._error) {
                 processData(weatherCache[cacheKey]);
+            } else {
+                setData({ error: true });
             }
             return;
         }
 
         setLoading(true);
-        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=30`)
+        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${roundedLat}&longitude=${roundedLon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=30`)
             .then(res => res.json())
             .then(json => {
+                if (json.error || !json.daily) {
+                    const errObj = { _error: true, _ts: Date.now() };
+                    weatherCache[cacheKey] = errObj;
+                    return errObj;
+                }
                 const daily = json.daily;
                 weatherCache[cacheKey] = daily;
                 return daily;
             })
             .catch(err => {
-                weatherCache[cacheKey] = { _error: true, _ts: Date.now() };
-                return null;
+                const errObj = { _error: true, _ts: Date.now() };
+                weatherCache[cacheKey] = errObj;
+                return errObj;
             });
             
         weatherCache[cacheKey] = promise;
-        promise.then(daily => {
-            if (daily) processData(daily);
+        promise.then(result => {
+            if (result && !result._error) {
+                processData(result);
+            } else {
+                setData({ error: true });
+            }
             setLoading(false);
         });
     }, [lat, lon, dateStr]);

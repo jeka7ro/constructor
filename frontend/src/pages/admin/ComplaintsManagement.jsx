@@ -6,18 +6,18 @@ import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
 
 const STATUSES = [
-    { id: 'all',       label: 'Toate',       color: 'slate' },
-    { id: 'open',      label: 'Deschise',    color: 'blue' },
-    { id: 'in_review', label: 'În Analiză',  color: 'amber' },
-    { id: 'resolved',  label: 'Rezolvate',   color: 'emerald' },
-    { id: 'closed',    label: 'Închise',     color: 'slate' },
+    { id: 'all',       labelKey: 'common.all', fallback: 'Toutes',       color: 'slate' },
+    { id: 'open',      labelKey: 'complaints.open_plural', fallback: 'Ouvertes',    color: 'blue' },
+    { id: 'in_review', labelKey: 'complaints.in_review_plural', fallback: 'En Analyse',  color: 'amber' },
+    { id: 'resolved',  labelKey: 'complaints.resolved_plural', fallback: 'Résolues',   color: 'emerald' },
+    { id: 'closed',    labelKey: 'complaints.closed_plural', fallback: 'Fermées',     color: 'slate' },
 ]
 
 const STATUS_CONFIG = {
-    open:      { label: 'Deschisă',   icon: AlertCircle,   cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-    in_review: { label: 'În Analiză', icon: Clock,         cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-    resolved:  { label: 'Rezolvată',  icon: CheckCircle,   cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-    closed:    { label: 'Închisă',    icon: XCircle,       cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' },
+    open:      { labelKey: 'complaints.open', fallback: 'Ouverte',   icon: AlertCircle,   cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+    in_review: { labelKey: 'complaints.in_review', fallback: 'En Analyse', icon: Clock,         cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    resolved:  { labelKey: 'complaints.resolved', fallback: 'Résolue',  icon: CheckCircle,   cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    closed:    { labelKey: 'complaints.closed', fallback: 'Fermée',    icon: XCircle,       cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' },
 }
 
 export default function ComplaintsManagement() {
@@ -51,25 +51,25 @@ export default function ComplaintsManagement() {
             setSelectedIds([])
             setCurrentPage(1)
         } catch {
-            showToast('Eroare la încărcare', 'error')
+            showToast(t('common.error_loading', 'Erreur de chargement'), 'error')
         } finally {
             setLoading(false)
         }
     }
 
     const handleRespond = async () => {
-        if (!responseText.trim()) { showToast('Scrie un răspuns', 'error'); return }
+        if (!responseText.trim()) { showToast(t('complaints.write_response', 'Veuillez écrire une réponse'), 'error'); return }
         setSubmitting(true)
         try {
             await api.put(`/admin/complaints/${detailComplaint.id}/respond`, {
                 admin_response: responseText,
                 status: responseStatus,
             })
-            showToast('Răspuns trimis', 'success')
+            showToast(t('complaints.response_sent', 'Réponse envoyée'), 'success')
             setDetailComplaint(null)
             fetchComplaints()
         } catch {
-            showToast('Eroare la trimiterea răspunsului', 'error')
+            showToast(t('complaints.response_error', 'Erreur lors de l\'envoi de la réponse'), 'error')
         } finally {
             setSubmitting(false)
         }
@@ -78,26 +78,26 @@ export default function ComplaintsManagement() {
     const handleStatusChange = async (id, newStatus) => {
         try {
             await api.put(`/admin/complaints/${id}/status`, { status: newStatus })
-            showToast('Status actualizat', 'success')
+            showToast(t('common.status_updated', 'Statut mis à jour'), 'success')
             fetchComplaints()
             if (detailComplaint?.id === id) setDetailComplaint(prev => ({ ...prev, status: newStatus }))
         } catch {
-            showToast('Eroare', 'error')
+            showToast(t('common.error', 'Erreur'), 'error')
         }
     }
 
     const handleDelete = (id) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Ștergere Sesizare',
-            message: 'Sigur doriți să ștergeți această sesizare?',
+            title: t('complaints.delete_title', 'Supprimer la Réclamation'),
+            message: t('complaints.delete_confirm', 'Êtes-vous sûr de vouloir supprimer cette réclamation ?'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/complaints/${id}`)
-                    showToast('Sesizare ștearsă', 'success')
+                    showToast(t('complaints.deleted_success', 'Réclamation supprimée'), 'success')
                     fetchComplaints()
                     if (detailComplaint?.id === id) setDetailComplaint(null)
-                } catch { showToast('Eroare la ștergere', 'error') }
+                } catch { showToast(t('common.delete_error', 'Erreur de suppression'), 'error') }
             }
         })
     }
@@ -131,7 +131,7 @@ export default function ComplaintsManagement() {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Caută sesizare, angajat..."
+                                placeholder={t('complaints.search_placeholder', 'Rechercher une réclamation, un employé...')}
                                 value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
                                 className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
@@ -158,7 +158,7 @@ export default function ComplaintsManagement() {
                                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                     }`}
                                 >
-                                    {s.label}
+                                    {t(s.labelKey, s.fallback)}
                                 </button>
                             ))}
                         </div>
@@ -167,20 +167,20 @@ export default function ComplaintsManagement() {
                     {/* Batch action bar */}
                     {selectedIds.length > 0 && (
                         <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
-                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} selectate</span>
+                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('common.selected', 'sélectionné(s)')}</span>
                             <button
                                 onClick={() => setConfirmModal({
                                     isOpen: true,
-                                    title: 'Ștergere multiplă',
-                                    message: `Ștergi ${selectedIds.length} sesizări?`,
+                                    title: t('common.bulk_delete_title', 'Suppression Multiple'),
+                                    message: t('complaints.bulk_delete_confirm', 'Supprimer {{count}} réclamations ?', { count: selectedIds.length }),
                                     onConfirm: async () => {
                                         for (const id of selectedIds) await api.delete(`/admin/complaints/${id}`)
-                                        showToast('Sesizări șterse', 'success')
+                                        showToast(t('complaints.bulk_deleted_success', 'Réclamations supprimées'), 'success')
                                         fetchComplaints()
                                     }
                                 })}
                                 className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors"
-                            >Șterge Selectatele</button>
+                            >{t('common.delete_selected', 'Supprimer la Sélection')}</button>
                         </div>
                     )}
 
@@ -196,18 +196,18 @@ export default function ComplaintsManagement() {
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                         />
                                     </th>
-                                    <th className="px-6 py-4">Angajat</th>
-                                    <th className="px-6 py-4">Titlu</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Data</th>
-                                    <th className="px-6 py-4 text-right">Acțiuni</th>
+                                    <th className="px-6 py-4">{t('common.employee', 'Employé')}</th>
+                                    <th className="px-6 py-4">{t('common.title', 'Titre')}</th>
+                                    <th className="px-6 py-4">{t('common.status', 'Statut')}</th>
+                                    <th className="px-6 py-4">{t('common.date', 'Date')}</th>
+                                    <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {loading ? (
                                     <tr><td colSpan={6} className="px-4 py-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></td></tr>
                                 ) : paginated.length === 0 ? (
-                                    <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">Nu există sesizări{statusFilter !== 'all' ? ' cu statusul selectat' : ''}.</td></tr>
+                                    <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">{t('complaints.no_complaints', 'Aucune réclamation')} {statusFilter !== 'all' ? t('complaints.with_selected_status', 'avec le statut sélectionné') : ''}.</td></tr>
                                 ) : paginated.map(c => {
                                     const sc = STATUS_CONFIG[c.status] || STATUS_CONFIG.open
                                     const StatusIcon = sc.icon
@@ -235,11 +235,11 @@ export default function ComplaintsManagement() {
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${sc.cls}`}>
                                                     <StatusIcon className="w-3.5 h-3.5" />
-                                                    {sc.label}
+                                                    {t(sc.labelKey, sc.fallback)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-sm">
-                                                {new Date(c.created_at).toLocaleDateString('ro-RO', { timeZone: 'Europe/Berlin' })}
+                                                {new Date(c.created_at).toLocaleDateString('fr-FR', { timeZone: 'Europe/Berlin' })}
                                             </td>
                                             <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
                                                 <button
@@ -259,7 +259,7 @@ export default function ComplaintsManagement() {
                     {/* Footer Pagination */}
                     <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
                         <div className="flex items-center gap-2">
-                            <span className="uppercase tracking-wide">Afișează</span>
+                            <span className="uppercase tracking-wide">{t('common.show', 'Afficher')}</span>
                             <select
                                 value={itemsPerPage}
                                 onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
@@ -267,10 +267,10 @@ export default function ComplaintsManagement() {
                             >
                                 {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
-                            <span>· Total: <strong className="text-slate-700 dark:text-slate-200">{filtered.length}</strong></span>
+                            <span>· {t('common.total', 'Total :')} <strong className="text-slate-700 dark:text-slate-200">{filtered.length}</strong></span>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span>Pagina {currentPage} din {Math.max(1, totalPages)}</span>
+                            <span>{t('common.page', 'Page')} {currentPage} {t('common.of', 'sur')} {Math.max(1, totalPages)}</span>
                             <div className="flex gap-1">
                                 <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
                                 <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"><ChevronRight className="w-4 h-4" /></button>
@@ -293,7 +293,7 @@ export default function ComplaintsManagement() {
                                 <div>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-white">{detailComplaint.title}</h2>
                                     <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                                        <User className="w-3 h-3" /> {detailComplaint.user_name} · {new Date(detailComplaint.created_at).toLocaleString('ro-RO')}
+                                        <User className="w-3 h-3" /> {detailComplaint.user_name} · {new Date(detailComplaint.created_at).toLocaleString('fr-FR')}
                                     </p>
                                 </div>
                             </div>
@@ -305,13 +305,13 @@ export default function ComplaintsManagement() {
                         <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
                             {/* Continut sesizare */}
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Conținut Sesizare</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('complaints.complaint_content', 'Contenu de la Réclamation')}</p>
                                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{detailComplaint.content}</p>
                             </div>
 
                             {/* Status change */}
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Schimbă Status</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('complaints.change_status', 'Changer le Statut')}</p>
                                 <div className="flex gap-2 flex-wrap">
                                     {Object.entries(STATUS_CONFIG).map(([key, val]) => {
                                         const Icon = val.icon
@@ -323,7 +323,7 @@ export default function ComplaintsManagement() {
                                                         : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300'
                                                 }`}
                                             >
-                                                <Icon className="w-3.5 h-3.5" />{val.label}
+                                                <Icon className="w-3.5 h-3.5" />{t(val.labelKey, val.fallback)}
                                             </button>
                                         )
                                     })}
@@ -332,28 +332,28 @@ export default function ComplaintsManagement() {
 
                             {/* Raspuns admin */}
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Răspuns Admin</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('complaints.admin_response', 'Réponse de l\'Admin')}</p>
                                 <textarea
                                     value={responseText}
                                     onChange={e => setResponseText(e.target.value)}
-                                    placeholder="Scrie răspunsul tău..."
+                                    placeholder={t('complaints.write_response_placeholder', 'Écrivez votre réponse...')}
                                     rows={4}
                                     className="w-full px-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all resize-none"
                                 />
                                 <div className="mt-2">
-                                    <label className="text-xs text-slate-400 mr-2">Status după răspuns:</label>
+                                    <label className="text-xs text-slate-400 mr-2">{t('complaints.status_after_response', 'Statut après la réponse :')}</label>
                                     <select value={responseStatus} onChange={e => setResponseStatus(e.target.value)}
                                         className="text-xs border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="in_review">În Analiză</option>
-                                        <option value="resolved">Rezolvată</option>
-                                        <option value="closed">Închisă</option>
+                                        <option value="in_review">{t('complaints.in_review', 'En Analyse')}</option>
+                                        <option value="resolved">{t('complaints.resolved', 'Résolue')}</option>
+                                        <option value="closed">{t('complaints.closed', 'Fermée')}</option>
                                     </select>
                                 </div>
                             </div>
 
                             {detailComplaint.admin_response && (
                                 <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-900/40">
-                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">Răspuns anterior</p>
+                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">{t('complaints.previous_response', 'Réponse précédente')}</p>
                                     <p className="text-sm text-slate-700 dark:text-slate-300">{detailComplaint.admin_response}</p>
                                 </div>
                             )}
@@ -361,12 +361,12 @@ export default function ComplaintsManagement() {
 
                         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                             <button onClick={() => setDetailComplaint(null)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                                {t('common.cancel', 'Anulează')}
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button onClick={handleRespond} disabled={submitting || !responseText.trim()}
                                 className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                Trimite Răspuns
+                                {t('complaints.send_response_btn', 'Envoyer la Réponse')}
                             </button>
                         </div>
                     </div>
@@ -385,11 +385,11 @@ export default function ComplaintsManagement() {
                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{confirmModal.message}</p>
                             <div className="flex gap-3 justify-center">
                                 <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                                    {t('common.cancel', 'Anulează')}
+                                    {t('common.cancel', 'Annuler')}
                                 </button>
                                 <button onClick={() => { if (confirmModal.onConfirm) confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }}
                                     className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all">
-                                    {t('common.yes_delete', 'Da, Șterge')}
+                                    {t('common.yes_delete', 'Oui, Supprimer')}
                                 </button>
                             </div>
                         </div>

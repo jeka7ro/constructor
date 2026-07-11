@@ -234,7 +234,7 @@ export default function DataTable({
                         onChange={handlePageSize}
                         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                        {(pageSizeOptions || [10, 25, 50, 100]).map(s => (
+                        {(pageSizeOptions || [10, 15, 25, 50, 99999]).map(s => (
                             <option key={s} value={s}>{s === 99999 ? t('datatable.all', 'Toate') : s}</option>
                         ))}
                     </select>

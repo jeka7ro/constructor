@@ -189,8 +189,8 @@ export default function AdminDashboard() {
                 { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Commandes') },
                 { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Historique Isoflex') },
                 { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tableau de calcul') },
-                { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets') },
-                { path: '/admin/reports', icon: FileText, label: t('nav.reports') },
+                { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets', 'Pointages') },
+                { path: '/admin/reports', icon: FileText, label: t('nav.reports', 'Rapports') },
             ]
         },
         {
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
             label: t('nav.cat_hr', 'Ressources Humaines'),
             items: [
                 { path: '/admin/employees', icon: HardHat, label: t('nav.employees', 'Employés') },
-                { path: '/admin/teams', icon: Users, label: t('nav.teams') },
+                { path: '/admin/teams', icon: Users, label: t('nav.teams', 'Équipes') },
                 { path: '/admin/leaves', icon: CalendarDays, label: t('nav.leaves', 'Congés & Absences'), badge: pendingLeavesCount },
                 { path: '/admin/accommodations', icon: BedDouble, label: t('nav.accommodations', 'Hébergements') },
             ]
@@ -207,11 +207,11 @@ export default function AdminDashboard() {
             id: 'operations',
             label: t('nav.cat_operations', 'Opérations'),
             items: [
-                { path: '/admin/sites', icon: Building2, label: t('nav.sites') },
+                { path: '/admin/sites', icon: Building2, label: t('nav.sites', 'Chantiers') },
                 { path: '/admin/clients', icon: Briefcase, label: t('nav.clients', 'Clients') },
                 { path: '/calculator', icon: Calculator, label: t('nav.calculator', 'Calculateur Clients (Public)') },
-                { path: '/admin/activities', icon: Activity, label: t('nav.activities') },
-                { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos') },
+                { path: '/admin/activities', icon: Activity, label: t('nav.activities', 'Activités') },
+                { path: '/admin/site-photos', icon: Camera, label: t('nav.site_photos', 'Photos de Chantiers') },
             ]
         },
         {
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
             label: t('nav.cat_logistics', 'Logistique & Finances'),
             items: [
                 { path: '/admin/warehouse', icon: Package, label: t('nav.warehouse', 'Entrepôt') },
-                { path: '/admin/fleet', icon: Truck, label: t('nav.fleet') },
+                { path: '/admin/fleet', icon: Truck, label: t('nav.fleet', 'Flotte') },
                 { path: '/admin/transport', icon: Navigation, label: t('nav.transport', 'Feuilles de Route') },
                 { path: '/admin/tracking', icon: Radio, label: t('nav.tracking', 'Live Tracking') },
                 { path: '/admin/material-requests', icon: PackageSearch, label: t('nav.material_requests', 'Demandes Matériel') },
@@ -241,8 +241,8 @@ export default function AdminDashboard() {
             items: [
                 { path: '/admin/users', icon: Shield, label: t('nav.users', 'Utilisateurs') },
                 { path: '/admin/pricing-settings', icon: Calculator, label: t('nav.pricing_settings', 'Tarifs') },
-                { path: '/admin/settings', icon: Settings, label: t('nav.settings') },
-                { path: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
+                { path: '/admin/settings', icon: Settings, label: t('nav.settings', 'Paramètres') },
+                { path: '/admin/notifications', icon: Bell, label: t('nav.notifications', 'Notifications') },
             ]
         }
     ]
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
                          <button 
                              onClick={() => setSidebarOpen(!sidebarOpen)}
                              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors hidden md:block"
-                             title={sidebarOpen ? t('admin.collapse_menu') : t('admin.expand_menu')}
+                             title={sidebarOpen ? t('admin.collapse_menu', 'Réduire le menu') : t('admin.expand_menu', 'Agrandir le menu')}
                          >
                              <Menu className="w-5 h-5" />
                          </button>
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
                            <div className="w-[1px] h-5 bg-white/20 mx-1 hidden sm:block"></div>
                            <button
                                onClick={() => setDarkMode(!darkMode)}
-                               title={darkMode ? t('admin.light_mode') : t('admin.dark_mode')}
+                               title={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
                                className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
                            >
                                {darkMode
@@ -438,7 +438,7 @@ export default function AdminDashboard() {
                            </button>
                            {!isScreeds && (
                                <>
-                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" title="Sesizări Noi">
+                                   <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" title={t('admin.new_complaints', 'Nouvelles plaintes')}>
                                        <MessageSquareWarning className="w-4 h-4" />
                                        {openComplaintsCount > 0 && (
                                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
@@ -463,7 +463,7 @@ export default function AdminDashboard() {
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold leading-none">{admin?.full_name}</p>
                                 <button onClick={handleLogout} className="text-xs text-red-200 hover:text-white font-medium flex items-center justify-end w-full gap-1 mt-1 cursor-pointer hover:underline group">
-                                    <LogOut className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform"/> {t('admin.logout')}
+                                    <LogOut className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform"/> {t('admin.logout', 'Déconnexion')}
                                 </button>
                             </div>
                             {admin?.avatar_path ? (
@@ -482,7 +482,7 @@ export default function AdminDashboard() {
                             <button 
                                 onClick={handleLogout} 
                                 className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-white/30 bg-white/10 text-white hover:bg-red-500/80 transition-colors shadow-sm ml-0.5" 
-                                title={t('admin.logout')}
+                                title={t('admin.logout', 'Déconnexion')}
                             >
                                 <LogOut className="w-4 h-4" />
                             </button>
@@ -630,19 +630,19 @@ export default function AdminDashboard() {
                     {/* 1. Angajati */}
                     <NavLink to="/admin/employees" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-600 dark:text-blue-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                         <HardHat className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">{t('nav.employees', 'Angajați')}</span>
+                        <span className="text-[10px] font-bold">{t('nav.employees', 'Employés')}</span>
                     </NavLink>
 
                     {/* 2. Șantiere (sau Rapoarte daca nu are santiere lungi, specifice SAPE) */}
                     {hasLongTerm ? (
                         <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                             <Building2 className="w-6 h-6 mb-1.5" />
-                            <span className="text-[10px] font-bold">{t('nav.sites', 'Șantiere')}</span>
+                            <span className="text-[10px] font-bold">{t('nav.sites', 'Chantiers')}</span>
                         </NavLink>
                     ) : (
                         <NavLink to="/admin/reports" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-violet-600 dark:text-violet-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                             <BarChart3 className="w-6 h-6 mb-1.5" />
-                            <span className="text-[10px] font-bold">{t('nav.reports', 'Rapoarte')}</span>
+                            <span className="text-[10px] font-bold">{t('nav.reports', 'Rapports')}</span>
                         </NavLink>
                     )}
                 </div>
@@ -665,7 +665,7 @@ export default function AdminDashboard() {
                     {/* 4. Comenzi */}
                     <NavLink to="/admin/work-orders" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
                         <ClipboardList className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">{t('nav.work_orders', 'Comenzi')}</span>
+                        <span className="text-[10px] font-bold">{t('nav.work_orders', 'Commandes')}</span>
                     </NavLink>
 
                     {/* 5. Menu */}
@@ -673,7 +673,7 @@ export default function AdminDashboard() {
                         <svg className="w-6 h-6 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
-                        <span className="text-[10px] font-bold">{t('nav.menu', 'Meniu')}</span>
+                        <span className="text-[10px] font-bold">{t('nav.menu', 'Menu')}</span>
                     </button>
                 </div>
             </nav>
@@ -687,8 +687,8 @@ export default function AdminDashboard() {
                             <div className="w-16 h-16 bg-slate-200 dark:bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
                                 <span className="text-3xl">🎂</span>
                             </div>
-                            <h3 className="text-2xl font-bold text-white mb-1">La mulți ani!</h3>
-                            <p className="text-pink-100 text-sm">Astăzi își serbează ziua de naștere:</p>
+                            <h3 className="text-2xl font-bold text-white mb-1">{t('admin.happy_birthday', 'Joyeux anniversaire !')}</h3>
+                            <p className="text-pink-100 text-sm">{t('admin.celebrating_today', 'Aujourd\'hui c\'est l\'anniversaire de :')}</p>
                         </div>
                         <div className="p-6 space-y-4">
                             {birthdayUsers.map(u => (
@@ -698,7 +698,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div>
                                         <p className="font-bold text-slate-900 dark:text-white">{u.full_name}</p>
-                                        <p className="text-xs text-slate-500">{u.employee_code} • {Math.floor((new Date() - new Date(u.birth_date)) / 31557600000)} ani</p>
+                                        <p className="text-xs text-slate-500">{u.employee_code} • {Math.floor((new Date() - new Date(u.birth_date)) / 31557600000)} {t('admin.years', 'ans')}</p>
                                     </div>
                                 </div>
                             ))}
@@ -706,7 +706,7 @@ export default function AdminDashboard() {
                                 onClick={() => setShowBirthdayPopup(false)}
                                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors mt-2"
                             >
-                                Închide
+                                {t('common.close', 'Fermer')}
                             </button>
                         </div>
                     </div>

@@ -22,20 +22,20 @@ import StreetViewPhotos from '../../components/StreetViewPhotos'
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const getStatusConfig = (t) => ({
-    draft:       { label: t('common.new', 'Nouă'),        color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400',   icon: Circle },
-    sent:        { label: t('work_orders.status_sent', 'Trimisă'),      color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500', icon: Send },
-    confirmed:   { label: t('work_orders.status_confirmed', 'Confirmată'),   color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500', icon: CheckCircle2 },
-    in_progress: { label: t('work_orders.status_in_progress', 'În Execuție'),  color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500',   icon: Play },
-    completed:   { label: t('common.completed', 'Finalizată'),   color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500', icon: CheckCircle },
-    cancelled:   { label: t('common.cancelled', 'Anulată'),      color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500',       icon: Ban },
+    draft:       { label: t('common.new', 'Nouveau'),        color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400',   icon: Circle },
+    sent:        { label: t('work_orders.status_sent', 'Envoyée'),      color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500', icon: Send },
+    confirmed:   { label: t('work_orders.status_confirmed', 'Confirmée'),   color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500', icon: CheckCircle2 },
+    in_progress: { label: t('work_orders.status_in_progress', 'En exécution'),  color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500',   icon: Play },
+    completed:   { label: t('common.completed', 'Terminée'),   color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500', icon: CheckCircle },
+    cancelled:   { label: t('common.cancelled', 'Annulée'),      color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500',       icon: Ban },
 })
 const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 const getStepLabels = (t) => [
-    { key: 'draft',       label: t('common.created', 'Creată'),      icon: FileText },
-    { key: 'sent',        label: t('work_orders.status_sent', 'Trimisă'),      icon: Send },
-    { key: 'confirmed',   label: t('work_orders.status_confirmed', 'Confirmată'),   icon: CheckCircle2 },
-    { key: 'in_progress', label: t('work_orders.status_in_progress', 'În Execuție'),  icon: Play },
-    { key: 'completed',   label: t('common.completed', 'Finalizată'),   icon: CheckCircle },
+    { key: 'draft',       label: t('common.created', 'Créée'),      icon: FileText },
+    { key: 'sent',        label: t('work_orders.status_sent', 'Envoyée'),      icon: Send },
+    { key: 'confirmed',   label: t('work_orders.status_confirmed', 'Confirmée'),   icon: CheckCircle2 },
+    { key: 'in_progress', label: t('work_orders.status_in_progress', 'En exécution'),  icon: Play },
+    { key: 'completed',   label: t('common.completed', 'Terminée'),   icon: CheckCircle },
 ]
 const STATUS_ORDER = ['draft', 'sent', 'confirmed', 'in_progress', 'completed']
 
@@ -226,9 +226,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         try {
             const res = await api.post(`/admin/work-orders/${id}/generate-proforma`)
             setWo(prev => ({ ...prev, proforma_path: res.data.proforma_path, proforma_issued_at: res.data.proforma_issued_at }))
-            showToast(t('work_order_detail.invoicing.proforma_generated', 'Proformă generată cu succes!'))
+            showToast(t('work_order_detail.invoicing.proforma_generated', 'Proforma générée avec succès !'))
         } catch (err) {
-            showToast(err.response?.data?.detail || t('common.error', 'Eroare la generarea proformei.'))
+            showToast(err.response?.data?.detail || t('common.error_proforma', 'Erreur lors de la génération du proforma.'))
         } finally {
             setGeneratingProforma(false)
         }
@@ -247,7 +247,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data)
             setInvoiceNumberDraft(null)
         } catch (err) {
-            alert(err.response?.data?.detail || 'Eroare la încărcare factură.')
+            alert(err.response?.data?.detail || t('work_order_detail.invoicing.error_upload_invoice', 'Erreur lors du téléchargement de la facture.'))
         } finally {
             setUploadingInvoice(false)
         }
@@ -263,7 +263,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data)
             setInvoiceNumberDraft(null)
         } catch (err) {
-            alert(err.response?.data?.detail || 'Eroare la actualizare status factură.')
+            alert(err.response?.data?.detail || t('work_order_detail.invoicing.error_update_invoice_status', 'Erreur lors de la mise à jour du statut de la facture.'))
         } finally {
             setSavingInvoiceStatus(false)
         }
@@ -279,7 +279,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setWo(res.data)
             setInvoiceNumberDraft(null)
         } catch (err) {
-            alert(err.response?.data?.detail || 'Eroare la salvare număr factură.')
+            alert(err.response?.data?.detail || t('work_order_detail.invoicing.error_save_invoice_number', "Erreur lors de l'enregistrement du numéro de facture."))
         } finally {
             setSavingInvoiceStatus(false)
         }
@@ -288,15 +288,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const handleSendToBilltobox = async () => {
         try {
             setWo(prev => ({ ...prev, billtobox_status: 'pending' }))
-            showToast('Se trimite factura către Billtobox...', 'success')
+            showToast(t('work_order_detail.invoicing.sending_to_billtobox', 'Envoi de la facture vers Billtobox...'), 'success')
             
             const res = await api.post(`/admin/work-orders/${id}/billtobox`)
             
             setWo(prev => ({ ...prev, billtobox_status: res.data.status }))
-            showToast('Factura a fost trimisă cu succes către Billtobox!', 'success')
+            showToast(t('work_order_detail.invoicing.sent_to_billtobox_success', 'La facture a été envoyée avec succès vers Billtobox !'), 'success')
         } catch (error) {
             console.error('Failed to send invoice to Billtobox:', error)
-            const msg = error.response?.data?.detail || 'A apărut o eroare la trimiterea facturii.'
+            const msg = error.response?.data?.detail || t('work_order_detail.invoicing.error_send_billtobox', "Une erreur s'est produite lors de l'envoi de la facture.")
             showToast(msg, 'error')
             setWo(prev => ({ ...prev, billtobox_status: 'error', billtobox_error: msg }))
         }
@@ -320,10 +320,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             })
             const photosRes = await api.get(`/admin/work-orders/${id}/photos`)
             setPhotos(Array.isArray(photosRes.data) ? photosRes.data : (photosRes.data?.photos || []))
-            showToast('Poza a fost încărcată cu succes!')
+            showToast(t('work_order_detail.photo_upload_success', 'La photo a été téléchargée avec succès !'))
         } catch (err) {
             console.error(err)
-            alert(err.response?.data?.detail || 'Eroare la încărcarea pozei.')
+            alert(err.response?.data?.detail || t('work_order_detail.photo_upload_error', 'Erreur lors du téléchargement de la photo.'))
         } finally {
             setIsUploadingPhoto(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -333,19 +333,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [isConverting, setIsConverting] = useState(false)
     const handleConvertToOrder = async () => {
         if (!wo?.start_date) {
-            alert(t('quotes.req_start_date', 'Trebuie să selectați o dată de start (din Editează) înainte de conversie.'))
+            alert(t('quotes.req_start_date', 'Vous devez sélectionner une date de début (depuis Éditer) avant la conversion.'))
             return
         }
-        if (!window.confirm(t('quotes.confirm_convert', 'Sigur transformați acest devis într-o comandă de lucru?'))) return
+        if (!window.confirm(t('quotes.confirm_convert', 'Êtes-vous sûr de vouloir transformer ce devis en une commande de travail ?'))) return
         setIsConverting(true)
         try {
             const res = await api.post(`/admin/work-orders/${id}/convert-to-order`, {
                 start_date: wo.start_date
             })
             setWo(res.data.work_order)
-            alert(t('quotes.success_convert', 'Devisul a fost transformat cu succes!'))
+            alert(t('quotes.success_convert', 'Le devis a été transformé avec succès !'))
         } catch (err) {
-            alert(err.response?.data?.detail || t('quotes.err_convert', 'Eroare la conversie.'))
+            alert(err.response?.data?.detail || t('quotes.err_convert', 'Erreur de conversion.'))
         } finally {
             setIsConverting(false)
         }
@@ -444,7 +444,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         <div className="flex items-center justify-center min-h-[60vh]">
             <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
-                <span className="text-sm text-slate-500 font-medium">{t('work_order_detail.loading_order', 'Se încarcă comanda...')}</span>
+                <span className="text-sm text-slate-500 font-medium">{t('work_order_detail.loading_order', 'Chargement de la commande...')}</span>
             </div>
         </div>
     )
@@ -452,9 +452,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
                 <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-                <p className="text-slate-600 dark:text-slate-400 font-semibold">{t('work_order_detail.not_found', 'Comanda nu a fost găsită')}</p>
+                <p className="text-slate-600 dark:text-slate-400 font-semibold">{t('work_order_detail.not_found', 'Commande introuvable')}</p>
                 <button onClick={() => goBack()} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 transition-colors">
-                    ← {t('work_order_detail.back', 'Înapoi')}
+                    ← {t('work_order_detail.back', 'Retour')}
                 </button>
             </div>
         </div>
@@ -481,7 +481,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const activeMats = materialsArray.filter(m => m.name);
 
     let matValue = '—';
-    let matSub = t('work_order_detail.kpi.no_material', 'niciun material');
+    let matSub = t('work_order_detail.kpi.no_material', 'aucun matériau');
 
     // Auto-calculate estimated sand from volumes if no materials are explicitly added
     let autoSandKg = 0;
@@ -501,7 +501,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             const m = activeMats[0];
             let q = parseFloat(m.quantity) || 0;
             if (m.unit === 'kg') q = q / 1000;
-            matValue = `${q.toFixed(1)} ${t('work_order_detail.kpi.tons', 'tone')}`;
+            matValue = `${q.toFixed(1)} ${t('work_order_detail.kpi.tons', 'tonnes')}`;
             matSub = m.name;
         } else if (activeMats.length > 1) {
         let totalT = 0;
@@ -514,22 +514,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         });
         
         if (totalT > 0) {
-            matValue = `${totalT.toFixed(1)} ${t('work_order_detail.kpi.tons', 'tone')}`;
+            matValue = `${totalT.toFixed(1)} ${t('work_order_detail.kpi.tons', 'tonnes')}`;
             let namesStr = names.join(', ');
             if (namesStr.length > 20) namesStr = namesStr.substring(0, 17) + '...';
             matSub = namesStr;
         } else {
             matValue = activeMats.length;
-            matSub = t('work_order_detail.kpi.mat_types', 'tipuri materiale');
+            matSub = t('work_order_detail.kpi.mat_types', 'types de matériaux');
         }
     } else if (autoSandKg > 0) {
         // Fallback: Show estimated sand from volumes if no explicit materials were added
         const tons = autoSandKg / 1000;
-        matValue = `${tons.toFixed(1)} ${t('work_order_detail.kpi.tons', 'tone')}`;
-        matSub = t('work_order_detail.kpi.sand_est', 'Nisip (estimat)');
+        matValue = `${tons.toFixed(1)} ${t('work_order_detail.kpi.tons', 'tonnes')}`;
+        matSub = t('work_order_detail.kpi.sand_est', 'Sable (estimé)');
     }
 
-    const matLabel = hasStarted ? t('work_order_detail.kpi.mat_consumed', "Mat. Consumate") : t('work_order_detail.kpi.mat_required', "Mat. Necesare");
+    const matLabel = hasStarted ? t('work_order_detail.kpi.mat_consumed', 'Mat. Consommés') : t('work_order_detail.kpi.mat_required', 'Mat. Requis');
 
 
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
@@ -674,9 +674,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             const res = await api.put(`/admin/work-orders/${id}`, { volumes: newVolumes, estimated_price: String(newCalc.net), prices: newPrices });
             setWo(res.data);
             setCalcEditOpen(false);
-            showToast(t('work_order_detail.calc_edit.saved', 'Calcul actualizat cu succes!'));
+            showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès !'));
         } catch (e) {
-            showToast(t('work_order_detail.calc_edit.error', 'Eroare la salvare calcul.'));
+            showToast(t('work_order_detail.calc_edit.error', 'Erreur lors de la sauvegarde du calcul.'));
         } finally {
             setCalcEditSaving(false);
         }
@@ -695,7 +695,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     
     const activeWorkersCount = Object.keys(hoursPerUser).length;
     const workersValue = activeWorkersCount > 0 ? activeWorkersCount : (wo.assigned_team_name || '—');
-    const workersSub = activeWorkersCount > 0 ? t('work_order_detail.kpi.clocked_in', "au pontat") : t('work_order_detail.kpi.assigned', "alocată");
+    const workersSub = activeWorkersCount > 0 ? t('work_order_detail.kpi.clocked_in', 'ont pointé') : t('work_order_detail.kpi.assigned', 'assignée');
     
     const rawMaxThickness = (wo.volumes || []).reduce((a, v) => Math.max(a, parseFloat(v.thickness) || 0), 0);
     const fallbackThick = parseFloat(wo.thickness) || 0;
@@ -793,11 +793,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {/* ── KPIs ────────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                <KPI icon={Users}    label={t('work_order_detail.kpi.employees', "Angajați")}       value={workersValue}     sub={workersSub}       color="purple" />
+                <KPI icon={Users}    label={t('work_order_detail.kpi.employees', 'Employés')}       value={workersValue}     sub={workersSub}       color="purple" />
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
-                <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', "Volum")}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
-                <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', "Grosime")}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', "medie")} color="rose" />
-                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', "Traseu")}       value={wo.route_distance_km ? `${(wo.route_distance_km * 2).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', "dus-întors")} color="slate" />
+                <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
+                <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', 'Épaisseur')}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', 'moyenne')} color="rose" />
+                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       value={wo.route_distance_km ? `${(wo.route_distance_km * 2).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
@@ -805,7 +805,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <div className="px-1 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || t('work_order_detail.location.no_address', 'Fără adresă specificată')}</div>
+                        <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || t('work_order_detail.location.no_address', 'Aucune adresse spécifiée')}</div>
                     </div>
                 </div>
                 
@@ -818,8 +818,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             height={220}
                             zoom={15}
                             geofenceRadius={geoR}
-                            label={`${t('work_order_detail.location.loc_label', 'Locație: ')}${address}`}
-                            baseName="Baza"
+                            label={`${t('work_order_detail.location.loc_label', 'Emplacement : ')}${address}`}
+                            baseName={t('work_order_detail.location.base_name', 'Base')}
                             routeSegments={wo.route_segments}
                             onRouteCalculated={handleRouteCalculated}
                             navButtons={(lat || lon || address) ? <NavButtons lat={lat} lon={lon} address={address} /> : null}
@@ -844,7 +844,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 {wo.access_notes && (
                     <div className="px-4 pb-4 pt-3">
                         <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                            <p className="text-[10px] whitespace-nowrap font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 {t('work_order_detail.access_notes', 'Note Acces')}</p>
+                            <p className="text-[10px] whitespace-nowrap font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">🔑 {t('work_order_detail.access_notes', "Notes d'Accès")}</p>
                             <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{wo.access_notes}</p>
                         </div>
                     </div>
@@ -911,13 +911,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distanță Totală (Etape)')}</span>
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Étapes)')}</span>
                                             <span className="text-sm font-black text-slate-900 dark:text-white">{(wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0).toFixed(1)} km</span>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="flex items-center justify-center h-16 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
-                                        <span className="text-xs text-slate-400 font-medium">{t('work_order_detail.planning.no_route', 'Fără traseu înregistrat')}</span>
+                                        <span className="text-xs text-slate-400 font-medium">{t('work_order_detail.planning.no_route', 'Aucun itinéraire enregistré')}</span>
                                     </div>
                                 )}
                             </div>
@@ -983,14 +983,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
                 <div className="flex flex-col gap-5">
 
-                    <Section className="flex-1" icon={FileText} title={t('work_order_detail.general_details.title', "Detalii Generale")} contentClassName="!p-3">
+                    <Section className="flex-1" icon={FileText} title={t('work_order_detail.general_details.title', 'Détails Généraux')} contentClassName="!p-3">
                                             <div className="grid grid-cols-2 gap-4 mb-2">
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Comandă')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Commande')}</p>
                                                     <p className="font-mono text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.status', 'Status')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.status', 'Statut')}</p>
                                                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-700 uppercase tracking-wider">
                                                         {cfg?.label || wo.status}
                                                     </span>
@@ -998,35 +998,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Dată Aprox.')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Date Approx.')}</p>
                                                     <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
                                                         <CalendarDays className="w-4 h-4 text-slate-400" />
                                                         <span>{wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : '—'}</span>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.price', 'Preț Est. (€)')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.price', 'Prix Est. (€)')}</p>
                                                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                                                         {wo.estimated_price ? `${wo.estimated_price} €` : '—'}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0">{t('work_order_detail.general_details.team_leader', 'Șef Echipă (Confirmare)')}</p>
+                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0">{t('work_order_detail.general_details.team_leader', 'Chef Équipe (Confirmation)')}</p>
                                                 {wo.team_leader_confirmed_at ? (
                                                     <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex flex-col sm:text-right">
-                                                        <span>{t('work_order_detail.status.acknowledged_on', 'A luat la cunoștință pe')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
+                                                        <span>{t('work_order_detail.status.acknowledged_on', 'A pris connaissance le')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
                                                         {wo.team_leader_confirmation_note && (
-                                                            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 italic">{t('work_order_detail.status.note', 'Notă:')} {wo.team_leader_confirmation_note}</span>
+                                                            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 italic">{t('work_order_detail.status.note', 'Note :')} {wo.team_leader_confirmation_note}</span>
                                                         )}
                                                     </div>
                                                 ) : wo.team_leader_accepted_at ? (
                                                     <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 sm:text-right">
-                                                        <span>{t('work_order_detail.status.opened_on', 'A deschis comanda pe')} {new Date(wo.team_leader_accepted_at).toLocaleString('ro-RO')}</span>
+                                                        <span>{t('work_order_detail.status.opened_on', 'A ouvert la commande le')} {new Date(wo.team_leader_accepted_at).toLocaleString('ro-RO')}</span>
                                                     </div>
                                                 ) : (
                                                     <div className="text-sm font-semibold text-amber-600 dark:text-amber-500 sm:text-right">
-                                                        <span>{t('work_order_detail.status.not_acknowledged', 'Nu a luat la cunoștință încă')}</span>
+                                                        <span>{t('work_order_detail.status.not_acknowledged', "N'a pas encore pris connaissance")}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1053,42 +1053,42 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
                 <div className="flex flex-col gap-5">
 
-                    <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', "Confirmări Status")} contentClassName="!p-3">
+                    <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', 'Confirmations Statut')} contentClassName="!p-3">
                                             <div className="flex flex-col xl:flex-row gap-3">
                                                 <div className="flex-1 space-y-2">
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Șef Echipă')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Chef Équipe')}</p>
                                                     {wo.team_leader_confirmed_at ? (
                                                         <div className="flex flex-col gap-1">
                                                             <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmat')}</span>
+                                                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmé')}</span>
                                                             </div>
                                                             <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                             <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
-                                                            <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'În așteptare confirmare')}</span>
+                                                            <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'En attente de confirmation')}</span>
                                                         </div>
                                                     )}
                                                     {wo.team_leader_confirmation_note && (
                                                         <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
-                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Notă')}</p>
+                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Note')}</p>
                                                             <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
                                                 <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-4 xl:pt-0 space-y-2">
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Beneficiar')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
                                                     {wo.confirmed_at ? (
                                                         <>
                                                             <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmat de')}</span>
+                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmé par')}</span>
                                                                 <span className="font-semibold text-emerald-600">{wo.confirmed_by_name}</span>
                                                             </div>
                                                             <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'La Data')}</span>
+                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'À la date')}</span>
                                                                 <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
                                                             </div>
                                                             {hasSig && (
@@ -1101,7 +1101,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         </>
                                                     ) : (
                                                         <div className="flex items-center justify-center py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                                            <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Neconfirmată de client.')}</p>
+                                                            <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Non confirmée par le client.')}</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -1132,12 +1132,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <div className="flex items-center flex-wrap gap-2">
                                                         <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planificat / Estimat')}</p>
+                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.planned', 'Planifié / Estimé')}</p>
                                                         </div>
                                                         {(wo.volumes || []).length > 0 && (
                                                             <>
                                                                 <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
-                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Lucrări / Volume')}</p>
+                                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Travaux / Volumes')}</p>
                                                                 <div className="flex items-center gap-2">
                                                                     {wo.volumes.map((v, i) => (
                                                                         <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -1231,9 +1231,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
             {(wo.documents && wo.documents.length > 0) && (
                 <div className="mb-5">
-                    <Section icon={Paperclip} title={t('work_order_detail.documents.title', "Documente & Fișiere")}>
+                    <Section icon={Paperclip} title={t('work_order_detail.documents.title', 'Documents & Fichiers')}>
                         <div className="mb-4">
-                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">Atașamente</p>
+                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.documents.attachments', 'Pièces jointes')}</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {wo.documents.map((doc, idx) => {
                                 const isImg = doc.content_type?.startsWith('image/');
@@ -1252,12 +1252,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
                                                 {doc.source === 'client' && (
                                                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-widest shrink-0 border border-blue-200">
-                                                        De la Client
+                                                        {t('work_order_detail.documents.from_client', 'Du client')}
                                                     </span>
                                                 )}
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                                {doc.file_size ? (doc.file_size / 1024).toFixed(0) + ' KB' : 'Atașament'}
+                                                {doc.file_size ? (doc.file_size / 1024).toFixed(0) + ' KB' : t('work_order_detail.documents.attachment', 'Pièce jointe')}
                                             </p>
                                         </div>
                                         <Download 
@@ -1286,10 +1286,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
                 {/* ─── Calcul Cost ────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
-                    <Section icon={Calculator} title={t('work_order_detail.invoicing.title_calc', 'Calcul Cost')} className="h-full">
+                    <Section icon={Calculator} title={t('work_order_detail.invoicing.title_calc', 'Calcul des Coûts')} className="h-full">
                         {wo.estimated_price && !isAuto && (
                             <div className="mb-4">
-                                <Row label={t('work_order_detail.general_details.estimated_price', 'Preț Estimativ')} value={`${parseFloat(wo.estimated_price).toFixed(2)} EUR`} />
+                                <Row label={t('work_order_detail.general_details.estimated_price', 'Prix Estimé')} value={`${parseFloat(wo.estimated_price).toFixed(2)} EUR`} />
                             </div>
                         )}
 
@@ -1345,24 +1345,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 )}
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                        <span className="font-medium">{t('work_order_detail.invoicing.base', 'Șapă de bază (≤5cm)')}</span>
+                                        <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
                                         <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)} EUR</b></span>
                                     </div>
                                     {autoExtra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Grosime extra (>5cm)')} ({extraThickForAuto} cm)</span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({extraThickForAuto} cm)</span>
                                             <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoFoil > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Folie plastic')}</span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
                                             <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     {autoMesh > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Plasă metalică')}</span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
                                             <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
@@ -1481,12 +1481,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
                 {/* ─── Facturare ──────────────────────────────────────────── */}
                 <div className="flex flex-col h-full">
-                    <Section icon={FileText} title={t('work_order_detail.invoicing.title', 'Facturare')} className="h-full">
+                    <Section icon={FileText} title={t('work_order_detail.invoicing.title', 'Facturation')} className="h-full">
                         {/* Status + Tabs + Badge — totul pe un singur rând */}
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                             {/* Tabs DEVIS / FACTURE — schimbă preview, click pe PDF deschide full page */}
-                            {(wo.proforma_path || wo.is_invoiced) && (
-                                <div className="bg-slate-50 dark:bg-slate-800/50 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex gap-1">
                                     <button
                                         onClick={() => setActiveDocTab('devis')}
                                         style={activeDocTab === 'devis' ? { backgroundColor: `#2563EB20`, color: '#2563EB', borderColor: `#2563EB40` } : {}}
@@ -1504,26 +1503,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </button>
                                     )}
                                 </div>
-                            )}
                             {/* Badge FACTURAT / NEFACTURAT */}
                             <div className="ml-auto">
                                 {wo.is_invoiced ? (
                                     <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                        {t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                                        {t('work_order_detail.invoicing.invoiced', 'Facturé')}
                                     </span>
                                 ) : (
                                     <span className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block"></span>
-                                        {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                                        {t('work_order_detail.invoicing.not_invoiced', 'Non facturé')}
                                     </span>
                                 )}
                             </div>
                         </div>
 
                         {/* Preview iframe cu click-to-fullpage */}
-                        {(wo.proforma_path || wo.is_invoiced) && (
-                            <div
+                        <div
                                 className="relative w-full h-[500px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
                                 onClick={() => setDocDrawerState({ url: activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`, type: activeDocTab })}
                             >
@@ -1539,25 +1536,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
                                 />
                             </div>
-                        )}
 
-                        {/* Fallback: nicio documentatie */}
-                        {(!wo.proforma_path && !wo.is_invoiced) && (
-                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <FileText className="w-5 h-5 text-slate-400 shrink-0" />
-                                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 truncate">{t('work_order_detail.invoicing.no_doc', 'Aucun document émis')}</span>
-                                </div>
-                                <button
-                                    onClick={handleGenerateProforma}
-                                    disabled={generatingProforma}
-                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 border border-transparent rounded-lg text-xs font-bold text-white transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
-                                >
-                                    {generatingProforma && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                    {t('work_order_detail.invoicing.generate_proforma', 'Générer Devis PDF')}
-                                </button>
-                            </div>
-                        )}
                     </Section>
                 </div>
 
@@ -1569,7 +1548,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
             <Section 
                 icon={Camera} 
-                title={`${t('work_order_detail.photos.title', 'Fotografii')} (${photos.length})`}
+                title={`${t('work_order_detail.photos.title', 'Photos')} (${photos.length})`}
                 headerRight={
                     <button 
                         onClick={() => fileInputRef.current?.click()}
@@ -1587,7 +1566,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {photos.filter(p => p.photo_type === 'machine_computer').length > 0 && (
                             <div>
                                 <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <Camera className="w-4 h-4" /> Verificare AI (Ecrane Bremat)
+                                    <Camera className="w-4 h-4" /> {t('work_order_detail.photos.ai_verification', 'Vérification IA (Écrans Bremat)')}
                                 </p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {photos.filter(p => p.photo_type === 'machine_computer').map((p, i) => {
@@ -1603,7 +1582,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 }}>
                                                 <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt="Ecran Masina" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <div className="absolute bottom-0 left-0 right-0 bg-indigo-900/80 backdrop-blur-sm p-1.5 text-center">
-                                                    <span className="text-white text-[10px] font-bold">ECRAN MAȘINĂ</span>
+                                                    <span className="text-white text-[10px] font-bold">{t('work_order_detail.photos.machine_screen', 'ÉCRAN MACHINE')}</span>
                                                 </div>
                                             </div>
                                         )
@@ -1615,7 +1594,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {/* Poze Finalizare (Client) */}
                         {photos.filter(p => p.photo_type === 'completion').length > 0 && (
                             <div>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Poze Finalizare (Către Client)</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.photos.completion_photos', 'Photos de Finalisation (Client)')}</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {photos.filter(p => p.photo_type === 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
@@ -1630,7 +1609,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 }}>
                                                 <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt={`Finalizare ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <span className="absolute top-2 right-2 px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-xl shadow-sm">
-                                                    FINAL
+                                                    {t('work_order_detail.photos.final', 'FINAL')}
                                                 </span>
                                             </div>
                                         )
@@ -1642,7 +1621,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {/* Alte poze */}
                         {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').length > 0 && (
                             <div>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Alte Fotografii (Interne)</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.photos.other_photos', 'Autres Photos (Internes)')}</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                     {photos.filter(p => p.photo_type !== 'machine_computer' && p.photo_type !== 'completion').map((p, i) => {
                                         const rawSrc = p.url || p.file_url || p.path || '';
@@ -1657,7 +1636,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                 }}>
                                                 <img src={src} onError={(e) => { if (e.target.src !== fallbackSrc) e.target.src = fallbackSrc; }} alt={`Interna ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-bold rounded uppercase">
-                                                    {p.photo_type || 'intern'}
+                                                    {p.photo_type || t('work_order_detail.photos.internal', 'interne')}
                                                 </span>
                                             </div>
                                         )
@@ -1669,7 +1648,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 ) : (
                     <div className="flex flex-col items-center py-10 gap-3">
                         <Camera className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-                        <p className="text-sm text-slate-400">{t('work_order_detail.photos.no_photos', 'Nu există fotografii asociate.')}</p>
+                        <p className="text-sm text-slate-400">{t('work_order_detail.photos.no_photos', 'Aucune photo associée.')}</p>
                     </div>
                 )}
             </Section>
@@ -1865,8 +1844,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <X className="w-6 h-6" />
                             </button>
                             <div>
-                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">PREVIZUALIZARE {docDrawerState.type === 'facture' ? 'FACTURĂ' : docDrawerState.type === 'proforma' ? 'PROFORMĂ' : 'DEVIZ'}</h2>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{wo?.client?.name || wo?.client_name || 'Fără Client'}</p>
+                                <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">PRÉVISUALISATION {docDrawerState.type === 'facture' ? 'FACTURE' : docDrawerState.type === 'proforma' ? 'PROFORMA' : 'DEVIS'}</h2>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{wo?.client?.name || wo?.client_name || t('work_order_detail.documents.no_client', 'Sans Client')}</p>
                             </div>
                         </div>
 

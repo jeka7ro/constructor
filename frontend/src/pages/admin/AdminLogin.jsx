@@ -56,7 +56,7 @@ export default function AdminLogin() {
             setAuth(admin, access_token)
             navigate('/admin/planning')
         } catch (err) {
-            setError(err.response?.data?.detail || 'Eroare la autentificare')
+            setError(err.response?.data?.detail || t('admin_login.auth_error', 'Erreur d\'authentification'))
         } finally {
             setLoading(false)
         }
@@ -97,7 +97,7 @@ export default function AdminLogin() {
                         {tenant?.name || "Pontaj Digital"} Admin
                     </h1>
                     <p className="text-blue-200 font-medium">
-                        Autentificare pentru manageri
+                        {t('admin_login.manager_login', 'Authentification pour les managers')}
                     </p>
                 </div>
 
@@ -128,7 +128,7 @@ export default function AdminLogin() {
                         <div>
                             <label className="block text-sm font-semibold text-white mb-2">
                                 <Lock className="w-4 h-4 inline mr-2" />
-                                Parolă
+                                {t('common.password', 'Mot de passe')}
                             </label>
                             <div className="relative">
                                 <input
@@ -160,7 +160,7 @@ export default function AdminLogin() {
                                 onChange={(e) => setRememberMe(e.target.checked)}
                                 className="w-4 h-4 rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500/30"
                             />
-                            <span className="text-sm text-white/80">Memorează-mă</span>
+                            <span className="text-sm text-white/80">{t('admin_login.remember_me', 'Se souvenir de moi')}</span>
                         </label>
 
                         {/* Error Message */}
@@ -185,11 +185,11 @@ export default function AdminLogin() {
                             {loading ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span>Se autentifică...</span>
+                                    <span>{t('admin_login.authenticating', 'Authentification en cours...')}</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Autentificare Admin</span>
+                                    <span>{t('admin_login.admin_auth_btn', 'Authentification Admin')}</span>
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -199,7 +199,7 @@ export default function AdminLogin() {
                     {/* Back to Main App */}
                     <div className="mt-6 text-center">
                         <a href="/" className="text-sm text-blue-200 hover:text-white transition-colors font-medium">
-                            ← Acces muncitori
+                            {t('admin_login.worker_access', '← Accès travailleurs')}
                         </a>
                     </div>
                 </div>
@@ -208,7 +208,7 @@ export default function AdminLogin() {
                 <div className="mt-8 text-center flex flex-col items-center justify-center fade-in stagger-2 gap-3">
                     <p className="text-sm text-blue-200/90 font-medium tracking-wide">
                         © 2025 Smart Timesheet.<br className="sm:hidden" />
-                        <span className="hidden sm:inline"> Acces restricționat.</span>
+                        <span className="hidden sm:inline"> {t('admin_login.restricted_access', 'Accès restreint.')}</span>
                     </p>
                     <div className="inline-block opacity-70 hover:opacity-100 transition-all transform hover:scale-105">
                         <img src="/getapp_smart_timesheet_white.png" alt="Smart Timesheet" className="h-16 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-full">Powered by Smart Timesheet</span>' }} />

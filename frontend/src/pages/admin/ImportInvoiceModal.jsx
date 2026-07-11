@@ -4,9 +4,11 @@ import { UploadCloud, FileText, CheckCircle2, AlertCircle, X, ChevronRight, Save
 import { extractTextFromImageOrPdf } from '../../lib/pdfOcr'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
+import { useTranslation } from 'react-i18next'
 import SearchableSelect from '../../components/SearchableSelect'
 
 export default function ImportInvoiceModal({ onClose, initialFile }) {
+    const { t } = useTranslation()
     const { showToast } = useUIStore()
     const [file, setFile] = useState(initialFile || null)
     const [isProcessing, setIsProcessing] = useState(false)
@@ -31,14 +33,14 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
 
     const processFile = async (selected) => {
         if (selected.type !== 'application/pdf') {
-            showToast('Doar fișiere PDF sunt permise!', 'error')
+            showToast(t('import.error_pdf_only', 'Seuls les fichiers PDF sont autorisés !'), 'error')
             return
         }
 
         setFile(selected)
         setIsProcessing(true)
         setProgress(0)
-        setProgressText('Încărcare fișier...')
+        setProgressText(t('import.uploading', 'Téléchargement du fichier...'))
 
         try {
             const { text } = await extractTextFromImageOrPdf(selected, (stage, pct) => {
@@ -46,7 +48,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                 setProgress(pct)
             })
 
-            setProgressText('Parsare date pe server...')
+            setProgressText(t('import.parsing', 'Analyse des données sur le serveur...'))
             const res = await api.post('/admin/invoices/parse', { preExtractedText: text })
             
             // Add mapping state to items
@@ -61,10 +63,10 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
             })
 
             setParsedData({ ...res.data, items })
-            showToast('Factură extrasă cu succes!', 'success')
+            showToast(t('import.success_extract', 'Facture extraite avec succès !'), 'success')
         } catch (err) {
             console.error(err)
-            showToast('Eroare la extragere: ' + (err.response?.data?.detail || err.message), 'error')
+            showToast(t('import.error_extract', 'Erreur lors de l\'extraction : ') + (err.response?.data?.detail || err.message), 'error')
             if (initialFile) {
                 onClose()
             }
@@ -100,10 +102,10 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
 
         try {
             await api.post('/admin/invoices/import', payload)
-            showToast('Import realizat cu succes!', 'success')
+            showToast(t('import.success_import', 'Importation réussie !'), 'success')
             onClose()
         } catch (err) {
-            showToast('Eroare la salvare: ' + (err.response?.data?.detail || err.message), 'error')
+            showToast(t('import.error_save', 'Erreur de sauvegarde : ') + (err.response?.data?.detail || err.message), 'error')
         } finally {
             setIsSaving(false)
         }
@@ -133,8 +135,8 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                             <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Import Factură Materiale</h2>
-                            <p className="text-xs text-slate-500">Extragere automată a cantităților în Gestiune</p>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{t('import.title', 'Importer une Facture de Matériaux')}</h2>
+                            <p className="text-xs text-slate-500">{t('import.subtitle', 'Extraction automatique des quantités vers la gestion')}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition-colors">
@@ -163,8 +165,8 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                             <div className="w-20 h-20 mx-auto bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                 <UploadCloud className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Trage PDF-ul aici sau apasă pentru a încărca</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Sistemul va extrage automat materialele și cantitățile.</p>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('import.drag_drop', 'Faites glisser le PDF ici ou cliquez pour télécharger')}</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('import.drag_drop_desc', 'Le système extraira automatiquement les matériaux et les quantités.')}</p>
                         </div>
                     </div>
                 )}
@@ -178,7 +180,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                         className="border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center bg-white dark:bg-slate-900 shadow-xl"
                     >
                         <div className="w-16 h-16 border-4 border-indigo-100 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin mx-auto mb-6"></div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Se analizează factura...</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t('import.analyzing', 'Analyse de la facture...')}</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{progressText}</p>
                         <div className="w-full max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                             <div className=" from-indigo-500 to-purple-500 h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
@@ -196,15 +198,15 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                         {/* Header info */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Furnizor</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('import.supplier', 'Fournisseur')}</p>
                                 <p className="text-base font-bold text-slate-900 dark:text-white">{parsedData.supplier}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Data Facturii</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('import.date', 'Date de la Facture')}</p>
                                 <p className="text-base font-bold text-slate-900 dark:text-white">{parsedData.date || '—'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nr. Factură</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{t('import.invoice_number', 'N° Facture')}</p>
                                 <p className="text-base font-bold text-slate-900 dark:text-white">{parsedData.invoice_number || '—'}</p>
                             </div>
                         </div>
@@ -213,18 +215,18 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
                                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    Linii Factură ({parsedData.items.length})
+                                    {t('import.lines', 'Lignes de Facture')} ({parsedData.items.length})
                                 </h3>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                                         <tr>
-                                            <th className="px-4 py-3 font-bold">Cantitate</th>
-                                            <th className="px-4 py-3 font-bold">UM</th>
-                                            <th className="px-4 py-3 font-bold">Articol Factură</th>
-                                            <th className="px-4 py-3 font-bold">Mapare în Gestiune</th>
-                                            <th className="px-4 py-3 font-bold text-right">Acțiuni</th>
+                                            <th className="px-4 py-3 font-bold">{t('import.qty', 'Quantité')}</th>
+                                            <th className="px-4 py-3 font-bold">{t('import.unit', 'Unité')}</th>
+                                            <th className="px-4 py-3 font-bold">{t('import.article', 'Article de Facture')}</th>
+                                            <th className="px-4 py-3 font-bold">{t('import.mapping', 'Mappage en Gestion')}</th>
+                                            <th className="px-4 py-3 font-bold text-right">{t('import.actions', 'Actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -257,7 +259,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                                 <td className="px-4 py-3 min-w-[250px]">
                                                     <SearchableSelect
                                                         options={[
-                                                            { value: '', label: '+ Creare Articol Nou' },
+                                                            { value: '', label: t('import.create_new', '+ Créer un Nouvel Article') },
                                                             ...warehouseItems.map(w => ({ value: w.id, label: w.name }))
                                                         ]}
                                                         value={item.mapped_item_id}
@@ -265,12 +267,12 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                                             updateItem(item.id, 'mapped_item_id', val)
                                                             updateItem(item.id, 'is_new', !val)
                                                         }}
-                                                        placeholder="Selectează din gestiune..."
+                                                        placeholder={t('import.select_inventory', 'Sélectionnez depuis la gestion...')}
                                                         className="w-full"
                                                     />
                                                     {item.is_new && (
                                                         <p className="text-[10px] font-bold text-indigo-500 mt-1 flex items-center gap-1">
-                                                            <Plus className="w-3 h-3" /> Se va crea element nou
+                                                            <Plus className="w-3 h-3" /> {t('import.will_create', 'Un nouvel élément sera créé')}
                                                         </p>
                                                     )}
                                                 </td>
@@ -278,7 +280,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                                     <button 
                                                         onClick={() => removeItem(item.id)}
                                                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                                                        title="Șterge rând"
+                                                        title={t('import.delete_row', 'Supprimer la ligne')}
                                                     >
                                                         <X className="w-4 h-4" />
                                                     </button>
@@ -290,7 +292,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                             </div>
                             {parsedData.items.length === 0 && (
                                 <div className="p-8 text-center text-slate-500 flex flex-col items-center">
-                                    <span>Nu a rămas niciun articol extras automat din PDF.</span>
+                                    <span>{t('import.no_articles', 'Aucun article extrait automatiquement du PDF restant.')}</span>
                                     {parsedData.debug_text && (
                                         <details className="mt-4 text-left max-w-lg w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-xs overflow-auto max-h-40">
                                             <summary className="cursor-pointer font-bold text-slate-700 dark:text-slate-300 mb-2">Debug Text OCR</summary>
@@ -304,8 +306,8 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                         {/* Extra Materials (Manual Addition) */}
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                             <div>
-                                <h4 className="font-bold text-slate-900 dark:text-white mb-1">Adăugare Materiale Extra</h4>
-                                <p className="text-xs text-slate-500">Adaugă rapid materiale din bife, prețurile sunt fără TVA.</p>
+                                <h4 className="font-bold text-slate-900 dark:text-white mb-1">{t('import.extra_materials', 'Ajouter du Matériel Supplémentaire')}</h4>
+                                <p className="text-xs text-slate-500">{t('import.extra_materials_desc', 'Ajoutez rapidement des matériaux à partir des cases à cocher, les prix sont hors TVA.')}</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
                                 <button
@@ -314,7 +316,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                             ...prev,
                                             items: [...prev.items, {
                                                 id: 'manual-folie-' + Date.now(),
-                                                name: 'Folie plastic',
+                                                name: t('import.foil', 'Folie plastique'),
                                                 quantity: 1,
                                                 unit: 'mp',
                                                 unit_price: 1.2,
@@ -326,7 +328,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                     }}
                                     className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-lg border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1"
                                 >
-                                    <Plus className="w-4 h-4" /> Folie plastic (1.2/mp)
+                                    <Plus className="w-4 h-4" /> {t('import.foil_btn', 'Folie plastique (1.2/m²)')}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -334,7 +336,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                             ...prev,
                                             items: [...prev.items, {
                                                 id: 'manual-plasa-' + Date.now(),
-                                                name: 'Plasă metalică',
+                                                name: t('import.mesh', 'Treillis métallique'),
                                                 quantity: 1,
                                                 unit: 'buc',
                                                 unit_price: 2.50,
@@ -346,7 +348,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                     }}
                                     className="px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 text-sm font-bold rounded-lg border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors flex items-center gap-1"
                                 >
-                                    <Plus className="w-4 h-4" /> Plasă metalică (2.50)
+                                    <Plus className="w-4 h-4" /> {t('import.mesh_btn', 'Treillis métallique (2.50)')}
                                 </button>
                             </div>
                         </div>
@@ -363,7 +365,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                     />
                                 </div>
                                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                                    Client Persoană Fizică (Adaugă TVA)
+                                    {t('import.physical_person', 'Client Personne Physique (Ajouter TVA)')}
                                 </span>
                             </label>
 
@@ -372,7 +374,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                     onClick={onClose}
                                     className="flex-1 md:flex-none px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white dark:bg-slate-900 shadow-sm"
                                 >
-                                    Anulează
+                                    {t('import.cancel', 'Annuler')}
                                 </button>
                                 <button
                                     onClick={handleSave}
@@ -384,7 +386,7 @@ export default function ImportInvoiceModal({ onClose, initialFile }) {
                                     ) : (
                                         <Save className="w-5 h-5" />
                                     )}
-                                    Confirmă Importul
+                                    {t('import.confirm', 'Confirmer l\'Importation')}
                                 </button>
                             </div>
                         </div>

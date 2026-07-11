@@ -28,7 +28,7 @@ export default function OrganizationsManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingOrg, setEditingOrg] = useState(null)
     const [uploadingLogo, setUploadingLogo] = useState(false)
-    const [isPlanDropdownOpen, setIsPlanDropdownOpen] = useState(false)
+    const [isForfaitDropdownOpen, setIsForfaitDropdownOpen] = useState(false)
     const fileInputRef = useRef(null)
     const faviconInputRef = useRef(null)
 
@@ -285,7 +285,7 @@ export default function OrganizationsManagement() {
 
     const moduleOptions = [
         { id: 'timesheets', label: 'Pontaje' },
-        { id: 'screeds', label: 'Planificare & Comenzi (Șape)' },
+        { id: 'screeds', label: 'Forfaitificare & Comenzi (Șape)' },
         { id: 'sites', label: 'Șantiere (Termen Lung)' },
         { id: 'fleet', label: 'Parc Auto' },
         { id: 'warehouse', label: 'Magazie & Inventar' },
@@ -305,7 +305,7 @@ export default function OrganizationsManagement() {
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Caută companie..."
+                            placeholder={t("orgs.search_placeholder", "Rechercher une entreprise...")}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             className="w-full pl-10 px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none transition-all shadow-sm"
@@ -315,7 +315,7 @@ export default function OrganizationsManagement() {
                         onClick={() => openModal()}
                         className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap"
                     >
-                        <Plus className="w-4 h-4" /> Adaugă
+                        <Plus className="w-4 h-4" /> Ajouter
                     </button>
                 </div>
             </div>
@@ -328,7 +328,7 @@ export default function OrganizationsManagement() {
                             <tr className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold uppercase tracking-widest">
                                 <th className="px-6 py-4">Companie</th>
                                 <th className="px-6 py-4">Domeniu / Slug</th>
-                                <th className="px-6 py-4">Plan</th>
+                                <th className="px-6 py-4">Forfait</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Acțiuni</th>
                             </tr>
@@ -359,7 +359,7 @@ export default function OrganizationsManagement() {
                                                 )}
                                                 <div>
                                                     <div className="text-sm font-bold text-slate-900 dark:text-white">{org.name}</div>
-                                                    <div className="text-[11px] text-slate-700 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider">Limita: {org.max_users || 'Nelimitat'}</div>
+                                                    <div className="text-[11px] text-slate-700 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider">Limita: {org.max_users || 'Illimité'}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -387,7 +387,7 @@ export default function OrganizationsManagement() {
                                                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' 
                                                     : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-900/20 dark:border-rose-800'
                                             }`}>
-                                                {org.is_active ? 'Activ' : 'Inactiv'}
+                                                {org.is_active ? 'Actif' : 'Inactif'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -423,7 +423,7 @@ export default function OrganizationsManagement() {
                         {/* Sticky header */}
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                                {editingOrg ? 'Editează Compania' : 'Adaugă Companie Nouă'}
+                                {editingOrg ? "Éditer l'entreprise" : "Ajouter une nouvelle entreprise"}
                             </h2>
                             <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
                                 <X className="w-5 h-5" />
@@ -438,7 +438,7 @@ export default function OrganizationsManagement() {
                                     </div>
                                 )}
 
-                                {/* ROW 1: Logo + Nume + Plan + Limita */}
+                                {/* ROW 1: Logo + Nume + Forfait + Limita */}
                                 <div className="flex gap-4 items-start">
                                     {/* Logo + Favicon Upload */}
                                     <div className="flex gap-3 shrink-0">
@@ -488,22 +488,22 @@ export default function OrganizationsManagement() {
 
                                     <div className="flex-1 space-y-3">
                                         <div>
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nume Companie *</label>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nom de l'entreprise *</label>
                                             <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                                                 className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm"
                                                 placeholder="Ex: Trade Invest SRL" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="relative">
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Plan</label>
-                                                <div onClick={() => setIsPlanDropdownOpen(!isPlanDropdownOpen)}
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Forfait</label>
+                                                <div onClick={() => setIsForfaitDropdownOpen(!isForfaitDropdownOpen)}
                                                     className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white shadow-sm flex items-center justify-between cursor-pointer">
                                                     <span className="font-bold capitalize">{formData.plan_tier}</span>
-                                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isPlanDropdownOpen ? 'rotate-180' : ''}`} />
+                                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isForfaitDropdownOpen ? 'rotate-180' : ''}`} />
                                                 </div>
-                                                {isPlanDropdownOpen && (
+                                                {isForfaitDropdownOpen && (
                                                     <>
-                                                        <div className="fixed inset-0 z-[10000]" onClick={() => setIsPlanDropdownOpen(false)} />
+                                                        <div className="fixed inset-0 z-[10000]" onClick={() => setIsForfaitDropdownOpen(false)} />
                                                         <div className="absolute top-[calc(100%+6px)] left-0 w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 z-[10001] overflow-hidden">
                                                             {[
                                                                 { id: 'basic', label: 'Basic' },
@@ -511,7 +511,7 @@ export default function OrganizationsManagement() {
                                                                 { id: 'enterprise', label: 'Enterprise' }
                                                             ].map(plan => (
                                                                 <div key={plan.id}
-                                                                    onClick={() => { setFormData({...formData, plan_tier: plan.id}); setIsPlanDropdownOpen(false) }}
+                                                                    onClick={() => { setFormData({...formData, plan_tier: plan.id}); setIsForfaitDropdownOpen(false) }}
                                                                     className="px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between text-sm font-semibold text-slate-800 dark:text-white">
                                                                     {plan.label}
                                                                     {formData.plan_tier === plan.id && <Check className="w-4 h-4 text-blue-600" />}
@@ -522,10 +522,10 @@ export default function OrganizationsManagement() {
                                                 )}
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Limita Useri</label>
+                                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Limite d'utilisateurs</label>
                                                 <input type="number" value={formData.max_users} onChange={e => setFormData({...formData, max_users: e.target.value})}
                                                     className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm"
-                                                    placeholder="Nelimitat" />
+                                                    placeholder="Illimité" />
                                             </div>
                                         </div>
                                     </div>
@@ -533,10 +533,10 @@ export default function OrganizationsManagement() {
 
                                 <div className="border-t border-slate-100 dark:border-slate-800" />
 
-                                {/* ROW 2: Subdomeniu + Custom Domain */}
+                                {/* ROW 2: Sous-domaine + Custom Domain */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Subdomeniu</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Sous-domaine</label>
                                         <div className="relative flex items-center">
                                             <input type="text" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})}
                                                 className="w-full pl-4 pr-[90px] h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm font-medium text-blue-600"
@@ -556,12 +556,12 @@ export default function OrganizationsManagement() {
 
                                 {/* ROW 3: Timezone */}
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Fus Orar</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Fuseau horaire</label>
                                     <select value={formData.timezone} onChange={e => setFormData({...formData, timezone: e.target.value})}
                                         className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm cursor-pointer">
-                                        <option value="auto">Auto (Ora locală a vizitatorului)</option>
-                                        <option value="Europe/Bucharest">Romania (Bucuresti)</option>
-                                        <option value="Europe/Berlin">Germania (Berlin)</option>
+                                        <option value="auto">Auto (Heure locale du visiteur)</option>
+                                        <option value="Europe/Bucharest">Roumanie (Bucarest)</option>
+                                        <option value="Europe/Berlin">Allemagne (Berlin)</option>
                                     </select>
                                 </div>
 
@@ -570,7 +570,7 @@ export default function OrganizationsManagement() {
                                 {/* ROW 5: Culoare + Status */}
                                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Culoare Principala</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Couleur Principale</label>
                                         <div className="flex items-center gap-3">
                                             <input type="color" value={formData.primary_color} onChange={e => setFormData({...formData, primary_color: e.target.value})}
                                                 className="w-9 h-9 rounded-full cursor-pointer border-none p-0 overflow-hidden shrink-0" />
@@ -578,7 +578,7 @@ export default function OrganizationsManagement() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Status Cont</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Statut du compte</label>
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <div className={`relative w-10 h-5 rounded-full transition-colors ${!formData.is_active ? 'bg-slate-300' : ''}`}
                                                  style={{ backgroundColor: formData.is_active ? (formData.primary_color || '#3b82f6') : undefined }}>
@@ -587,7 +587,7 @@ export default function OrganizationsManagement() {
                                             <input type="checkbox" className="hidden" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} />
                                             <span className={`text-sm font-bold ${!formData.is_active ? 'text-slate-400' : ''}`}
                                                   style={{ color: formData.is_active ? (formData.primary_color || '#3b82f6') : undefined }}>
-                                                {formData.is_active ? 'Activ' : 'Inactiv'}
+                                                {formData.is_active ? 'Actif' : 'Inactif'}
                                             </span>
                                         </label>
                                     </div>
@@ -596,26 +596,26 @@ export default function OrganizationsManagement() {
                                 {/* ROW 5.5: Country & Language */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Țară Implicită (Hartă)</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Pays par défaut (Carte)</label>
                                         <select value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}
                                             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                                            <option value="RO">🇷🇴 România</option>
-                                            <option value="BE">🇧🇪 Belgia</option>
-                                            <option value="NL">🇳🇱 Olanda</option>
-                                            <option value="FR">🇫🇷 Franța</option>
-                                            <option value="DE">🇩🇪 Germania</option>
+                                            <option value="RO">🇷🇴 Roumanie</option>
+                                            <option value="BE">🇧🇪 Belgique</option>
+                                            <option value="NL">🇳🇱 Pays-Bas</option>
+                                            <option value="FR">🇫🇷 France</option>
+                                            <option value="DE">🇩🇪 Allemagne</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Limbă Implicită</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Langue par défaut</label>
                                         <select value={formData.default_language} onChange={e => setFormData({...formData, default_language: e.target.value})}
                                             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
-                                            <option value="ro">🇷🇴 Română (RO)</option>
-                                            <option value="en">🇬🇧 Engleză (EN)</option>
-                                            <option value="fr">🇫🇷 Franceză (FR)</option>
-                                            <option value="nl">🇳🇱 Olandeză (NL)</option>
-                                            <option value="de">🇩🇪 Germană (DE)</option>
-                                            <option value="ru">🇲🇩 Rusă (RU)</option>
+                                            <option value="ro">🇷🇴 Roumain (RO)</option>
+                                            <option value="en">🇬🇧 Anglais (EN)</option>
+                                            <option value="fr">🇫🇷 Français (FR)</option>
+                                            <option value="nl">🇳🇱 Néerlandais (NL)</option>
+                                            <option value="de">🇩🇪 Allemand (DE)</option>
+                                            <option value="ru">🇲🇩 Russe (RU)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -623,7 +623,7 @@ export default function OrganizationsManagement() {
                                 {/* ROW 6: Module */}
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Module Functionale</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Modules Fonctionnels</label>
                                         <button type="button" onClick={() => {
                                             const regularMods = moduleOptions.filter(m => !['timesheets', 'sites', 'screeds'].includes(m.id)).map(m => m.id)
                                             const isAllSelected = moduleOptions.every(m => {
@@ -654,7 +654,7 @@ export default function OrganizationsManagement() {
                                                 if (m.id === 'sites') return formData.has_long_term_sites
                                                 if (m.id === 'screeds') return formData.has_short_term_interventions
                                                 return formData.features.includes(m.id)
-                                            }) ? 'Deselecteaza Tot' : 'Selecteaza Tot'}
+                                            }) ? 'Tout Désélectionner' : 'Tout Sélectionner'}
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
@@ -699,7 +699,7 @@ export default function OrganizationsManagement() {
                                     Anulează
                                 </button>
                                 <button type="submit" className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all">
-                                    {editingOrg ? 'Salvează' : 'Creează Compania'}
+                                    {editingOrg ? 'Enregistrer' : 'Creează Compania'}
                                 </button>
                             </div>
                         </form>
@@ -744,7 +744,7 @@ export default function OrganizationsManagement() {
                                     onClick={() => { setAdminFormError(null); setAdminFormData({ email: '', full_name: '', password: '', confirm_password: '', role: 'ADMIN' }); setIsAddAdminModalOpen(true) }}
                                     className="px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all"
                                 >
-                                    <UserPlus className="w-3.5 h-3.5" /> Adaugă Admin
+                                    <UserPlus className="w-3.5 h-3.5" /> Ajouter Admin
                                 </button>
                             </div>
 
@@ -754,7 +754,7 @@ export default function OrganizationsManagement() {
                                 <div className="text-center py-8 text-slate-700 dark:text-slate-600 dark:text-slate-400">
                                     <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                                     <p className="text-sm font-medium">Niciun admin local</p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Adaugă primul administrator pentru această companie.</p>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Ajouter primul administrator pentru această companie.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -775,7 +775,7 @@ export default function OrganizationsManagement() {
                                                     setEditingAdminId(a.id)
                                                     setAdminFormData({ email: '', full_name: '', old_password: '', password: '', confirm_password: '', role: 'ADMIN' })
                                                     setIsEditPasswordModalOpen(true)
-                                                }} title="Editează parola" className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 hover:text-slate-900 text-slate-500 transition-colors">
+                                                }} title="Éditer parola" className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 hover:text-slate-900 text-slate-500 transition-colors">
                                                     <Edit2 className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button onClick={() => handleDeleteAdmin(a.id)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-rose-50 hover:text-rose-600 text-slate-600 dark:text-slate-400 transition-colors">

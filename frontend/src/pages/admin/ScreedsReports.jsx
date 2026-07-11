@@ -74,7 +74,7 @@ export default function ScreedsReports() {
             
             setWorkOrders(filtered)
         } catch (e) {
-            console.error("Eroare incarcare rapoarte:", e)
+            console.error(t('reports.error_load', "Eroare incarcare rapoarte:"), e)
         } finally {
             setLoading(false)
         }
@@ -131,7 +131,7 @@ export default function ScreedsReports() {
             }
 
             // Team ranking
-            const team = wo.assigned_team_name || 'Echipă Necunoscută';
+            const team = wo.assigned_team_name || t('reports.unknown_team', 'Echipă Necunoscută');
             if (!teamMap[team]) teamMap[team] = { name: team, volume: 0, count: 0, sand: 0, km: 0 };
             teamMap[team].volume += woVol;
             teamMap[team].count++;
@@ -189,7 +189,7 @@ export default function ScreedsReports() {
                     {payload.map((entry, index) => (
                         <p key={index} style={{ color: entry.color }} className="font-bold flex justify-between gap-4">
                             <span>{entry.name}:</span>
-                            <span>{entry.value} {entry.name === 'Volum' ? 'm²' : 'km'}</span>
+                            <span>{entry.value} {entry.name === t('reports.volume', 'Volum') ? 'm²' : 'km'}</span>
                         </p>
                     ))}
                 </div>
@@ -199,11 +199,11 @@ export default function ScreedsReports() {
     };
 
     const teamColumns = [
-        { key: 'name', label: 'Echipă', sortable: true, render: r => <span className="font-extrabold text-slate-800 dark:text-white uppercase tracking-wide text-xs">{r.name}</span> },
-        { key: 'count', label: 'Lucrări', sortable: true, render: r => <span className="text-slate-600 dark:text-slate-400 font-bold">{r.count}</span> },
-        { key: 'volume', label: 'Volum (m²)', sortable: true, render: r => <span className="font-black text-blue-600 block">{r.volume}</span> },
-        { key: 'sand', label: 'Nisip Consumat', sortable: true, render: r => <span className="font-black text-amber-600 block">{r.sand} T</span> },
-        { key: 'km', label: 'Traseu Parcurs (KM)', sortable: true, render: r => <span className="font-black text-emerald-600 block">{r.km} km</span> },
+        { key: 'name', label: t('reports.col_team', 'Echipă'), sortable: true, render: r => <span className="font-extrabold text-slate-800 dark:text-white uppercase tracking-wide text-xs">{r.name}</span> },
+        { key: 'count', label: t('reports.col_works', 'Lucrări'), sortable: true, render: r => <span className="text-slate-600 dark:text-slate-400 font-bold">{r.count}</span> },
+        { key: 'volume', label: t('reports.col_volume', 'Volum (m²)'), sortable: true, render: r => <span className="font-black text-blue-600 block">{r.volume}</span> },
+        { key: 'sand', label: t('reports.col_sand', 'Nisip Consumat'), sortable: true, render: r => <span className="font-black text-amber-600 block">{r.sand} T</span> },
+        { key: 'km', label: t('reports.col_route', 'Traseu Parcurs (KM)'), sortable: true, render: r => <span className="font-black text-emerald-600 block">{r.km} km</span> },
     ]
 
     return (
@@ -254,30 +254,30 @@ export default function ScreedsReports() {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-24">
                     <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">Încărcare raport...</h3>
-                    <p className="text-sm text-slate-500">Se verifică și se arhivează automat zilele din urmă...</p>
+                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">{t('reports.loading', 'Încărcare raport...')}</h3>
+                    <p className="text-sm text-slate-500">{t('reports.loading_desc', 'Se verifică și se arhivează automat zilele din urmă...')}</p>
                 </div>
             ) : charts.validWos === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
                     <LayoutGrid className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400">Nu există lucrări finalizate în această perioadă.</h3>
-                    <p className="text-sm text-slate-400">Alegeți altă perioadă de timp din filtrele de mai sus.</p>
+                    <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400">{t('reports.no_works', 'Nu există lucrări finalizate în această perioadă.')}</h3>
+                    <p className="text-sm text-slate-400">{t('reports.choose_another_period', 'Alegeți altă perioadă de timp din filtrele de mai sus.')}</p>
                 </div>
             ) : (
                 <>
                     {/* KPI Summary */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <KPICard label="Comenzi Realizate" value={`${charts.validWos}`} sub={`Medie: ${charts.avgVolPerOrder} m²/comandă`} icon={HardHat} colorTheme="purple" />
-                        <KPICard label="Volum Total" value={`${charts.totalVolume}`} sub="m² șapă turnați" icon={LayoutGrid} colorTheme="blue" />
-                        <KPICard label="Nisip Consumat" value={`${charts.totalSand}`} sub="Tone extrase din calcule/aplicație" icon={Package} colorTheme="amber" />
-                        <KPICard label="Trasee (Total)" value={`${charts.totalKm}`} sub="Kilometri parcurși cumulat" icon={Navigation} colorTheme="green" />
+                        <KPICard label={t('reports.kpi_orders', 'Comenzi Realizate')} value={`${charts.validWos}`} sub={`${t('reports.average', 'Medie:')} ${charts.avgVolPerOrder} m²/${t('reports.order', 'comandă')}`} icon={HardHat} colorTheme="purple" />
+                        <KPICard label={t('reports.kpi_volume', 'Volum Total')} value={`${charts.totalVolume}`} sub={t('reports.kpi_vol_sub', 'm² șapă turnați')} icon={LayoutGrid} colorTheme="blue" />
+                        <KPICard label={t('reports.kpi_sand', 'Nisip Consumat')} value={`${charts.totalSand}`} sub={t('reports.kpi_sand_sub', 'Tone extrase din calcule/aplicație')} icon={Package} colorTheme="amber" />
+                        <KPICard label={t('reports.kpi_routes', 'Trasee (Total)')} value={`${charts.totalKm}`} sub={t('reports.kpi_routes_sub', 'Kilometri parcurși cumulat')} icon={Navigation} colorTheme="green" />
                     </div>
 
                     {/* Timeline Chart (Volume & KM) */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm mb-6">
                         <h3 className="text-sm font-extrabold text-slate-800 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-wide">
                             <TrendingUp className="w-4 h-4 text-emerald-500" />
-                            Axa Timpului: Volum turnat vs Kilometri parcurși
+                            {t('reports.chart_title', 'Axa Timpului: Volum turnat vs Kilometri parcurși')}
                         </h3>
                         <div className="w-full h-72 sm:h-80 overflow-hidden">
                             <ResponsiveContainer width="100%" height="100%">
@@ -287,10 +287,10 @@ export default function ScreedsReports() {
                                     <YAxis tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
                                     <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '10px' }} />
-                                    <Bar dataKey="volume" name="Volum" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                    <Bar dataKey="volume" name={t('reports.volume', 'Volum')} fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40}>
                                         <LabelList dataKey="volume" position="top" fill="#475569" fontSize={10} fontWeight="bold" />
                                     </Bar>
-                                    <Bar dataKey="km" name="Kilometri" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                    <Bar dataKey="km" name={t('reports.km', 'Kilometri')} fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40}>
                                         <LabelList dataKey="km" position="top" fill="#475569" fontSize={10} fontWeight="bold" />
                                     </Bar>
                                 </BarChart>
@@ -302,14 +302,14 @@ export default function ScreedsReports() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mb-8">
                         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                             <h3 className="text-sm font-extrabold text-slate-800 dark:text-white uppercase tracking-wide">
-                                Raport Agregat pe Echipe
+                                {t('reports.team_report_title', 'Raport Agregat pe Echipe')}
                             </h3>
-                            <p className="text-xs text-slate-500 font-medium mt-1">Compară performanța echipelor în funcție de kilometraj, consum și volumul realizat.</p>
+                            <p className="text-xs text-slate-500 font-medium mt-1">{t('reports.team_report_desc', 'Compară performanța echipelor în funcție de kilometraj, consum și volumul realizat.')}</p>
                         </div>
                         <DataTable 
                             columns={teamColumns} 
                             data={charts.byTeam} 
-                            emptyText="Nu există date."
+                            emptyText={t('reports.no_data', 'Nu există date.')}
                         />
                     </div>
                 </>

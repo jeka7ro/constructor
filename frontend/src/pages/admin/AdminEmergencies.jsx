@@ -2,19 +2,21 @@ import { useState, useEffect } from 'react'
 import { AlertTriangle, Search, X, ChevronLeft, ChevronRight, Loader2, CheckCircle, Clock, XCircle, Send, User, MapPin } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
+import { useTranslation } from 'react-i18next'
 
 const STATUSES = [
-    { id: 'all',       label: 'Toate',       color: 'slate' },
-    { id: 'active',    label: 'Active',      color: 'rose' },
-    { id: 'resolved',  label: 'Rezolvate',   color: 'emerald' },
+    { id: 'all',       labelKey: 'common.all', fallback: 'Toutes',       color: 'slate' },
+    { id: 'active',    labelKey: 'emergencies.active_plural', fallback: 'Actives',      color: 'rose' },
+    { id: 'resolved',  labelKey: 'emergencies.resolved_plural', fallback: 'Résolues',   color: 'emerald' },
 ]
 
 const STATUS_CONFIG = {
-    active:   { label: 'Activă',    icon: AlertTriangle, cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
-    resolved: { label: 'Rezolvată', icon: CheckCircle,   cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    active:   { labelKey: 'emergencies.active', fallback: 'Active',    icon: AlertTriangle, cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' },
+    resolved: { labelKey: 'emergencies.resolved', fallback: 'Résolue', icon: CheckCircle,   cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
 }
 
 export default function AdminEmergencies() {
+    const { t } = useTranslation()
     const { showToast } = useUIStore()
     const [emergencies, setEmergencies] = useState([])
     const [loading, setLoading] = useState(true)
@@ -42,7 +44,7 @@ export default function AdminEmergencies() {
             setSelectedIds([])
             setCurrentPage(1)
         } catch {
-            showToast('Eroare la încărcare', 'error')
+            showToast(t('common.error_loading', 'Erreur de chargement'), 'error')
         } finally {
             setLoading(false)
         }
@@ -55,11 +57,11 @@ export default function AdminEmergencies() {
                 admin_response: responseText.trim() ? responseText : null,
                 status: responseStatus,
             })
-            showToast('Actualizat cu succes', 'success')
+            showToast(t('common.updated_successfully', 'Mis à jour avec succès'), 'success')
             setDetailReq(null)
             fetchEmergencies()
         } catch {
-            showToast('Eroare la actualizare', 'error')
+            showToast(t('common.update_error', 'Erreur de mise à jour'), 'error')
         } finally {
             setSubmitting(false)
         }
@@ -68,15 +70,15 @@ export default function AdminEmergencies() {
     const handleDelete = (id) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Ștergere Urgență',
-            message: 'Sigur doriți să ștergeți această urgență?',
+            title: t('emergencies.delete_title', 'Supprimer l\'Urgence'),
+            message: t('emergencies.delete_confirm', 'Êtes-vous sûr de vouloir supprimer cette urgence ?'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/emergencies/${id}`)
-                    showToast('Urgență ștearsă', 'success')
+                    showToast(t('emergencies.deleted_success', 'Urgence supprimée'), 'success')
                     fetchEmergencies()
                     if (detailReq?.id === id) setDetailReq(null)
-                } catch { showToast('Eroare la ștergere', 'error') }
+                } catch { showToast(t('common.delete_error', 'Erreur de suppression'), 'error') }
             }
         })
     }
@@ -108,7 +110,7 @@ export default function AdminEmergencies() {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Caută..."
+                                placeholder={t('common.search', 'Rechercher...')}
                                 value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1) }}
                                 className="w-full sm:w-72 h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
@@ -126,7 +128,7 @@ export default function AdminEmergencies() {
                                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                     }`}
                                 >
-                                    {s.label}
+                                    {t(s.labelKey, s.fallback)}
                                 </button>
                             ))}
                         </div>
@@ -134,20 +136,20 @@ export default function AdminEmergencies() {
 
                     {selectedIds.length > 0 && (
                         <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
-                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} selectate</span>
+                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('common.selected', 'sélectionné(s)')}</span>
                             <button
                                 onClick={() => setConfirmModal({
                                     isOpen: true,
-                                    title: 'Ștergere multiplă',
-                                    message: `Ștergi ${selectedIds.length} urgențe?`,
+                                    title: t('common.bulk_delete_title', 'Suppression Multiple'),
+                                    message: t('emergencies.bulk_delete_confirm', 'Supprimer {{count}} urgences ?', { count: selectedIds.length }),
                                     onConfirm: async () => {
                                         for (const id of selectedIds) await api.delete(`/admin/emergencies/${id}`)
-                                        showToast('Urgențe șterse', 'success')
+                                        showToast(t('emergencies.bulk_deleted_success', 'Urgences supprimées'), 'success')
                                         fetchEmergencies()
                                     }
                                 })}
                                 className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors"
-                            >Șterge Selectatele</button>
+                            >{t('common.delete_selected', 'Supprimer la Sélection')}</button>
                         </div>
                     )}
 
@@ -156,18 +158,18 @@ export default function AdminEmergencies() {
                             <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                 <tr>
                                     <th className="px-4 py-4 w-10 text-center"><input type="checkbox" onChange={toggleAll} className="rounded" /></th>
-                                    <th className="px-6 py-4">Angajat / Șantier</th>
-                                    <th className="px-6 py-4">Descriere</th>
-                                    <th className="px-6 py-4">Status / Nivel</th>
-                                    <th className="px-6 py-4">Data</th>
-                                    <th className="px-6 py-4 text-right">Acțiuni</th>
+                                    <th className="px-6 py-4">{t('emergencies.employee_site', 'Employé / Chantier')}</th>
+                                    <th className="px-6 py-4">{t('common.description', 'Description')}</th>
+                                    <th className="px-6 py-4">{t('emergencies.status_level', 'Statut / Niveau')}</th>
+                                    <th className="px-6 py-4">{t('common.date', 'Date')}</th>
+                                    <th className="px-6 py-4 text-right">{t('common.actions', 'Actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {loading ? (
                                     <tr><td colSpan={6} className="px-4 py-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></td></tr>
                                 ) : paginated.length === 0 ? (
-                                    <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">Nu există urgențe.</td></tr>
+                                    <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">{t('emergencies.no_emergencies', 'Aucune urgence.')}</td></tr>
                                 ) : paginated.map(c => {
                                     const sc = STATUS_CONFIG[c.status] || STATUS_CONFIG.active
                                     const StatusIcon = sc.icon
@@ -189,11 +191,11 @@ export default function AdminEmergencies() {
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col gap-1 items-start">
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${sc.cls}`}>
-                                                        <StatusIcon className="w-3.5 h-3.5" />{sc.label}
+                                                        <StatusIcon className="w-3.5 h-3.5" />{t(sc.labelKey, sc.fallback)}
                                                     </span>
                                                     {c.severity === 'critical' && (
                                                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-                                                            CRITIC
+                                                            {t('emergencies.critical_upper', 'CRITIQUE')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -219,29 +221,29 @@ export default function AdminEmergencies() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className={`px-6 py-5 border-b flex items-center justify-between ${detailReq.severity === 'critical' ? 'bg-red-50 border-red-100' : 'border-slate-100 dark:border-slate-800'}`}>
                             <h2 className={`text-base font-bold ${detailReq.severity === 'critical' ? 'text-red-800' : 'text-slate-900 dark:text-white'}`}>
-                                Detalii Urgență {detailReq.severity === 'critical' ? '(CRITIC)' : ''}
+                                {t('emergencies.details_title', 'Détails de l\'Urgence')} {detailReq.severity === 'critical' ? t('emergencies.critical_badge', '(CRITIQUE)') : ''}
                             </h2>
                             <button onClick={() => setDetailReq(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descriere problemă</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('emergencies.problem_description', 'Description du problème')}</p>
                                 <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{detailReq.description}</p>
                             </div>
 
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Rezolvare</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('emergencies.resolution', 'Résolution')}</p>
                                 <select value={responseStatus} onChange={e => setResponseStatus(e.target.value)}
                                     className="w-full mb-3 px-4 h-10 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-rose-500">
-                                    <option value="active">Rămâne Activă</option>
-                                    <option value="resolved">Marchează ca Rezolvată</option>
+                                    <option value="active">{t('emergencies.status_remain_active', 'Reste Active')}</option>
+                                    <option value="resolved">{t('emergencies.status_mark_resolved', 'Marquer comme Résolue')}</option>
                                 </select>
 
                                 <textarea
                                     value={responseText}
                                     onChange={e => setResponseText(e.target.value)}
-                                    placeholder="Detalii despre cum s-a rezolvat (opțional)..."
+                                    placeholder={t('emergencies.resolution_details_placeholder', 'Détails sur la résolution (optionnel)...')}
                                     rows={3}
                                     className="w-full px-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-rose-500 bg-white dark:bg-slate-900 outline-none"
                                 />
@@ -249,10 +251,10 @@ export default function AdminEmergencies() {
                         </div>
 
                         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                            <button onClick={() => setDetailReq(null)} className="px-5 h-10 rounded-full text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">Anulează</button>
+                            <button onClick={() => setDetailReq(null)} className="px-5 h-10 rounded-full text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">{t('common.cancel', 'Annuler')}</button>
                             <button onClick={handleRespond} disabled={submitting} className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-rose-600 hover:bg-rose-700">
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                Salvează Modificări
+                                {t('common.save_changes', 'Enregistrer les Modifications')}
                             </button>
                         </div>
                     </div>
@@ -265,8 +267,8 @@ export default function AdminEmergencies() {
                         <h3 className="text-xl font-bold mb-2">{confirmModal.title}</h3>
                         <p className="text-slate-500 mb-6">{confirmModal.message}</p>
                         <div className="flex gap-3 justify-center">
-                            <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="px-5 h-10 rounded-full bg-slate-100 font-bold">Anulează</button>
-                            <button onClick={() => { confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }} className="px-5 h-10 rounded-full bg-red-600 text-white font-bold">Șterge</button>
+                            <button onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} className="px-5 h-10 rounded-full bg-slate-100 font-bold">{t('common.cancel', 'Annuler')}</button>
+                            <button onClick={() => { confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, isOpen: false }) }} className="px-5 h-10 rounded-full bg-red-600 text-white font-bold">{t('common.delete', 'Supprimer')}</button>
                         </div>
                     </div>
                 </div>

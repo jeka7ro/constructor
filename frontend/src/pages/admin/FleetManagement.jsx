@@ -29,6 +29,7 @@ export default function FleetManagement() {
 
     // Modal state
     const [showModal, setShowModal] = useState(false)
+    const [modalError, setModalError] = useState(null)
     const [editingVehicle, setEditingVehicle] = useState(null)
     const [activeTab, setActiveTab] = useState('info') // 'info' | 'sites' | 'drivers'
     const [saving, setSaving] = useState(false)
@@ -171,16 +172,30 @@ export default function FleetManagement() {
         if (!form.name.trim()) return
         setSaving(true)
         try {
-            const payload = { ...form, site_ids: selectedSiteIds, user_ids: selectedUserIds }
+            const parsedFlespi = form.flespi_device_id ? parseInt(form.flespi_device_id, 10) : null;
+            const parsedYear = form.year ? parseInt(form.year, 10) : null;
+            
+            const payload = { 
+                ...form, 
+                site_ids: selectedSiteIds, 
+                user_ids: selectedUserIds,
+                flespi_device_id: isNaN(parsedFlespi) ? null : parsedFlespi,
+                year: isNaN(parsedYear) ? null : parsedYear,
+                imei: form.imei?.trim() || null,
+                plate_number: form.plate_number?.trim() || null,
+                chassis_number: form.chassis_number?.trim() || null
+            }
             if (editingVehicle) {
                 await api.put(`/admin/vehicles/${editingVehicle.id}`, payload)
             } else {
                 await api.post('/admin/vehicles', payload)
             }
             setShowModal(false)
+            setModalError(null)
             fetchAll()
         } catch (e) {
-            alert(t('fleet.errors.save'))
+            console.error("Save Vehicle Error:", e);
+            setModalError(e?.response?.data?.detail || t('fleet.errors.save', 'Erreur lors de la sauvegarde'));
         } finally {
             setSaving(false)
         }
@@ -192,7 +207,7 @@ export default function FleetManagement() {
             await api.delete(`/admin/vehicles/${deleteTarget.id}`)
             setDeleteTarget(null)
             fetchAll()
-        } catch { alert(t('fleet.errors.delete')) }
+        } catch { setError(t('fleet.errors.delete', 'Erreur lors de la suppression')) }
     }
 
     const handleSaveCat = async () => {
@@ -205,25 +220,25 @@ export default function FleetManagement() {
                 await api.post('/admin/fleet-categories', catForm)
             }
             setShowCatModal(false)
-            setSuccess('Categorie salvată cu succes!')
+            setSuccess(t('fleet.cat_saved', 'Catégorie enregistrée avec succès!'))
             setTimeout(() => setSuccess(null), 3000)
             fetchAll()
         } catch (e) {
-            setError(e.response?.data?.detail || 'Eroare salvare categorie')
+            setError(e.response?.data?.detail || t('fleet.errors.cat_save', "Erreur d'enregistrement de la catégorie"))
         } finally {
             setSavingCat(false)
         }
     }
 
     const handleDeleteCat = async (id) => {
-        if (!window.confirm('Sigur vrei să ștergi această categorie? Utilajele existente își vor păstra numele categoriei.')) return;
+        if (!window.confirm(t('fleet.del_cat_confirm', 'Voulez-vous vraiment supprimer cette catégorie ?'))) return;
         try {
             await api.delete(`/admin/fleet-categories/${id}`)
-            setSuccess('Categorie ștearsă cu succes!')
+            setSuccess(t('fleet.cat_deleted', 'Catégorie supprimée avec succès!'))
             setTimeout(() => setSuccess(null), 3000)
             fetchAll()
         } catch (e) {
-            setError(e.response?.data?.detail || 'Eroare ștergere categorie')
+            setError(e.response?.data?.detail || t('fleet.cat_del_error', 'Erreur lors de la suppression'))
         }
     }
 
@@ -247,7 +262,7 @@ export default function FleetManagement() {
             setLogEquipment(null)
             fetchAll()
         } catch (e) {
-            setError('Eroare salvare pontaj utilaj: ' + (e.response?.data?.detail || e.message))
+            setError(t('fleet.errors.log_save', 'Erreur de sauvegarde de pointage machine: ') + (e.response?.data?.detail || e.message))
         }
     }
 
@@ -266,10 +281,10 @@ export default function FleetManagement() {
             setShowDocModal(false)
             setDocFile(null)
             setDocForm({ name: '', expiry_date: '' })
-            setSuccess('Document încărcat cu succes!')
+            setSuccess(t('fleet.doc_uploaded', 'Document téléchargé avec succès!'))
             setTimeout(() => setSuccess(null), 3500)
         } catch (err) {
-            setError('Eroare incarcare document: ' + (err.response?.data?.detail || err.message))
+            setError(t('fleet.errors.doc_upload', 'Erreur de téléchargement du document: ') + (err.response?.data?.detail || err.message))
         } finally {
             setUploadingDoc(false)
         }
@@ -291,26 +306,26 @@ export default function FleetManagement() {
             setShowDocModal(false);
             setEditingDocId(null);
             setDocForm({ name: '', expiry_date: '' });
-            setSuccess('Document actualizat cu succes!');
+            setSuccess(t('fleet.doc_updated', 'Document mis à jour avec succès!'));
             setTimeout(() => setSuccess(null), 3000);
         } catch (e) {
-            setError('Eroare actualizare document: ' + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : 'Date invalide'));
+            setError(t('fleet.errors.doc_update', 'Erreur de mise à jour du document : ') + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : t('common.invalid_data', 'Données invalides')));
         } finally {
             setUploadingDoc(false);
         }
     };
 
     const handleDeleteDoc = async (docId) => {
-        if (!window.confirm('Sigur vrei să ștergi acest document? Această acțiune este ireversibilă.')) return;
+        if (!window.confirm(t('fleet.del_doc_confirm', 'Voulez-vous vraiment supprimer ce document ?'))) return;
         try {
             const updatedDocs = editingVehicle.documents.filter(d => d.id !== docId);
             const res = await api.put(`/admin/vehicles/${editingVehicle.id}`, { documents: updatedDocs });
             setEditingVehicle(res.data);
             fetchAll();
-            setSuccess('Document șters cu succes!');
+            setSuccess(t('fleet.doc_deleted', 'Document supprimé avec succès!'));
             setTimeout(() => setSuccess(null), 3000);
         } catch (e) {
-            setError('Eroare ștergere document: ' + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : 'Date invalide'));
+            setError(t('fleet.doc_del_error', 'Erreur de suppression du document : ') + (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : ''));
         }
     };
 
@@ -340,7 +355,7 @@ export default function FleetManagement() {
         },
         { key: 'year', label: t('fleet.year'), sortable: true },
         {
-            key: 'site_ids', label: 'Șantiere Alocate',
+            key: 'site_ids', label: t('fleet.allocated_sites', 'Chantiers alloués'),
             render: (v) => {
                 const vehicleSites = (v.site_ids || []).map(id => sites.find(s => s.id === id)).filter(Boolean)
                 if (vehicleSites.length === 0) return <span className="text-slate-300 dark:text-slate-600">—</span>
@@ -348,13 +363,13 @@ export default function FleetManagement() {
                 return (
                     <div className="flex flex-col gap-0.5">
                         <button onClick={() => navigate('/admin/sites', { state: { openSiteId: vehicleSites[0].id } })} className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium text-left">{vehicleSites[0].name}</button>
-                        <span className="text-xs text-slate-400">+{vehicleSites.length - 1} alte șantiere</span>
+                        <span className="text-xs text-slate-400">+{vehicleSites.length - 1} {t('fleet.other_sites', 'autres chantiers')}</span>
                     </div>
                 )
             }
         },
         {
-            key: 'user_ids', label: t('fleet.drivers'),
+            key: 'user_ids', label: t('fleet.drivers', 'Chauffeurs'),
             render: (v) => {
                 const count = v.user_ids?.length || 0
                 if (count === 0) return <span className="text-slate-500 dark:text-slate-400 text-sm">—</span>
@@ -400,7 +415,7 @@ export default function FleetManagement() {
             }
         },
         {
-            key: 'docs', label: 'Documente',
+            key: 'docs', label: t('common.documents', 'Documents'),
             render: (v) => {
                 let docs = v.documents;
                 if (typeof docs === 'string') {
@@ -439,14 +454,14 @@ export default function FleetManagement() {
                             }
                         }} 
                         className="flex flex-col items-start gap-1 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors text-left w-full max-w-[180px] -ml-1.5"
-                        title={docsCount > 1 ? `Vezi toate cele ${docsCount} documente` : "Vezi documentul"}
+                        title={docsCount > 1 ? t('fleet.view_all_docs', 'Voir tous les {{count}} documents', { count: docsCount }) : t('fleet.view_doc', 'Voir le document')}
                     >
                         <div className="flex items-center gap-1.5 w-full">
                             <div className="p-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded shrink-0">
                                 <Paperclip className="w-3.5 h-3.5" />
                             </div>
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
-                                {displayDoc.name || 'Document atașat'}
+                                {displayDoc.name || t('fleet.attached_doc', 'Document atașat')}
                             </span>
                             {docsCount > 1 && (
                                 <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full ml-auto shrink-0">
@@ -461,7 +476,7 @@ export default function FleetManagement() {
                                     {new Date(displayDoc.expiry_date).toLocaleDateString('ro-RO', {day: '2-digit', month: '2-digit', year: 'numeric'})}
                                 </span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${daysLeft < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : daysLeft <= 30 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                    {daysLeft < 0 ? 'Expirat' : `${daysLeft} zile`}
+                                    {daysLeft < 0 ? t('common.expired', 'Expiré') : `${daysLeft} ${t('common.days', 'jours')}`}
                                 </span>
                             </div>
                         )}
@@ -474,7 +489,7 @@ export default function FleetManagement() {
             render: (v) => (
                 <div className="flex items-center justify-end gap-1">
                     {!CAR_TYPES.includes(v.type) && (
-                        <button onClick={() => { setLogEquipment(v); setShowLogModal(true); setLogForm({ date: new Date().toISOString().split('T')[0], site_id: v.site_ids?.[0] || '', operator_id: v.user_ids?.[0] || '', is_used: true, refueled: false, refuel_liters: '', notes: '' }) }} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" title="Pontaj Zilnic">
+                        <button onClick={() => { setLogEquipment(v); setShowLogModal(true); setLogForm({ date: new Date().toISOString().split('T')[0], site_id: v.site_ids?.[0] || '', operator_id: v.user_ids?.[0] || '', is_used: true, refueled: false, refuel_liters: '', notes: '' }) }} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" title={t('fleet.daily_timesheet', 'Pointage quotidien')}>
                             <CalendarClock className="w-4 h-4" />
                         </button>
                     )}
@@ -491,7 +506,7 @@ export default function FleetManagement() {
 
     const categoryColumns = [
         {
-            key: 'name', label: 'NUME',
+            key: 'name', label: t('common.name_uppercase', 'NOM'),
             render: (c) => (
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -502,10 +517,10 @@ export default function FleetManagement() {
             )
         },
         {
-            key: 'group', label: 'GRUP',
+            key: 'group', label: t('common.group_uppercase', 'GROUPE'),
             render: (c) => (
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {c.group === 'car' ? 'Mașină (Flotă)' : 'Utilaj / Echipament'}
+                    {c.group === 'car' ? t('fleet.car_fleet', 'Mașină (Flotă)') : t('fleet.equipment', 'Utilaj / Echipament')}
                 </span>
             )
         },
@@ -535,26 +550,26 @@ export default function FleetManagement() {
                         onClick={() => setMainTab('cars')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'cars' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                     >
-                        Parc Auto (Mașini)
+                        {t('fleet.tab_cars', 'Voitures (Flotte)')}
                     </button>
                     <button
                         onClick={() => setMainTab('equipment')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'equipment' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                     >
-                        Utilaje
+                        {t('fleet.tab_equipment', 'Équipements')}
                     </button>
                     <button
                         onClick={() => { setMainTab('report'); fetchReport(); }}
                         className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'report' ? 'bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                     >
                         <BarChart2 className="w-4 h-4" />
-                        Raport Consum
+                        {t('fleet.tab_report', 'Rapport de consommation')}
                     </button>
                     <button
                         onClick={() => setMainTab('categories')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'categories' ? 'bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
                     >
-                        Categorii / Tipuri
+                        {t('fleet.tab_categories', 'Catégories / Types')}
                     </button>
                 </div>
             </div>
@@ -581,7 +596,7 @@ export default function FleetManagement() {
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Caută categorie..."
+                                    placeholder={t('fleet.search_cat', 'Rechercher catégorie...')}
                                     value={catSearchQuery}
                                     onChange={(e) => setCatSearchQuery(e.target.value)}
                                     className="w-full pl-9 pr-4 h-10 border border-slate-200 dark:border-slate-700 rounded-full text-sm outline-none focus:border-blue-400 dark:focus:border-blue-500 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white shadow-inner"
@@ -594,7 +609,7 @@ export default function FleetManagement() {
                             className="px-5 h-10 bg-blue-600 text-white rounded-full text-sm font-bold hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 whitespace-nowrap"
                         >
                             <Plus className="w-4 h-4" />
-                            Adaugă Categorie
+                            {t('fleet.add_category', 'Ajouter une catégorie')}
                         </button>
                     </div>
 
@@ -616,7 +631,7 @@ export default function FleetManagement() {
                                 onChange={e => setFilterSiteId(e.target.value)}
                                 className="h-10 px-3 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             >
-                                <option value="">Toate Șantierele</option>
+                                <option value="">{t('fleet.all_sites', 'Tous les chantiers')}</option>
                                 {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                             <div className="relative group flex items-center w-full sm:w-auto">
@@ -670,17 +685,17 @@ export default function FleetManagement() {
                     {/* Filters */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-wrap items-end gap-4">
                         <div>
-                            <label className="block text-xs font-semibold text-slate-500 mb-1">De la</label>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">{t('common.from', 'De')}</label>
                             <input type="date" value={reportDateFrom} onChange={e => setReportDateFrom(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-slate-500 mb-1">Până la</label>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">{t('fleet.until', 'Jusqu\'au')}</label>
                             <input type="date" value={reportDateTo} onChange={e => setReportDateTo(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
                         </div>
                         {reportLoading && (
                             <div className="flex items-center gap-2 mb-2 ml-2 text-slate-500">
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">Se actualizează...</span>
+                                <span className="text-sm">{t('common.loading', 'Mise à jour...')}</span>
                             </div>
                         )}
                     </div>
@@ -690,21 +705,22 @@ export default function FleetManagement() {
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                                 <tr>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Vehicul / Utilaj</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Nr. Inmatriculare</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Tip</th>
-                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Zile Lucrate</th>
-                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Zile Inactive</th>
-                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Motorină (L)</th>
-                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Alimentari</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">Ultimul Operator</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.vehicle_machine', 'Véhicule / Engin')}</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.plate_number', 'Plaque d\'immatriculation')}</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.type', 'Type')}</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.days_worked', 'Jours travaillés')}</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.active_km', 'KM Actifs')}</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('common.status', 'Statut')}</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.fuel_liters', 'Carburant (L)')}</th>
+                                    <th className="text-center px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.refuel_events', 'Pleins')}</th>
+                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-300">{t('fleet.last_operator', 'Dernier opérateur')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {reportLoading ? (
                                     <tr><td colSpan={8} className="text-center py-10"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></td></tr>
                                 ) : reportData.length === 0 ? (
-                                    <tr><td colSpan={8} className="text-center py-10 text-slate-400 text-sm">Niciun log înregistrat în perioada selectată. Generează raportul de mai sus.</td></tr>
+                                    <tr><td colSpan={8} className="text-center py-10 text-slate-400 text-sm">{t('fleet.no_logs', 'Aucun enregistrement dans cette période. Générez le rapport ci-dessus.')}</td></tr>
                                 ) : reportData.map(r => (
                                     <tr key={r.vehicle_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-4 py-3 font-semibold text-slate-800 dark:text-white">{r.vehicle_name}</td>
@@ -725,7 +741,7 @@ export default function FleetManagement() {
                             {reportData.length > 0 && (
                                 <tfoot className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
                                     <tr>
-                                        <td colSpan={3} className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">TOTAL</td>
+                                        <td colSpan={3} className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">{t('common.total', 'TOTAL')}</td>
                                         <td className="px-4 py-3 text-center font-bold text-emerald-700">{reportData.reduce((s, r) => s + r.days_used, 0)}</td>
                                         <td className="px-4 py-3 text-center font-bold text-slate-500">{reportData.reduce((s, r) => s + r.days_idle, 0)}</td>
                                         <td className="px-4 py-3 text-center font-bold text-violet-700">{reportData.reduce((s, r) => s + r.total_fuel_liters, 0).toFixed(1)} L</td>
@@ -751,7 +767,7 @@ export default function FleetManagement() {
                                 </div>
                                 <div>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                                        {editingVehicle ? t('fleet.edit_vehicle') : 'Vehicul Nou'}
+                                        {editingVehicle ? t('fleet.edit_vehicle') : t('fleet.new_vehicle', 'Nouveau Véhicule')}
                                     </h2>
                                     {editingVehicle && <p className="text-xs text-slate-400 mt-0.5">{editingVehicle.name} · {editingVehicle.plate_number}</p>}
                                 </div>
@@ -765,7 +781,7 @@ export default function FleetManagement() {
                         <div className="flex gap-1.5 px-6 pt-4 pb-2">
                             {[
                                 { key: 'info', label: t('fleet.tabs.info', 'Informations') },
-                                ...(tenant?.has_sites ? [{ key: 'sites', label: t('fleet.tabs.sites', 'Alocări Șantiere') }] : []),
+                                ...(tenant?.has_sites ? [{ key: 'sites', label: t('fleet.tabs.sites', 'Affectations Chantiers') }] : []),
                                 { key: 'drivers', label: t('fleet.tabs.drivers', 'Chauffeurs / Opérateurs') },
                                 ...(editingVehicle ? [{ key: 'documents', label: t('fleet.tabs.documents', 'Documents') }] : [])
                             ].map(tab => (
@@ -837,7 +853,7 @@ export default function FleetManagement() {
                                         </div>
                                     </div>
                                     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('fleet.flespi_gps', 'Intégration Flespi GPS (Optionnel)')}</h3>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('fleet.gps_integration', 'Intégration GPS (Optionnel)')}</h3>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -846,7 +862,7 @@ export default function FleetManagement() {
                                                 <input
                                                     value={form.imei || ''}
                                                     onChange={e => setForm(f => ({ ...f, imei: e.target.value }))}
-                                                    placeholder={t('fleet.imei_placeholder', '15 cifre de pe dispozitiv')}
+                                                    placeholder={t('fleet.imei_placeholder', "15 chiffres de l'appareil")}
                                                     className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                                 />
                                             </div>
@@ -934,11 +950,11 @@ export default function FleetManagement() {
                                                 }}
                                                 className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                             />
-                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Selectează Toate</span>
+                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{t('common.select_all', 'Tout sélectionner')}</span>
                                         </label>
                                     </div>
                                     <div className="relative mb-4">
-                                        <input type="text" placeholder="Caută șantier..." value={siteSearch} onChange={e => setSiteSearch(e.target.value)} className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                                        <input type="text" placeholder={t('fleet.search_site', 'Rechercher chantier...')} value={siteSearch} onChange={e => setSiteSearch(e.target.value)} className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
                                     </div>
                                     {filteredSites.length === 0 ? (
                                         <p className="text-sm text-slate-400 text-center py-8">{t('common.no_data')}</p>
@@ -957,7 +973,7 @@ export default function FleetManagement() {
                                                         {s.county && <p className="text-xs text-slate-400">{s.county}</p>}
                                                     </div>
                                                     <div className="text-xs text-slate-500 font-medium bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                                                        <span className="text-blue-600 dark:text-blue-400 font-bold">{s.assigned_workers || 0}</span> Muncitori
+                                                        <span className="text-blue-600 dark:text-blue-400 font-bold">{s.assigned_workers || 0}</span> {t('common.workers', 'Travailleurs')}
                                                     </div>
                                                 </div>
                                             </label>
@@ -987,11 +1003,11 @@ export default function FleetManagement() {
                                                 }}
                                                 className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                             />
-                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Selectează Toți</span>
+                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{t('common.select_all', 'Tout sélectionner')}</span>
                                         </label>
                                     </div>
                                     <div className="relative mb-4">
-                                        <input type="text" placeholder="Caută șofer/operator..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
+                                        <input type="text" placeholder={t('fleet.search_driver', 'Rechercher chauffeur/opérateur...')} value={userSearch} onChange={e => setUserSearch(e.target.value)} className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
                                     </div>
                                     {filteredUsers.length === 0 ? (
                                         <p className="text-sm text-slate-400 text-center py-8">{t('common.no_data')}</p>
@@ -1019,12 +1035,12 @@ export default function FleetManagement() {
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
                                         <div>
-                                            <h3 className="text-sm font-bold text-slate-800">Documente Mașină</h3>
-                                            <p className="text-xs text-slate-500">Adaugă taloane, chitanțe, asigurări.</p>
+                                            <h3 className="text-sm font-bold text-slate-800">{t('fleet.vehicle_docs', 'Documents du véhicule')}</h3>
+                                            <p className="text-xs text-slate-500">{t('fleet.add_docs_desc', 'Ajouter carte grise, reçus, assurances.')}</p>
                                         </div>
                                         <button onClick={() => setShowDocModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
                                             <UploadCloud className="w-4 h-4 text-blue-500" />
-                                            Adaugă Document
+                                            {t('fleet.add_doc', 'Ajouter un document')}
                                         </button>
                                     </div>
                                     {editingVehicle.documents && editingVehicle.documents.length > 0 ? (
@@ -1043,23 +1059,23 @@ export default function FleetManagement() {
                                                                 <button type="button" onClick={() => setPreviewDoc({url: doc.url, name: doc.name})} className="text-sm font-medium text-slate-800 hover:text-blue-600 hover:underline">
                                                                     {doc.name}
                                                                 </button>
-                                                                {isExpired && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">Expirat</span>}
-                                                                {isExpiringSoon && <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded uppercase">Expiră curând</span>}
+                                                                {isExpired && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded uppercase">{t('fleet.expired', 'Expiré')}</span>}
+                                                                {isExpiringSoon && <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded uppercase">{t('fleet.expiring_soon', 'Expire bientôt')}</span>}
                                                             </div>
                                                             <div className="text-xs text-slate-500">
-                                                                Adăugat: {doc.uploaded_at}
-                                                                {doc.expiry_date && <span className="ml-2 font-medium">| Expiră la: {doc.expiry_date}</span>}
+                                                                {t('fleet.added', 'Ajouté:')} {doc.uploaded_at}
+                                                                {doc.expiry_date && <span className="ml-2 font-medium">| {t('fleet.expires_at', 'Expire le:')} {doc.expiry_date}</span>}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <button type="button" onClick={() => { setEditingDocId(doc.id); setDocForm({ name: doc.name || '', expiry_date: doc.expiry_date || '' }); setShowDocModal(true); }} className="p-2 hover:bg-blue-100 rounded-full text-slate-400 hover:text-blue-600 transition-colors" title="Editează detalii">
+                                                        <button type="button" onClick={() => { setEditingDocId(doc.id); setDocForm({ name: doc.name || '', expiry_date: doc.expiry_date || '' }); setShowDocModal(true); }} className="p-2 hover:bg-blue-100 rounded-full text-slate-400 hover:text-blue-600 transition-colors" title={t('common.edit', 'Éditer')}>
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
-                                                        <button type="button" onClick={() => window.open(doc.url, "_blank")} title="Deschide într-o filă nouă" className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 transition-colors">
+                                                        <button type="button" onClick={() => window.open(doc.url, "_blank")} title={t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')} className="p-2 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 transition-colors">
                                                             <ExternalLink className="w-4 h-4" />
                                                         </button>
-                                                        <button type="button" onClick={() => handleDeleteDoc(doc.id)} className="p-2 hover:bg-red-100 rounded-full text-slate-400 hover:text-red-600 transition-colors" title="Șterge document">
+                                                        <button type="button" onClick={() => handleDeleteDoc(doc.id)} className="p-2 hover:bg-red-100 rounded-full text-slate-400 hover:text-red-600 transition-colors" title={t('common.delete', 'Supprimer')}>
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
@@ -1067,24 +1083,32 @@ export default function FleetManagement() {
                                             )})}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-6 text-sm text-slate-400">Niciun document încărcat.</div>
+                                        <div className="text-center py-6 text-sm text-slate-400">{t('fleet.no_docs', 'Aucun document chargé.')}</div>
                                     )}
                                 </div>
                             )}
                         </div>
 
                         {/* Footer */}
+                        {modalError && (
+                            <div className="mx-6 mb-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400 font-semibold">
+                                {modalError}
+                            </div>
+                        )}
                         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700">
-                            <button onClick={() => setShowModal(false)} className="px-5 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                {t('common.cancel')}
+                            <button
+                                onClick={() => { setShowModal(false); setModalError(null); }}
+                                className="px-5 py-2.5 text-sm font-semibold rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                {t('common.cancel', 'Annuler')}
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={saving || !form.name.trim()}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {t('common.save')}
+                                {t('common.save', 'Enregistrer')}
                             </button>
                         </div>
                     </div>
@@ -1120,10 +1144,10 @@ export default function FleetManagement() {
                                 <FileText className="w-4 h-4 text-blue-500"/> {previewDoc.name}
                             </h3>
                             <div className="flex items-center gap-2">
-                                <button onClick={() => window.open(previewDoc.url, '_blank')} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-blue-600 transition-colors" title="Deschide într-o filă nouă">
+                                <button onClick={() => window.open(previewDoc.url, '_blank')} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-blue-600 transition-colors" title={t('common.open_new_tab', 'Ouvrir dans un nouvel onglet')}>
                                     <ExternalLink className="w-5 h-5" />
                                 </button>
-                                <button onClick={() => setPreviewDoc(null)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-red-500 transition-colors" title="Închide">
+                                <button onClick={() => setPreviewDoc(null)} className="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-full text-slate-500 hover:text-red-500 transition-colors" title={t('common.close', 'Fermer')}>
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -1271,20 +1295,20 @@ export default function FleetManagement() {
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nume Categorie <span className="text-red-500">*</span></label>
-                                <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))} placeholder="Ex: Macara Turn" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400" />
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.category_name', 'Nom de la catégorie')} <span className="text-red-500">*</span></label>
+                                <input value={catForm.name} onChange={e => setCatForm(f => ({...f, name: e.target.value}))} placeholder={t('fleet.category_name_placeholder', 'Ex: Grue')} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400" />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Grup</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.group')}</label>
                                 <select value={catForm.group} onChange={e => setCatForm(f => ({...f, group: e.target.value}))} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-400">
-                                    <option value="equipment">Utilaj / Echipament</option>
-                                    <option value="car">Mașină (Flotă Auto)</option>
+                                    <option value="equipment">{t('fleet.equipment', 'Équipement / Engin')}</option>
+                                    <option value="car">{t('fleet.car', 'Voiture')}</option>
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3 pt-4">
-                                <button onClick={() => setShowCatModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Anulează</button>
+                                <button onClick={() => setShowCatModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{t('common.cancel', 'Annuler')}</button>
                                 <button onClick={handleSaveCat} disabled={savingCat} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
-                                    {savingCat && <Loader2 className="w-4 h-4 animate-spin" />} Salvează
+                                    {savingCat && <Loader2 className="w-4 h-4 animate-spin" />} {t('common.save', 'Enregistrer')}
                                 </button>
                             </div>
                         </div>

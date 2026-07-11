@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, Printer, ArrowLeft, FileText } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
+import { useTranslation } from 'react-i18next'
 
 const DEVIS_LANG = {
     fr: {
@@ -56,6 +57,7 @@ const DEVIS_LANG = {
 }
 
 export default function DevisView({ embeddedToken, signatureElement, lang = 'fr', embedded = false }) {
+    const { t } = useTranslation()
     const params = useParams()
     const id = params.id
     const token = embeddedToken || params.token
@@ -87,7 +89,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     if (!isPlaceholder) setProformaItems(pItems)
                 }
             })
-            .catch(err => { console.error(err); setError('Devisul nu a fost găsit.') })
+            .catch(err => { console.error(err); setError(t('devis.not_found', 'Devis introuvable.')) })
             .finally(() => setLoading(false))
     }, [id, token])
 
@@ -95,7 +97,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         if (wo) {
             const originalTitle = document.title;
             const devisNum = wo.quote_number || 'N/A';
-            const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : new Date().toLocaleDateString('ro-RO');
+            const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
             const clientName = wo.client_name || wo.client?.company_name || wo.client?.first_name || 'Client';
             document.title = `Devis ${devisNum} - ${dateStr} - ${clientName}`;
             return () => { document.title = originalTitle }
@@ -103,7 +105,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     }, [wo])
 
     if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-emerald-600" /></div>
-    if (error || !wo) return <div className="flex h-screen items-center justify-center font-bold text-red-600">{error || 'Eroare'}</div>
+    if (error || !wo) return <div className="flex h-screen items-center justify-center font-bold text-red-600">{error || t('common.error', 'Erreur')}</div>
 
     const T = DEVIS_LANG[lang] || DEVIS_LANG['fr']
     const locale = lang === 'nl' ? 'nl-BE' : lang === 'en' ? 'en-GB' : 'fr-BE'
@@ -199,9 +201,9 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 const charge = parseFloat(thresh.extra_charge || 0)
                 if (charge > 0) {
                     items.push({
-                        desc: 'Forfait',
+                        desc: t('devis.flat_rate', 'Forfait'),
                         qty: 1,
-                        unit: 'Forfait',
+                        unit: t('devis.flat_rate_unit', 'Forfait'),
                         price: charge
                     })
                 }

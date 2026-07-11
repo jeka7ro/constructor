@@ -125,7 +125,7 @@ export default function UsersManagement() {
 
     const handleScanIdCard = async () => {
         if (!idCardFile) {
-            showToast('Selectează o imagine cu buletinul mai întâi.', 'error')
+            showToast(t('employees.select_id_card_first', 'Selectează o imagine cu buletinul mai întâi.'), 'error')
             return
         }
         try {
@@ -158,13 +158,13 @@ export default function UsersManagement() {
                     birth_date: ocr.birth_date || prev.birth_date,
                     avatar_path: ocr.avatar_path || prev.avatar_path
                 }))
-                showToast('Datele au fost extrase cu succes din buletin!', 'success')
+                showToast(t('employees.ocr_success', 'Datele au fost extrase cu succes din buletin!'), 'success')
             } else {
-                showToast(ocr.message || 'Nu am putut extrage datele.', 'error')
+                showToast(ocr.message || t('employees.ocr_error', 'Nu am putut extrage datele.'), 'error')
             }
         } catch (err) {
             console.error('OCR Error:', err)
-            showDialog({ type: 'danger', title: 'Eroare Scanare', message: 'Nu am putut citi buletinul automat. Te rugăm să introduci datele manual.', confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: t('employees.scan_error_title', 'Eroare Scanare'), message: t('employees.scan_error_msg', 'Nu am putut citi buletinul automat. Te rugăm să introduci datele manual.'), confirmText: 'OK', cancelText: null })
         } finally {
             setOcrLoading(false)
         }
@@ -172,23 +172,23 @@ export default function UsersManagement() {
 
     const handleSave = async () => {
         if (!formData.last_name.trim() || !formData.first_name.trim()) {
-            showToast('Numele și prenumele sunt obligatorii.', 'error')
+            showToast(t('common.name_required', 'Numele și prenumele sunt obligatorii.'), 'error')
             return
         }
         if (!formData.email.trim()) {
-            showToast('Email-ul este obligatoriu.', 'error')
+            showToast(t('users_modal.email_required', 'Email-ul este obligatoriu.'), 'error')
             return
         }
         if (!editingUser && !formData.password.trim()) {
-            showToast('Parola este obligatorie pentru utilizator nou.', 'error')
+            showToast(t('users_modal.password_required', 'Parola este obligatorie pentru utilizator nou.'), 'error')
             return
         }
         if (formData.password.trim() && formData.password !== formData.confirm_password) {
-            showToast('Parolele nu coincid.', 'error')
+            showToast(t('users_modal.password_mismatch', 'Parolele nu coincid.'), 'error')
             return
         }
         if (!formData.role_id) {
-            showToast('Selectează un rol.', 'error')
+            showToast(t('users_modal.role_required', 'Selectează un rol.'), 'error')
             return
         }
         try {
@@ -214,11 +214,11 @@ export default function UsersManagement() {
                 const resp = await api.put(`/admin/users/${editingUser.id}`, payload)
                 savedUser = resp.data
                 console.log('[AVATAR_DEBUG] PUT response avatar_path:', savedUser.avatar_path)
-                showToast('Utilizator actualizat.', 'success')
+                showToast(t('users.updated', 'Utilizator actualizat.'), 'success')
             } else {
                 const resp = await api.post('/admin/users/', payload)
                 savedUser = resp.data
-                showToast('Utilizator creat.', 'success')
+                showToast(t('users.created', 'Utilizator creat.'), 'success')
             }
 
             if (idCardFile && savedUser?.id) {
@@ -260,7 +260,7 @@ export default function UsersManagement() {
             setShowModal(false)
             fetchUsers()
         } catch (err) {
-            showDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
+            showDialog({ type: 'danger', title: t('common.error', 'Eroare'), message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
         } finally {
             setSaving(false)
         }
@@ -269,17 +269,17 @@ export default function UsersManagement() {
     const handleDelete = (user) => {
         showDialog({
             type: 'danger',
-            title: 'Șterge Utilizator',
-            message: `Sigur vrei să ștergi utilizatorul "${user.first_name} ${user.last_name}"?`,
-            confirmText: 'Șterge',
-            cancelText: 'Anulează',
+            title: t('users.delete_user', 'Supprimer Utilizator'),
+            message: t('users.delete_confirm_msg', 'Sigur vrei să ștergi utilizatorul "{{firstName}} {{lastName}}"?', { firstName: user.first_name, lastName: user.last_name }),
+            confirmText: t('common.delete', 'Supprimer'),
+            cancelText: t('common.cancel', 'Anulează'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/users/${user.id}`)
-                    showToast('Utilizator șters.', 'success')
+                    showToast(t('users.deleted', 'Utilizator șters.'), 'success')
                     fetchUsers()
                 } catch (err) {
-                    showDialog({ type: 'danger', title: 'Eroare', message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
+                    showDialog({ type: 'danger', title: t('common.error', 'Eroare'), message: err.response?.data?.detail || err.message, confirmText: 'OK', cancelText: null })
                 }
             }
         })
@@ -335,7 +335,7 @@ export default function UsersManagement() {
                             type="text"
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setCurrentPage(PAGE_ID, 1) }}
-                            placeholder="Caută după nume sau email..."
+                            placeholder={t('users.search_placeholder', 'Rechercher par nom ou email...')}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                         />
                         {search && (
@@ -357,7 +357,7 @@ export default function UsersManagement() {
                             onClick={openAdd} 
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap"
                         >
-                            <Plus className="w-4 h-4" /> Adaugă Utilizator
+                            <Plus className="w-4 h-4" /> {t('users.add_user', 'Ajouter Utilizator')}
                         </button>
                     </div>
                 </div>
@@ -366,11 +366,11 @@ export default function UsersManagement() {
                     <table className="w-full">
                         <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                             <tr>
-                                <th className="px-5 py-3 text-left border-r border-slate-100 dark:border-slate-800">Utilizator</th>
-                                <th className="px-5 py-3 text-left">Contact</th>
-                                <th className="px-5 py-3 text-left">Rol</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Acțiuni</th>
+                                <th className="px-5 py-3 text-left border-r border-slate-100 dark:border-slate-800">{t('users.employee_col', 'Utilizator')}</th>
+                                <th className="px-5 py-3 text-left">{t('common.contact', 'Contact')}</th>
+                                <th className="px-5 py-3 text-left">{t('common.role', 'Rol')}</th>
+                                <th className="px-5 py-3 text-left">{t('common.status', 'Status')}</th>
+                                <th className="px-5 py-3 text-right">{t('common.actions', 'Acțiuni')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -380,7 +380,7 @@ export default function UsersManagement() {
                                 </td></tr>
                             ) : paginatedUsers.length === 0 ? (
                                 <tr><td colSpan={5} className="py-16 text-center text-slate-400 text-sm">
-                                    Niciun utilizator găsit
+                                    {t('users.no_users', 'Niciun utilizator găsit')}
                                 </td></tr>
                             ) : paginatedUsers.map(user => (
                                 <tr key={user.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
@@ -398,7 +398,7 @@ export default function UsersManagement() {
                                                         input.click();
                                                     }
                                                 }}
-                                                title="Schimbă poza (doar Adminii autorizați)"
+                                                title={t('employees.change_photo', 'Schimbă poza (doar Adminii autorizați)')}
                                             >
                                                 {user.avatar_path ? (
                                                     <img src={`${API_BASE}${user.avatar_path}`} alt="" className="w-10 h-12 rounded-lg object-cover object-[center_20%] ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 relative z-0 hover:z-50 transition-transform duration-200 hover:scale-[1.8] hover:shadow-2xl" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }} />
@@ -441,22 +441,22 @@ export default function UsersManagement() {
                                                 : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                                         }`}>
                                             <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                                            {user.is_active ? 'Activ' : 'Inactiv'}
+                                            {user.is_active ? t('common.active', 'Activ') : t('common.inactive', 'Inactiv')}
                                         </button>
                                     </td>
                                     <td className="px-5 py-3">
                                         <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                                             {isSuperAdmin || user.role_name !== 'Super Administrator' ? (
                                                 <>
-                                                    <button onClick={() => openEdit(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Editează">
+                                                    <button onClick={() => openEdit(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title={t('common.edit', 'Éditer')}>
                                                         <Edit2 className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => handleDelete(user)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400" title="Șterge">
+                                                    <button onClick={() => handleDelete(user)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400" title={t('common.delete', 'Supprimer')}>
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </>
                                             ) : (
-                                                <Lock className="w-4 h-4 text-slate-300" title="Doar Super Admin poate edita" />
+                                                <Lock className="w-4 h-4 text-slate-300" title={t('users.super_admin_only', 'Doar Super Admin poate edita')} />
                                             )}
                                         </div>
                                     </td>
@@ -492,7 +492,7 @@ export default function UsersManagement() {
                     try {
                         await api.post(`/admin/users/${avatarUploadUserId}/upload-avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
                         fetchUsers()
-                        showToast('Avatar actualizat', 'success')
+                        showToast(t('employees.avatar_updated', 'Avatar actualizat'), 'success')
                     } catch (err) {
                         console.error('Avatar upload error:', err);
                         showToast('Eroare la actualizare avatar', 'error')
@@ -513,7 +513,7 @@ export default function UsersManagement() {
                                     <UserCog className="w-4 h-4 text-blue-600" />
                                 </div>
                                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {editingUser ? 'Editează Utilizator' : 'Adaugă Utilizator'}
+                                    {editingUser ? t('users_modal.edit_title', 'Éditer Utilizator') : t('users_modal.add_title', 'Ajouter Utilizator')}
                                 </h2>
                             </div>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors">
@@ -526,7 +526,7 @@ export default function UsersManagement() {
                             
                             {/* SCANNER SECTION */}
                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Extragere Automată Date (OCR)</h3>
+                                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">{t('employees.ocr_title', 'Extragere Automată Date (OCR)')}</h3>
                                 <div className="flex flex-col gap-3">
                                     <div className="flex flex-col gap-3">
                                         <div className="flex-1 w-full">
@@ -562,7 +562,7 @@ export default function UsersManagement() {
                                                     className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors"
                                                 >
                                                     <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
-                                                    <span className="text-sm font-medium text-slate-500">Încărcă Poză / PDF</span>
+                                                    <span className="text-sm font-medium text-slate-500">{t('employees.upload_photo_pdf', 'Încărcă Poză / PDF')}</span>
                                                 </button>
                                             )}
                                         </div>
@@ -574,7 +574,7 @@ export default function UsersManagement() {
                                                 className="w-full h-12 bg-violet-500 hover:bg-violet-600 text-white rounded-lg text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap"
                                             >
                                                 {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
-                                                Scanează CI
+                                                {t('employees.scan_id', 'Scanează CI')}
                                             </button>
                                         )}
                                     </div>
@@ -583,7 +583,7 @@ export default function UsersManagement() {
                                         <div className="mt-2 text-xs text-slate-500 flex items-center gap-1.5">
                                             <FileText className="w-4 h-4 text-slate-400" />
                                             <a href={`${editingUser.id_card_path}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                                                Vezi documentul încărcat anterior
+                                                {t('employees.view_previous_doc', 'Vezi documentul încărcat anterior')}
                                             </a>
                                         </div>
                                     )}
@@ -593,37 +593,37 @@ export default function UsersManagement() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-4">
                                     <div>
-                                        <label className={labelCls}>Nume *</label>
-                                        <input type="text" value={formData.last_name} onChange={e => setFormData({ ...formData, last_name: e.target.value })} className={inputCls} placeholder="ex: Popescu" />
+                                        <label className={labelCls}>{t('users_modal.last_name', 'Nume')} *</label>
+                                        <input type="text" value={formData.last_name} onChange={e => setFormData({ ...formData, last_name: e.target.value })} className={inputCls} placeholder={t('users_modal.last_name_placeholder', 'ex: Popescu')} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Prenume *</label>
-                                        <input type="text" value={formData.first_name} onChange={e => setFormData({ ...formData, first_name: e.target.value })} className={inputCls} placeholder="ex: Ion" />
+                                        <label className={labelCls}>{t('users_modal.first_name', 'Prenume')} *</label>
+                                        <input type="text" value={formData.first_name} onChange={e => setFormData({ ...formData, first_name: e.target.value })} className={inputCls} placeholder={t('users_modal.first_name_placeholder', 'ex: Ion')} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>CNP</label>
-                                        <input type="text" value={formData.cnp} onChange={e => setFormData({ ...formData, cnp: e.target.value })} className={inputCls} placeholder="13 cifre" maxLength={13} />
+                                        <label className={labelCls}>{t('employees.cnp', 'CNP')}</label>
+                                        <input type="text" value={formData.cnp} onChange={e => setFormData({ ...formData, cnp: e.target.value })} className={inputCls} placeholder={t('employees.cnp_placeholder', '13 cifre')} maxLength={13} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Serie și Nr. CI</label>
-                                        <input type="text" value={formData.id_card_series} onChange={e => setFormData({ ...formData, id_card_series: e.target.value })} className={inputCls} placeholder="ex: ZT 123456" />
+                                        <label className={labelCls}>{t('employees.id_series', 'Serie și Nr. CI')}</label>
+                                        <input type="text" value={formData.id_card_series} onChange={e => setFormData({ ...formData, id_card_series: e.target.value })} className={inputCls} placeholder={t('employees.id_series_placeholder', 'ex: ZT 123456')} />
                                     </div>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className={labelCls}>Email *</label>
-                                        <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className={inputCls} placeholder="email@example.com" />
+                                        <label className={labelCls}>{t('employees.email', 'Email')} *</label>
+                                        <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className={inputCls} placeholder={t('employees.email_placeholder', 'email@example.com')} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Telefon</label>
-                                        <input type="tel" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className={inputCls} placeholder="07xx xxx xxx" />
+                                        <label className={labelCls}>{t('employees.phone', 'Telefon')}</label>
+                                        <input type="tel" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className={inputCls} placeholder={t('employees.phone_placeholder', '07xx xxx xxx')} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Locul Nașterii</label>
-                                        <input type="text" value={formData.birth_place} onChange={e => setFormData({ ...formData, birth_place: e.target.value })} className={inputCls} placeholder="ex: Mun. București" />
+                                        <label className={labelCls}>{t('employees.birth_place', 'Locul Nașterii')}</label>
+                                        <input type="text" value={formData.birth_place} onChange={e => setFormData({ ...formData, birth_place: e.target.value })} className={inputCls} placeholder={t('employees.birth_place_placeholder', 'ex: Mun. București')} />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Data Nașterii</label>
+                                        <label className={labelCls}>{t('employees.birth_date', 'Data Nașterii')}</label>
                                         <input type="date" value={formData.birth_date} onChange={e => setFormData({ ...formData, birth_date: e.target.value })} className={inputCls} />
                                     </div>
                                 </div>
@@ -632,9 +632,9 @@ export default function UsersManagement() {
                             <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                                 <div className="grid grid-cols-2 gap-4 mt-3">
                                     <div>
-                                        <label className={labelCls}>Rol *</label>
+                                        <label className={labelCls}>{t('users_modal.role', 'Rol')} *</label>
                                         <select value={formData.role_id} onChange={e => setFormData({ ...formData, role_id: e.target.value })} className={inputCls}>
-                                            <option value="">Selectează rol...</option>
+                                            <option value="">{t('users_modal.select_role', 'Selectează rol...')}</option>
                                             {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                         </select>
                                     </div>
@@ -642,7 +642,7 @@ export default function UsersManagement() {
                                         <div className="flex items-center mt-6">
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input type="checkbox" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Cont activ</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('users_modal.active_account', 'Cont activ')}</span>
                                             </label>
                                         </div>
                                     )}
@@ -651,7 +651,7 @@ export default function UsersManagement() {
                                 <div className="grid grid-cols-2 gap-4 mt-4">
                                     <div>
                                         <label className={labelCls}>
-                                            Parolă {editingUser ? <span className="normal-case font-normal text-slate-400">(lasă gol pentru a o păstra)</span> : '*'}
+                                            {t('users_modal.password', 'Parolă')} {editingUser ? <span className="normal-case font-normal text-slate-400">{t('users_modal.leave_blank', '(lasă gol pentru a o păstra)')}</span> : '*'}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -659,7 +659,7 @@ export default function UsersManagement() {
                                                 value={formData.password}
                                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                                                 className={inputCls + ' pr-10'}
-                                                placeholder={editingUser ? '••••••••' : 'Parolă nouă'}
+                                                placeholder={editingUser ? '••••••••' : t('users_modal.new_password', 'Parolă nouă')}
                                             />
                                             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -668,7 +668,7 @@ export default function UsersManagement() {
                                     </div>
                                     <div>
                                         <label className={labelCls}>
-                                            Repetă Parola {editingUser ? <span className="normal-case font-normal text-slate-400">(lasă gol)</span> : '*'}
+                                            {t('users_modal.repeat_password', 'Repetă Parola')} {editingUser ? <span className="normal-case font-normal text-slate-400">{t('users_modal.leave_blank_short', '(lasă gol)')}</span> : '*'}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -676,7 +676,7 @@ export default function UsersManagement() {
                                                 value={formData.confirm_password}
                                                 onChange={e => setFormData({ ...formData, confirm_password: e.target.value })}
                                                 className={inputCls + ' pr-10'}
-                                                placeholder="Confirmă parola"
+                                                placeholder={t('users_modal.confirm_password', 'Confirmă parola')}
                                             />
                                         </div>
                                     </div>
@@ -687,11 +687,11 @@ export default function UsersManagement() {
                         {/* Footer */}
                         <div className="flex flex-shrink-0 justify-end gap-2.5 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-b-2xl">
                             <button onClick={() => setShowModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-300 rounded-full transition-colors">
-                                Anulează
+                                {t('common.cancel', 'Anulează')}
                             </button>
                             <button onClick={handleSave} disabled={saving} className="px-5 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-sm font-bold shadow-sm transition-all flex items-center gap-2 disabled:opacity-50">
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                {editingUser ? 'Salvează' : 'Creează'}
+                                {editingUser ? t('users_modal.save', 'Enregistrer') : t('users_modal.create', 'Creează')}
                             </button>
                         </div>
                     </div>

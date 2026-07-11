@@ -144,7 +144,7 @@ export default function BasesPage() {
                 </div>
                 <div className="ml-auto">
                     <button onClick={() => openModal()} className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 shadow-sm">
-                        <Plus className="w-4 h-4" /> Adaugă Bază
+                        <Plus className="w-4 h-4" /> Ajouter Bază
                     </button>
                 </div>
             </div>
@@ -219,7 +219,7 @@ export default function BasesPage() {
                             loading={loading}
                             emptyText="Nu există baze configurate."
                             searchable
-                            searchPlaceholder="Caută bază..."
+                            searchPlaceholder="Rechercher une base..."
                             defaultPageSize={25}
                         />
                     </div>
@@ -230,7 +230,7 @@ export default function BasesPage() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-blue-600 dark:bg-slate-800 rounded-t-2xl">
-                            <h2 className="text-lg font-bold text-white">{editingBase ? 'Editează Bază' : 'Bază Nouă'}</h2>
+                            <h2 className="text-lg font-bold text-white">{editingBase ? 'Éditer Bază' : 'Bază Nouă'}</h2>
                             <button onClick={() => setIsModalOpen(false)} className="text-blue-100 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -318,7 +318,7 @@ export default function BasesPage() {
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-medium">Anulare</button>
                                 <button type="submit" disabled={saving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-2">
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvează
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
                                 </button>
                             </div>
                         </form>

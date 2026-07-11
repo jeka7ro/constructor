@@ -51,7 +51,7 @@ export default function AccommodationsManagement() {
             const sitesList = Array.isArray(sitesRes.data?.sites) ? sitesRes.data.sites : (Array.isArray(sitesRes.data) ? sitesRes.data : [])
             setAllSites(sitesList)
         } catch {
-            showToast('Eroare la încărcare', 'error')
+            showToast(t('accommodations.load_error', 'Erreur de chargement'), 'error')
         } finally {
             setLoading(false)
         }
@@ -63,48 +63,47 @@ export default function AccommodationsManagement() {
         try {
             const res = await api.get(`/admin/accommodations/${acc.id}`)
             setDetailAcc(res.data)
-        } catch { showToast('Eroare la detalii', 'error') }
+        } catch { showToast(t('accommodations.details_error', 'Erreur de détails'), 'error') }
         finally { setDetailLoading(false) }
     }
 
     const handleSave = async (e) => {
         e.preventDefault()
-        if (!form.name.trim()) { showToast('Completează denumirea', 'error'); return }
+        if (!form.name.trim()) { showToast(t('accommodations.fill_name_error', 'Veuillez remplir le nom'), 'error'); return }
         setSaving(true)
         try {
             const payload = { name: form.name, address: form.address, capacity: form.capacity ? Number(form.capacity) : null, notes: form.notes }
             if (editingAcc) {
                 await api.put(`/admin/accommodations/${editingAcc.id}`, payload)
-                showToast('Cazare actualizată', 'success')
+                showToast(t('accommodations.acc_updated', 'Cazare actualizată'), 'success')
             } else {
                 await api.post('/admin/accommodations/', payload)
-                showToast('Cazare adăugată', 'success')
+                showToast(t('accommodations.acc_added', 'Cazare adăugată'), 'success')
             }
             setShowFormModal(false)
-            fetchAll()
             if (detailAcc?.id === editingAcc?.id) openDetail(detailAcc)
-        } catch { showToast('Eroare la salvare', 'error') }
+        } catch { showToast(t('accommodations.save_error', 'Erreur d\'enregistrement'), 'error') }
         finally { setSaving(false) }
     }
 
     const handleDelete = (id) => {
         setConfirmModal({
-            isOpen: true, title: 'Ștergere Cazare',
-            message: 'Sigur doriți să ștergeți această cazare? Toate repartizările vor fi pierdute.',
+            isOpen: true, title: t('accommodations.delete_title', 'Supprimerre Cazare'),
+            message: t('accommodations.delete_msg', 'Sigur doriți să ștergeți această cazare? Toate repartizările vor fi pierdute.'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/accommodations/${id}`)
-                    showToast('Cazare ștearsă', 'success')
+                    showToast(t('accommodations.acc_deleted', 'Hébergement supprimé'), 'success')
                     fetchAll()
                     if (detailAcc?.id === id) setDetailAcc(null)
-                } catch { showToast('Eroare', 'error') }
+                } catch { showToast(t('accommodations.error', 'Erreur'), 'error') }
             }
         })
     }
 
     const handleAssign = async (e) => {
         e.preventDefault()
-        if (!selectedUserIds.length) { showToast('Selectează cel puțin un angajat', 'error'); return }
+        if (!selectedUserIds.length) { showToast(t('accommodations.select_worker_error', 'Sélectionnez au moins un employé'), 'error'); return }
         setAssigning(true)
         let added = 0, errors = 0
         for (const uid of selectedUserIds) {
@@ -117,8 +116,8 @@ export default function AccommodationsManagement() {
                 added++
             } catch { errors++ }
         }
-        if (added > 0) showToast(`${added} muncitor${added > 1 ? 'i' : ''} repartiza${added > 1 ? 'ți' : 't'}`, 'success')
-        if (errors > 0) showToast(`${errors} erori la repartizare (deja cazați?)`, 'error')
+        if (added > 0) showToast(t('accommodations.assigned_success', '{{count}} employés affectés', { count: added }), 'success')
+        if (errors > 0) showToast(t('accommodations.assigned_errors', '{{count}} erreurs d\'affectation (déjà logés ?)', { count: errors }), 'error')
         setShowAssignModal(false)
         setSelectedUserIds([])
         setAssignDates({ assigned_from: '', assigned_until: '' })
@@ -145,14 +144,14 @@ export default function AccommodationsManagement() {
 
     const handleRemoveAssignment = (assignmentId) => {
         setConfirmModal({
-            isOpen: true, title: 'Eliminare Muncitor',
-            message: 'Sigur doriți să eliminați repartizarea?',
+            isOpen: true, title: t('accommodations.remove_worker_title', 'Eliminare Muncitor'),
+            message: t('accommodations.remove_worker_msg', 'Sigur doriți să eliminați repartizarea?'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/admin/accommodations/${detailAcc.id}/assign/${assignmentId}`)
-                    showToast('Muncitor eliminat', 'success')
+                    showToast(t('accommodations.worker_removed', 'Employé retiré'), 'success')
                     openDetail(detailAcc)
-                } catch { showToast('Eroare', 'error') }
+                } catch { showToast(t('accommodations.error', 'Erreur'), 'error') }
             }
         })
     }
@@ -187,7 +186,7 @@ export default function AccommodationsManagement() {
                 <div className="p-4 md:p-8 max-w-7xl mx-auto">
                     <button onClick={() => setDetailAcc(null)} className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors w-fit">
                         <ChevronLeft className="w-5 h-5" />
-                        <span className="font-semibold">Înapoi la Cazări</span>
+                        <span className="font-semibold">{t('accommodations.back_to_list', 'Retour aux hébergements')}</span>
                     </button>
 
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -204,17 +203,17 @@ export default function AccommodationsManagement() {
                                 )}
                                 <p className="text-sm text-slate-500 mt-1">
                                     <strong className="text-blue-600">{detailAcc.assignments?.length || 0}</strong>
-                                    {detailAcc.capacity ? ` / ${detailAcc.capacity} locuri ocupate` : ' muncitori cazați'}
+                                    {detailAcc.capacity ? ` / ${detailAcc.capacity} ${t('accommodations.occupied_spots', 'locuri ocupate')}` : ` ${t('accommodations.workers_housed', 'muncitori cazați')}`}
                                 </p>
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => { setEditingAcc(detailAcc); setForm({ name: detailAcc.name, address: detailAcc.address || '', capacity: detailAcc.capacity || '', notes: detailAcc.notes || '' }); setShowFormModal(true) }}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white text-sm font-bold transition-all">
-                                    <Edit2 className="w-4 h-4" /> Editează
+                                    <Edit2 className="w-4 h-4" /> {t('accommodations.edit_btn', 'Éditer')}
                                 </button>
                                 <button onClick={() => openAssignModal(detailAcc)}
                                     className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all">
-                                    <UserPlus className="w-4 h-4" /> Adaugă Muncitori
+                                    <UserPlus className="w-4 h-4" /> {t('accommodations.add_workers_btn', 'Ajouter Muncitori')}
                                 </button>
                             </div>
                         </div>
@@ -226,16 +225,16 @@ export default function AccommodationsManagement() {
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                                         <tr>
-                                            <th className="px-6 py-4">Nr.</th>
-                                            <th className="px-6 py-4">Angajat</th>
-                                            <th className="px-6 py-4">De la</th>
-                                            <th className="px-6 py-4">Până la</th>
-                                            <th className="px-6 py-4 text-right">Acțiuni</th>
+                                            <th className="px-6 py-4">{t('accommodations.col_nr', 'Nr.')}</th>
+                                            <th className="px-6 py-4">{t('accommodations.col_employee', 'Angajat')}</th>
+                                            <th className="px-6 py-4">{t('accommodations.col_from', 'De la')}</th>
+                                            <th className="px-6 py-4">{t('accommodations.col_to', 'Până la')}</th>
+                                            <th className="px-6 py-4 text-right">{t('accommodations.col_actions', 'Acțiuni')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                         {!detailAcc.assignments?.length ? (
-                                            <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Niciun muncitor cazat momentan.</td></tr>
+                                            <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">{t('accommodations.no_workers_housed', 'Niciun muncitor cazat momentan.')}</td></tr>
                                         ) : detailAcc.assignments.map((a, i) => (
                                             <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                                 <td className="px-6 py-4 text-slate-500 font-medium">{i + 1}</td>
@@ -248,7 +247,7 @@ export default function AccommodationsManagement() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{a.assigned_from || '—'}</td>
-                                                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{a.assigned_until || 'Nedefinit'}</td>
+                                                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{a.assigned_until || t('accommodations.undefined', 'Non défini')}</td>
                                                 <td className="px-6 py-4 text-right">
                                                     <button onClick={() => handleRemoveAssignment(a.id)}
                                                         className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors ml-auto opacity-0 group-hover:opacity-100">
@@ -264,8 +263,8 @@ export default function AccommodationsManagement() {
 
                         {/* Footer total */}
                         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex justify-end text-xs font-medium text-slate-500">
-                            <span>Total: <strong className="text-slate-700 dark:text-slate-200">{detailAcc.assignments?.length || 0}</strong> muncitori cazați
-                                {detailAcc.capacity ? ` / ${detailAcc.capacity} locuri` : ''}
+                            <span>{t('accommodations.total_label', 'Total:')} <strong className="text-slate-700 dark:text-slate-200">{detailAcc.assignments?.length || 0}</strong> {t('accommodations.workers_housed', 'muncitori cazați')}
+                                {detailAcc.capacity ? ` / ${detailAcc.capacity} ${t('accommodations.spots', 'locuri')}` : ''}
                             </span>
                         </div>
                     </div>
@@ -288,9 +287,9 @@ export default function AccommodationsManagement() {
                                 <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                                     <div>
                                         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                            <UserPlus className="w-5 h-5 text-blue-500" /> Adaugă Muncitori
+                                            <UserPlus className="w-5 h-5 text-blue-500" /> {t('accommodations.add_workers_title', 'Ajouter Muncitori')}
                                         </h2>
-                                        <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} disponibili &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} selectați</span></p>
+                                        <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} {t('accommodations.available_workers', 'disponibili')} &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} {t('accommodations.selected', 'selectați')}</span></p>
                                     </div>
                                     <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
                                 </div>
@@ -302,7 +301,7 @@ export default function AccommodationsManagement() {
                                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                             <input
                                                 type="text"
-                                                placeholder="Caută angajat..."
+                                                placeholder={t('accommodations.search_employee_placeholder', 'Rechercher un employé...')}
                                                 value={workerSearch}
                                                 onChange={e => setWorkerSearch(e.target.value)}
                                                 autoFocus
@@ -314,7 +313,7 @@ export default function AccommodationsManagement() {
                                             onChange={e => setSiteFilter(e.target.value)}
                                             className="h-9 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all max-w-[160px] truncate"
                                         >
-                                            <option value="">Toate șantierele</option>
+                                            <option value="">{t('accommodations.all_sites', 'Toate șantierele')}</option>
                                             {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>
@@ -329,11 +328,11 @@ export default function AccommodationsManagement() {
                                                 }}
                                                 className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                             />
-                                            Selectează Toți ({filtered.length})
+                                            {t('accommodations.select_all', 'Selectează Toți')} ({filtered.length})
                                         </label>
                                         {selectedUserIds.length > 0 && (
                                             <button onClick={() => setSelectedUserIds([])} className="text-xs text-slate-400 hover:text-red-500 transition-colors">
-                                                Golire selecție
+                                                {t('accommodations.clear_selection', 'Golire selecție')}
                                             </button>
                                         )}
                                     </div>
@@ -342,7 +341,7 @@ export default function AccommodationsManagement() {
                                 {/* Worker list */}
                                 <div className="overflow-y-auto flex-1 px-2 py-2">
                                     {filtered.length === 0 ? (
-                                        <p className="text-center text-slate-400 text-sm py-8">Nu s-a găsit niciun angajat disponibil.</p>
+                                        <p className="text-center text-slate-400 text-sm py-8">{t('accommodations.no_available_employee', 'Nu s-a găsit niciun angajat disponibil.')}</p>
                                     ) : filtered.map(u => {
                                         const checked = selectedUserIds.includes(u.id)
                                         return (
@@ -366,22 +365,22 @@ export default function AccommodationsManagement() {
                                 <form onSubmit={handleAssign} className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">De la</label>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('accommodations.from_date', 'De la')}</label>
                                             <input type="date" value={assignDates.assigned_from} onChange={e => setAssignDates(p => ({ ...p, assigned_from: e.target.value }))}
                                                 className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Până la</label>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('accommodations.to_date', 'Până la')}</label>
                                             <input type="date" value={assignDates.assigned_until} onChange={e => setAssignDates(p => ({ ...p, assigned_until: e.target.value }))}
                                                 className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
                                         </div>
                                     </div>
                                     <div className="flex gap-3 justify-end">
-                                        <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                                        <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">{t('accommodations.cancel', 'Anulează')}</button>
                                         <button type="submit" disabled={assigning || !selectedUserIds.length}
                                             className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
                                             {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                                            Adaugă {selectedUserIds.length > 0 ? `(${selectedUserIds.length})` : ''}
+                                            {t('accommodations.add', 'Ajouter')} {selectedUserIds.length > 0 ? `(${selectedUserIds.length})` : ''}
                                         </button>
                                     </div>
                                 </form>
@@ -424,19 +423,19 @@ export default function AccommodationsManagement() {
                         </div>
                         <button onClick={() => { setEditingAcc(null); setForm({ name: '', address: '', capacity: '', notes: '' }); setShowFormModal(true) }}
                             className="flex items-center gap-1.5 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all whitespace-nowrap">
-                            <Plus className="w-4 h-4" /> Cazare Nouă
+                            <Plus className="w-4 h-4" /> {t('accommodations.new_acc_btn', 'Cazare Nouă')}
                         </button>
                     </div>
 
                     {/* Batch delete bar */}
                     {selectedIds.length > 0 && (
                         <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 flex items-center justify-between dark:bg-rose-900/20 dark:border-rose-900/50">
-                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} selectate</span>
+                            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">{selectedIds.length} {t('accommodations.selected', 'sélectionnés')}</span>
                             <button onClick={() => setConfirmModal({
-                                isOpen: true, title: 'Ștergere multiplă',
-                                message: `Ștergi ${selectedIds.length} cazări?`,
+                                isOpen: true, title: t('accommodations.batch_delete_title', 'Supprimerre multiplă'),
+                                message: t('accommodations.batch_delete_msg', 'Ștergi {{count}} cazări?', { count: selectedIds.length }),
                                 onConfirm: async () => { for (const id of selectedIds) await api.delete(`/admin/accommodations/${id}`); fetchAll() }
-                            })} className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors">Șterge Selectatele</button>
+                            })} className="text-sm px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-medium transition-colors">{t('accommodations.delete_selected', 'Supprimer Selectatele')}</button>
                         </div>
                     )}
 
@@ -449,19 +448,19 @@ export default function AccommodationsManagement() {
                                         <input type="checkbox" checked={paginated.length > 0 && paginated.every(a => selectedIds.includes(a.id))} onChange={toggleAll}
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                                     </th>
-                                    <th className="px-6 py-4">Nr.</th>
-                                    <th className="px-6 py-4">Denumire</th>
-                                    <th className="px-6 py-4">{t('accommodations.address')}</th>
-                                    <th className="px-6 py-4 text-center">Capacitate</th>
-                                    <th className="px-6 py-4 text-center">Ocupanți</th>
-                                    <th className="px-6 py-4 text-right">Acțiuni</th>
+                                    <th className="px-6 py-4">{t('accommodations.col_nr', 'Nr.')}</th>
+                                    <th className="px-6 py-4">{t('accommodations.col_name', 'Denumire')}</th>
+                                    <th className="px-6 py-4">{t('accommodations.address', 'Adresă')}</th>
+                                    <th className="px-6 py-4 text-center">{t('accommodations.col_capacity', 'Capacitate')}</th>
+                                    <th className="px-6 py-4 text-center">{t('accommodations.col_occupants', 'Ocupanți')}</th>
+                                    <th className="px-6 py-4 text-right">{t('accommodations.col_actions', 'Acțiuni')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {loading ? (
                                     <tr><td colSpan={7} className="px-4 py-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" /></td></tr>
                                 ) : paginated.length === 0 ? (
-                                    <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">Nu există cazări. Adaugă prima cazare!</td></tr>
+                                    <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">{t('accommodations.no_accommodations', 'Nu există cazări. Ajouter prima cazare!')}</td></tr>
                                 ) : paginated.map((acc, index) => (
                                     <tr key={acc.id} onClick={() => openDetail(acc)}
                                         className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer ${selectedIds.includes(acc.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
@@ -486,7 +485,7 @@ export default function AccommodationsManagement() {
                                         <td className="px-6 py-4 text-center">
                                             {acc.capacity ? (
                                                 <span className="inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                                    {acc.capacity} locuri
+                                                    {acc.capacity} {t('accommodations.spots', 'locuri')}
                                                 </span>
                                             ) : '—'}
                                         </td>
@@ -508,7 +507,7 @@ export default function AccommodationsManagement() {
                                                         e.stopPropagation()
                                                         await openAssignModal(acc)
                                                     }}
-                                                    title="Adaugă muncitori la cazare"
+                                                    title={t('accommodations.add_workers_title', 'Ajouter muncitori la cazare')}
                                                     className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors"
                                                 >
                                                     <UserPlus className="w-4 h-4" />
@@ -532,15 +531,15 @@ export default function AccommodationsManagement() {
                     {/* Footer */}
                     <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-800/20 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
                         <div className="flex items-center gap-2">
-                            <span className="uppercase tracking-wide">Afișează</span>
+                            <span className="uppercase tracking-wide">{t('accommodations.show', 'Afficher')}</span>
                             <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
                                 className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1 font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
                                 {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
-                            <span>· Total: <strong className="text-slate-700 dark:text-slate-200">{filtered.length}</strong></span>
+                            <span>· {t('accommodations.total_label', 'Total :')} <strong className="text-slate-700 dark:text-slate-200">{filtered.length}</strong></span>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span>Pagina {currentPage} din {Math.max(1, totalPages)}</span>
+                            <span>{t('accommodations.page_of', 'Pagina {{current}} din {{total}}', { current: currentPage, total: Math.max(1, totalPages) })}</span>
                             <div className="flex gap-1">
                                 <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
                                 <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"><ChevronRight className="w-4 h-4" /></button>
@@ -569,9 +568,9 @@ export default function AccommodationsManagement() {
                             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                                 <div>
                                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                        <UserPlus className="w-5 h-5 text-blue-500" /> Adaugă Muncitori
+                                        <UserPlus className="w-5 h-5 text-blue-500" /> {t('accommodations.add_workers_title', 'Ajouter Muncitori')}
                                     </h2>
-                                    <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} disponibili &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} selectați</span></p>
+                                    <p className="text-xs text-slate-400 mt-0.5">📍 {detailAcc.name} &middot; {available.length} {t('accommodations.available_workers', 'disponibili')} &middot; <span className="text-blue-500 font-bold">{selectedUserIds.length} {t('accommodations.selected', 'selectați')}</span></p>
                                 </div>
                                 <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
                             </div>
@@ -579,7 +578,7 @@ export default function AccommodationsManagement() {
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
                                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input type="text" placeholder="Caută angajat..." value={workerSearch}
+                                        <input type="text" placeholder={t('accommodations.search_employee_placeholder', 'Rechercher un employé...')} value={workerSearch}
                                             onChange={e => setWorkerSearch(e.target.value)} autoFocus
                                             className="w-full h-9 pl-10 pr-4 bg-slate-50 dark:bg-slate-800 text-sm border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                                     </div>
@@ -588,7 +587,7 @@ export default function AccommodationsManagement() {
                                         onChange={e => setSiteFilter(e.target.value)}
                                         className="h-9 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full focus:ring-2 focus:ring-blue-500 outline-none transition-all max-w-[160px] truncate"
                                     >
-                                        <option value="">Toate șantierele</option>
+                                        <option value="">{t('accommodations.all_sites', 'Toate șantierele')}</option>
                                         {allSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
                                 </div>
@@ -601,16 +600,16 @@ export default function AccommodationsManagement() {
                                             }}
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                         />
-                                        Selectează Toți ({filteredW.length})
+                                        {t('accommodations.select_all', 'Tout sélectionner')} ({filteredW.length})
                                     </label>
                                     {selectedUserIds.length > 0 && (
-                                        <button onClick={() => setSelectedUserIds([])} className="text-xs text-slate-400 hover:text-red-500 transition-colors">Golire selecție</button>
+                                        <button onClick={() => setSelectedUserIds([])} className="text-xs text-slate-400 hover:text-red-500 transition-colors">{t('accommodations.clear_selection', 'Vider la sélection')}</button>
                                     )}
                                 </div>
                             </div>
                             <div className="overflow-y-auto flex-1 px-2 py-2">
                                 {filteredW.length === 0 ? (
-                                    <p className="text-center text-slate-400 text-sm py-8">Nu s-a găsit niciun angajat disponibil.</p>
+                                    <p className="text-center text-slate-400 text-sm py-8">{t('accommodations.no_available_employee', 'Nu s-a găsit niciun angajat disponibil.')}</p>
                                 ) : filteredW.map(u => {
                                     const checked = selectedUserIds.includes(u.id)
                                     return (
@@ -629,22 +628,22 @@ export default function AccommodationsManagement() {
                             <form onSubmit={handleAssign} className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 space-y-3">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">De la</label>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('accommodations.from_date', 'De la')}</label>
                                         <input type="date" value={assignDates.assigned_from} onChange={e => setAssignDates(p => ({ ...p, assigned_from: e.target.value }))}
                                             className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Până la</label>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('accommodations.to_date', 'Până la')}</label>
                                         <input type="date" value={assignDates.assigned_until} onChange={e => setAssignDates(p => ({ ...p, assigned_until: e.target.value }))}
                                             className="w-full px-3 h-9 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all" />
                                     </div>
                                 </div>
                                 <div className="flex gap-3 justify-end">
-                                    <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                                    <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">{t('accommodations.cancel', 'Anulează')}</button>
                                     <button type="submit" disabled={assigning || !selectedUserIds.length}
                                         className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
                                         {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                                        Adaugă {selectedUserIds.length > 0 ? `(${selectedUserIds.length})` : ''}
+                                        {t('accommodations.add', 'Ajouter')} {selectedUserIds.length > 0 ? `(${selectedUserIds.length})` : ''}
                                     </button>
                                 </div>
                             </form>
@@ -666,41 +665,41 @@ function FormModal({ show, editing, form, setForm, saving, onSave, onClose }) {
                 <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <BedDouble className="w-5 h-5 text-slate-500" />
-                        {editing ? 'Modifică Cazare' : 'Cazare Nouă'}
+                        {editing ? t('accommodations.edit_acc_title', 'Modifică Cazare') : t('accommodations.new_acc_title', 'Cazare Nouă')}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={onSave} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Denumire *</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('accommodations.col_name', 'Denumire')} *</label>
                         <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required
-                            placeholder="ex: Pensiunea Florin, Ap. 2 Str. Mihai..." autoFocus
+                            placeholder={t('accommodations.name_placeholder', 'ex: Pensiunea Florin, Ap. 2 Str. Mihai...')} autoFocus
                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('accommodations.address')}</label>
                         <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
-                            placeholder="Stradă, număr, localitate..."
+                            placeholder={t('accommodations.address_placeholder', 'Stradă, număr, localitate...')}
                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Capacitate (nr. locuri)</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('accommodations.capacity_label', 'Capacitate (nr. locuri)')}</label>
                         <input type="number" min="1" value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))}
-                            placeholder="ex: 6"
+                            placeholder={t('accommodations.ex_capacity', 'ex: 6')}
                             className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Observații</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t('accommodations.notes_label', 'Observații')}</label>
                         <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                            placeholder="Note, informații suplimentare..." rows={3}
+                            placeholder={t('accommodations.notes_placeholder', 'Note, informații suplimentare...')} rows={3}
                             className="w-full px-4 py-3 text-sm border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none" />
                     </div>
                     <div className="flex gap-3 justify-end pt-2">
-                        <button type="button" onClick={onClose} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                        <button type="button" onClick={onClose} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">{t('accommodations.cancel', 'Anulează')}</button>
                         <button type="submit" disabled={saving}
                             className="flex items-center gap-2 px-5 h-10 rounded-full text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <BedDouble className="w-4 h-4" />}
-                            {editing ? 'Salvează' : 'Adaugă'}
+                            {editing ? t('accommodations.save_btn', 'Enregistrer') : t('accommodations.add_btn', 'Ajouter')}
                         </button>
                     </div>
                 </form>
@@ -710,6 +709,7 @@ function FormModal({ show, editing, form, setForm, saving, onSave, onClose }) {
 }
 
 function ConfirmModal({ state, onClose }) {
+    const { t } = useTranslation();
     if (!state.isOpen) return null
     return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -721,9 +721,9 @@ function ConfirmModal({ state, onClose }) {
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{state.title}</h3>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{state.message}</p>
                     <div className="flex gap-3 justify-center">
-                        <button onClick={onClose} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Anulează</button>
+                        <button onClick={onClose} className="px-5 h-10 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">{t('accommodations.cancel', 'Anulează')}</button>
                         <button onClick={() => { if (state.onConfirm) state.onConfirm(); onClose() }}
-                            className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all">Da, Șterge</button>
+                            className="px-5 h-10 rounded-full text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-all">{t('accommodations.yes_delete', 'Da, Supprimer')}</button>
                     </div>
                 </div>
             </div>

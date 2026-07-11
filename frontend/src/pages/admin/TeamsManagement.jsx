@@ -105,8 +105,7 @@ export default function TeamsManagement() {
             setShowWorkersList(false)
             fetchTeams()
         } catch (e) {
-            console.error(e)
-            openDialog({ type: 'danger', title: 'Eroare', message: e.message || 'A apărut o eroare la salvarea echipei', confirmText: 'OK', cancelText: null })
+            openDialog({ type: 'danger', title: t('common.error', 'Eroare'), message: e.message || t('teams.save_error', 'A apărut o eroare la salvarea echipei'), confirmText: t('common.ok', 'OK'), cancelText: null })
         } finally { setSaving(false) }
     }
 
@@ -189,7 +188,7 @@ export default function TeamsManagement() {
             )
         },
         {
-            key: 'site_name', label: 'Șantier', sortable: true,
+            key: 'site_name', label: t('teams.site', 'Șantier'), sortable: true,
             render: (team) => (
                 team.site_name ? (
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
@@ -245,7 +244,7 @@ export default function TeamsManagement() {
                             type="text"
                             value={globalSearch}
                             onChange={e => setGlobalSearch(e.target.value)}
-                            placeholder="Caută echipă..."
+                            placeholder={t('teams.search_placeholder', 'Rechercher une équipe...')}
                             className="w-full sm:w-64 md:w-80 h-10 pl-10 pr-[72px] bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                         />
                         {globalSearch && (
@@ -287,7 +286,7 @@ export default function TeamsManagement() {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900">{editingTeamId ? 'Editare Echipă' : t('teams.new_team')}</h2>
+                            <h2 className="text-lg font-bold text-slate-900">{editingTeamId ? t('teams.edit_team', 'Editare Echipă') : t('teams.new_team')}</h2>
                             <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-100 rounded-full">
                                 <X className="w-5 h-5 text-slate-500" />
                             </button>
@@ -317,12 +316,12 @@ export default function TeamsManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Șantier (Opțional)</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.site_optional', 'Șantier (Opțional)')}</label>
                                 <select
                                     value={newSite} onChange={e => setNewSite(e.target.value)}
                                     className="w-full px-5 py-3 border border-slate-200 rounded-full focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none bg-white"
                                 >
-                                    <option value="">Fără șantier alocat</option>
+                                    <option value="">{t('teams.no_site', 'Fără șantier alocat')}</option>
                                     {sites.map(s => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
                                     ))}
@@ -330,7 +329,7 @@ export default function TeamsManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Culoare Alocată pe Calendar</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t('teams.calendar_color', 'Culoare Alocată pe Calendar')}</label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="color" value={newColor} onChange={e => setNewColor(e.target.value)}
@@ -385,7 +384,7 @@ export default function TeamsManagement() {
                                     {showWorkersList && (
                                         <div className="absolute top-full left-0 right-0 mt-2 z-50 border border-slate-200 rounded-2xl max-h-60 overflow-y-auto divide-y divide-slate-100 bg-white shadow-xl">
                                             {users.filter(u => u.id !== newLeader).length === 0 ? (
-                                                <div className="p-4 text-center text-sm text-slate-500">Niciun muncitor disponibil.</div>
+                                                <div className="p-4 text-center text-sm text-slate-500">{t('teams.no_workers', 'Niciun muncitor disponibil.')}</div>
                                             ) : (
                                                 users.filter(u => u.id !== newLeader).map(u => {
                                                     if (searchQ && !u.full_name.toLowerCase().includes(searchQ.toLowerCase())) return null
@@ -418,7 +417,7 @@ export default function TeamsManagement() {
                                 {t('common.cancel')}
                             </button>
                             <button onClick={handleSave} disabled={saving} className="px-8 py-3 bg-blue-600 text-white font-extrabold tracking-wide rounded-full shadow-md hover:bg-blue-700 hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center min-w-[140px]">
-                                {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (editingTeamId ? 'Salvează' : t('teams.create'))}
+                                {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (editingTeamId ? t('common.save', 'Enregistrer') : t('teams.create'))}
                             </button>
                         </div>
                     </div>

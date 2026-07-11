@@ -304,7 +304,7 @@ function TimesheetsReports() {
                                 value={selectedEmployee}
                                 onChange={setSelectedEmployee}
                                 placeholder={t('reports.all_employees')}
-                                searchPlaceholder="Caută angajat..."
+                                searchPlaceholder={t("common.search_employee", "Rechercher un employé...")}
                                 options={employees
                                     .filter(emp => !['Administrator', 'Super Administrator'].includes(emp.role))
                                     .map(emp => ({ value: emp.id, label: emp.full_name, subLabel: emp.employee_code }))}
@@ -316,7 +316,7 @@ function TimesheetsReports() {
                                 value={selectedSite}
                                 onChange={setSelectedSite}
                                 placeholder={t('reports.all_sites')}
-                                searchPlaceholder="Caută șantier..."
+                                searchPlaceholder={t("common.search_site", "Rechercher un chantier...")}
                                 options={sites.map(site => ({ value: site.id, label: site.name }))}
                             />
                         </div>

@@ -121,23 +121,13 @@ def get_dynamic_speed_limits(track):
     return pt_limits
 
 
-def fetch_flespi_track(imei: str, date_str: str, token: str) -> List[dict]:
-    url = "https://flespi.io/gw/devices/all/messages"
-    headers = {"Authorization": f"FlespiToken {token}", "Accept": "application/json"}
-    try:
-        with httpx.Client(timeout=20.0) as client:
-            resp = client.get(url, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-    except Exception:
-        return []
-
+def fetch_flespi_track(imei: str, date_str: str, flespi_data: dict) -> List[dict]:
     day = datetime.strptime(date_str, "%Y-%m-%d")
     ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0).timestamp()) - 7200
     ts_to = ts_from + 86400
 
     points = []
-    for msg in data.get("result", []):
+    for msg in flespi_data.get("result", []):
         if str(msg.get("ident", "")) != imei:
             continue
         ts = msg.get("timestamp")
@@ -304,6 +294,7 @@ def build_itinerary(track, base, orders):
 def daily_verification(
     date: str = Query(..., description="YYYY-MM-DD"),
     speed_limit: int = Query(90, description="Speed limit fallback"),
+    vehicle: str = Query(None, description="Optional vehicle plate to filter by"),
     db: Session = Depends(get_db),
     admin = Depends(get_current_admin),
 ):
@@ -313,10 +304,47 @@ def daily_verification(
         if not FLESPI_TOKEN:
             return {"error": "Flespi token not configured", "results": []}
 
-        vehicles = db.query(Vehicle).filter(
+        query = db.query(Vehicle).filter(
             Vehicle.imei.isnot(None),
             Vehicle.status == "active"
-        ).all()
+        )
+        if vehicle:
+            query = query.filter(Vehicle.plate_number == vehicle)
+            
+        vehicles = query.all()
+
+        import httpx
+        flespi_data = {}
+        try:
+            from datetime import date as dt_date
+            day_obj = dt_date.fromisoformat(date)
+            ts_from = int(datetime(day_obj.year, day_obj.month, day_obj.day, 0, 0, 0).timestamp()) - 7200
+            ts_to = ts_from + 86400
+            
+            if not vehicles:
+                return {"results": []}
+
+            # Build list of flespi device IDs (numeric) for vehicles that have them
+            device_ids = [str(v.flespi_device_id) for v in vehicles if getattr(v, 'flespi_device_id', None)]
+
+            if not device_ids:
+                # Fallback: no configured devices, return empty
+                return {"date": date, "results": [r for r in []]}
+
+            url = f"https://flespi.io/gw/devices/{','.join(device_ids)}/messages"
+            headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
+
+            params = {
+                "data": f'{{"from":{ts_from},"to":{ts_to}}}'
+            }
+
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.get(url, headers=headers, params=params)
+                resp.raise_for_status()
+                flespi_data = resp.json()
+        except Exception as e:
+            traceback.print_exc()
+            return {"error": f"GPS data fetch failed: {str(e)}", "results": []}
 
         results = []
 
@@ -347,7 +375,7 @@ def daily_verification(
                 WorkOrder.status.notin_(["cancelled"]),
             ).order_by(WorkOrder.start_time.asc()).all()
 
-            track = fetch_flespi_track(vehicle.imei, date, FLESPI_TOKEN)
+            track = fetch_flespi_track(vehicle.imei, date, flespi_data)
             
             # Fetch OSM dynamic speed limits
             pt_limits = get_dynamic_speed_limits(track)

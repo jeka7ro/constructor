@@ -301,14 +301,14 @@ export default function WorkOrderForm() {
     const handleDetectGPS = () => {
         setDetecting(true)
         if (!navigator.geolocation) {
-            alert('Geolocatia nu este suportata de browser.');
+            alert(t('work_order_form.gps_not_supported', "La géolocalisation n'est pas supportée par le navigateur."));
             setDetecting(false);
             return;
         }
 
         const gpsTimeout = setTimeout(() => {
             setDetecting(false);
-            alert('Timpul a expirat. Verifică dacă browser-ul are permisiunea de a accesa locația (GPS) în setările telefonului.');
+            alert(t('work_order_form.gps_timeout', "Le délai a expiré. Vérifiez si le navigateur a la permission d'accéder à la localisation (GPS)."));
         }, 8000);
 
         navigator.geolocation.getCurrentPosition(
@@ -329,7 +329,7 @@ export default function WorkOrderForm() {
             (err) => {
                 clearTimeout(gpsTimeout);
                 setDetecting(false);
-                alert('Eroare detectare GPS: ' + err.message + '\nTe rugăm să verifici dacă ai permis accesul la locație în browser/telefon.');
+                alert(t('work_order_form.gps_error', 'Erreur de détection GPS : ') + err.message + t('work_order_form.gps_error_check', "\nVeuillez vérifier si vous avez autorisé l'accès à la localisation."));
             },
             { enableHighAccuracy: true, timeout: 8000 }
         )
@@ -416,7 +416,7 @@ export default function WorkOrderForm() {
             if (andSend) await api.post(`/admin/work-orders/${woId}/send`)
             navigate(location.state?.from || '/admin/work-orders')
         } catch (e) {
-            setError(e.response?.data?.detail || 'Eroare la salvare.')
+            setError(e.response?.data?.detail || t('common.save_error', 'Erreur lors de la sauvegarde.'))
         } finally {
             setSaving(false); setSending(false)
         }
@@ -444,18 +444,18 @@ export default function WorkOrderForm() {
         setError(null)
         if (currentStep === 1) {
             if (form.client_mode === 'new') {
-                if (!form.client_name?.trim()) return setError('Introduceți numele noului client.')
+                if (!form.client_name?.trim()) return setError(t('work_order_form.error_new_client_name', 'Entrez le nom du nouveau client.'))
             } else {
-                if (!form.client_id) return setError('Selectați un client.')
+                if (!form.client_id) return setError(t('work_order_form.error_select_client', 'Sélectionnez un client.'))
             }
             if (form.site_mode === 'new') {
                 // site_address is optional
             } else {
-                if (!form.site_id) return setError('Selectați o locație.')
+                if (!form.site_id) return setError(t('work_order_form.error_select_site', 'Sélectionnez un emplacement.'))
             }
         }
         if (currentStep === 2) {
-            if (!form.start_date) return setError('Alegeți data începerii.')
+            if (!form.start_date) return setError(t('work_order_form.error_start_date', 'Choisissez la date de début.'))
         }
 
         if (currentStep < 3) {
@@ -541,24 +541,24 @@ export default function WorkOrderForm() {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-3 flex-wrap">
                             <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight whitespace-nowrap">
-                                {isEdit ? t('work_order_form.title_edit', 'Editare Comandă') : t('work_order_form.title_new', 'Comandă Nouă')}
+                                {isEdit ? t('work_order_form.title_edit', 'Modifier la Commande') : t('work_order_form.title_new', 'Nouvelle Commande')}
                             </h1>
                             <p className="text-sm text-slate-400 truncate hidden md:block">
-                                {isEdit ? t('work_order_form.subtitle_edit', 'Modifică detaliile comenzii') : t('work_order_form.subtitle_new', 'Creează o comandă nouă')}
+                                {isEdit ? t('work_order_form.subtitle_edit', 'Modifier les détails de la commande') : t('work_order_form.subtitle_new', 'Créer une nouvelle commande')}
                             </p>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-1 rounded-full shadow-sm shrink-0">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-3 hidden sm:inline-block">{t('common.status', 'Status:')}</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-3 hidden sm:inline-block">{t('common.status', 'Statut :')}</span>
                     <select value={form.status || 'scheduled'} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} 
                         className="bg-slate-50 dark:bg-slate-800 border-none text-sm font-bold text-slate-800 dark:text-white rounded-full focus:ring-0 cursor-pointer h-9 px-3 outline-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        <option value="draft">{t('work_order_form.status_draft', 'Ciornă')}</option>
-                        <option value="scheduled">{t('work_order_form.status_scheduled', 'Planificată')}</option>
-                        <option value="in_progress">{t('work_order_form.status_in_progress', 'În Lucru')}</option>
-                        <option value="completed">{t('work_order_form.status_completed', 'Finalizată (Închisă)')}</option>
-                        <option value="cancelled">{t('work_order_form.status_cancelled', 'Anulată')}</option>
+                        <option value="draft">{t('work_order_form.status_draft', 'Brouillon')}</option>
+                        <option value="scheduled">{t('work_order_form.status_scheduled', 'Planifiée')}</option>
+                        <option value="in_progress">{t('work_order_form.status_in_progress', 'En Cours')}</option>
+                        <option value="completed">{t('work_order_form.status_completed', 'Terminée (Fermée)')}</option>
+                        <option value="cancelled">{t('work_order_form.status_cancelled', 'Annulée')}</option>
                     </select>
                 </div>
             </div>
@@ -781,17 +781,17 @@ export default function WorkOrderForm() {
                     </Section>
 
             {/* 4. Planificare + Echipa */}
-            <Section icon={Calendar} title={t('work_order_form.planning_and_team', 'Planificare & Echipă')} zIndex={50}>
+            <Section icon={Calendar} title={t('work_order_form.planning_and_team', 'Planification & Équipe')} zIndex={50}>
                 <div className="flex flex-col xl:flex-row gap-6 md:gap-8">
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-orange-500" /><h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.planning', 'Planificare')}</h3></div>
+                        <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-orange-500" /><h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.planning', 'Planification')}</h3></div>
                         <div className="grid grid-cols-2 gap-2 items-end">
-                            <Field label={t('work_order_form.start_date', 'Data Incepere')} required>
+                            <Field label={t('work_order_form.start_date', 'Date de Début')} required>
                         <input type="date" value={form.start_date}
                             onChange={e => set('start_date', e.target.value)}
                             className={INPUT} />
                     </Field>
-                    <Field label={t('work_order_form.start_time', 'Ora Start')}>
+                    <Field label={t('work_order_form.start_time', 'Heure de Début')}>
                         <input type="time" value={form.start_time}
                             onChange={e => set('start_time', e.target.value)}
                             className={INPUT} />
@@ -801,9 +801,9 @@ export default function WorkOrderForm() {
                     </div>
                     <div className="md:hidden h-px w-full bg-slate-100 dark:bg-slate-800 my-2"></div>
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-500" /><h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.team_vehicle', 'Echipa și Vehicul')}</h3></div>
+                        <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-500" /><h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('work_order_form.team_vehicle', 'Équipe et Véhicule')}</h3></div>
                         <div className="grid grid-cols-2 gap-2 items-end">
-                            <Field label={t('work_order_form.team_leader', 'Șef de Echipă / Responsabil')}>
+                            <Field label={t('work_order_form.team_leader', "Chef d'équipe / Responsable")}>
                         <SearchableSelect
                             value={form.assigned_team_id}
                             onChange={teamId => {
@@ -823,21 +823,21 @@ export default function WorkOrderForm() {
                             options={teams.map(team => ({
                                 value: team.id,
                                 label: team.team_leader_name && team.team_leader_name !== 'N/A' ? team.team_leader_name : team.name,
-                                subLabel: team.team_leader_name && team.team_leader_name !== 'N/A' && team.name !== team.team_leader_name ? `${t('common.team', 'Echipa')}: ${team.name}` : undefined
+                                subLabel: team.team_leader_name && team.team_leader_name !== 'N/A' && team.name !== team.team_leader_name ? `${t('common.team', 'Équipe')}: ${team.name}` : undefined
                             }))}
-                            placeholder={`— ${t('work_order_form.no_assignment', 'Fără alocare')} —`}
+                            placeholder={`— ${t('work_order_form.no_assignment', 'Sans affectation')} —`}
                         />
                     </Field>
-                    <Field label={t('work_order_form.vehicle_truck', 'Vehicul / Camion')}>
+                    <Field label={t('work_order_form.vehicle_truck', 'Véhicule / Camion')}>
                         <SearchableSelect
                             value={form.assigned_vehicle_id}
                             onChange={val => set('assigned_vehicle_id', val)}
                             options={vehicles.map(v => ({
                                 value: v.id,
-                                label: `${v.plate_number || t('work_order_form.no_plate', 'Fără nr.')} ${v.brand ? `— ${v.brand}` : ''}`,
+                                label: `${v.plate_number || t('work_order_form.no_plate', 'Sans immat.')} ${v.brand ? `— ${v.brand}` : ''}`,
                                 subLabel: v.name
                             }))}
-                            placeholder={`— ${t('work_order_form.no_vehicle', 'Fără vehicul')} —`}
+                            placeholder={`— ${t('work_order_form.no_vehicle', 'Sans véhicule')} —`}
                         />
                     </Field>
                         </div>
@@ -846,14 +846,14 @@ export default function WorkOrderForm() {
             </Section>
 
             {/* 5. Volume + Materiale */}
-            <Section icon={FileText} title={t('work_order_form.volumes_works', 'Cantitati Estimate')} zIndex={30}>
+            <Section icon={FileText} title={t('work_order_form.volumes_works', 'Quantités Estimées')} zIndex={30}>
                 {/* Volumes */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.volumes_works', 'Lucrari / Volume')}</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.volumes_works', 'Travaux / Volumes')}</span>
                         <button onClick={() => addRow('volumes', { label: '', quantity: '', unit: 'm²', thickness: '' })}
                             className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
-                            <Plus className="w-3 h-3" /> {t('common.add', 'Adauga')}
+                            <Plus className="w-3 h-3" /> {t('common.add', 'Ajouter')}
                         </button>
                     </div>
                     {form.volumes.map((vol, i) => {
@@ -868,13 +868,13 @@ export default function WorkOrderForm() {
                                     value={vol.label} 
                                     onChange={val => updateRow('volumes', i, 'label', val)}
                                     options={activities.map(act => ({ value: act.name, label: act.name }))}
-                                    placeholder={t('work_order_form.select_activity', 'Alege activitatea...')}
+                                    placeholder={t('work_order_form.select_activity', "Choisir l'activité...")}
                                     className="flex-1 min-w-[150px]"
                                 />
                                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
                                     <div className="flex gap-2 flex-1 sm:flex-none">
                                         <input value={vol.quantity} onChange={e => updateRow('volumes', i, 'quantity', e.target.value)}
-                                            placeholder={t('common.quantity_short', 'Cant.')} type="number" min="0"
+                                            placeholder={t('common.quantity_short', 'Qté.')} type="number" min="0"
                                             className="w-full sm:w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                                         <select value={vol.unit} onChange={e => updateRow('volumes', i, 'unit', e.target.value)}
                                             className="w-20 px-2 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm shrink-0">
@@ -883,7 +883,7 @@ export default function WorkOrderForm() {
                                     </div>
                                     <div className="flex gap-2 w-full sm:w-auto">
                                         <input value={vol.thickness} onChange={e => updateRow('volumes', i, 'thickness', e.target.value)}
-                                            placeholder={t('dashboard.quick_create.thickness', 'Grosime (cm)')} type="number" step="any" min="0"
+                                            placeholder={t('dashboard.quick_create.thickness', 'Épaisseur (cm)')} type="number" step="any" min="0"
                                             className="flex-1 sm:w-32 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                                         
                                         {form.volumes.length > 1 && (
@@ -904,7 +904,7 @@ export default function WorkOrderForm() {
                                             onChange={e => updateRow('volumes', i, 'has_foil', e.target.checked)}
                                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                         />
-                                        {t('dashboard.quick_create.include_foil', 'Include Folie plastic (1,2 EUR/m²)')}
+                                        {t('dashboard.quick_create.include_foil', 'Inclure film plastique (1,2 EUR/m²)')}
                                     </label>
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
                                         <input 
@@ -913,7 +913,7 @@ export default function WorkOrderForm() {
                                             onChange={e => updateRow('volumes', i, 'has_mesh', e.target.checked)}
                                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                         />
-                                        {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
+                                        {t('dashboard.quick_create.include_mesh', 'Inclure treillis métallique (2,50 EUR/m²)')}
                                     </label>
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
                                         <input 
@@ -922,7 +922,7 @@ export default function WorkOrderForm() {
                                             onChange={e => updateRow('volumes', i, 'has_fiber', e.target.checked)}
                                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                         />
-                                        {t('dashboard.quick_create.include_fiber', 'Include Fibre')}
+                                        {t('dashboard.quick_create.include_fiber', 'Inclure Fibres')}
                                     </label>
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
                                         <input 
@@ -939,14 +939,14 @@ export default function WorkOrderForm() {
                             {sandKg > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 mt-1 sm:ml-auto w-full sm:w-auto">
                                     <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-3 rounded-xl">
-                                        {t('work_order_form.sand_estimate', 'Necesar estimativ nisip: {{kg}} kg ({{tons}} tone)', { kg: sandKg.toLocaleString('ro-RO'), tons: (sandKg / 1000).toLocaleString('ro-RO') })}
+                                        {t('work_order_form.sand_estimate', 'Besoin estimé en sable : {{kg}} kg ({{tons}} tonnes)', { kg: sandKg.toLocaleString('ro-RO'), tons: (sandKg / 1000).toLocaleString('ro-RO') })}
                                     </div>
                                     <button 
                                         type="button"
                                         onClick={() => handleAcceptSand(sandKg)}
                                         className="flex items-center gap-1 text-xs font-bold bg-blue-600 text-white px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
                                     >
-                                        <Plus className="w-3 h-3" /> {t('work_order_form.add_to_materials', 'Adaugă la Materiale')}
+                                        <Plus className="w-3 h-3" /> {t('work_order_form.add_to_materials', 'Ajouter aux Matériaux')}
                                     </button>
                                 </div>
                             )}
@@ -956,10 +956,10 @@ export default function WorkOrderForm() {
 
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.materials_needed', 'Materiale Necesare')}</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('work_order_form.materials_needed', 'Matériaux Nécessaires')}</span>
                         <button onClick={() => addRow('materials', { name: '', quantity: '', unit: '' })}
                             className="flex items-center gap-1 px-3 h-7 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
-                            <Plus className="w-3 h-3" /> {t('common.add', 'Adauga')}
+                            <Plus className="w-3 h-3" /> {t('common.add', 'Ajouter')}
                         </button>
                     </div>
                     {form.materials.map((mat, i) => (
@@ -974,12 +974,12 @@ export default function WorkOrderForm() {
                                     }
                                 }}
                                 options={warehouseItems.map(item => ({ value: item.name, label: item.name }))}
-                                placeholder={t('work_order_form.select_material', 'Alege materialul...')}
+                                placeholder={t('work_order_form.select_material', 'Choisir le matériau...')}
                                 className="flex-1"
                             />
-                            <input type="number" min="0" placeholder={t('common.quantity_short', 'Cant.')} value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
+                            <input type="number" min="0" placeholder={t('common.quantity_short', 'Qté.')} value={mat.quantity} onChange={e => updateRow('materials', i, 'quantity', e.target.value ? parseFloat(e.target.value) : '')}
                                 className="w-20 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
-                            <input type="text" placeholder={t('common.unit_short', 'Unit.')} value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
+                            <input type="text" placeholder={t('common.unit_short', 'Unité')} value={mat.unit} onChange={e => updateRow('materials', i, 'unit', e.target.value)}
                                 className="w-16 px-3 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-white outline-none shadow-sm" />
                             {form.materials.length > 1 && (
                                 <button onClick={() => removeRow('materials', i)}
@@ -1120,7 +1120,7 @@ export default function WorkOrderForm() {
                 <div className="mt-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 p-6 w-full max-w-6xl xl:max-w-7xl">
                     <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
                         <Paperclip className="w-5 h-5 text-blue-500" />
-                        Documente încărcate de Client
+                        {t('work_order_form.client_documents', 'Documents téléchargés par le client')}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {form.documents.map((doc, idx) => {
@@ -1163,7 +1163,7 @@ export default function WorkOrderForm() {
                     onClick={() => navigate(-1)}
                     className="px-6 h-11 rounded-full text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                    {t('common.cancel', 'Anulează')}
+                    {t('common.cancel', 'Annuler')}
                 </button>
                 
                 <div className="flex gap-3">
@@ -1173,7 +1173,7 @@ export default function WorkOrderForm() {
                         className="flex items-center justify-center gap-2 px-8 h-11 rounded-full border border-transparent bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-sm"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {t('common.save', 'Salvează')}
+                        {t('common.save', 'Enregistrer')}
                     </button>
                 </div>
             </div>

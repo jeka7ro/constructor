@@ -99,6 +99,12 @@ def _check_schedule(org: Organization, now_local: datetime) -> dict:
 
     # Ziua săptămânii: weekday() = 0 (Luni) ... 6 (Duminică)
     allowed_days = org.transport_allowed_days or [0,1,2,3,4]
+    if isinstance(allowed_days, str):
+        import json
+        try:
+            allowed_days = json.loads(allowed_days)
+        except:
+            allowed_days = [int(x.strip()) for x in allowed_days.split(",") if x.strip().isdigit()]
     weekday = now_local.weekday()
     if weekday not in allowed_days:
         day_name = DAY_NAMES_RO[weekday]
@@ -778,6 +784,16 @@ def get_schedule_config(
         raise HTTPException(status_code=404, detail="Organizația nu a fost găsită.")
 
     allowed_days = org.transport_allowed_days or [0, 1, 2, 3, 4]
+    if isinstance(allowed_days, str):
+        import json
+        try:
+            allowed_days = json.loads(allowed_days)
+        except Exception:
+            allowed_days = [0, 1, 2, 3, 4]
+    
+    # Ensure it's a list of ints
+    allowed_days = [int(d) for d in allowed_days]
+    
     return {
         "transport_start_time": org.transport_start_time or "06:00",
         "transport_end_time":   org.transport_end_time   or "20:00",
