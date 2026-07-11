@@ -66,16 +66,27 @@ function VehicleCard({ result }) {
     const { t } = useTranslation()
     const [expanded, setExpanded] = useState(true)
     const [showMap, setShowMap] = useState(false)
+    const [isMapFullscreen, setIsMapFullscreen] = useState(false)
+
+    // Calculate vehicle status (In Miscare vs Stationeaza)
+    const lastPoint = result.track && result.track.length > 0 ? result.track[result.track.length - 1] : null;
+    const isRecentlyUpdated = lastPoint ? (Date.now() / 1000 - lastPoint.ts) < 900 : false; // within 15 minutes
+    const isMoving = isRecentlyUpdated && lastPoint.speed > 0;
 
     const trackPoints = result.track.map(p => [p.lat, p.lng])
     const sitePoints = result.work_orders.filter(wo => wo.site_lat && wo.site_lng)
 
     const segments = []
     for (let i = 0; i < result.track.length - 1; i++) {
-        segments.push({
-            positions: [[result.track[i].lat, result.track[i].lng], [result.track[i + 1].lat, result.track[i + 1].lng]],
-            color: speedColor(result.track[i].speed),
-        })
+        const p1 = result.track[i];
+        const p2 = result.track[i + 1];
+        // Break the line if there's a gap of more than 30 minutes (1800s)
+        if (p2.ts - p1.ts < 1800) {
+            segments.push({
+                positions: [[p1.lat, p1.lng], [p2.lat, p2.lng]],
+                color: speedColor(p1.speed),
+            })
+        }
     }
 
     const allMapPoints = [
@@ -102,10 +113,17 @@ function VehicleCard({ result }) {
                         <Truck className="w-5 h-5" style={{ color: result.team_color || '#64748b' }} />
                     </div>
                     <div>
-                        <p className="font-bold text-slate-900">
-                            {result.vehicle_name}
-                            <span className="text-slate-400 font-normal text-xs ml-1">({result.vehicle_plate})</span>
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <p className="font-bold text-slate-900">
+                                {result.vehicle_name}
+                                <span className="text-slate-400 font-normal text-xs ml-1">({result.vehicle_plate})</span>
+                            </p>
+                            {lastPoint && (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${isMoving ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                    {isMoving ? 'En mouvement' : 'En stationnement'}
+                                </span>
+                            )}
+                        </div>
                         <p className="text-xs font-semibold" style={{ color: result.team_color || '#64748b' }}>{result.team_name}</p>
                     </div>
                 </div>
@@ -257,9 +275,24 @@ function VehicleCard({ result }) {
                             </button>
 
                             {showMap && (
-                                <div className="mt-3 rounded-xl overflow-hidden border border-slate-200">
-                                    <div style={{ height: 340 }}>
-                                        <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className="w-full h-full rounded-b-xl" scrollWheelZoom={false}>
+                                <div className={isMapFullscreen ? "fixed inset-0 z-[9999] bg-white flex flex-col" : "mt-3 rounded-xl overflow-hidden border border-slate-200 relative"}>
+                                    {isMapFullscreen && (
+                                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+                                            <div className="font-bold text-slate-800 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-blue-600" /> Trace GPS: {result.vehicle_name}
+                                            </div>
+                                            <button onClick={() => setIsMapFullscreen(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors">Fermer</button>
+                                        </div>
+                                    )}
+                                    <button 
+                                        onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+                                        className={`absolute ${isMapFullscreen ? 'hidden' : 'top-2 right-2'} z-[1000] bg-white/90 backdrop-blur-sm shadow-sm border border-slate-200 text-slate-600 p-2 rounded-lg hover:bg-slate-50 transition-colors`}
+                                        title={isMapFullscreen ? "Reduire" : "Plein ecran"}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                                    </button>
+                                    <div style={{ height: isMapFullscreen ? '100%' : 340 }} className="flex-1">
+                                        <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className={`w-full h-full ${!isMapFullscreen && 'rounded-b-xl'}`} scrollWheelZoom={isMapFullscreen}>
                                             <TileLayer
                                                 url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                                                 attribution="&copy; Google Maps"
@@ -291,12 +324,22 @@ function VehicleCard({ result }) {
 
                                             {trackPoints.length > 0 && (
                                                 <CircleMarker center={trackPoints[0]} radius={7} color="#22c55e" fillColor="#22c55e" fillOpacity={1}>
-                                                    <Popup><span style={{ fontSize: 11, fontWeight: 'bold', color: '#16a34a' }}>Depart: {result.track[0]?.time_local}</span></Popup>
+                                                    <Popup>
+                                                        <div style={{ fontSize: 11, fontWeight: 'bold', color: '#16a34a' }}>
+                                                            Depart: {result.track[0]?.time_local}<br/>
+                                                            Vitesse: {result.track[0]?.speed} km/h
+                                                        </div>
+                                                    </Popup>
                                                 </CircleMarker>
                                             )}
                                             {trackPoints.length > 1 && (
                                                 <CircleMarker center={trackPoints[trackPoints.length - 1]} radius={7} color="#ef4444" fillColor="#ef4444" fillOpacity={1}>
-                                                    <Popup><span style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>Fin: {result.track[result.track.length - 1]?.time_local}</span></Popup>
+                                                    <Popup>
+                                                        <div style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>
+                                                            Fin / Actuel: {result.track[result.track.length - 1]?.time_local}<br/>
+                                                            Vitesse: {result.track[result.track.length - 1]?.speed} km/h
+                                                        </div>
+                                                    </Popup>
                                                 </CircleMarker>
                                             )}
                                         </MapContainer>
