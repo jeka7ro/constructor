@@ -297,6 +297,9 @@ export default function LogisticsDashboard() {
                         <Link to="/admin/logistica/raport" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
                             <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Raport')}
                         </Link>
+                        <Link to="/admin/logistica/gps-verification" className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors">
+                            <Navigation className="w-4 h-4" /> Vérif. GPS
+                        </Link>
                     </div>
                     
                     <div className="flex items-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-11 shrink-0">

@@ -20,7 +20,7 @@ from app.api import (
     alerts, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
     public_tenant, admin_work_orders, admin_pricing, admin_organizations, admin_transport,
     admin_leaves, calendar_sync, public_work_orders, worker_orders,
-    admin_logistics, public_calculator
+    admin_logistics, public_calculator, gps_verification
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.backup_service import run_backup
@@ -377,6 +377,7 @@ app.include_router(sites.router, prefix="/api", tags=["sites"])
 app.include_router(site_photos.router, prefix="/api", tags=["site-photos"])
 app.include_router(admin_teams.router, prefix="/api", tags=["admin-teams"])
 app.include_router(admin_vehicles.router, prefix="/api", tags=["admin-fleet"])
+app.include_router(gps_verification.router, prefix="/api", tags=["gps-verification"])
 app.include_router(admin_vehicle_categories.router, prefix="/api/admin/fleet-categories", tags=["admin-fleet-categories"])
 app.include_router(warehouse.router, prefix="/api", tags=["warehouse"])
 app.include_router(admin_clients.router, prefix="/api/admin/clients", tags=["admin-clients"])

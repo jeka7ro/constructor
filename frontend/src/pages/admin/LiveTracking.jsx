@@ -222,9 +222,10 @@ export default function LiveTracking() {
                   <Popup className="tracking-popup">
                     <div className="text-sm font-bold">{v.name}</div>
                     {v.team_name && <div className="text-xs text-slate-500">{v.team_name}</div>}
-                    <div className="text-xs mt-1 text-slate-400">Văzut: {formatLastSeen(v.last_seen)}</div>
+                    <div className="text-xs text-slate-400">GPS Flespi</div>
+                    <div className="text-xs mt-1 text-slate-400">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen)}</div>
                     {v.speed != null && (
-                      <div className="text-xs text-slate-400">Viteză: {Math.round(v.speed)} km/h</div>
+                      <div className="text-xs text-slate-400">{t('live.speed', 'Vitesse')}: {Math.round(v.speed)} km/h</div>
                     )}
                   </Popup>
                 </Marker>

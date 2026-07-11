@@ -608,6 +608,7 @@ function NewTripModal({ vehicles, drivers, sites, onClose, onCreated }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────
 
 export default function TransportManagement() {
+  const [activeMainTab, setActiveMainTab] = useState('trips'); // 'trips' | 'gps_history'
   const [trips, setTrips] = useState([]);
   const [stats, setStats] = useState(null);
   const [schedule, setSchedule] = useState(null);
@@ -702,6 +703,36 @@ export default function TransportManagement() {
         return null;
       })()}
 
+      {/* Main Tab Switch */}
+      <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl w-fit">
+        <button
+          onClick={() => setActiveMainTab('trips')}
+          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeMainTab === 'trips'
+              ? 'bg-white dark:bg-slate-700 text-blue-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Route className="w-4 h-4" /> Feuilles de Route
+        </button>
+        <button
+          onClick={() => setActiveMainTab('gps_history')}
+          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeMainTab === 'gps_history'
+              ? 'bg-white dark:bg-slate-700 text-blue-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Navigation className="w-4 h-4" /> Historique GPS
+        </button>
+      </div>
+
+      {activeMainTab === 'gps_history' && (
+        <GpsHistoryTab vehicles={vehicles} />
+      )}
+
+      {activeMainTab === 'trips' && (
+      <>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100] px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold
@@ -923,11 +954,14 @@ export default function TransportManagement() {
           onCreated={() => loadAll()}
         />
       )}
+      )}
       {showSchedule && (
         <ScheduleModal
           onClose={() => setShowSchedule(false)}
           onSaved={() => loadAll()}
         />
+      )}
+      </>
       )}
     </div>
   );

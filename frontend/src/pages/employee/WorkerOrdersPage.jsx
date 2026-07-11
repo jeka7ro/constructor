@@ -366,7 +366,7 @@ function Lightbox({ url, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
-function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver }) {
+function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver, completionPhotos = [] }) {
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
     const [showStation, setShowStation] = useState(false)
     const [enableStations, setEnableStations] = useState(false)
@@ -604,6 +604,30 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                             </div>
                         )}
                         <NavButtons lat={finalLat} lon={finalLng} address={order.site_address} />
+
+                        {/* Photos de finalisation — afișate sub Street View dacă lucrarea e completă */}
+                        {order.status === 'completed' && completionPhotos.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-slate-100">
+                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                                    {t('work_order.completion_photos', 'Photos de finalisation')}
+                                </p>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                    {completionPhotos.map(p => (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => onPhotoClick(p.url)}
+                                            className="block w-full aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-blue-400 transition-colors"
+                                        >
+                                            <img
+                                                src={p.url}
+                                                alt="Photo finalisation"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </Section>
                 );
             })()}
@@ -1834,6 +1858,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         onPhotoClick={setLightboxUrl}
                         sandStations={sandStations}
                         isDriver={isDriver}
+                        completionPhotos={completionPhotos}
                     />
                 )}
                 {activeTab === 'ore' && (

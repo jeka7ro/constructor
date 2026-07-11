@@ -559,3 +559,88 @@ def get_equipment_log(
         "notes": log.notes
     }
 
+
+@router.get("/{vehicle_id}/gps-history")
+def get_gps_history(
+    vehicle_id: str,
+    date: str,  # YYYY-MM-DD
+    from_hour: int = 0,
+    to_hour: int = 24,
+    db: Session = Depends(get_db),
+):
+    """
+    Fetches GPS history for a vehicle on a given date directly from Flespi.
+    Returns sorted list of {lat, lng, speed, ts} points.
+    """
+    import httpx
+    import os
+    from datetime import datetime, timezone
+
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not vehicle or not vehicle.imei:
+        return {"points": [], "error": "Vehicle has no IMEI configured"}
+
+    FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
+    if not FLESPI_TOKEN:
+        return {"points": [], "error": "Flespi token not configured"}
+
+    # Build UTC timestamps for the requested day+hours
+    try:
+        day = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return {"points": [], "error": "Invalid date format"}
+
+    # Belgium is UTC+2 (CEST in summer), convert local hours to UTC
+    tz_offset = 2  # CEST
+    ts_from = int(datetime(day.year, day.month, day.day, max(0, from_hour - tz_offset), 0, 0, tzinfo=timezone.utc).timestamp())
+    ts_to = int(datetime(day.year, day.month, day.day, min(23, to_hour - tz_offset), 59, 59, tzinfo=timezone.utc).timestamp())
+
+    # Query Flespi for messages in the time range
+    url = f"https://flespi.io/gw/devices/all/messages"
+    headers = {
+        "Authorization": f"FlespiToken {FLESPI_TOKEN}",
+        "Accept": "application/json"
+    }
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        return {"points": [], "error": str(e)}
+
+    results = data.get("result", [])
+
+    # Filter by IMEI and time range
+    points = []
+    for msg in results:
+        if str(msg.get("ident", "")) != vehicle.imei:
+            continue
+        ts = msg.get("timestamp")
+        if not ts or ts < ts_from or ts > ts_to:
+            continue
+        lat = msg.get("position.latitude")
+        lng = msg.get("position.longitude")
+        if lat is None or lng is None:
+            continue
+        speed = msg.get("position.speed", 0) or 0
+        points.append({
+            "lat": lat,
+            "lng": lng,
+            "speed": round(float(speed), 1),
+            "ts": ts,
+            "time_local": datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%H:%M:%S")
+        })
+
+    # Sort by timestamp
+    points.sort(key=lambda p: p["ts"])
+
+    return {
+        "vehicle_name": vehicle.name,
+        "vehicle_plate": vehicle.plate_number,
+        "date": date,
+        "points": points,
+        "total_points": len(points)
+    }
+
