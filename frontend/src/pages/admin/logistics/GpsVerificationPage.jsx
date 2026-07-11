@@ -213,12 +213,12 @@ function VehicleCard({ result }) {
                                     <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
                                         <tr>
                                             <th className="px-4 py-3">#</th>
-                                            <th className="px-4 py-3">Ora Pornire</th>
-                                            <th className="px-4 py-3">Ora Oprire</th>
-                                            <th className="px-4 py-3">Timp în Drum</th>
-                                            <th className="px-4 py-3">Distanță</th>
-                                            <th className="px-4 py-3">Viteza Max.</th>
-                                            <th className="px-4 py-3">Încălcări</th>
+                                            <th className="px-4 py-3">{t('gps.start_time', 'Heure depart')}</th>
+                                            <th className="px-4 py-3">{t('gps.end_time', 'Heure arrivee')}</th>
+                                            <th className="px-4 py-3">{t('gps.time_on_road', 'Temps en route')}</th>
+                                            <th className="px-4 py-3">{t('gps.distance', 'Distance')}</th>
+                                            <th className="px-4 py-3">{t('gps.max_speed', 'Vit. max')}</th>
+                                            <th className="px-4 py-3">{t('gps.violations', 'Infractions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -245,9 +245,9 @@ function VehicleCard({ result }) {
                                             
                                             return (
                                                 <tr key={idx} className="hover:bg-slate-50">
-                                                    <td className="px-4 py-3 font-semibold text-slate-900">Traseul {idx + 1}</td>
-                                                    <td className="px-4 py-3 font-mono">{first.time_local.slice(0, 5)}</td>
-                                                    <td className="px-4 py-3 font-mono">{last.time_local.slice(0, 5)}</td>
+                                                    <td className="px-4 py-3 font-semibold text-slate-900">{t('gps.route', 'Trajet')} {idx + 1}</td>
+                                                    <td className="px-4 py-3">{first.time_local.slice(0, 5)}</td>
+                                                    <td className="px-4 py-3">{last.time_local.slice(0, 5)}</td>
                                                     <td className="px-4 py-3">{durationStr}</td>
                                                     <td className="px-4 py-3 font-semibold text-slate-800">{distKm.toFixed(1)} km</td>
                                                     <td className={`px-4 py-3 font-semibold ${maxSpeed > 90 ? 'text-red-600' : ''}`}>{maxSpeed.toFixed(1)} km/h</td>
@@ -330,30 +330,6 @@ function VehicleCard({ result }) {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Exces viteza */}
-                    {result.speed_violations_count > 0 && (
-                        <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-red-500 mb-2 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                {t('gps.speed_violations', 'Exces de vitesse (au-dela de la limite)')}
-                            </p>
-                            <div className="space-y-1 max-h-32 overflow-y-auto">
-                                {result.speed_violations.slice(0, 10).map((v, i) => (
-                                    <div key={i} className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-600">{v.time}</span>
-                                        <span className="font-bold text-red-600">{v.speed} <span className="text-red-400 font-normal">/ {v.limit} km/h</span></span>
-                                        <span className="text-red-400">+{v.excess} km/h</span>
-                                    </div>
-                                ))}
-                                {result.speed_violations_count > 10 && (
-                                    <p className="text-xs text-red-400 text-center pt-1">
-                                        +{result.speed_violations_count - 10} {t('gps.more', 'autres')}...
-                                    </p>
-                                )}
                             </div>
                         </div>
                     )}
