@@ -25,6 +25,7 @@ from app.api import (
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.backup_service import run_backup
 from app.services.robaws_scraper import run_all_scrapers
+from app.services.flespi_service import poll_flespi_devices
 
 import threading
 import time as _keepalive_time
@@ -186,9 +187,14 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(run_all_scrapers, 'interval', hours=2)
     # Backup automat la fiecare 4 ore (primul rulează după 60 secunde)
     scheduler.add_job(run_backup, 'interval', hours=4, next_run_time=datetime.now() + timedelta(seconds=60))
+    
+    # Flespi GPS sync la fiecare 1 minut
+    scheduler.add_job(poll_flespi_devices, 'interval', minutes=1, next_run_time=datetime.now() + timedelta(seconds=10))
+    
     scheduler.start()
     print("🤖 Robaws Scraper Scheduler started (runs every 2 hours)")
     print("💾 Backup Scheduler started (runs every 4 hours, first run in 60s)")
+    print("📡 Flespi GPS Scheduler started (runs every 1 minute)")
 
     yield
     # Shutdown

@@ -1871,51 +1871,53 @@ export default function AdminOverview() {
                     <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                         <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <ClipboardList className="w-4 h-4 text-white" />
-                            {t('admin_overview.recent_orders', 'Comenzi Recente')}
+                            {t('admin_overview.recent_orders', 'Commandes Récentes')}
                         </h3>
-                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded">{t('admin_overview.view_all', 'Vezi toate')} →</button>
+                        <button onClick={() => navigate('/admin/work-orders')} className="text-xs font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded">{t('admin_overview.view_all', 'Voir tout')} →</button>
                     </div>
                     {recentWorkOrders.length === 0 ? (
                         <div className="text-center py-6 text-slate-400 text-sm">
-                            {t('admin_overview.no_recent_orders', 'Nicio comandă recentă.')}
+                            {t('admin_overview.no_recent_orders', 'Aucune commande récente.')}
                         </div>
                     ) : (
                         <div className="border-t border-slate-200 dark:border-slate-700">
                             <DataTable 
                                 columns={[
                                     {
-                                        key: 'title',
-                                        label: t('common.title', 'Titlu'),
+                                        key: 'client_name',
+                                        label: t('common.client', 'Client'),
                                         sortable: true,
                                         render: (wo) => (
                                             <div
                                                 className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
                                                 onClick={() => navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } })}
                                             >
-                                                <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400">{wo.title}</div>
+                                                <div className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                                    {wo.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                                </div>
                                                 {wo.site_name && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">📍 {wo.site_name}</div>}
                                             </div>
                                         )
                                     },
                                     {
                                         key: 'start_date',
-                                        label: t('common.execution_date', 'Data Execuție'),
+                                        label: t('common.execution_date', "Date d'exécution"),
                                         sortable: true,
                                         render: (wo) => <div className="text-sm text-slate-700 dark:text-slate-300">{wo.start_date ? new Date(wo.start_date).toLocaleDateString('fr-FR') : '—'}</div>
                                     },
                                     {
                                         key: 'status',
-                                        label: t('common.status', 'Status'),
+                                        label: t('common.status', 'Statut'),
                                         sortable: true,
                                         render: (wo) => {
                                             const cfg = {
-                                                draft:       { label: t('common.status_draft', 'Draft'),       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
-                                                sent:        { label: t('common.status_sent', 'Trimisă'),     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
-                                                confirmed:   { label: t('common.status_confirmed', 'Confirmată'),  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
-                                                in_progress: { label: t('common.status_in_progress', 'În Execuție'), color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
-                                                completed:   { label: t('common.status_completed', 'Finalizată'),  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
-                                                cancelled:   { label: t('common.status_cancelled', 'Anulată'),     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
-                                            }[wo.status] || { label: t('common.status_draft', 'Draft'), color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
+                                                draft:       { label: t('common.status_draft', 'Brouillon'),       color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' },
+                                                sent:        { label: t('common.status_sent', 'Envoyé'),     color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
+                                                confirmed:   { label: t('common.status_confirmed', 'Confirmé'),  color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500' },
+                                                in_progress: { label: t('common.status_in_progress', 'En cours'), color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
+                                                completed:   { label: t('common.status_completed', 'Terminé'),  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', dot: 'bg-violet-500' },
+                                                cancelled:   { label: t('common.status_cancelled', 'Annulé'),     color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' }
+                                            }[wo.status] || { label: t('common.status_draft', 'Brouillon'), color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', dot: 'bg-slate-400' }
                                             return (
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${cfg.color}`}>
                                                     <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -1926,18 +1928,18 @@ export default function AdminOverview() {
                                     },
                                     {
                                         key: 'is_invoiced',
-                                        label: t('work_order_detail.invoicing.title', 'Facturare'),
+                                        label: t('work_order_detail.invoicing.title', 'Facturation'),
                                         sortable: true,
                                         render: (wo) => wo.status === 'completed' ? (
                                             wo.is_invoiced ? (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider whitespace-nowrap">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                                                    {wo.invoice_number || t('work_order_detail.invoicing.invoiced', 'Facturat')}
+                                                    {wo.invoice_number || t('work_order_detail.invoicing.invoiced', 'Facturé')}
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wider whitespace-nowrap animate-pulse">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
-                                                    {t('work_order_detail.invoicing.not_invoiced', 'Nefacturat')}
+                                                    {t('work_order_detail.invoicing.not_invoiced', 'Non Facturé')}
                                                 </span>
                                             )
                                         ) : <span className="text-xs text-slate-300 dark:text-slate-600">—</span>

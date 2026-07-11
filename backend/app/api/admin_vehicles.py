@@ -25,6 +25,8 @@ class VehicleCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     plate_number: Optional[str] = Field(None, max_length=20)
     chassis_number: Optional[str] = Field(None, max_length=50)
+    flespi_device_id: Optional[int] = None
+    imei: Optional[str] = Field(None, max_length=50)
     type: str = "van"
     year: Optional[int] = None
     status: str = "active"
@@ -38,6 +40,8 @@ class VehicleUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     plate_number: Optional[str] = Field(None, max_length=20)
     chassis_number: Optional[str] = Field(None, max_length=50)
+    flespi_device_id: Optional[int] = None
+    imei: Optional[str] = Field(None, max_length=50)
     type: Optional[str] = None
     year: Optional[int] = None
     status: Optional[str] = None
@@ -51,6 +55,8 @@ class VehicleResponse(BaseModel):
     id: str
     name: str
     plate_number: Optional[str] = None
+    flespi_device_id: Optional[int] = None
+    imei: Optional[str] = None
     type: str
     year: Optional[int] = None
     status: str
@@ -91,6 +97,8 @@ def get_vehicle_with_ids(vehicle: Vehicle, db: Session) -> dict:
         "name": vehicle.name,
         "plate_number": vehicle.plate_number,
         "chassis_number": vehicle.chassis_number,
+        "flespi_device_id": vehicle.flespi_device_id,
+        "imei": vehicle.imei,
         "type": vehicle.type,
         "year": vehicle.year,
         "status": vehicle.status,
@@ -297,6 +305,8 @@ def create_vehicle(
         name=payload.name,
         plate_number=payload.plate_number,
         chassis_number=payload.chassis_number,
+        flespi_device_id=payload.flespi_device_id,
+        imei=payload.imei,
         type=payload.type,
         year=payload.year,
         status=payload.status,
@@ -331,6 +341,10 @@ def update_vehicle(
         v.plate_number = payload.plate_number
     if hasattr(payload, 'chassis_number') and payload.chassis_number is not None:
         v.chassis_number = payload.chassis_number
+    if hasattr(payload, 'flespi_device_id') and payload.flespi_device_id is not None:
+        v.flespi_device_id = payload.flespi_device_id
+    if hasattr(payload, 'imei') and payload.imei is not None:
+        v.imei = payload.imei
     if payload.type is not None:
         v.type = payload.type
     if payload.year is not None:

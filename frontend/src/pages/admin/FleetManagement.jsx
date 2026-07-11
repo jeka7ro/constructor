@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
@@ -148,7 +149,7 @@ export default function FleetManagement() {
 
     const openAdd = () => {
         setEditingVehicle(null)
-        setForm({ name: '', plate_number: '', chassis_number: '', type: mainTab === 'cars' ? 'van' : 'excavator', year: new Date().getFullYear(), status: 'active', notes: '' })
+        setForm({ name: '', plate_number: '', chassis_number: '', imei: '', flespi_device_id: '', type: mainTab === 'cars' ? 'van' : 'excavator', year: new Date().getFullYear(), status: 'active', notes: '' })
         setSelectedSiteIds([])
         setSelectedUserIds([])
         setActiveTab('info')
@@ -157,7 +158,7 @@ export default function FleetManagement() {
 
     const openEdit = (v, initialTab = 'info') => {
         setEditingVehicle(v)
-        setForm({ name: v.name, plate_number: v.plate_number || '', chassis_number: v.chassis_number || '', type: v.type || 'van', year: v.year || new Date().getFullYear(), status: v.status || 'active', notes: v.notes || '' })
+        setForm({ name: v.name, plate_number: v.plate_number || '', chassis_number: v.chassis_number || '', imei: v.imei || '', flespi_device_id: v.flespi_device_id || '', type: v.type || 'van', year: v.year || new Date().getFullYear(), status: v.status || 'active', notes: v.notes || '' })
         setSelectedSiteIds((v.site_ids || []))
         setSelectedUserIds((v.user_ids || []))
         setActiveTab(initialTab)
@@ -737,8 +738,8 @@ export default function FleetManagement() {
             )}
 
             {/* Add / Edit Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            {showModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
                         {/* Modal Header */}
                         <div className="px-6 py-5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
@@ -831,6 +832,34 @@ export default function FleetManagement() {
                                                 min="1990" max={new Date().getFullYear() + 1}
                                                 className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                             />
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Integrare Flespi GPS (Opțional)</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                                    {t('fleet.imei_tracker', 'IMEI Tracker GPS')}
+                                                </label>
+                                                <input
+                                                    value={form.imei || ''}
+                                                    onChange={e => setForm(f => ({ ...f, imei: e.target.value }))}
+                                                    placeholder={t('fleet.imei_placeholder', '15 cifre de pe dispozitiv')}
+                                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                                    ID Dispozitiv Flespi
+                                                </label>
+                                                <input
+                                                    value={form.flespi_device_id || ''}
+                                                    onChange={e => setForm(f => ({ ...f, flespi_device_id: e.target.value ? parseInt(e.target.value) : '' }))}
+                                                    placeholder="ID-ul creat în Flespi"
+                                                    type="number"
+                                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -1057,7 +1086,7 @@ export default function FleetManagement() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
 
             {/* Delete Confirm Modal */}
@@ -1105,32 +1134,32 @@ export default function FleetManagement() {
             )}
 
             {/* Daily Log Modal for Equipment */}
-            {showLogModal && logEquipment && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            {showLogModal && logEquipment && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Pontaj Zilnic Utilaj: {logEquipment.name}</h2>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('fleet.log_daily_equipment')}: {logEquipment.name}</h2>
                         
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dată</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('common.date')}</label>
                                 <input type="date" value={logForm.date} onChange={e => setLogForm(f => ({ ...f, date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
                             </div>
                             
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Proiect / Șantier</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.project_site')}</label>
                                 <select value={logForm.site_id} onChange={e => setLogForm(f => ({ ...f, site_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400">
-                                    <option value="">-- Neselectat --</option>
+                                    <option value="">-- {t('common.not_selected')} --</option>
                                     {sites.filter(s => (logEquipment.site_ids || []).includes(s.id)).map(s => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
                                     ))}
                                 </select>
-                                <div className="text-[11px] text-slate-400 mt-1">Poți selecta doar șantierele la care este alocat pe tab-ul general.</div>
+                                <div className="text-[11px] text-slate-400 mt-1">{t('fleet.site_allocation_tip')}</div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Operator</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.operator')}</label>
                                 <select value={logForm.operator_id} onChange={e => setLogForm(f => ({ ...f, operator_id: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400">
-                                    <option value="">-- Neselectat --</option>
+                                    <option value="">-- {t('common.not_selected')} --</option>
                                     {users.filter(u => (logEquipment.user_ids || []).includes(u.id)).map(u => (
                                         <option key={u.id} value={u.id}>{u.last_name} {u.first_name}</option>
                                     ))}
@@ -1139,53 +1168,53 @@ export default function FleetManagement() {
 
                             <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
                                 <input type="checkbox" checked={logForm.is_used} onChange={e => setLogForm(f => ({ ...f, is_used: e.target.checked }))} className="w-5 h-5 text-blue-600 rounded" />
-                                <span className="text-sm font-semibold text-slate-800">Utilajat A Fost Folosit</span>
+                                <span className="text-sm font-semibold text-slate-800">{t('fleet.equipment_used')}</span>
                             </label>
 
                             <div className="flex gap-4 p-3 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
                                 <label className="flex items-center gap-3 cursor-pointer shrink-0">
                                     <input type="checkbox" checked={logForm.refueled} onChange={e => setLogForm(f => ({ ...f, refueled: e.target.checked }))} className="w-5 h-5 text-emerald-600 rounded" />
-                                    <span className="text-sm font-semibold text-slate-800">Alimentat?</span>
+                                    <span className="text-sm font-semibold text-slate-800">{t('fleet.refueled')}?</span>
                                 </label>
                                 {logForm.refueled && (
                                     <div className="flex-1 flex gap-2 items-center">
                                         <input type="number" min="0" step="0.1" value={logForm.refuel_liters} onChange={e => setLogForm(f => ({ ...f, refuel_liters: e.target.value }))} placeholder="0" className="w-full px-3 py-1.5 border border-slate-300 rounded-full text-sm" />
-                                        <span className="text-xs font-bold text-slate-500">Litri</span>
+                                        <span className="text-xs font-bold text-slate-500">{t('fleet.liters')}</span>
                                     </div>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Observații</label>
-                                <textarea value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} placeholder="Probleme tehnice, accidente..." rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"></textarea>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('common.notes')}</label>
+                                <textarea value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} placeholder={t('common.notes_placeholder')} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"></textarea>
                             </div>
                         </div>
 
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setShowLogModal(false)} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
-                                Anulează
+                                {t('common.cancel')}
                             </button>
                             <button onClick={handleSaveLog} className="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-                                Salvează Pontaj
+                                {t('fleet.save_log')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
 
             {/* Document Upload Modal */}
-            {showDocModal && (
-                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+            {showDocModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 p-6" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingDocId ? 'Editează Document' : 'Adaugă Document'}</h2>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingDocId ? t('fleet.edit_doc') : t('fleet.add_doc')}</h2>
                             <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="p-1 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
                         
                         <div className="space-y-4 mb-6">
                             {!editingDocId && (
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Alege Fișierul *</label>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.choose_file')} *</label>
                                     <div className="relative group cursor-pointer">
                                         <input 
                                             type="file" 
@@ -1196,46 +1225,46 @@ export default function FleetManagement() {
                                         <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl transition-colors ${docFile ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}`}>
                                             <UploadCloud className={`w-8 h-8 mb-2 ${docFile ? 'text-blue-500' : 'text-slate-400'}`} />
                                             <p className={`text-sm font-semibold text-center ${docFile ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                {docFile ? docFile.name : 'Apasă aici pentru a alege un document'}
+                                                {docFile ? docFile.name : t('fleet.choose_file_desc')}
                                             </p>
-                                            {!docFile && <p className="text-xs text-slate-400 mt-1">PDF sau Imagine, maxim 10 MB</p>}
+                                            {!docFile && <p className="text-xs text-slate-400 mt-1">{t('fleet.file_types_limit')}</p>}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Denumire Document (Opțional)</label>
-                                <input type="text" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: RCA Generali 2026" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
-                                <p className="text-[11px] text-slate-400 mt-1">Dacă lași gol, se va folosi numele original al fișierului.</p>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.doc_name_optional')}</label>
+                                <input type="text" value={docForm.name} onChange={e => setDocForm(f => ({ ...f, name: e.target.value }))} placeholder={t('fleet.doc_name_placeholder')} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
+                                <p className="text-[11px] text-slate-400 mt-1">{t('fleet.doc_name_tip')}</p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dată Expirare (Opțional)</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('fleet.expiry_date_optional')}</label>
                                 <input type="date" value={docForm.expiry_date} onChange={e => setDocForm(f => ({ ...f, expiry_date: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
-                                <p className="text-[11px] text-slate-400 mt-1">Vei primi alerte cu 30 de zile înainte de expirare.</p>
+                                <p className="text-[11px] text-slate-400 mt-1">{t('fleet.expiry_alert_tip')}</p>
                             </div>
                         </div>
 
                         <div className="flex justify-end gap-3">
                             <button onClick={() => { setShowDocModal(false); setEditingDocId(null); setDocForm({ name: '', expiry_date: '' }); }} className="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors">
-                                Anulează
+                                {t('common.cancel')}
                             </button>
                             <button onClick={editingDocId ? handleSaveDocEdit : handleUploadDoc} disabled={uploadingDoc || (!editingDocId && !docFile)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
                                 {uploadingDoc && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {editingDocId ? 'Salvează Modificări' : 'Salvează Document'}
+                                {editingDocId ? t('common.save_changes') : t('common.save')}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
 
             {/* Category Add / Edit Modal */}
-            {showCatModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            {showCatModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800/50" onClick={e => e.stopPropagation()}>
                         <div className="px-6 py-5 flex justify-between items-center border-b border-slate-100 dark:border-slate-800">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingCat ? 'Editează Categoria' : 'Adaugă Categorie'}</h2>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingCat ? t('fleet.edit_category') : t('fleet.add_category')}</h2>
                             <button onClick={() => setShowCatModal(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
                         <div className="p-6 space-y-4">
@@ -1258,7 +1287,7 @@ export default function FleetManagement() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
         </div>
     )

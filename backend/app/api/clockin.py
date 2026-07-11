@@ -952,46 +952,82 @@ def get_live_vehicles(
     from sqlalchemy import text as sqlt
     from datetime import timedelta
 
-    # Auto-migrate GPS columns if missing (Railway cold start)
+    # Auto-migrate GPS columns if missing (with correct saas_app schema)
     try:
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
-        db.execute(sqlt("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
+        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
+        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
+        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
+        db.execute(sqlt("ALTER TABLE saas_app.users ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
+        
+        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_lat FLOAT"))
+        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_lng FLOAT"))
+        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
+        db.execute(sqlt("ALTER TABLE saas_app.vehicles ADD COLUMN IF NOT EXISTS last_speed FLOAT"))
         db.commit()
     except Exception as _me:
         db.rollback()
         print(f"GPS migration note: {_me}")
 
     try:
-        cutoff = get_local_now() - timedelta(minutes=10)
-        rows = db.execute(sqlt("""
-            SELECT u.id, u.full_name, u.last_lat, u.last_lng, u.last_seen_at, u.last_speed,
-                   t.name AS team_name, t.color AS team_color
-            FROM users u
-            LEFT JOIN team_members tm ON tm.user_id = u.id AND tm.is_active = true
-            LEFT JOIN teams t ON t.id = tm.team_id
-            WHERE u.last_lat IS NOT NULL
-              AND u.last_seen_at >= :cutoff
-            ORDER BY u.last_seen_at DESC
+        cutoff = datetime.utcnow() - timedelta(hours=24)  # Show vehicles active in last 24h (UTC, matching Flespi timestamps)
+        
+        # 1. Fetch Users (App)
+        user_rows = []
+        try:
+            user_rows = db.execute(sqlt("""
+                SELECT u.id, u.full_name, u.last_lat, u.last_lng, u.last_seen_at, u.last_speed,
+                       t.name AS team_name, t.color AS team_color
+                FROM saas_app.users u
+                LEFT JOIN saas_app.team_members tm ON tm.user_id = u.id AND tm.is_active = true
+                LEFT JOIN saas_app.teams t ON t.id = tm.team_id
+                WHERE u.last_lat IS NOT NULL
+                  AND u.last_seen_at >= :cutoff
+                ORDER BY u.last_seen_at DESC
+            """), {"cutoff": cutoff}).fetchall()
+        except Exception as _ue:
+            db.rollback()
+            print(f"Users live tracking skipped due to schema mismatch: {_ue}")
+
+        # 2. Fetch Vehicles (Flespi)
+        vehicle_rows = db.execute(sqlt("""
+            SELECT v.id, v.name, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed
+            FROM saas_app.vehicles v
+            WHERE v.last_lat IS NOT NULL
+              AND v.last_seen_at >= :cutoff
+            ORDER BY v.last_seen_at DESC
         """), {"cutoff": cutoff}).fetchall()
 
         result = []
         seen = set()
-        for r in rows:
+        for r in user_rows:
             if r.id in seen:
                 continue
             seen.add(r.id)
             result.append({
-                "user_id":    r.id,
+                "type":       "user",
+                "id":         r.id,
                 "name":       r.full_name,
                 "lat":        r.last_lat,
                 "lng":        r.last_lng,
-                "last_seen":  str(r.last_seen_at),
+                "last_seen":  str(r.last_seen_at).replace(' ', 'T') + 'Z' if r.last_seen_at else None,
                 "speed":      r.last_speed,
                 "team_name":  r.team_name,
                 "team_color": r.team_color or "#64748b",
             })
+            
+        for v in vehicle_rows:
+            result.append({
+                "type":       "vehicle",
+                "id":         v.id,
+                "name":       f"{v.name} ({v.plate_number})" if v.plate_number else v.name,
+                "lat":        v.last_lat,
+                "lng":        v.last_lng,
+                "last_seen":  str(v.last_seen_at).replace(' ', 'T') + 'Z' if v.last_seen_at else None,
+                "speed":      v.last_speed,
+                "team_name":  "GPS Flespi",
+                "team_color": "#0ea5e9", # Sky blue for vehicles
+            })
+
         return result
     except Exception as e:
         print(f"live_vehicles error: {e}")

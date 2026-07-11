@@ -539,6 +539,15 @@ class Vehicle(Base):
     status = Column(String(20), default="active", nullable=False)  # active, service, inactive
     notes = Column(Text, nullable=True)
     documents = Column(JSON, nullable=True) # JSON list of document
+    
+    # Flespi GPS Integration
+    flespi_device_id = Column(Integer, nullable=True, unique=True)
+    imei = Column(String(50), nullable=True, unique=True)
+    last_lat = Column(Float, nullable=True)
+    last_lng = Column(Float, nullable=True)
+    last_speed = Column(Float, nullable=True)
+    last_seen_at = Column(DateTime, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

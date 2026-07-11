@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # Google Maps
     GOOGLE_MAPS_API_KEY: str = ""
     
+    # Flespi
+    FLESPI_TOKEN: str = ""
+    
     # App
     APP_NAME: str = "Pontaj Digital"
     APP_VERSION: str = "1.0.0"
@@ -41,5 +44,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 settings = Settings()

@@ -163,7 +163,7 @@ export default function LiveTracking() {
             const isStale = secs !== null && secs > 120;
             return (
               <div
-                key={v.user_id}
+                key={v.id}
                 className="px-3 py-2.5 border-b border-slate-800/60 hover:bg-slate-800/50 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2.5">
@@ -206,16 +206,16 @@ export default function LiveTracking() {
               center={center}
               zoom={10}
               className="w-full h-full"
-              style={{ background: '#0f172a' }}
+              style={{ background: '#f8fafc' }}
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://carto.com">CARTO</a>'
               />
 
               {vehicles.map(v => (
                 <Marker
-                  key={v.user_id}
+                  key={v.id}
                   position={[v.lat, v.lng]}
                   icon={createVehicleIcon(v.team_color, v.name)}
                 >
