@@ -64,12 +64,12 @@ function secondsAgo(dateStr) {
   return Math.floor((Date.now() - d.getTime()) / 1000);
 }
 
-function formatLastSeen(dateStr) {
+function formatLastSeen(dateStr, t) {
   const secs = secondsAgo(dateStr);
   if (secs === null) return '—';
-  if (secs < 60) return `acum ${secs}s`;
-  if (secs < 3600) return `acum ${Math.floor(secs / 60)}min`;
-  return `acum ${Math.floor(secs / 3600)}h`;
+  if (secs < 60) return t ? t('live.ago_sec', 'il y a {{count}}s', { count: secs }) : `il y a ${secs}s`;
+  if (secs < 3600) return t ? t('live.ago_min', 'il y a {{count}}min', { count: Math.floor(secs / 60) }) : `il y a ${Math.floor(secs / 60)}min`;
+  return t ? t('live.ago_h', 'il y a {{count}}h', { count: Math.floor(secs / 3600) }) : `il y a ${Math.floor(secs / 3600)}h`;
 }
 
 export default function LiveTracking() {
@@ -131,7 +131,7 @@ export default function LiveTracking() {
           {/* Vehicle count */}
           <div className="flex items-center gap-1.5 text-xs font-medium bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200 text-slate-700">
             <Users className="w-3 h-3 text-blue-500" />
-            <span>{vehicles.length} activ{vehicles.length !== 1 ? 'i' : ''}</span>
+            <span>{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
           </div>
           {/* Manual refresh */}
           <button
@@ -148,7 +148,7 @@ export default function LiveTracking() {
         {/* Sidebar */}
         <div className="w-72 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
           <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100 bg-slate-50">
-            Vehicule active
+            {t("live.active_vehicles", "Véhicules actifs")}
           </div>
 
           {loading && (
@@ -192,7 +192,7 @@ export default function LiveTracking() {
                 <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500 font-medium">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {formatLastSeen(v.last_seen)}
+                    {formatLastSeen(v.last_seen, t)}
                   </span>
                   {v.speed != null && (
                     <span className="flex items-center gap-1">
@@ -242,7 +242,7 @@ export default function LiveTracking() {
                       </div>
                     </div>
                     <div className="text-xs text-slate-400">GPS Flespi</div>
-                    <div className="text-xs mt-1 text-slate-400">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen)}</div>
+                    <div className="text-xs mt-1 text-slate-400">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen, t)}</div>
                     {v.speed != null && (
                       <div className="text-xs text-slate-400">{t('live.speed', 'Vitesse')}: {Math.round(v.speed)} km/h</div>
                     )}

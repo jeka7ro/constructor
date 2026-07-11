@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
 import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink, Search, Car } from 'lucide-react'
+import { useTenantStore } from '../../store/tenantStore'
 
 const VEHICLE_TYPES = ['car', 'van', 'truck', 'excavator', 'grader', 'compactor', 'pile_driver', 'concrete_mixer', 'tractor_trailer', 'forklift', 'telehandler', 'cherry_picker', 'crane_truck', 'crane', 'pickup_4x4', 'mobile_workshop', 'generator', 'other']
 const VEHICLE_STATUSES = ['active', 'service', 'inactive']
@@ -16,6 +17,7 @@ const STATUS_COLORS = {
 
 export default function FleetManagement() {
     const { t } = useTranslation()
+    const { tenant } = useTenantStore()
     const [vehicles, setVehicles] = useState([])
     const [sites, setSites] = useState([])
     const [users, setUsers] = useState([])
@@ -762,10 +764,10 @@ export default function FleetManagement() {
                         {/* Tabs — pill style */}
                         <div className="flex gap-1.5 px-6 pt-4 pb-2">
                             {[
-                                { key: 'info', label: 'Informații' },
-                                { key: 'sites', label: 'Alocări Șantiere' },
-                                { key: 'drivers', label: 'Șoferi / Operatori' },
-                                ...(editingVehicle ? [{ key: 'documents', label: 'Documente' }] : [])
+                                { key: 'info', label: t('fleet.tabs.info', 'Informations') },
+                                ...(tenant?.has_sites ? [{ key: 'sites', label: t('fleet.tabs.sites', 'Alocări Șantiere') }] : []),
+                                { key: 'drivers', label: t('fleet.tabs.drivers', 'Chauffeurs / Opérateurs') },
+                                ...(editingVehicle ? [{ key: 'documents', label: t('fleet.tabs.documents', 'Documents') }] : [])
                             ].map(tab => (
                                 <button
                                     key={tab.key}
@@ -810,12 +812,12 @@ export default function FleetManagement() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                                Serie Șasiu / Utilaj
+                                                {t('fleet.chassis', 'Numéro de châssis')}
                                             </label>
                                             <input
                                                 value={form.chassis_number}
                                                 onChange={e => setForm(f => ({ ...f, chassis_number: e.target.value.toUpperCase() }))}
-                                                placeholder="Serie identificare"
+                                                placeholder={t('fleet.placeholders.chassis', 'Numéro d\'identification')}
                                                 className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                             />
                                         </div>
@@ -835,7 +837,7 @@ export default function FleetManagement() {
                                         </div>
                                     </div>
                                     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
-                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Integrare Flespi GPS (Opțional)</h3>
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('fleet.flespi_gps', 'Intégration Flespi GPS (Optionnel)')}</h3>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -850,12 +852,12 @@ export default function FleetManagement() {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                                    ID Dispozitiv Flespi
+                                                    {t('fleet.flespi_id', 'ID Appareil Flespi')}
                                                 </label>
                                                 <input
                                                     value={form.flespi_device_id || ''}
                                                     onChange={e => setForm(f => ({ ...f, flespi_device_id: e.target.value ? parseInt(e.target.value) : '' }))}
-                                                    placeholder="ID-ul creat în Flespi"
+                                                    placeholder={t('fleet.flespi_id_placeholder', 'ID créé dans Flespi')}
                                                     type="number"
                                                     className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                                 />

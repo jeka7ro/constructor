@@ -20,7 +20,7 @@ import DataTable from '../../components/DataTable'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
 import WorkOrderDetail from './WorkOrderDetail'
 import WorkOrderForm from './WorkOrderForm'
-import BuienradarWidget from '../../components/BuienradarWidget'
+import MiniLiveTrackingMap from '../../components/MiniLiveTrackingMap'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import SearchableSelect from '../../components/SearchableSelect'
 import { useTenantStore } from '../../store/tenantStore'
@@ -1955,10 +1955,10 @@ export default function AdminOverview() {
                 </div>
             )}
             
-            {/* Weather Module next to Recent Orders */}
+            {/* Live Tracking Module next to Recent Orders */}
             {isShortTerm && (
                 <div className="xl:col-span-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[400px]">
-                    <BuienradarWidget />
+                    <MiniLiveTrackingMap />
                 </div>
             )}
             </div>
