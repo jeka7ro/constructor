@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
 
 export default function GpsHistoryTab({ vehicles = [] }) {
+    const navigate = useNavigate()
     const today = new Date().toISOString().split('T')[0];
     const [dateFrom, setDateFrom] = useState(today)
     const [dateTo, setDateTo] = useState(today)
@@ -100,11 +102,6 @@ export default function GpsHistoryTab({ vehicles = [] }) {
 
     const columns = [
         {
-            key: 'index',
-            label: 'Nr. Crt.',
-            render: (row, idx) => <span className="text-slate-500 font-medium">{idx + 1}</span>
-        },
-        {
             key: 'date',
             label: 'Dată',
             sortable: true,
@@ -135,7 +132,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
         },
         {
             key: 'total_km',
-            label: 'Distanță (KM)',
+            label: 'KM Traseu',
             sortable: true,
             render: row => <span className="font-bold text-slate-800">{row.total_km} km</span>
         },
@@ -166,7 +163,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
     ]
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 mt-6">
+        <div className="mt-6">
             {/* Filtre */}
             <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <div className="flex-1 w-full">
@@ -223,7 +220,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
                 </div>
             )}
 
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white shadow-sm">
                 {loading ? (
                     <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -237,6 +234,7 @@ export default function GpsHistoryTab({ vehicles = [] }) {
                         emptyText="Niciun rezultat găsit pentru filtrele selectate."
                         searchable={true}
                         searchPlaceholder="Caută după vehicul sau echipă..."
+                        onRowClick={row => navigate(`/admin/tracking?date=${row.date}&vehicle=${row.vehicle_plate}`)}
                     />
                 )}
             </div>

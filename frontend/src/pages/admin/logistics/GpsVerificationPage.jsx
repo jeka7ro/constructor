@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -409,10 +410,15 @@ function VehicleCard({ result }) {
     )
 }
 
+
 export default function GpsVerificationPage() {
     const { t } = useTranslation()
+    const [searchParams] = useSearchParams()
+    const urlDate = searchParams.get('date')
+    const urlVehicle = searchParams.get('vehicle')
+
     const today = new Date().toISOString().slice(0, 10)
-    const [date, setDate] = useState(today)
+    const [date, setDate] = useState(urlDate || today)
     const [speedLimit, setSpeedLimit] = useState(90)
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -459,9 +465,10 @@ export default function GpsVerificationPage() {
         }
     }, [date, today, speedLimit])
 
-    const totalViolations = data?.results?.reduce((s, r) => s + r.speed_violations_count, 0) || 0
-    const totalKm = data?.results?.reduce((s, r) => s + r.total_km, 0) || 0
-    const vehiclesWithData = data?.results?.filter(r => r.gps_points > 0).length || 0
+    const filteredResults = data?.results?.filter(r => urlVehicle ? r.vehicle_plate === urlVehicle : true) || []
+    const totalViolations = filteredResults.reduce((s, r) => s + r.speed_violations_count, 0)
+    const totalKm = filteredResults.reduce((s, r) => s + r.total_km, 0)
+    const vehiclesWithData = filteredResults.filter(r => r.gps_points > 0).length
 
     return (
         <div className="p-4 md:p-6 space-y-5 max-w-4xl mx-auto">
@@ -542,13 +549,13 @@ export default function GpsVerificationPage() {
 
             {!loading && data?.results && (
                 <div className="space-y-4">
-                    {data.results.length === 0 ? (
+                    {filteredResults.length === 0 ? (
                         <div className="text-center py-12 text-slate-400">
                             <Truck className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p>{t('gps.no_vehicles', 'Aucun vehicule avec IMEI configure.')}</p>
+                            <p>{t('gps.no_vehicles', 'Aucun vehicule avec IMEI configure ou correspondant au filtre.')}</p>
                         </div>
                     ) : (
-                        data.results.map(result => (
+                        filteredResults.map(result => (
                             <VehicleCard key={result.vehicle_id} result={result} />
                         ))
                     )}
