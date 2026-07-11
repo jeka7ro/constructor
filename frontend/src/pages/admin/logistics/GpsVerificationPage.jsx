@@ -148,6 +148,31 @@ function VehicleCard({ result }) {
                         </div>
                     </div>
 
+                    {/* Itinerar Chronologic */}
+                    {result.itinerary && result.itinerary.length > 0 && (
+                        <div className="mb-6">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+                                {t('gps.chronological_itinerary', 'Itineraire Chronologique')}
+                            </p>
+                            <div className="relative border-l-2 border-slate-200 ml-3 space-y-5">
+                                {result.itinerary.map((step, i) => (
+                                    <div key={i} className="relative pl-5">
+                                        <div className={`absolute -left-[11px] top-1 w-5 h-5 rounded-full border-4 border-white shadow-sm ${step.type === 'base' ? 'bg-indigo-500' : 'bg-blue-500'}`} />
+                                        <div className="text-sm font-bold text-slate-800 flex flex-wrap items-center gap-2">
+                                            <span>{step.name}</span>
+                                            {step.type === 'base' && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Base</span>}
+                                            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                                                {step.arrived || '--:--'} {'->'} {step.departed || '--:--'}
+                                                {step.duration_min > 0 && ` (${step.duration_min} min)`}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-slate-500 mt-1">{step.address}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Chantiere planificate */}
                     {result.work_orders.length > 0 && (
                         <div>
@@ -201,13 +226,13 @@ function VehicleCard({ result }) {
                         <div className="bg-red-50 border border-red-100 rounded-xl p-3">
                             <p className="text-[11px] font-bold uppercase tracking-widest text-red-500 mb-2 flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" />
-                                {t('gps.speed_violations', 'Exces de vitesse (sup. 90 km/h)')}
+                                {t('gps.speed_violations', 'Exces de vitesse (au-dela de la limite)')}
                             </p>
                             <div className="space-y-1 max-h-32 overflow-y-auto">
                                 {result.speed_violations.slice(0, 10).map((v, i) => (
                                     <div key={i} className="flex items-center justify-between text-xs">
                                         <span className="text-slate-600">{v.time}</span>
-                                        <span className="font-bold text-red-600">{v.speed} km/h</span>
+                                        <span className="font-bold text-red-600">{v.speed} <span className="text-red-400 font-normal">/ {v.limit} km/h</span></span>
                                         <span className="text-red-400">+{v.excess} km/h</span>
                                     </div>
                                 ))}
@@ -234,15 +259,11 @@ function VehicleCard({ result }) {
                             {showMap && (
                                 <div className="mt-3 rounded-xl overflow-hidden border border-slate-200">
                                     <div style={{ height: 340 }}>
-                                        <MapContainer
-                                            center={trackPoints[0]}
-                                            zoom={12}
-                                            style={{ height: '100%', width: '100%' }}
-                                            scrollWheelZoom
-                                        >
+                                        <MapContainer center={[sitePoints[0]?.site_lat || trackPoints[0]?.[0] || 50.85, sitePoints[0]?.site_lng || trackPoints[0]?.[1] || 4.35]} zoom={11} className="w-full h-full rounded-b-xl" scrollWheelZoom={false}>
                                             <TileLayer
-                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                attribution='&copy; OpenStreetMap'
+                                                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                                                attribution="&copy; Google Maps"
+                                                maxZoom={20}
                                             />
                                             <MapFitter all={allMapPoints} />
 
@@ -308,6 +329,7 @@ export default function GpsVerificationPage() {
     const { t } = useTranslation()
     const today = new Date().toISOString().slice(0, 10)
     const [date, setDate] = useState(today)
+    const [speedLimit, setSpeedLimit] = useState(90)
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -316,7 +338,7 @@ export default function GpsVerificationPage() {
         setLoading(true)
         setError(null)
         try {
-            const res = await api.get(`/admin/gps-verification/daily?date=${date}`, {
+            const res = await api.get(`/admin/gps-verification/daily?date=${date}&speed_limit=${speedLimit}`, {
                 validateStatus: () => true,   // previne interceptorul de redirect
                 timeout: 30000,
             })
@@ -334,9 +356,24 @@ export default function GpsVerificationPage() {
         } finally {
             setLoading(false)
         }
-    }, [date])
+    }, [date, speedLimit])
 
     useEffect(() => { load() }, [load])
+
+    // Auto-refresh silent for today's data (Live view)
+    useEffect(() => {
+        if (date === today) {
+            const intervalId = setInterval(() => {
+                api.get(`/admin/gps-verification/daily?date=${date}&speed_limit=${speedLimit}`, {
+                    validateStatus: () => true,
+                    timeout: 20000,
+                }).then(res => {
+                    if (res.status === 200) setData(res.data)
+                }).catch(() => {})
+            }, 30000) // 30 seconds
+            return () => clearInterval(intervalId)
+        }
+    }, [date, today, speedLimit])
 
     const totalViolations = data?.results?.reduce((s, r) => s + r.speed_violations_count, 0) || 0
     const totalKm = data?.results?.reduce((s, r) => s + r.total_km, 0) || 0
@@ -356,6 +393,17 @@ export default function GpsVerificationPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <div className="flex items-center bg-white px-3 h-10 rounded-xl border border-slate-200" title="Utilise quand la limite legale n'est pas trouvee">
+                        <span className="text-xs text-slate-500 mr-2 font-medium">Defaut/Autoroute:</span>
+                        <input
+                            type="number"
+                            value={speedLimit}
+                            onChange={(e) => setSpeedLimit(Number(e.target.value))}
+                            className="w-12 text-sm font-bold bg-transparent outline-none text-right"
+                            min="30" max="150"
+                        />
+                        <span className="text-xs text-slate-500 ml-1">km/h</span>
+                    </div>
                     <input
                         type="date"
                         value={date}
