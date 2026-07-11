@@ -16,8 +16,17 @@ L.Icon.Default.mergeOptions({
 
 const POLL_INTERVAL = 30000; // 30s
 
-function createVehicleIcon(color, name) {
+function createVehicleIcon(color, name, avatarUrl) {
   const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
+  const apiBaseUrl = 'http://davidechape.localhost:5678'; // Since this is a hardcoded app URL locally, or we could use relative if hosted same origin. But typically we prepend the backend URL if it's not relative. Let's assume avatarUrl is relative e.g., /uploads/...
+  const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
+  
+  const innerContent = fullAvatarUrl 
+    ? `<clipPath id="circleView"><circle cx="20" cy="19" r="13" /></clipPath>
+       <image href="${fullAvatarUrl}" x="7" y="6" width="26" height="26" clip-path="url(#circleView)" preserveAspectRatio="xMidYMid slice" />`
+    : `<circle cx="20" cy="19" r="13" fill="white" opacity="0.25"/>
+       <text x="20" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="bold" fill="white">${initials}</text>`;
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
       <defs>
@@ -28,9 +37,7 @@ function createVehicleIcon(color, name) {
       <ellipse cx="20" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
       <path d="M20 0 C9 0 0 9 0 20 C0 32 20 48 20 48 C20 48 40 32 40 20 C40 9 31 0 20 0Z" 
             fill="${color}" filter="url(#shadow)"/>
-      <circle cx="20" cy="19" r="13" fill="white" opacity="0.25"/>
-      <text x="20" y="24" text-anchor="middle" font-family="system-ui,sans-serif" 
-            font-size="11" font-weight="bold" fill="white">${initials}</text>
+      ${innerContent}
     </svg>`;
   return L.divIcon({
     html: svg,
@@ -217,11 +224,23 @@ export default function LiveTracking() {
                 <Marker
                   key={v.id}
                   position={[v.lat, v.lng]}
-                  icon={createVehicleIcon(v.team_color, v.name)}
+                  icon={createVehicleIcon(v.team_color, v.name, v.avatar_url)}
                 >
                   <Popup className="tracking-popup">
-                    <div className="text-sm font-bold">{v.name}</div>
-                    {v.team_name && <div className="text-xs text-slate-500">{v.team_name}</div>}
+                    <div className="flex items-center gap-3 mb-2">
+                      {v.avatar_url && (
+                        <img 
+                          src={v.avatar_url.startsWith('http') ? v.avatar_url : `http://davidechape.localhost:5678${v.avatar_url}`} 
+                          alt="avatar" 
+                          className="w-10 h-10 rounded-full object-cover border-2" 
+                          style={{ borderColor: v.team_color }}
+                        />
+                      )}
+                      <div>
+                        <div className="text-sm font-bold">{v.name}</div>
+                        {v.team_name && <div className="text-xs text-slate-500">{v.team_name}</div>}
+                      </div>
+                    </div>
                     <div className="text-xs text-slate-400">GPS Flespi</div>
                     <div className="text-xs mt-1 text-slate-400">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen)}</div>
                     {v.speed != null && (

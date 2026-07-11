@@ -138,6 +138,40 @@ const createCustomIcon = (text, isBase, teamColor) => {
     })
 }
 
+
+
+function createVehicleIcon(color, name, avatarUrl) {
+    const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
+    const apiBaseUrl = 'http://davidechape.localhost:5678';
+    const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
+    
+    const innerContent = fullAvatarUrl 
+      ? `<clipPath id="circleView-${initials}"><circle cx="20" cy="19" r="13" /></clipPath>
+         <image href="${fullAvatarUrl}" x="7" y="6" width="26" height="26" clip-path="url(#circleView-${initials})" preserveAspectRatio="xMidYMid slice" />`
+      : `<circle cx="20" cy="19" r="13" fill="white" opacity="0.25"/>
+         <text x="20" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="bold" fill="white">${initials}</text>`;
+  
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
+        <defs>
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+          </filter>
+        </defs>
+        <ellipse cx="20" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
+        <path d="M20 0 C9 0 0 9 0 20 C0 32 20 48 20 48 C20 48 40 32 40 20 C40 9 31 0 20 0Z" 
+              fill="${color}" filter="url(#shadow)"/>
+        ${innerContent}
+      </svg>`;
+    return L.divIcon({
+      html: svg,
+      className: '',
+      iconSize: [40, 48],
+      iconAnchor: [20, 48],
+      popupAnchor: [0, -50],
+    });
+}
+
 // type: 'ours' = roșu (exclusiv noi) | 'common' = mov (ambii) | 'theirs' = verde (ei au, noi nu)
 const SAND_STATIONS = [
     // ── COMUNE (mov) ─────────────────────────────────────────────────────────
@@ -431,13 +465,32 @@ export default function LogisticsDashboard() {
                                                 const teamGps = gpsData.find(g => g.team_id === route.team_id);
                                                 if (teamGps && teamGps.track && teamGps.track.length > 1) {
                                                     const gpsPositions = teamGps.track.map(p => [p.lat, p.lng]);
+                                                    const lastPos = teamGps.track[teamGps.track.length - 1];
                                                     return (
-                                                        <Polyline
-                                                            positions={gpsPositions}
-                                                            color={route.team_color}
-                                                            weight={5}
-                                                            opacity={0.8}
-                                                        />
+                                                        <React.Fragment>
+                                                            <Polyline
+                                                                positions={gpsPositions}
+                                                                color={route.team_color}
+                                                                weight={5}
+                                                                opacity={0.8}
+                                                            />
+                                                            <Marker 
+                                                                position={[lastPos.lat, lastPos.lng]}
+                                                                icon={createVehicleIcon(route.team_color, teamGps.vehicle_name || route.team_name, teamGps.avatar_url)}
+                                                            >
+                                                                <Popup>
+                                                                    <div className="flex items-center gap-3">
+                                                                        {teamGps.avatar_url && (
+                                                                            <img src={teamGps.avatar_url.startsWith('http') ? teamGps.avatar_url : `http://davidechape.localhost:5678${teamGps.avatar_url}`} alt="avatar" className="w-10 h-10 rounded-full border-2 object-cover" style={{ borderColor: route.team_color }} />
+                                                                        )}
+                                                                        <div>
+                                                                            <strong className="text-sm">{teamGps.vehicle_name || route.team_name}</strong>
+                                                                            <br/><span className="text-xs text-slate-500">Poziție Curentă GPS</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </Popup>
+                                                            </Marker>
+                                                        </React.Fragment>
                                                     );
                                                 }
                                                 return null;
@@ -732,12 +785,30 @@ export default function LogisticsDashboard() {
                                                         <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">{t('logistics.sand_needed', 'Necesar Nisip')}</div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
                                                     </div>
-                                                    <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                                                    <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800 relative">
                                                         <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                                             <TruckSVG color={route.team_color || '#64748b'} className="w-3.5 h-3.5" />
                                                             {t('logistics.distance', 'Distanţă')}
                                                         </div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{Math.round(route.total_distance_km)} km</div>
+                                                        
+                                                        {(() => {
+                                                            if (!gpsData) return null;
+                                                            const teamGps = gpsData.find(g => g.team_id === route.team_id);
+                                                            if (!teamGps || !teamGps.total_km) return null;
+                                                            const devKm = teamGps.total_km - route.total_distance_km;
+                                                            if (devKm > 5) {
+                                                                return (
+                                                                    <div className="absolute top-2 right-2 flex flex-col items-end">
+                                                                        <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800 animate-pulse" title="Deviație traseu">
+                                                                            +{Math.round(devKm)} km
+                                                                        </span>
+                                                                        <span className="text-[9px] text-red-500 mt-0.5 font-semibold">Deviație</span>
+                                                                    </div>
+                                                                )
+                                                            }
+                                                            return null;
+                                                        })()}
                                                     </div>
                                                 </div>
                                                 

@@ -976,7 +976,7 @@ def get_live_vehicles(
         try:
             user_rows = db.execute(sqlt("""
                 SELECT u.id, u.full_name, u.last_lat, u.last_lng, u.last_seen_at, u.last_speed,
-                       t.name AS team_name, t.color AS team_color
+                       t.name AS team_name, t.color AS team_color, u.avatar_path
                 FROM saas_app.users u
                 LEFT JOIN saas_app.team_members tm ON tm.user_id = u.id AND tm.is_active = true
                 LEFT JOIN saas_app.teams t ON t.id = tm.team_id
@@ -990,8 +990,21 @@ def get_live_vehicles(
 
         # 2. Fetch Vehicles (Flespi)
         vehicle_rows = db.execute(sqlt("""
-            SELECT v.id, v.name, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed
+            SELECT v.id, v.name, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
+                   COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path
             FROM saas_app.vehicles v
+            LEFT JOIN saas_app.vehicle_user_assignments vua ON vua.vehicle_id = v.id AND vua.is_active = true
+            LEFT JOIN saas_app.users u_direct ON u_direct.id = vua.user_id
+            -- Try to find if vehicle is assigned to a team (via a recent work order) and get leader's avatar
+            LEFT JOIN (
+                SELECT wo.assigned_vehicle_id, t.team_leader_id
+                FROM saas_app.work_orders wo
+                JOIN saas_app.teams t ON t.id = wo.assigned_team_id
+                WHERE wo.created_at >= CURRENT_DATE - INTERVAL '7 days'
+                ORDER BY wo.created_at DESC
+                LIMIT 1
+            ) recent_team ON recent_team.assigned_vehicle_id = v.id
+            LEFT JOIN saas_app.users u_leader ON u_leader.id = recent_team.team_leader_id
             WHERE v.last_lat IS NOT NULL
               AND v.last_seen_at >= :cutoff
             ORDER BY v.last_seen_at DESC
@@ -1013,6 +1026,7 @@ def get_live_vehicles(
                 "speed":      r.last_speed,
                 "team_name":  r.team_name,
                 "team_color": r.team_color or "#64748b",
+                "avatar_url": r.avatar_path,
             })
             
         for v in vehicle_rows:
@@ -1026,6 +1040,7 @@ def get_live_vehicles(
                 "speed":      v.last_speed,
                 "team_name":  "GPS Flespi",
                 "team_color": "#0ea5e9", # Sky blue for vehicles
+                "avatar_url": v.avatar_path,
             })
 
         return result

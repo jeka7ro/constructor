@@ -408,6 +408,23 @@ def daily_verification(
                     "status": status,
                 })
 
+            # Try to get the avatar of the driver or team leader
+            avatar_url = None
+            try:
+                # 1. Check if vehicle is assigned to a user directly
+                from app.models import VehicleUserAssignment, User
+                assignment = db.query(VehicleUserAssignment).filter(
+                    VehicleUserAssignment.vehicle_id == vehicle.id,
+                    VehicleUserAssignment.is_active == True
+                ).order_by(VehicleUserAssignment.created_at.desc()).first()
+                if assignment and assignment.user and assignment.user.avatar_path:
+                    avatar_url = assignment.user.avatar_path
+                # 2. Check team leader
+                elif team and team.team_leader and team.team_leader.avatar_path:
+                    avatar_url = team.team_leader.avatar_path
+            except Exception:
+                pass
+
             results.append({
                 "vehicle_id": vehicle.id,
                 "vehicle_name": vehicle.name,
@@ -415,6 +432,7 @@ def daily_verification(
                 "team_id": team.id if team else None,
                 "team_name": team.name if team else "Non assigne",
                 "team_color": team.color if team else "#64748b",
+                "avatar_url": avatar_url,
                 "gps_points": len(track),
                 "total_km": total_km,
                 "max_speed_kmh": round(max_speed_overall, 1),
