@@ -996,19 +996,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
+                                            <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Date Approx.')}</p>
                                                     <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
                                                         <CalendarDays className="w-4 h-4 text-slate-400" />
                                                         <span>{wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : '—'}</span>
                                                     </div>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.price', 'Prix Est. (€)')}</p>
-                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                                                        {wo.estimated_price ? `${wo.estimated_price} €` : '—'}
-                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
