@@ -12,6 +12,17 @@ import {
 } from 'lucide-react'
 import api from '../../../lib/api'
 
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 // Leaflet icon fix (guard: run only once even if LogisticsDashboard already did it)
 if (L.Icon.Default.prototype._getIconUrl) {
     delete L.Icon.Default.prototype._getIconUrl
@@ -92,12 +103,37 @@ function VehicleCard({ result }) {
     }, [isMapFullscreen])
 
     // Calculate vehicle status (In Miscare vs Stationeaza)
+    const firstPoint = result.track && result.track.length > 0 ? result.track[0] : null;
     const lastPoint = result.track && result.track.length > 0 ? result.track[result.track.length - 1] : null;
     const isRecentlyUpdated = lastPoint ? (Date.now() / 1000 - lastPoint.ts) < 900 : false; // within 15 minutes
     const isMoving = isRecentlyUpdated && lastPoint.speed > 0;
 
+    let durationStr = '--';
+    if (firstPoint && lastPoint) {
+        const diffMin = Math.round((lastPoint.ts - firstPoint.ts) / 60);
+        const h = Math.floor(diffMin / 60);
+        const m = diffMin % 60;
+        durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
     const trackPoints = result.track.map(p => [p.lat, p.lng])
     const sitePoints = result.work_orders.filter(wo => wo.site_lat && wo.site_lng)
+
+    const trips = []
+    if (result.track && result.track.length > 0) {
+        let currentTrip = [result.track[0]]
+        for (let i = 1; i < result.track.length; i++) {
+            const p1 = result.track[i - 1]
+            const p2 = result.track[i]
+            if (p2.ts - p1.ts > 1800) { // 30 min gap
+                trips.push(currentTrip)
+                currentTrip = [p2]
+            } else {
+                currentTrip.push(p2)
+            }
+        }
+        trips.push(currentTrip)
+    }
 
     const segments = []
     for (let i = 0; i < result.track.length - 1; i++) {
@@ -169,31 +205,61 @@ function VehicleCard({ result }) {
 
             {expanded && (
                 <div className="p-4 space-y-4 border-t border-slate-100">
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div className="bg-slate-50 rounded-xl p-3 text-center">
-                            <p className="text-xs text-slate-400 mb-1">{t('gps.distance', 'Distance')}</p>
-                            <p className="text-lg font-bold text-slate-800">{result.total_km} <span className="text-xs font-normal">km</span></p>
+                    {/* Detalii Trasee */}
+                    {trips.length > 0 && (
+                        <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-slate-600">
+                                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                                        <tr>
+                                            <th className="px-4 py-3">#</th>
+                                            <th className="px-4 py-3">Ora Pornire</th>
+                                            <th className="px-4 py-3">Ora Oprire</th>
+                                            <th className="px-4 py-3">Timp în Drum</th>
+                                            <th className="px-4 py-3">Distanță</th>
+                                            <th className="px-4 py-3">Viteza Max.</th>
+                                            <th className="px-4 py-3">Încălcări</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {trips.map((trip, idx) => {
+                                            const first = trip[0]
+                                            const last = trip[trip.length - 1]
+                                            
+                                            let durationStr = '--'
+                                            const diffMin = Math.round((last.ts - first.ts) / 60)
+                                            const h = Math.floor(diffMin / 60)
+                                            const m = diffMin % 60
+                                            durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`
+
+                                            let distKm = 0
+                                            let maxSpeed = 0
+                                            for(let j = 0; j < trip.length; j++) {
+                                                if (trip[j].speed > maxSpeed) maxSpeed = trip[j].speed
+                                                if (j > 0) {
+                                                    distKm += haversineKm(trip[j-1].lat, trip[j-1].lng, trip[j].lat, trip[j].lng)
+                                                }
+                                            }
+                                            
+                                            const violations = result.speed_violations.filter(v => v.time >= first.time_local && v.time <= last.time_local).length
+                                            
+                                            return (
+                                                <tr key={idx} className="hover:bg-slate-50">
+                                                    <td className="px-4 py-3 font-semibold text-slate-900">Traseul {idx + 1}</td>
+                                                    <td className="px-4 py-3 font-mono">{first.time_local.slice(0, 5)}</td>
+                                                    <td className="px-4 py-3 font-mono">{last.time_local.slice(0, 5)}</td>
+                                                    <td className="px-4 py-3">{durationStr}</td>
+                                                    <td className="px-4 py-3 font-semibold text-slate-800">{distKm.toFixed(1)} km</td>
+                                                    <td className={`px-4 py-3 font-semibold ${maxSpeed > 90 ? 'text-red-600' : ''}`}>{maxSpeed.toFixed(1)} km/h</td>
+                                                    <td className={`px-4 py-3 font-semibold ${violations > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{violations}</td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3 text-center">
-                            <p className="text-xs text-slate-400 mb-1">{t('gps.max_speed', 'Vit. max')}</p>
-                            <p className={`text-lg font-bold ${result.max_speed_kmh > 90 ? 'text-red-600' : 'text-slate-800'}`}>
-                                {result.max_speed_kmh} <span className="text-xs font-normal">km/h</span>
-                            </p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-3 text-center">
-                            <p className="text-xs text-slate-400 mb-1">Vitesse actuelle</p>
-                            <p className={`text-lg font-bold ${isMoving ? 'text-blue-600' : 'text-slate-400'}`}>
-                                {isMoving ? lastPoint.speed : 0} <span className="text-xs font-normal">km/h</span>
-                            </p>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-3 text-center">
-                            <p className="text-xs text-slate-400 mb-1">{t('gps.speed_excess', 'Exces vitesse')}</p>
-                            <p className={`text-lg font-bold ${result.speed_violations_count > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                {result.speed_violations_count}
-                            </p>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Itinerar Chronologic */}
                     {result.itinerary && result.itinerary.length > 0 && (
@@ -413,6 +479,7 @@ function VehicleCard({ result }) {
 
 export default function GpsVerificationPage() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const urlDate = searchParams.get('date')
     const urlVehicle = searchParams.get('vehicle')
@@ -474,7 +541,15 @@ export default function GpsVerificationPage() {
         <div className="p-4 md:p-6 space-y-5 max-w-4xl mx-auto">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => navigate(-1)}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        title="Înapoi"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <div>
                     <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                         <Navigation className="w-5 h-5 text-blue-600" />
                         {t('gps.verification_title', 'Verification GPS')}
@@ -482,6 +557,7 @@ export default function GpsVerificationPage() {
                     <p className="text-sm text-slate-500 mt-0.5">
                         {t('gps.verification_subtitle', 'Comparaison planning prevu vs trace GPS reel')}
                     </p>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center bg-white px-3 h-10 rounded-xl border border-slate-200" title="Utilise quand la limite legale n'est pas trouvee">
