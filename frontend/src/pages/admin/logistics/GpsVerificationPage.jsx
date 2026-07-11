@@ -389,9 +389,12 @@ function VehicleCard({ result }) {
                                         <span className="flex items-center gap-1.5"><span className="w-4 h-1.5 rounded-full bg-red-500 inline-block" /> &gt;90 km/h</span>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            );
+                            return isMapFullscreen ? createPortal(mapContent, document.body) : mapContent;
+                        })()
                     )}
+                </div>
+            )}
 
                     {trackPoints.length === 0 && (
                         <div className="text-center py-6 text-slate-400 text-sm">
