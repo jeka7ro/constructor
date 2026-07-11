@@ -367,6 +367,7 @@ function Lightbox({ url, onClose }) {
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
 function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver, completionPhotos = [] }) {
+    const { t } = useTranslation()
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
     const [showStation, setShowStation] = useState(false)
     const [enableStations, setEnableStations] = useState(false)
