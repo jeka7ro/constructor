@@ -575,11 +575,11 @@ export default function AdminDashboard() {
                         title="Smart Timesheet"
                     >
                         {sidebarOpen ? (
-                             <div className="bg-white/95 px-4 py-2 rounded-xl shadow-sm flex items-center justify-center">
+                             <div className="bg-slate-900/40 px-4 py-2 rounded-xl shadow-inner flex items-center justify-center">
                                  <img src="https://getapp.ro/logo_getapp_original.png" alt="GetApp Smart Timesheet" className="h-6 w-auto object-contain" />
                              </div>
                         ) : (
-                             <div className="bg-white/95 p-1.5 rounded-xl shadow-sm flex items-center justify-center">
+                             <div className="bg-slate-900/40 p-1.5 rounded-xl shadow-inner flex items-center justify-center">
                                  <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-8 h-8 object-contain" />
                              </div>
                         )}
