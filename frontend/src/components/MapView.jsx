@@ -232,51 +232,48 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         title: `Baza: ${startName}`
                     });
 
-                    // OSRM Route
-                    fetch(`https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${center.lng},${center.lat}?overview=full&geometries=polyline`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
-                                const route = data.routes[0];
-                                const path = window.google.maps.geometry.encoding.decodePath(route.geometry);
-                                
-                                const line = new window.google.maps.Polyline({
-                                    path: path,
-                                    strokeColor: '#3b82f6',
-                                    strokeOpacity: 0.8,
-                                    strokeWeight: 4,
-                                    map: mapInstance.current
-                                });
-                                elementsRef.current.directionsRenderer = line;
+                    // Google Maps Directions (reliable, already loaded)
+                    const directionsService = new window.google.maps.DirectionsService();
+                    const directionsRenderer = new window.google.maps.DirectionsRenderer({
+                        map: mapInstance.current,
+                        suppressMarkers: true,
+                        polylineOptions: {
+                            strokeColor: '#3b82f6',
+                            strokeOpacity: 0.8,
+                            strokeWeight: 4,
+                        }
+                    });
+                    elementsRef.current.directionsRenderer = directionsRenderer;
 
-                                const bounds = new window.google.maps.LatLngBounds();
-                                path.forEach(p => bounds.extend(p));
-                                mapInstance.current.fitBounds(bounds, { padding: 50 });
-
-                                if (onRouteCalculated) {
-                                    onRouteCalculated(route.distance / 1000);
-                                }
-                            } else {
-                                throw new Error("OSRM routing failed");
-                            }
-                        })
-                        .catch(err => {
-                            console.error("OSRM error:", err);
-                            // Fallback direct line if routing fails
+                    directionsService.route({
+                        origin: startCoords,
+                        destination: center,
+                        travelMode: window.google.maps.TravelMode.DRIVING,
+                    }, (result, status) => {
+                        if (status === 'OK') {
+                            directionsRenderer.setDirections(result);
+                            const route = result.routes[0];
+                            const distanceKm = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
+                            if (onRouteCalculated) onRouteCalculated(distanceKm);
+                        } else {
+                            console.error('Google Directions error:', status);
+                            // Fallback direct line only if Directions also fails
                             const line = new window.google.maps.Polyline({
                                 path: [startCoords, center],
                                 strokeColor: '#3b82f6',
-                                strokeOpacity: 0.8,
+                                strokeOpacity: 0.5,
                                 strokeWeight: 3,
+                                strokeDashArray: [10, 5],
                                 map: mapInstance.current
                             });
-                            elementsRef.current.directionsRenderer = line; 
-                            
+                            elementsRef.current.directionsRenderer = line;
                             const bounds = new window.google.maps.LatLngBounds();
                             bounds.extend(startCoords);
                             bounds.extend(center);
                             mapInstance.current.fitBounds(bounds, { padding: 50 });
-                        });
+                        }
+                    });
+
                 }
             });
         }
