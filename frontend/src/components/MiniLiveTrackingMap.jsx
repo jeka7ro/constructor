@@ -32,34 +32,32 @@ function formatLastSeen(dateStr, t) {
 }
 
 function createVehicleIcon(color, name, avatarUrl) {
-  const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
+  const shortName = name ? name.substring(0, 15) : '?';
+  const initials = shortName[0].toUpperCase();
   const apiBaseUrl = 'http://davidechape.localhost:5678';
   const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
+  const themeColor = color || '#3b82f6';
   
-  const innerContent = fullAvatarUrl 
-    ? `<clipPath id="circleView-${initials}"><circle cx="20" cy="19" r="13" /></clipPath>
-       <image href="${fullAvatarUrl}" x="7" y="6" width="26" height="26" clip-path="url(#circleView-${initials})" preserveAspectRatio="xMidYMid slice" />`
-    : `<circle cx="20" cy="19" r="13" fill="white" opacity="0.25"/>
-       <text x="20" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="bold" fill="white">${initials}</text>`;
+  const avatarHtml = fullAvatarUrl 
+    ? `<img src="${fullAvatarUrl}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid ${themeColor};" />`
+    : `<div style="width:24px;height:24px;border-radius:50%;background-color:${themeColor}20;border:2px solid ${themeColor};display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${themeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
-      <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-        </filter>
-      </defs>
-      <ellipse cx="20" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
-      <path d="M20 0 C9 0 0 9 0 20 C0 32 20 48 20 48 C20 48 40 32 40 20 C40 9 31 0 20 0Z" 
-            fill="${color}" filter="url(#shadow)"/>
-      ${innerContent}
-    </svg>`;
+  const html = `
+    <div style="background:white; border:2px solid ${themeColor}; border-radius:12px; padding:4px 8px; display:flex; align-items:center; gap:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); width:120px; box-sizing:border-box;">
+      <div style="flex-shrink:0;">${avatarHtml}</div>
+      <div style="overflow:hidden; display:flex; flex-direction:column; justify-content:center;">
+        <span style="font-family:system-ui; font-size:12px; font-weight:800; color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.2;">${shortName}</span>
+      </div>
+    </div>
+    <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${themeColor}; margin: -1px auto 0 auto;"></div>
+  `;
+
   return L.divIcon({
-    html: svg,
+    html: html,
     className: '',
-    iconSize: [40, 48],
-    iconAnchor: [20, 48],
-    popupAnchor: [0, -50],
+    iconSize: [120, 48],
+    iconAnchor: [60, 48],
+    popupAnchor: [0, -48],
   });
 }
 
@@ -94,15 +92,15 @@ export default function MiniLiveTrackingMap() {
   const center = [51.2, 4.4]; // Belgium default
 
   return (
-    <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Radio className="w-4 h-4 text-white" />
+    <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+        <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide text-sm">
+          <Radio className="w-4 h-4 text-blue-500" />
           {t('dashboard.live_tracking', 'LIVE TRACKING')}
         </h3>
         <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-blue-800 bg-white px-2 py-0.5 rounded-full shadow-sm">{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
-            <button onClick={fetchLive} className="text-white/80 hover:text-white transition-colors">
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 rounded-full">{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
+            <button onClick={fetchLive} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                 <RefreshCw className="w-3.5 h-3.5" />
             </button>
         </div>
