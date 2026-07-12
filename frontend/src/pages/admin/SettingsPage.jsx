@@ -99,7 +99,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">⚙️ Setări</h1>

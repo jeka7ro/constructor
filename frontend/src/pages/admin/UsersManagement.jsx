@@ -319,7 +319,7 @@ export default function UsersManagement() {
     const labelCls = "block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
     return (
-        <div className="p-4 space-y-6 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
 
 
             {/* Main Table Container */}

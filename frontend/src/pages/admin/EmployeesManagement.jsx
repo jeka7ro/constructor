@@ -528,7 +528,7 @@ export default function EmployeesManagement() {
     }
 
     return (
-        <div className="p-4 space-y-6 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
 
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">

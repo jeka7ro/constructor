@@ -169,6 +169,114 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
     if wo.client and not client_display:
         client_display = wo.client.name
 
+    # ── Calculul prețului afișat în tabel ── identic cu DevisView.buildItems() ──
+    # Prioritate: proforma_data.items → volumes → estimated_price
+    computed_total = None
+    try:
+        p = wo_prices  # conține prețurile + surface_thresholds
+        items_calc = []
+
+        # 1) proforma_data.items (prexuri custom din pagina de tarife)
+        pdata = wo.proforma_data or {}
+        p_items = pdata.get('items', []) if isinstance(pdata, dict) else []
+        if p_items:
+            d0 = str(p_items[0].get('desc', '')).lower()
+            import unicodedata, re as _re
+            d0n = _re.sub(r'[\u0300-\u036f]', '', unicodedata.normalize('NFD', d0)).strip()
+            is_placeholder = (
+                len(p_items) == 1 and (
+                    p_items[0].get('id') == 'default' or
+                    'conform deviz' in d0n or
+                    'manoper' in d0n or
+                    d0n in ('chape', 'sapa') or
+                    bool(_re.search(r'sapa|chape', d0n))
+                )
+            )
+            if not is_placeholder:
+                items_calc = [
+                    {'qty': float(i.get('qty', 1)), 'price': float(i.get('price', 0))}
+                    for i in p_items
+                ]
+
+        # 2) Fallback: calcul din volumes
+        if not items_calc:
+            import re as _re2
+            import unicodedata as _ud2
+            volumes = wo.volumes or []
+            for vol in volumes:
+                lbl = vol.get('label', '') or ''
+                lbl_n = _re2.sub(r'[\u0300-\u036f]', '', _ud2.normalize('NFD', lbl)).lower()
+                is_chape = (
+                    bool(_re2.search(r'[sșş]ap[aăâ]', lbl, _re2.IGNORECASE)) or
+                    bool(_re2.search(r'chape', lbl, _re2.IGNORECASE)) or
+                    'sapa' in lbl_n
+                )
+                surface = float(vol.get('quantity') or 0)
+                thick   = float(vol.get('thickness') or 0)
+                if surface <= 0:
+                    continue
+                if is_chape:
+                    std_thick  = float(p.get('standard_thickness') or 5)
+                    extra_thick = max(0.0, thick - std_thick)
+                    items_calc.append({'qty': surface, 'price': float(p.get('base') or 12.5)})
+                    if extra_thick > 0:
+                        items_calc.append({'qty': surface, 'price': extra_thick * float(p.get('extra_thickness_price_per_cm') or p.get('extra') or 1.25)})
+                    if vol.get('has_foil'):
+                        items_calc.append({'qty': surface, 'price': float(p.get('foil') or 1.2)})
+                    if vol.get('has_mesh'):
+                        items_calc.append({'qty': surface, 'price': float(p.get('mesh') or 2.5)})
+                    if vol.get('has_fiber') or vol.get('has_duramint'):
+                        items_calc.append({'qty': surface, 'price': float(p.get('fiber') or (2.5 if surface <= 200 else 2.0))})
+                else:
+                    unit_price = float(vol.get('price') or 0)
+                    if unit_price > 0:
+                        items_calc.append({'qty': surface, 'price': unit_price})
+
+        # Surface thresholds
+        if items_calc and p.get('surface_thresholds'):
+            surf_check = float((wo.volumes or [{}])[0].get('quantity') or getattr(wo, 'surface_m2', 0) or 0)
+            for thresh in (p.get('surface_thresholds') or []):
+                min_s = float(thresh.get('min_sqm') or 0)
+                max_s = float(thresh.get('max_sqm') or 999999)
+                if min_s <= surf_check <= max_s:
+                    charge = float(thresh.get('extra_charge') or 0)
+                    if charge > 0:
+                        items_calc.append({'qty': 1, 'price': charge})
+
+
+        if items_calc:
+            net_total = sum(i['qty'] * i['price'] for i in items_calc)
+            net_after_discount = net_total - float(p.get('discount') or 0)
+
+            # TVA — prioritate identică cu ProformaView.jsx:
+            # 1. proforma_data.vatRate  (cel mai specific — setat pe deviz)
+            # 2. wo.prices.vat_type     (override per deviz)
+            # 3. tarife: vat_legal_entity / vat_physical_repair / vat_physical_new (pagina tarife)
+            vat_rate = 0.0
+            use_vat = (pdata.get('useVat', True) if isinstance(pdata, dict) else True)
+            if use_vat is not False:
+                if isinstance(pdata, dict) and pdata.get('vatRate') is not None:
+                    vat_rate = float(pdata['vatRate'])
+                elif p.get('vat_type') is not None:
+                    vat_rate = float(p['vat_type'])
+                else:
+                    _client_type = (
+                        (wo.client.client_type if wo.client else None) or
+                        getattr(wo, 'client_type', None) or 'fizica'
+                    )
+                    _work_type = getattr(wo, 'work_type', None) or 'new'
+                    if _client_type in ('pj', 'juridica'):
+                        vat_rate = float(p.get('vat_legal_entity') or 0)
+                    elif _work_type == 'repair':
+                        vat_rate = float(p.get('vat_physical_repair') or 6)
+                    else:
+                        vat_rate = float(p.get('vat_physical_new') or 21)
+
+            computed_total = round(net_after_discount * (1 + vat_rate / 100), 2)
+
+    except Exception as _e:
+        computed_total = None  # silently fallback — nu oprim aplicatia
+
     return {
         "id": wo.id,
         "token": wo.token,
@@ -262,7 +370,14 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
                 "description": p.description,
                 "photo_type": p.photo_type
             } for p in wo.photos
-        ] if getattr(wo, "photos", None) else []
+        ] if getattr(wo, "photos", None) else [],
+        # Proforma items — utilizate pt. calculul prețului în tabel (identic cu DevisView)
+        "proforma_data": wo.proforma_data,
+        # Vat fields needed for frontend calculation
+        "vat_enabled": getattr(wo, 'vat_enabled', None),
+        "vat_type": getattr(wo, 'vat_type', None),
+        # Prețul calculat pe backend — identic cu PDF-ul (sursa unică de adevăr)
+        "computed_total": computed_total,
     }
 
 

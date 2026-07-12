@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
-import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink, Search, Car } from 'lucide-react'
+import { Loader2, X, Plus, Edit2, Trash2, Building2, Users, CalendarClock, UploadCloud, FileText, Check as CheckIcon, BarChart2, Download, Paperclip, ExternalLink, Search, Car, Truck } from 'lucide-react'
 import { useTenantStore } from '../../store/tenantStore'
 
 const VEHICLE_TYPES = ['car', 'van', 'truck', 'excavator', 'grader', 'compactor', 'pile_driver', 'concrete_mixer', 'tractor_trailer', 'forklift', 'telehandler', 'cherry_picker', 'crane_truck', 'crane', 'pickup_4x4', 'mobile_workshop', 'generator', 'other']
@@ -520,7 +520,7 @@ export default function FleetManagement() {
             key: 'group', label: t('common.group_uppercase', 'GROUPE'),
             render: (c) => (
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {c.group === 'car' ? t('fleet.car_fleet', 'Mașină (Flotă)') : t('fleet.equipment', 'Utilaj / Echipament')}
+                    {c.group === 'car' ? t('fleet.car_fleet', 'Véhicule (Flotte)') : t('fleet.equipment', 'Engin / Équipement')}
                 </span>
             )
         },
@@ -540,12 +540,24 @@ export default function FleetManagement() {
     ]
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Page Header Actions */}
-            <div className="flex flex-col md:flex-row flex-wrap items-center justify-start md:justify-end gap-3 mb-6 w-full">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            {/* Page Title */}
+            <div className="mb-6 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md">
+                    <Truck className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                        {t('fleet.title', 'Gestion de la flotte')}
+                    </h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {t('fleet.subtitle', 'Véhicules, équipements et rapports de consommation')}
+                    </p>
+                </div>
+            </div>
 
-                {/* Main Tabs */}
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full">
+            {/* Main Tabs */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full mb-6">
                     <button
                         onClick={() => setMainTab('cars')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 whitespace-nowrap ${mainTab === 'cars' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 shadow-none'}`}
@@ -572,7 +584,7 @@ export default function FleetManagement() {
                         {t('fleet.tab_categories', 'Catégories / Types')}
                     </button>
                 </div>
-            </div>
+
 
             {error && (
                 <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm flex justify-between items-center">
@@ -626,14 +638,16 @@ export default function FleetManagement() {
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-3xl">
                     <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <select
-                                value={filterSiteId}
-                                onChange={e => setFilterSiteId(e.target.value)}
-                                className="h-10 px-3 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                            >
-                                <option value="">{t('fleet.all_sites', 'Tous les chantiers')}</option>
-                                {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
+                            {tenant?.has_sites && (
+                                <select
+                                    value={filterSiteId}
+                                    onChange={e => setFilterSiteId(e.target.value)}
+                                    className="h-10 px-3 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                >
+                                    <option value="">{t('fleet.all_sites', 'Tous les chantiers')}</option>
+                                    {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            )}
                             <div className="relative group flex items-center w-full sm:w-auto">
                                 <div className="absolute left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                     <Search className="w-4 h-4" />
@@ -891,10 +905,11 @@ export default function FleetManagement() {
                                                 className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                                             >
                                                 {(() => {
-                                                    const filteredCats = categories.filter(cat => cat.group === (mainTab === 'cars' ? 'car' : 'equipment'));
-                                                    if (filteredCats.length > 0) {
-                                                        return filteredCats.map(cat => ({ name: cat.name, label: cat.name }));
+                                                    // Afișează TOATE categoriile din DB, indiferent de grup
+                                                    if (categories.length > 0) {
+                                                        return categories.map(cat => ({ name: cat.name, label: cat.name }));
                                                     }
+                                                    // Fallback la tipuri hardcodate
                                                     return VEHICLE_TYPES.filter(vt => mainTab === 'cars' ? CAR_TYPES.includes(vt) : !CAR_TYPES.includes(vt)).map(vt => ({ name: vt, label: t(`fleet.types.${vt}`) }));
                                                 })().map(cat => (
                                                     <option key={cat.name} value={cat.name}>{cat.label}</option>

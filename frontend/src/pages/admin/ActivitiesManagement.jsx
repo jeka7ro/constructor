@@ -246,7 +246,7 @@ export default function ActivitiesManagement() {
     ]
 
     return (
-        <div className="p-8">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header Actions */}
             <div className="flex flex-wrap items-center justify-start md:justify-end gap-3 mb-6 w-full">
                     {/* The "Bubble" Search */}

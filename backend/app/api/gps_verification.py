@@ -338,7 +338,7 @@ def daily_verification(
                 "data": f'{{"from":{ts_from},"to":{ts_to}}}'
             }
 
-            with httpx.Client(timeout=30.0) as client:
+            with httpx.Client(timeout=60.0) as client:
                 resp = client.get(url, headers=headers, params=params)
                 resp.raise_for_status()
                 flespi_data = resp.json()
@@ -377,8 +377,9 @@ def daily_verification(
 
             track = fetch_flespi_track(vehicle.imei, date, flespi_data)
             
-            # Fetch OSM dynamic speed limits
-            pt_limits = get_dynamic_speed_limits(track)
+            # Skip OSM Overpass dynamic speed limits — too slow (30s+ per vehicle)
+            # Use only the user-configured speed_limit parameter
+            pt_limits = {}
 
             max_speed_overall = max((p["speed"] for p in track), default=0)
             speed_violations = find_speed_violations(track, pt_limits, speed_limit)
@@ -457,6 +458,7 @@ def daily_verification(
                 "vehicle_id": vehicle.id,
                 "vehicle_name": vehicle.name,
                 "vehicle_plate": vehicle.plate_number,
+                "vehicle_type": getattr(vehicle, "type", None) or "Camion",
                 "team_id": team.id if team else None,
                 "team_name": team.name if team else "Non assigne",
                 "team_color": team.color if team else "#64748b",

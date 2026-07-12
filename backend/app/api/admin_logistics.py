@@ -9,7 +9,7 @@ import requests
 import time
 
 from app.database import get_db
-from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite, LogisticsDailyPlan
+from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite, LogisticsDailyPlan, Vehicle
 from app.api.admin_auth import get_current_admin
 
 # ── Geocoding cache (in-memory per process) ────────────────────────────────
@@ -229,10 +229,16 @@ def delete_sand_station(station_id: str, db: Session = Depends(get_db), admin=De
 # ── DAILY ROUTES ────────────────────────────────────────────────────────────
 def _calculate_daily_routes(target_date: date, db: Session, admin):
     # 1. Fetch all works for the day
+    from sqlalchemy import or_
     wos = db.query(WorkOrder).filter(
         WorkOrder.organization_id == admin.organization_id,
         WorkOrder.start_date == target_date,
         WorkOrder.status != 'cancelled',
+        WorkOrder.status != 'draft',
+        or_(
+            WorkOrder.is_quote == False,
+            (WorkOrder.is_quote == True) & (WorkOrder.status == 'planning')
+        ),
         WorkOrder.assigned_team_id != None
     ).all()
 
@@ -319,7 +325,12 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                     segment = None
                     # Add distance
                     if last_lat and last_lng:
-                        dist_from_prev = osrm_distance(last_lat, last_lng, w_lat, w_lng)
+                        # Dacă e în trecut și are deja traseul salvat, NU recalcula
+                        if target_date < date.today() and w.route_distance_km is not None:
+                            dist_from_prev = float(w.route_distance_km)
+                        else:
+                            dist_from_prev = osrm_distance(last_lat, last_lng, w_lat, w_lng)
+                            
                         team_distance_km += dist_from_prev
                         segment = {
                             "from": "Baza" if last_name == base.name else last_name,
@@ -378,6 +389,15 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
         grand_total_sand_kg += team_sand_kg
         grand_total_distance_km += team_distance_km
 
+        # Resolve vehicle type for this team (from first WO with a vehicle)
+        team_vehicle_type = "Camion"
+        for w in works:
+            if w.assigned_vehicle_id:
+                v = db.query(Vehicle).filter(Vehicle.id == w.assigned_vehicle_id).first()
+                if v and v.type:
+                    team_vehicle_type = v.type
+                    break
+
         routes.append({
             "team_id": team.id,
             "team_name": team.name,
@@ -386,7 +406,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
             "total_sand_kg": team_sand_kg,
             "total_distance_km": team_distance_km,
             "works_count": len(works),
-            "waypoints": waypoints
+            "waypoints": waypoints,
+            "vehicle_type": team_vehicle_type,
         })
 
     return {
@@ -515,6 +536,7 @@ def get_period_report(
             "team_color": team.color if team else "#64748b",
             "vehicle_name": getattr(vehicle, "name", None) or "—",
             "vehicle_plate": getattr(vehicle, "plate_number", None) or "—",
+            "vehicle_type": getattr(vehicle, "type", None) or "Camion",
             "surface_m2": round(total_surface, 2),
             "avg_thickness_cm": round(avg_thickness, 2),
             "sand_kg": round(sand_kg, 1),

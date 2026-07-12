@@ -21,54 +21,150 @@ function haversine(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+
+/**
+ * Calcule le prix total du devis — LOGIQUE IDENTIQUE À DevisView.buildItems().
+ * Priorité: proforma_data.items → fallback volumes → fallback estimated_price.
+ */
+function computeQuoteTotalFromRow(row) {
+    const wo = row;
+    const p = wo.prices || {};
+    let items = [];
+
+    // ── PRIORITÉ 1: proforma_data.items (prixes custom, identique au PDF) ──
+    const pRaw = wo.proforma_data?.items;
+    if (pRaw && pRaw.length > 0) {
+        const d0 = String(pRaw[0].desc || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        const isPlaceholder = pRaw.length === 1 &&
+            (pRaw[0].id === 'default' ||
+             d0.includes('conform deviz') ||
+             d0.includes('manoper') ||
+             d0 === 'chape' || d0 === 'sapa' ||
+             /sapa|chape/i.test(d0));
+        if (!isPlaceholder) {
+            items = pRaw.map(i => ({ qty: parseFloat(i.qty || 1), price: parseFloat(i.price || 0) }));
+        }
+    }
+
+    // ── PRIORITÉ 2: calcul depuis volumes (fallback identique à DevisView) ──
+    if (items.length === 0 && wo.volumes?.length > 0) {
+        wo.volumes.forEach(vol => {
+            const isChape = /[sșş]ap[aăâ]/i.test(vol.label || '') || /chape/i.test(vol.label || '') ||
+                            (vol.label || '').toLowerCase().includes('sapa');
+            const surface = parseFloat(vol.quantity || 0);
+            const thick   = parseFloat(vol.thickness || 0);
+
+            if (surface > 0) {
+                if (isChape) {
+                    const stdThick  = parseFloat(p.standard_thickness || 5);
+                    const extraThick = Math.max(0, thick - stdThick);
+                    items.push({ qty: surface, price: parseFloat(p.base || 12.5) });
+                    if (extraThick > 0)
+                        items.push({ qty: surface, price: extraThick * parseFloat(p.extra_thickness_price_per_cm || p.extra || 1.25) });
+                    if (vol.has_foil)  items.push({ qty: surface, price: parseFloat(p.foil  || 1.2) });
+                    if (vol.has_mesh)  items.push({ qty: surface, price: parseFloat(p.mesh  || 2.5) });
+                    if (vol.has_fiber || vol.has_duramint)
+                        items.push({ qty: surface, price: parseFloat(p.fiber || (surface <= 200 ? 2.5 : 2.0)) });
+                } else {
+                    // Volume non-chape: price unitaire stocké ou estimated_price / surface
+                    const unitPrice = parseFloat(vol.price || 0) || (parseFloat(wo.estimated_price || 0) / (surface || 1));
+                    if (unitPrice > 0) items.push({ qty: surface, price: unitPrice });
+                }
+            }
+        });
+    }
+
+    // ── Surface thresholds (forfait) ──
+    if (p.surface_thresholds?.length) {
+        const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
+        p.surface_thresholds.forEach(t => {
+            if (surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)) {
+                const charge = parseFloat(t.extra_charge || 0);
+                if (charge > 0) items.push({ qty: 1, price: charge });
+            }
+        });
+    }
+
+    // Rien à calculer → retourner null (fallback à estimated_price)
+    if (items.length === 0) return null;
+
+    const totalNet        = items.reduce((s, i) => s + i.qty * i.price, 0);
+    const netAfterDiscount = totalNet - parseFloat(p.discount || 0);
+
+    // TVA — identique à DevisView (vat_type est un pourcentage: 21, 6, 0)
+    let vatRate = 0;
+    if (p.useVat !== false) {
+        if (p.vat_type !== undefined) {
+            vatRate = parseFloat(p.vat_type);
+        } else if (wo.client_type === 'pj' || wo.client_type === 'juridica') {
+            vatRate = 0;
+        } else {
+            vatRate = wo.work_type === 'repair' ? 6 : 21;
+        }
+    }
+
+    const totalGross = netAfterDiscount * (1 + vatRate / 100);
+    return totalGross > 0 ? totalGross : null;
+}
+
+/** Affiche le prix calculé — identique au PDF. Source: backend computed_total. Clic pour saisie manuelle. */
 const EditablePrice = ({ row, onUpdate }) => {
-    const [price, setPrice] = useState(row.estimated_price ?? '')
-    const [isSaving, setIsSaving] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
-    
+    const [manualInput, setManualInput] = useState(row.estimated_price ?? '')
+    const [isSaving, setIsSaving] = useState(false)
+
+    // Source unique de vérité: computed_total calculé sur le backend (= même logique que le PDF)
+    // Fallback: estimated_price (pour anciens devis sans volumes ni proforma_data)
+    const displayValue = row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : null)
+
     const handleBlur = async () => {
         setIsEditing(false)
-        if (price === (row.estimated_price ?? '')) return
+        const newVal = manualInput === '' ? null : parseFloat(manualInput)
+        if (newVal === (row.estimated_price ?? null)) return
         setIsSaving(true)
         try {
-            await api.put(`/admin/work-orders/${row.id}`, { estimated_price: price === '' ? null : parseFloat(price) })
+            await api.put(`/admin/work-orders/${row.id}`, { estimated_price: newVal })
             onUpdate()
         } catch (e) {
             console.error(e)
-            setPrice(row.estimated_price ?? '')
+            setManualInput(row.estimated_price ?? '')
         } finally {
             setIsSaving(false)
         }
     }
-    
-    const formatPrice = (val) => {
-        if (val === '' || val === null || val === undefined) return '';
-        return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
-    }
-    
-    return (
-        <div className="relative w-28 flex items-center">
-            {isEditing ? (
-                <input 
+
+    const fmt = (val) => new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
+
+    if (isEditing) {
+        return (
+            <div className="relative flex items-center w-36">
+                <input
                     type="number" step="any"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
+                    value={manualInput}
+                    onChange={e => setManualInput(e.target.value)}
                     onBlur={handleBlur}
-                    className="w-full text-right text-sm text-slate-700 border border-slate-300 focus:border-blue-500 rounded pl-2 pr-6 py-1 bg-white transition-colors outline-none"
-                    placeholder={t('quotes.price_placeholder', 'Prix...')}
+                    className="w-full text-right text-sm font-semibold text-slate-800 border border-blue-400 focus:border-blue-500 rounded-lg pl-2 pr-7 py-1 bg-white outline-none shadow-sm"
                     disabled={isSaving}
                     autoFocus
                 />
-            ) : (
-                <div 
-                    onClick={() => !isSaving && setIsEditing(true)}
-                    className="w-full text-right text-sm text-slate-700 border border-transparent hover:border-slate-300 rounded pl-2 pr-6 py-1 cursor-text"
-                >
-                    {price ? formatPrice(price) : '0,00'}
-                </div>
-            )}
-            <span className="absolute right-2 text-slate-500 font-bold pointer-events-none">€</span>
-            {isSaving && <Loader2 className="w-3 h-3 animate-spin absolute right-6 text-slate-400" />}
+                <span className="absolute right-2 text-slate-400 pointer-events-none text-xs font-bold">€</span>
+            </div>
+        )
+    }
+
+    return (
+        <div
+            onClick={() => { setManualInput(row.estimated_price ?? ''); setIsEditing(true); }}
+            className="flex items-baseline gap-1 cursor-pointer group"
+            title="Cliquer pour saisir un prix manuel"
+        >
+            {isSaving
+                ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                : <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                    {displayValue != null ? fmt(displayValue) : '—'}
+                  </span>
+            }
+            <span className="text-xs text-slate-500 font-semibold">€</span>
         </div>
     )
 }
@@ -112,7 +208,7 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
                 onChange={e => setPrice(e.target.value)}
                 onBlur={handleBlur}
                 className="w-full text-sm border border-transparent hover:border-slate-300 focus:border-blue-500 rounded px-2 py-1 bg-transparent transition-colors outline-none"
-                placeholder={t('quotes.price_per_sqm_placeholder', 'Prix/m²...')}
+                placeholder="Prix/m²..."
                 disabled={isSaving}
             />
             {isSaving && <Loader2 className="w-3 h-3 animate-spin absolute right-2 top-2 text-slate-400" />}
@@ -506,7 +602,7 @@ export default function QuotesManagement() {
 
         {
             key: 'estimated_price',
-            label: t('quotes.price', 'Preț (€)'),
+            label: t('quotes.price', 'Prix (€)'),
             sortable: true,
             render: (row) => (
                 <EditablePrice row={row} onUpdate={fetchQuotes} />
@@ -700,7 +796,7 @@ export default function QuotesManagement() {
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-64px)]">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-64px)]">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">{t('quotes.title_main', 'Devis / Oferte')}</h2>

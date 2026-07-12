@@ -1038,7 +1038,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
-                                            {((wo.site_latitude && wo.site_longitude) || wo.site_address) && (
+                                            {(!wo.external_id && ((wo.site_latitude && wo.site_longitude) || wo.site_address)) && (
                                                 <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
                                                     <StreetViewPhotos lat={wo.site_latitude} lng={wo.site_longitude} address={wo.site_address} />
                                                 </div>

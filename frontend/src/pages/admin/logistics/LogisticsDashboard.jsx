@@ -5,13 +5,110 @@ import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Laye
 import api from '../../../lib/api'
 import { useTenantStore } from '../../../store/tenantStore'
 
-function TruckSVG({ color = '#2563eb', className = 'w-4 h-4' }) {
+// ── Iconițe vehicule realiste bazate pe tip ──────────────────────────────
+// Camion de șapă: cabină + corp lung cu braț pompă
+const SCREED_TRUCK_SVG = (strokeColor = 'white') => `
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 52 32" fill="none" stroke="${strokeColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Cabina -->
+  <rect x="1" y="10" width="14" height="16" rx="2"/>
+  <rect x="3" y="12" width="10" height="7" rx="1" fill="${strokeColor}" fill-opacity="0.25"/>
+  <!-- Corp lung (buncăr șapă) -->
+  <rect x="15" y="12" width="26" height="14" rx="1"/>
+  <!-- Braț pompă -->
+  <line x1="28" y1="12" x2="28" y2="4"/>
+  <line x1="28" y1="4" x2="42" y2="4"/>
+  <line x1="42" y1="4" x2="44" y2="12"/>
+  <!-- Roți -->
+  <circle cx="7" cy="28" r="3.5"/>
+  <circle cx="19" cy="28" r="3.5"/>
+  <circle cx="33" cy="28" r="3.5"/>
+  <circle cx="44" cy="28" r="3.5"/>
+</svg>`
+
+// Grue: cabină + corp scurt + macara verticală cu braț
+const CRANE_TRUCK_SVG = (strokeColor = 'white') => `
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 52 40" fill="none" stroke="${strokeColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Cabina -->
+  <rect x="1" y="18" width="14" height="16" rx="2"/>
+  <rect x="3" y="20" width="10" height="7" rx="1" fill="${strokeColor}" fill-opacity="0.25"/>
+  <!-- Corp camion -->
+  <rect x="15" y="20" width="22" height="14" rx="1"/>
+  <!-- Mast vertical macara -->
+  <line x1="28" y1="20" x2="28" y2="2"/>
+  <!-- Braț orizontal macara -->
+  <line x1="28" y1="2" x2="48" y2="2"/>
+  <!-- Cablu de macara -->
+  <line x1="45" y1="2" x2="45" y2="14" stroke-dasharray="2,1.5"/>
+  <!-- Contragreutate stânga -->
+  <rect x="20" y="0" width="8" height="4" rx="1"/>
+  <!-- Cârlig -->
+  <path d="M43 14 Q45 17 47 14" fill="none"/>
+  <!-- Roți -->
+  <circle cx="7" cy="36" r="3.5"/>
+  <circle cx="19" cy="36" r="3.5"/>
+  <circle cx="31" cy="36" r="3.5"/>
+</svg>`
+
+// Generic truck (fallback)
+const GENERIC_TRUCK_SVG = (strokeColor = 'white') => `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="1" y="3" width="15" height="13" rx="1"/>
+  <path d="M16 8h4l3 5v4h-7V8z"/>
+  <circle cx="5.5" cy="18.5" r="2.5"/>
+  <circle cx="18.5" cy="18.5" r="2.5"/>
+</svg>`
+
+// Returnează SVG-ul potrivit pe baza numelui tipului de vehicul
+function getVehicleIconSvg(vehicleType, strokeColor = 'white') {
+    const t = (vehicleType || '').toLowerCase()
+    if (/grue|crane|macara/i.test(t)) return CRANE_TRUCK_SVG(strokeColor)
+    if (/chap|sap|screed|beton|pump|pompe/i.test(t)) return SCREED_TRUCK_SVG(strokeColor)
+    return GENERIC_TRUCK_SVG(strokeColor)
+}
+
+// Componentă React pentru UI (carduri, panouri laterale)
+function TruckSVG({ color = '#2563eb', vehicleType = '', className = 'w-4 h-4' }) {
+    const t = (vehicleType || '').toLowerCase()
+    let paths
+    if (/grue|crane|macara/i.test(t)) {
+        // Crane icon
+        paths = (
+            <>
+                <rect x="1" y="10" width="10" height="11" rx="1.5" />
+                <rect x="11" y="12" width="12" height="9" rx="1" />
+                <line x1="17" y1="12" x2="17" y2="2" />
+                <line x1="17" y1="2" x2="24" y2="2" />
+                <line x1="23" y1="2" x2="23" y2="8" strokeDasharray="2,1" />
+                <circle cx="5" cy="22" r="2" />
+                <circle cx="17" cy="22" r="2" />
+            </>
+        )
+    } else if (/chap|sap|screed|beton|pump/i.test(t)) {
+        // Screed truck icon
+        paths = (
+            <>
+                <rect x="1" y="8" width="9" height="11" rx="1.5" />
+                <rect x="10" y="9" width="14" height="10" rx="1" />
+                <line x1="16" y1="9" x2="16" y2="3" />
+                <line x1="16" y1="3" x2="24" y2="3" />
+                <circle cx="5" cy="21" r="2" />
+                <circle cx="13" cy="21" r="2" />
+                <circle cx="21" cy="21" r="2" />
+            </>
+        )
+    } else {
+        paths = (
+            <>
+                <rect x="1" y="3" width="15" height="13" rx="1" />
+                <path d="M16 8h4l3 5v4h-7V8z" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+            </>
+        )
+    }
     return (
         <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="1" y="3" width="15" height="13" rx="1" />
-            <path d="M16 8h4l3 5v4h-7V8z" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
+            {paths}
         </svg>
     )
 }
@@ -68,21 +165,55 @@ function MapBoundsFitter({ data, activeTeams }) {
 }
 
 function RoutingMachine({ positions, color, weight, opacity }) {
-    // Instead of OSRM routing which hangs the browser and hits rate limits on the demo server,
-    // we draw a simple Polyline to show the intended route between jobs.
-    if (!positions || positions.length < 2) return null;
-    return <Polyline positions={positions} color={color} weight={weight} opacity={opacity} dashArray="5, 10" />;
+    const [routePositions, setRoutePositions] = React.useState(null)
+    const [isFallback, setIsFallback] = React.useState(false)
+
+    React.useEffect(() => {
+        if (!positions || positions.length < 2) return
+        setRoutePositions(null)
+        setIsFallback(false)
+
+        // Cache key bazat pe coordonate (4 zecimale = ~11m precizie)
+        const cacheKey = 'osrm_route_' + positions.map(p => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join('|')
+
+        // Verifica cache localStorage
+        try {
+            const cached = localStorage.getItem(cacheKey)
+            if (cached) {
+                setRoutePositions(JSON.parse(cached))
+                return
+            }
+        } catch {}
+
+        // Apel OSRM Route API
+        let cancelled = false
+        const coords = positions.map(([lat, lng]) => `${lng},${lat}`).join(';')
+        fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
+            .then(r => r.json())
+            .then(data => {
+                if (cancelled) return
+                if (data.routes?.[0]) {
+                    const pts = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
+                    try { localStorage.setItem(cacheKey, JSON.stringify(pts)) } catch {}
+                    setRoutePositions(pts)
+                } else {
+                    setIsFallback(true)
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setIsFallback(true)
+            })
+
+        return () => { cancelled = true }
+    }, [positions?.map(p => p?.join(',')).join('|')])
+
+    if (!positions || positions.length < 2) return null
+    const pts = routePositions || positions
+    // Linie continua pentru ruta OSRM, gesticulata pentru fallback
+    return <Polyline positions={pts} color={color} weight={weight || 3} opacity={opacity || 0.8} dashArray={isFallback ? "5, 10" : null} />
 }
 
-const TRUCK_SVG = (color) => `
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="3" width="15" height="13" rx="1"/>
-        <path d="M16 8h4l3 5v4h-7V8z"/>
-        <circle cx="5.5" cy="18.5" r="2.5"/>
-        <circle cx="18.5" cy="18.5" r="2.5"/>
-    </svg>`
-
-const createCustomIcon = (text, isBase, teamColor) => {
+const createCustomIcon = (text, isBase, teamColor, vehicleType = '') => {
     if (isBase) {
         return L.divIcon({
             className: 'custom-div-icon',
@@ -92,11 +223,11 @@ const createCustomIcon = (text, isBase, teamColor) => {
         })
     }
     const color = teamColor || '#3b82f6'
-    // Truck + badge iPhone-style (number top-right, same team color, slightly darker)
+    const iconSvg = getVehicleIconSvg(vehicleType)
     return L.divIcon({
         className: 'custom-div-icon',
         html: `<div style="position:relative;width:40px;height:40px;">
-            <div style="position:absolute;top:4px;left:4px;background-color:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);">${TRUCK_SVG(color)}</div>
+            <div style="position:absolute;top:4px;left:4px;background-color:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);">${iconSvg}</div>
             <div style="position:absolute;top:0;right:0;background-color:${color};filter:brightness(0.75);border:2.5px solid white;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 1px 5px rgba(0,0,0,0.45);">
                 <span style="color:white;font-size:10px;font-weight:900;font-family:sans-serif;line-height:1;letter-spacing:-0.5px;">${text}</span>
             </div>
@@ -427,8 +558,8 @@ export default function LogisticsDashboard() {
                                             <RoutingMachine
                                                 positions={positions}
                                                 color={route.team_color}
-                                                weight={4}
-                                                opacity={0.3} // Mai transparent pentru a pune în evidență traseul GPS
+                                                weight={3}
+                                                opacity={0.7}
                                             />
                                         )}
 
@@ -475,7 +606,7 @@ export default function LogisticsDashboard() {
                                             if (hasOnlyBase && wp.type?.includes('base')) {
                                                 return (
                                                     <Marker key={`wp-nomap-${idx}`} position={[wp.lat, wp.lng]}
-                                                        icon={createCustomIcon('!', false, route.team_color)}>
+                                                        icon={createCustomIcon('!', false, route.team_color, route.vehicle_type)}>
                                                         <Popup>
                                                             <strong>{route.team_name}</strong>
                                                             <br /><span style={{color:'#f59e0b', fontSize:'11px'}}>⚠️ Comenzile nu au coordonate GPS</span>
@@ -489,7 +620,7 @@ export default function LogisticsDashboard() {
                                                 <Marker
                                                     key={`wp-${idx}`}
                                                     position={[wp.lat, wp.lng]}
-                                                    icon={createCustomIcon(wp.type?.includes('base') ? 'B' : idx, wp.type?.includes('base'), route.team_color)}
+                                                    icon={createCustomIcon(wp.type?.includes('base') ? 'B' : idx, wp.type?.includes('base'), route.team_color, route.vehicle_type)}
                                                 >
                                                     <Popup>
                                                         <strong className="text-sm">{wp.name}</strong>
@@ -760,7 +891,7 @@ export default function LogisticsDashboard() {
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800 relative">
                                                         <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                                            <TruckSVG color={route.team_color || '#64748b'} className="w-3.5 h-3.5" />
+                                                            <TruckSVG color={route.team_color || '#64748b'} vehicleType={route.vehicle_type} className="w-3.5 h-3.5" />
                                                             {t('logistics.distance', 'Distanţă')}
                                                         </div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{Math.round(route.total_distance_km)} km</div>
@@ -842,7 +973,7 @@ export default function LogisticsDashboard() {
                         {/* Header in team color */}
                         <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: selectedWork.route.team_color }}>
                             <div className="flex items-center gap-2">
-                                <TruckSVG color={selectedWork.route.team_color} className="w-5 h-5 opacity-80" />
+                                <TruckSVG color={selectedWork.route.team_color} vehicleType={selectedWork.route.vehicle_type} className="w-5 h-5 opacity-80" />
                                 <span className="font-bold text-white text-sm tracking-wide">{selectedWork.route.team_name}</span>
                             </div>
                             <button onClick={() => setSelectedWork(null)} className="text-white/80 hover:text-white transition-colors">

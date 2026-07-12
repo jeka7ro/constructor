@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -9,7 +9,7 @@ import {
     Navigation, Truck, Clock, AlertTriangle,
     CheckCircle2, XCircle, MapPin, RefreshCw,
     Loader2, ChevronDown, ChevronUp, ArrowLeft,
-    ChevronLeft, ChevronRight
+    ChevronLeft, ChevronRight, Beaker, BarChart3
 } from 'lucide-react'
 import api from '../../../lib/api'
 import DataTable from '../../../components/DataTable'
@@ -88,12 +88,14 @@ function StatusBadge({ status, delay_min }) {
     )
 }
 
-function VehicleCard({ result }) {
+function VehicleCard({ result, speedLimit = 90 }) {
     const { t } = useTranslation()
     const [expanded, setExpanded] = useState(true)
     const [showMap, setShowMap] = useState(false)
     const [isMapFullscreen, setIsMapFullscreen] = useState(false)
     const [focusedTrip, setFocusedTrip] = useState(null)
+    const [matchedPolyline, setMatchedPolyline] = useState(null)
+    const [isMatchingRoute, setIsMatchingRoute] = useState(false)
 
     useEffect(() => {
         const handleEsc = (e) => {
@@ -105,8 +107,47 @@ function VehicleCard({ result }) {
         window.addEventListener('keydown', handleEsc)
         return () => window.removeEventListener('keydown', handleEsc)
     }, [isMapFullscreen])
+    // OSRM Map Matching: snapare GPS pe drumuri reale
+    useEffect(() => {
+        const pointsToMatch = focusedTrip || result.track
+        if (!showMap || !pointsToMatch || pointsToMatch.length < 2) {
+            setMatchedPolyline(null)
+            return
+        }
+        let cancelled = false
+        setIsMatchingRoute(true)
+        setMatchedPolyline(null)
 
-    // Calculate vehicle status (In Miscare vs Stationeaza)
+        const fetchMatch = async () => {
+            // OSRM max 100 puncte
+            const sampled = pointsToMatch.length > 100
+                ? pointsToMatch.filter((_, i) => i % Math.ceil(pointsToMatch.length / 100) === 0)
+                : pointsToMatch
+            const coords = sampled.map(p => `${p.lng},${p.lat}`).join(';')
+            const radiuses = sampled.map(() => '50').join(';')
+            try {
+                const resp = await fetch(
+                    `https://router.project-osrm.org/match/v1/driving/${coords}?overview=full&geometries=geojson&radiuses=${radiuses}`
+                )
+                if (!resp.ok || cancelled) return
+                const data = await resp.json()
+                if (cancelled) return
+                if (data.matchings?.length > 0) {
+                    const allCoords = data.matchings.flatMap(m =>
+                        m.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+                    )
+                    setMatchedPolyline(allCoords)
+                }
+            } catch (e) {
+                if (!cancelled) console.warn('OSRM match failed, using raw GPS:', e)
+            } finally {
+                if (!cancelled) setIsMatchingRoute(false)
+            }
+        }
+        fetchMatch()
+        return () => { cancelled = true; setIsMatchingRoute(false) }
+    }, [showMap, focusedTrip])
+
     const firstPoint = result.track && result.track.length > 0 ? result.track[0] : null;
     const lastPoint = result.track && result.track.length > 0 ? result.track[result.track.length - 1] : null;
     const isRecentlyUpdated = lastPoint ? (Date.now() / 1000 - lastPoint.ts) < 900 : false; // within 15 minutes
@@ -171,7 +212,13 @@ function VehicleCard({ result }) {
         setIsMapFullscreen(true);
     };
 
-    let displaySegments = segments;
+    // displaySegments: prefer matched OSRM polyline, fallback la raw GPS segments
+    let displaySegments
+    if (matchedPolyline && matchedPolyline.length > 1) {
+        displaySegments = [{ positions: matchedPolyline, color: result.team_color || '#3b82f6' }]
+    } else {
+        displaySegments = segments
+    }
     let displayPoints = allMapPoints;
     let displayStartPoint = trackPoints.length > 0 ? trackPoints[0] : null;
     let displayEndPoint = trackPoints.length > 1 ? trackPoints[trackPoints.length - 1] : null;
@@ -201,7 +248,7 @@ function VehicleCard({ result }) {
 
         const first = focusedTrip[0];
         const last = focusedTrip[focusedTrip.length - 1];
-        const violations = result.speed_violations.filter(v => v.time >= first.time_local && v.time <= last.time_local).length;
+        const violations = focusedTrip.filter(pt => pt.speed > speedLimit).length
         
         let durationStr = '--';
         const diffMin = Math.round((last.ts - first.ts) / 60);
@@ -226,44 +273,71 @@ function VehicleCard({ result }) {
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-lg transition-all duration-200 group">
+            {/* Colored accent left bar + header */}
             <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors"
                 style={{ borderLeft: `4px solid ${result.team_color || '#64748b'}` }}
                 onClick={() => setExpanded(e => !e)}
             >
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: (result.team_color || '#64748b') + '20' }}>
-                        <Truck className="w-5 h-5" style={{ color: result.team_color || '#64748b' }} />
+                {/* Left: icon + info — compact */}
+                <div className="flex items-center gap-3 min-w-0">
+                    <div
+                        className="w-14 h-10 rounded-xl flex-shrink-0 flex items-center justify-center border"
+                        style={{
+                            background: (result.team_color || '#64748b') + '15',
+                            borderColor: (result.team_color || '#64748b') + '40',
+                        }}
+                    >
+                        <Truck className="w-7 h-5" style={{ color: result.team_color || '#64748b' }} />
                     </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <p className="font-bold text-slate-900">
+
+                    <div className="min-w-0">
+                        {/* Row 1: name + plate */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-slate-900 text-sm leading-tight truncate">
                                 {result.vehicle_name}
-                                <span className="text-slate-400 font-normal text-xs ml-1">({result.vehicle_plate})</span>
                             </p>
+                            <span className="text-slate-400 font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded-md flex-shrink-0">
+                                {result.vehicle_plate}
+                            </span>
                             {lastPoint && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${isMoving ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                    {isMoving ? 'En mouvement' : 'En stationnement'}
+                                <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider border flex-shrink-0 ${
+                                    isMoving
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-slate-50 text-slate-400 border-slate-200'
+                                }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isMoving ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                                    {isMoving ? 'En mouvement' : 'Garé'}
                                 </span>
                             )}
                         </div>
-                        <p className="text-xs font-semibold" style={{ color: result.team_color || '#64748b' }}>{result.team_name}</p>
+                        {/* Row 2: team */}
+                        <p className="text-[11px] font-semibold mt-0.5 truncate" style={{ color: result.team_color || '#94a3b8' }}>
+                            {result.team_name}
+                        </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-sm font-bold text-slate-700">{result.total_km} km</p>
-                        <p className="text-xs text-slate-400">{result.gps_points} pts GPS</p>
+
+                {/* Right: stats + violations + expand */}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                    {/* KM stat pill */}
+                    <div className="hidden sm:flex flex-col items-end">
+                        <p className="text-sm font-black text-slate-800 leading-tight tabular-nums">
+                            {result.total_km} <span className="text-[10px] font-semibold text-slate-400">km</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 leading-tight tabular-nums">{result.gps_points} GPS</p>
                     </div>
+
                     {result.speed_violations_count > 0 && (
-                        <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-lg">
                             <AlertTriangle className="w-3 h-3" />
-                            {result.speed_violations_count} {t('gps.violations', 'exces')}
+                            {result.speed_violations_count}
                         </span>
                     )}
-                    <div className="text-slate-400">
-                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+
+                    <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 group-hover:bg-slate-200 text-slate-500 transition-colors">
+                        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </div>
                 </div>
             </div>
@@ -275,36 +349,52 @@ function VehicleCard({ result }) {
                         const tableData = trips.map((trip, idx) => {
                             const first = trip[0]
                             const last = trip[trip.length - 1]
-                            let durationStr = '--'
-                            const diffMin = Math.round((last.ts - first.ts) / 60)
-                            const h = Math.floor(diffMin / 60)
-                            const m = diffMin % 60
-                            durationStr = h > 0 ? `${h}h ${m}m` : `${m}m`
 
+                            // Total elapsed time (door-to-door incl. stops)
+                            const elapsedMin = Math.round((last.ts - first.ts) / 60)
+                            const eh = Math.floor(elapsedMin / 60)
+                            const em = elapsedMin % 60
+                            const totalDurationStr = eh > 0 ? `${eh}h ${em}m` : `${em}m`
+
+                            // Driving-only time: sum intervals where speed > 2 km/h
+                            let drivingMin = 0
                             let distKm = 0
                             let maxSpeed = 0
-                            for(let j = 0; j < trip.length; j++) {
+
+                            for (let j = 0; j < trip.length; j++) {
                                 if (trip[j].speed > maxSpeed) maxSpeed = trip[j].speed
                                 if (j > 0) {
-                                    distKm += haversineKm(trip[j-1].lat, trip[j-1].lng, trip[j].lat, trip[j].lng)
+                                    const segDurationSec = trip[j].ts - trip[j - 1].ts
+                                    const avgSpeed = (trip[j].speed + trip[j - 1].speed) / 2
+                                    // Only count segment if vehicle was moving
+                                    if (avgSpeed > 2) {
+                                        drivingMin += segDurationSec / 60
+                                        distKm += haversineKm(trip[j - 1].lat, trip[j - 1].lng, trip[j].lat, trip[j].lng)
+                                    }
                                 }
                             }
-                            
-                            const violations = result.speed_violations.filter(v => v.time >= first.time_local && v.time <= last.time_local).length
+
+                            drivingMin = Math.round(drivingMin)
+                            const dh = Math.floor(drivingMin / 60)
+                            const dm = drivingMin % 60
+                            const drivingDurationStr = dh > 0 ? `${dh}h ${dm}m` : `${dm}m`
+
+                            const violations = trip.filter(pt => pt.speed > speedLimit).length
                             return {
                                 id: idx + 1,
                                 trip,
                                 startTime: first.time_local.slice(0, 5),
                                 endTime: last.time_local.slice(0, 5),
-                                durationStr,
+                                drivingDurationStr,
+                                totalDurationStr,
                                 distKm: distKm.toFixed(1),
                                 maxSpeed: maxSpeed.toFixed(1),
                                 violations
                             }
                         })
 
-                        // Filtreaza traseele fantoma (un singur punct GPS = 0 km)
-                        const filteredData = tableData.filter(row => parseFloat(row.distKm) > 0.1)
+                        // Filtreaza traseele fantoma (distanta de condus < 0.3 km)
+                        const filteredData = tableData.filter(row => parseFloat(row.distKm) > 0.3)
 
                         if (filteredData.length === 0) return null
 
@@ -328,15 +418,25 @@ function VehicleCard({ result }) {
                                         },
                                         {
                                             key: 'startTime',
-                                            label: t('gps.start_time', 'Heure depart'),
+                                            label: t('gps.start_time', 'Heure départ'),
                                         },
                                         {
                                             key: 'endTime',
-                                            label: t('gps.end_time', 'Heure arrivee'),
+                                            label: t('gps.end_time', 'Heure arrivée'),
                                         },
                                         {
-                                            key: 'durationStr',
-                                            label: t('gps.time_on_road', 'Temps en route'),
+                                            key: 'drivingDurationStr',
+                                            label: t('gps.drive_time', 'Conduite'),
+                                            render: (row) => (
+                                                <span className="font-semibold text-slate-800">{row.drivingDurationStr}</span>
+                                            )
+                                        },
+                                        {
+                                            key: 'totalDurationStr',
+                                            label: t('gps.total_duration', 'Durée totale'),
+                                            render: (row) => (
+                                                <span className="text-slate-400 text-xs">{row.totalDurationStr}</span>
+                                            )
                                         },
                                         {
                                             key: 'distKm',
@@ -436,11 +536,12 @@ function VehicleCard({ result }) {
                     {trackPoints.length >= 2 && (
                         <div>
                             <button
-                                onClick={() => { setShowMap(m => !m); setFocusedTrip(null); setIsMapFullscreen(false); }}
+                                onClick={() => { setShowMap(m => !m); setFocusedTrip(null); setIsMapFullscreen(false); setMatchedPolyline(null); }}
                                 className="w-full flex items-center justify-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-xl py-2 hover:bg-blue-100 transition-colors"
                             >
                                 <MapPin className="w-3.5 h-3.5" />
-                                {showMap && !focusedTrip ? t('gps.hide_map', 'Masquer la carte') : t('gps.show_map', 'Voir le trace GPS sur la carte')}
+                                {isMatchingRoute && <span className="animate-pulse">Chargement route...</span>}
+                                {!isMatchingRoute && (showMap && !focusedTrip ? t('gps.hide_map', 'Masquer la carte') : t('gps.show_map', 'Voir le trace GPS sur la carte'))}
                             </button>
 
                             {showMap && (
@@ -566,10 +667,14 @@ function VehicleCard({ result }) {
             )}
 
                     {trackPoints.length === 0 && (
-                        <div className="text-center py-6 text-slate-400 text-sm">
-                            <Navigation className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                            <p>{t('gps.no_gps_data', 'Aucune donnee GPS pour cette date.')}</p>
-                            <p className="text-xs mt-1">{t('gps.no_gps_hint', 'Le vehicule etait peut-etre gare ou hors reseau.')}</p>
+                        <div className="flex flex-col items-center justify-center py-10 gap-3">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+                                <Navigation className="w-7 h-7 text-slate-300" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-semibold text-slate-500">{t('gps.no_gps_data', 'Aucune donnée GPS pour cette date.')}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">{t('gps.no_gps_hint', 'Le véhicule était peut-être garé ou hors réseau.')}</p>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -602,7 +707,7 @@ export default function GpsVerificationPage() {
             
             const res = await api.get(endpoint, {
                 validateStatus: () => true,   // previne interceptorul de redirect
-                timeout: 30000,
+                timeout: 90000,
             })
             if (res.status === 401) {
                 setError('Session expiree. Reconnectez-vous.')
@@ -646,25 +751,41 @@ export default function GpsVerificationPage() {
     const vehiclesWithData = filteredResults.filter(r => r.gps_points > 0).length
 
     return (
-        <div className="p-6 md:p-8 min-h-screen">
-            {/* Header */}
+        <div className="p-4 md:p-8 min-h-screen">
+            {/* Header with tab navigation */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={() => navigate(-1)}
+                        onClick={() => navigate('/admin/logistica')}
                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                        title="Înapoi"
+                        title="Retour Logistique"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
-                    <div>
-                    <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <Navigation className="w-5 h-5 text-blue-600" />
-                        {t('gps.verification_title', 'Verification GPS')}
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">
-                        {t('gps.verification_subtitle', 'Comparaison planning prevu vs trace GPS reel')}
-                    </p>
+                    {/* Tab bar — same as LogisticsDashboard */}
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+                        <Link
+                            to="/admin/logistica/bases"
+                            className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                        >
+                            <MapPin className="w-4 h-4" /> {t('logistics.bases', 'Bases')}
+                        </Link>
+                        <Link
+                            to="/admin/logistica/sand-stations"
+                            className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                        >
+                            <Beaker className="w-4 h-4" /> {t('logistics.sand_stations', 'Stations de Sable')}
+                        </Link>
+                        <Link
+                            to="/admin/logistica/raport"
+                            className="px-4 h-9 flex items-center gap-2 rounded-full hover:bg-white dark:hover:bg-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                        >
+                            <BarChart3 className="w-4 h-4" /> {t('logistics.report', 'Rapport')}
+                        </Link>
+                        {/* Active tab — GPS Verification */}
+                        <div className="px-4 h-9 flex items-center gap-2 rounded-full bg-white dark:bg-slate-700 shadow-sm text-sm font-bold text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900">
+                            <Navigation className="w-4 h-4" /> Vérif. GPS
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -681,9 +802,10 @@ export default function GpsVerificationPage() {
                     </div>
                     <button
                         onClick={() => {
-                            const d = new Date(date);
-                            d.setDate(d.getDate() - 1);
-                            setDate(d.toISOString().split('T')[0]);
+                            // Timezone-safe: manipulate ISO string directly
+                            const [y, m, d] = date.split('-').map(Number);
+                            const dt = new Date(y, m - 1, d - 1);
+                            setDate(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`);
                         }}
                         className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
                         title="Jour précédent"
@@ -699,9 +821,9 @@ export default function GpsVerificationPage() {
                     />
                     <button
                         onClick={() => {
-                            const d = new Date(date);
-                            d.setDate(d.getDate() + 1);
-                            const next = d.toISOString().split('T')[0];
+                            const [y, m, d] = date.split('-').map(Number);
+                            const dt = new Date(y, m - 1, d + 1);
+                            const next = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
                             if (next <= today) setDate(next);
                         }}
                         className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
@@ -721,16 +843,16 @@ export default function GpsVerificationPage() {
 
             {/* KPIs */}
             {data && !loading && (
-                <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
+                <div className="grid grid-cols-3 gap-5">
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center">
                         <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{t('gps.active_vehicles', 'Vehicules actifs')}</p>
                         <p className="text-2xl font-bold text-slate-700">{vehiclesWithData}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center">
                         <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{t('gps.total_km', 'KM total')}</p>
                         <p className="text-2xl font-bold text-slate-700">{totalKm.toFixed(1)}</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center">
                         <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${totalViolations > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                             {t('gps.speed_excess', 'Exces vitesse')}
                         </p>
@@ -755,7 +877,7 @@ export default function GpsVerificationPage() {
             )}
 
             {!loading && data?.results && (
-                <div className="space-y-4">
+                <div className="space-y-5 mt-2">
                     {filteredResults.length === 0 ? (
                         <div className="text-center py-12 text-slate-400">
                             <Truck className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -763,7 +885,8 @@ export default function GpsVerificationPage() {
                         </div>
                     ) : (
                         filteredResults.map(result => (
-                            <VehicleCard key={result.vehicle_id} result={result} />
+                            <VehicleCard key={result.vehicle_id} result={result} speedLimit={speedLimit} />
+
                         ))
                     )}
                 </div>
