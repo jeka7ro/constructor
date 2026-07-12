@@ -325,24 +325,21 @@ def daily_verification(
             if not vehicles:
                 return {"results": []}
 
-            # Build list of flespi device IDs (numeric) for vehicles that have them
             device_ids = [str(v.flespi_device_id) for v in vehicles if getattr(v, 'flespi_device_id', None)]
 
-            if not device_ids:
-                # Fallback: no configured devices, return empty
-                return {"date": date, "results": [r for r in []]}
+            if device_ids:
+                url = f"https://flespi.io/gw/devices/{','.join(device_ids)}/messages"
+                headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
 
-            url = f"https://flespi.io/gw/devices/{','.join(device_ids)}/messages"
-            headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
+                params = {
+                    "data": f'{{"from":{ts_from},"to":{ts_to}}}'
+                }
 
-            params = {
-                "data": f'{{"from":{ts_from},"to":{ts_to}}}'
-            }
+                with httpx.Client(timeout=60.0) as client:
+                    resp = client.get(url, headers=headers, params=params)
+                    resp.raise_for_status()
+                    flespi_data = resp.json()
 
-            with httpx.Client(timeout=60.0) as client:
-                resp = client.get(url, headers=headers, params=params)
-                resp.raise_for_status()
-                flespi_data = resp.json()
         except Exception as e:
             traceback.print_exc()
             return {"error": f"GPS data fetch failed: {str(e)}", "results": []}

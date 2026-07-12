@@ -535,76 +535,12 @@ export default function PublicCalculator() {
                                 </div>
                             )}
 
-                            {/* STEP 3: PHOTOS */}
+                            {/* STEP 3: EXTRAS & CLIENT INFO */}
                             {step === 3 && (
-                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
-                                        {t('calculator.photosTitle', 'Photos du chantier (Optionnel)')}
-                                    </h1>
-                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
-                                        {t('calculator.photosSub', "Ajoutez des photos pour nous aider à évaluer les travaux. Cela nous permet de vous proposer un devis plus précis.")}
-                                    </p>
-
-                                    <div className="mb-8">
-                                        <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative">
-                                            <input 
-                                                type="file" 
-                                                multiple 
-                                                accept="image/*"
-                                                onChange={e => setPhotos(Array.from(e.target.files))}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                            <div className="flex flex-col items-center gap-2 text-slate-500">
-                                                <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
-                                                    <Camera className="w-6 h-6" />
-                                                </div>
-                                                <span className="font-bold text-sm">Cliquez ici pour sélectionner des photos</span>
-                                                <span className="text-xs">ou glissez-déposez les fichiers</span>
-                                            </div>
-                                        </div>
-                                        
-                                        {photos.length > 0 && (
-                                            <div className="mt-4 flex flex-wrap gap-2">
-                                                {photos.map((p, i) => (
-                                                    <span key={i} className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-xs font-bold flex items-center gap-2">
-                                                        <FileText className="w-3.5 h-3.5" />
-                                                        <span className="truncate max-w-[150px]">{p.name}</span>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(2)}
-                                            className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
-                                        >
-                                            {t('calculator.back', 'Retour')}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setStep(4)}
-                                            className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
-                                        >
-                                            {t('calculator.continue', 'Continuer')} 
-                                            <ChevronRight className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* STEP 4: EXTRAS & CLIENT INFO */}
-                            {step === 4 && (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
                                         {t('calculator.extrasTitle', 'Options Supplémentaires')}
                                     </h1>
-                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
-                                        {t('calculator.extrasSub', 'Ajoutez les options pour renforcer la chape et vos coordonnées.')}
-                                    </p>
-
                                     <div className="space-y-4 mb-8">
                                         <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_foil ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 hover:border-yellow-200 bg-slate-50'}`}>
                                             <div className="flex items-center gap-3">
@@ -620,8 +556,6 @@ export default function PublicCalculator() {
                                             </div>
                                             <input type="checkbox" checked={formData.has_mesh} onChange={e => setFormData({ ...formData, has_mesh: e.target.checked })} />
                                         </label>
-                                    </div>
-
                                     </div>
 
                                     <div className="border-t-2 border-slate-100 pt-6 mb-8">
@@ -722,6 +656,73 @@ export default function PublicCalculator() {
                                                 />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep(2)}
+                                            className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
+                                        >
+                                            {t('calculator.back', 'Retour')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                const form = e.target.closest('form');
+                                                if (!form.checkValidity()) {
+                                                    form.reportValidity();
+                                                    return;
+                                                }
+                                                setStep(4);
+                                            }}
+                                            className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            {t('calculator.continue', 'Continuer')} 
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 4: PHOTOS */}
+                            {step === 4 && (
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
+                                        {t('calculator.photosTitle', 'Photos du chantier (Optionnel)')}
+                                    </h1>
+                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
+                                        {t('calculator.photosSub', "Ajoutez des photos pour nous aider à évaluer les travaux. Cela nous permet de vous proposer un devis plus précis.")}
+                                    </p>
+
+                                    <div className="mb-8">
+                                        <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative">
+                                            <input 
+                                                type="file" 
+                                                multiple 
+                                                accept="image/*"
+                                                onChange={e => setPhotos(Array.from(e.target.files))}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center gap-2 text-slate-500">
+                                                <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
+                                                    <Camera className="w-6 h-6" />
+                                                </div>
+                                                <span className="font-bold text-sm">Cliquez ici pour sélectionner des photos</span>
+                                                <span className="text-xs">ou glissez-déposez les fichiers</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {photos.length > 0 && (
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {photos.map((p, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-xs font-bold flex items-center gap-2">
+                                                        <FileText className="w-3.5 h-3.5" />
+                                                        <span className="truncate max-w-[150px]">{p.name}</span>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex gap-3">
