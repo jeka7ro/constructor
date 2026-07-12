@@ -37,6 +37,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     // Translation helper specifically for Proforma (bypass hook state with global)
     const tL = (key) => {
         const tFunc = config?.lang ? i18nGlobal.getFixedT(config.lang) : t;
+        return tFunc(`proforma.${key}`, {
             defaultValue: {
                 'proforma': 'FACTURE PROFORMA',
                 'date': 'Date :',
