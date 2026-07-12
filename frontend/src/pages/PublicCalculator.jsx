@@ -45,6 +45,44 @@ export default function PublicCalculator() {
     const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    
+    const isIframe = new URLSearchParams(window.location.search).get('iframe') === 'true';
+
+    useEffect(() => {
+        if (isIframe) {
+            // Adauga fontul Space Grotesk
+            const link = document.createElement('link');
+            link.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap';
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+            
+            // Adauga stilurile stricte pentru iframe
+            const style = document.createElement('style');
+            style.innerHTML = `
+                body, html, #root, .min-h-screen { background: transparent !important; }
+                * { font-family: 'Space Grotesk', sans-serif !important; }
+                h1, h2, h3, h4, h5, h6 { font-weight: 700 !important; color: #202020 !important; }
+                
+                /* Ascunde header-ul original */
+                header { display: none !important; }
+                
+                /* Scoate padding/margin de la main */
+                main { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+                
+                /* Suprascrie galbenul si albastrul cu F7CA31 */
+                .bg-blue-600, .bg-yellow-500, .bg-slate-800 { background-color: #F7CA31 !important; color: #202020 !important; }
+                .hover\\:bg-blue-700:hover, .hover\\:bg-slate-700:hover { background-color: #e5b927 !important; color: #202020 !important; }
+                .text-blue-600, .text-yellow-500 { color: #F7CA31 !important; }
+                .border-blue-600, .border-yellow-400 { border-color: #F7CA31 !important; }
+                .ring-blue-600, .ring-yellow-400 { --tw-ring-color: #F7CA31 !important; }
+                
+                /* Butoane mai putin rotunde */
+                button { border-radius: 6px !important; }
+                input, select { border-radius: 6px !important; }
+            `;
+            document.head.appendChild(style);
+        }
+    }, [isIframe]);
 
     useEffect(() => {
         fetchConfig();
@@ -110,9 +148,25 @@ export default function PublicCalculator() {
         setSubmitting(true);
         try {
             const domain = window.location.hostname;
-            const res = await publicApi.post('/submit', { ...formData, domain });
+            
+            // Trimite către Webhook-ul agenției dacă e iframe (sau întotdeauna dacă dorim)
+            if (isIframe) {
+                try {
+                    await axios.post('https://n8n-uk6n.onrender.com/webhook/davide-chape-form', formData);
+                } catch (webhookErr) {
+                    console.error("Webhook n8n failed:", webhookErr);
+                    // Continuam chiar daca webhook-ul pica
+                }
+            }
+
+            const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe });
             if (res.data.token) {
-                navigate(`/public/proforma/${res.data.token}`);
+                if (isIframe) {
+                    // Dacă e iframe, putem afișa un mesaj de succes direct sau redirecționare
+                    navigate(`/public/proforma/${res.data.token}?iframe=true`);
+                } else {
+                    navigate(`/public/proforma/${res.data.token}`);
+                }
             }
         } catch (err) {
             console.error(err);

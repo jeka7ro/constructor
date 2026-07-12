@@ -363,6 +363,39 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const [lang, setLang] = useState(urlLang || 'fr')
     const t = LANG_DICT[lang] || LANG_DICT['fr']
     
+    const isIframe = searchParams.get('iframe') === 'true';
+
+    useEffect(() => {
+        if (isIframe) {
+            const link = document.createElement('link');
+            link.href = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap';
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+            
+            const style = document.createElement('style');
+            style.innerHTML = `
+                body, html, #root, .min-h-screen { background: transparent !important; }
+                * { font-family: 'Space Grotesk', sans-serif !important; }
+                h1, h2, h3, h4, h5, h6 { font-weight: 700 !important; color: #202020 !important; }
+                
+                /* Ascunde partea de sus a header-ului daca e iframe */
+                .w-full.py-5.px-6.border-b { display: none !important; }
+                
+                /* Suprascrie galbenul si albastrul cu F7CA31 */
+                .bg-blue-600, .bg-blue-500, .bg-indigo-600 { background-color: #F7CA31 !important; color: #202020 !important; }
+                .hover\\:bg-blue-700:hover, .hover\\:bg-blue-600:hover { background-color: #e5b927 !important; color: #202020 !important; }
+                .text-blue-600, .text-blue-500 { color: #F7CA31 !important; }
+                .border-blue-600, .border-blue-500 { border-color: #F7CA31 !important; }
+                .ring-blue-600, .ring-blue-500 { --tw-ring-color: #F7CA31 !important; }
+                
+                /* Butoane mai putin rotunde */
+                button { border-radius: 6px !important; }
+                input, select { border-radius: 6px !important; }
+            `;
+            document.head.appendChild(style);
+        }
+    }, [isIframe]);
+    
     const [order, setOrder] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)

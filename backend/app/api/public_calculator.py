@@ -36,6 +36,9 @@ class CalculatorSubmitRequest(BaseModel):
     approximate_date: Optional[str] = None
     # Security
     honeypot: Optional[str] = None
+    
+    # Iframe tracking
+    is_iframe: Optional[bool] = False
 
 @router.get("/config")
 def get_calculator_config(domain: Optional[str] = None, slug: Optional[str] = None, db: Session = Depends(get_db)):
