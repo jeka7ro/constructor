@@ -24,7 +24,7 @@ export function ToastOverlay() {
     const config = typeConfig[toast.type] || typeConfig.info
 
     return (
-        <div className="fixed top-24 right-6 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300">
+        <div className="fixed top-6 right-6 z-[999999] animate-in slide-in-from-top-5 fade-in duration-300">
             <div className={`flex items-start gap-3 p-4 rounded-xl border shadow-lg max-w-sm w-full ${config.bg}`}>
                 <div className="shrink-0 mt-0.5">{config.icon}</div>
                 <div className="flex-1 text-sm font-medium pr-2 whitespace-pre-wrap break-words">

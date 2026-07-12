@@ -1844,7 +1844,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            {(!wo?.is_invoiced && (wo?.proforma_path || wo?.is_quote)) && (
+                            {!wo?.is_invoiced && (
                                 <button
                                     onClick={() => {
                                         setDocDrawerState(null);
