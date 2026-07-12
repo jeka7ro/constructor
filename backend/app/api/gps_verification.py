@@ -300,7 +300,8 @@ def daily_verification(
 ):
     import traceback
     try:
-        FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
+        from app.config import settings
+        FLESPI_TOKEN = settings.FLESPI_TOKEN
         if not FLESPI_TOKEN:
             return {"error": "Flespi token not configured", "results": []}
 

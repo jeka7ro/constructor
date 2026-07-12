@@ -22,6 +22,13 @@ const getBaseSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
 </svg>
 `)}`;
 
+const getPrevSvg = () => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="13" fill="#64748b" stroke="white" stroke-width="2"/>
+    <text x="14" y="19" font-family="sans-serif" font-size="14" font-weight="900" fill="white" text-anchor="middle">1</text>
+</svg>
+`)}`;
+
 const getSandStationSvg = (letter) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
     <circle cx="13" cy="13" r="12" fill="#ef4444" stroke="white" stroke-width="2"/>
@@ -220,16 +227,18 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
 
             geocodeStart(startName).then(startCoords => {
                 if (startCoords && mapInstance.current) {
-                    // Draw base marker
+                    const isRealBase = startName.toLowerCase().includes('baza') || startName.toLowerCase().includes('base') || startName.toLowerCase().includes('h&h');
+                    
+                    // Draw start marker
                     elementsRef.current.baseMarker = new window.google.maps.Marker({
                         position: startCoords,
                         map: mapInstance.current,
                         icon: {
-                            url: getBaseSvg(),
+                            url: isRealBase ? getBaseSvg() : getPrevSvg(),
                             scaledSize: new window.google.maps.Size(28, 28),
                             anchor: new window.google.maps.Point(14, 14)
                         },
-                        title: `Baza: ${startName}`
+                        title: isRealBase ? `Baza: ${startName}` : `Precedent: ${startName}`
                     });
 
                     // Google Maps Directions (reliable, already loaded)

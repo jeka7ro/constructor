@@ -152,14 +152,16 @@ const T = {
   }
 };
 
-// --- CONFIGURAȚIA OFICIALĂ DE PREȚURI ---
-const PRICING = {
-    baseScreed: 12.5, // per m2 pentru primii 5cm
-    baseThickness: 5, // cm incluși în prețul de bază
-    extraThicknessPrice: 1.25, // preț per cm suplimentar per m2
-    foil: 1.2, // per m2
-    mesh: 2.5, // per m2
-    margin: 0.05 // 5% marjă pentru intervalul estimativ superior
+const FALLBACK_PRICING = {
+    base_price_sqm: 12.5,
+    standard_thickness_cm: 5,
+    extra_thickness_price_per_cm: 1.25,
+    plastic_foil_price_sqm: 1.2,
+    metal_mesh_price_sqm: 2.5,
+    fiber_price_sqm: 2.5,
+    fiber_price_sqm_large: 2.0,
+    fiber_large_threshold_sqm: 200,
+    surface_thresholds: []
 };
 
 export default function QuoteCalculator() {
@@ -184,7 +186,20 @@ export default function QuoteCalculator() {
     // Validation state for current step
     const [isValid, setIsValid] = useState(false);
     const [isCalculating, setIsCalculating] = useState(false);
-    const [estimatedPrice, setEstimatedPrice] = useState({ min: 0, max: 0 });
+    const [estimatedPrice, setEstimatedPrice] = useState(0);
+    const [pricingConfig, setPricingConfig] = useState(FALLBACK_PRICING);
+
+    useEffect(() => {
+        // Fetch real pricing config from API
+        fetch('/api/public/calculator/config')
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.pricing) {
+                    setPricingConfig(data.pricing);
+                }
+            })
+            .catch(err => console.error("Could not load pricing config", err));
+    }, []);
 
     useEffect(() => {
         if (step === 1) {
@@ -204,38 +219,50 @@ export default function QuoteCalculator() {
 
     const calculatePrice = () => {
         const { area, thickness, hasFoil, hasMesh } = formData;
-        const sqMeters = Number(area);
-        const cmThickness = Number(thickness);
+        const sqMeters = Number(area) || 0;
+        const cmThickness = Number(thickness) || 0;
         
         let total = 0;
         
-        // 1. Preț bază șapă (pentru primii 5cm)
-        total += sqMeters * PRICING.baseScreed;
+        // 1. Preț bază șapă (pentru primii X cm standard)
+        const baseThickness = pricingConfig.standard_thickness_cm || 5;
+        total += sqMeters * (pricingConfig.base_price_sqm || 12.5);
 
         // 2. Extra Grosime
-        if (cmThickness > PRICING.baseThickness) {
-            const extraCm = cmThickness - PRICING.baseThickness;
-            total += sqMeters * (extraCm * PRICING.extraThicknessPrice);
+        if (cmThickness > baseThickness) {
+            const extraCm = cmThickness - baseThickness;
+            total += sqMeters * (extraCm * (pricingConfig.extra_thickness_price_per_cm || 1.25));
         }
 
         // 3. Folie
         if (hasFoil) {
-            total += sqMeters * PRICING.foil;
+            total += sqMeters * (pricingConfig.plastic_foil_price_sqm || 1.2);
         }
 
         // 4. Plasă (Armare)
         if (hasMesh) {
-            total += sqMeters * PRICING.mesh;
+            total += sqMeters * (pricingConfig.metal_mesh_price_sqm || 2.5);
         }
 
         // 5. Fibers + Duramint (OBLIGATORIU)
-        const fiberRate = sqMeters <= 200 ? 2.5 : 2.0;
+        const fiberThreshold = pricingConfig.fiber_large_threshold_sqm || 200;
+        const fiberRate = sqMeters <= fiberThreshold 
+            ? (pricingConfig.fiber_price_sqm || 2.5) 
+            : (pricingConfig.fiber_price_sqm_large || 2.0);
         total += sqMeters * fiberRate;
 
-        const minPrice = Math.round(total);
-        const maxPrice = Math.round(total * (1 + PRICING.margin));
+        // Extra thresholds
+        if (pricingConfig.surface_thresholds && pricingConfig.surface_thresholds.length > 0) {
+            for (let thresh of pricingConfig.surface_thresholds) {
+                const minS = thresh.min_sqm || 0;
+                const maxS = thresh.max_sqm || 999999;
+                if (sqMeters >= minS && sqMeters < maxS) {
+                    total += Number(thresh.extra_charge || 0);
+                }
+            }
+        }
 
-        setEstimatedPrice({ min: minPrice, max: maxPrice });
+        setEstimatedPrice(total);
     };
 
     const handleNext = () => {
@@ -552,7 +579,7 @@ export default function QuoteCalculator() {
                             <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 sm:p-6 mb-6 inline-block w-full max-w-xs relative overflow-hidden group shadow-sm">
                                 <div className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-widest font-bold mb-1.5">{t.estimatedCost}</div>
                                 <div className="text-3xl sm:text-4xl font-extrabold text-slate-900">
-                                    {estimatedPrice.min.toLocaleString()}€ <span className="text-slate-400 font-medium mx-1">-</span> {estimatedPrice.max.toLocaleString()}€
+                                    {estimatedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                                 </div>
                                 <div className="text-slate-400 text-[10px] sm:text-xs mt-2.5 font-medium">{t.vatNotIncluded}</div>
                             </div>

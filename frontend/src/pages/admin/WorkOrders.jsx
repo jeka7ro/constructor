@@ -462,24 +462,7 @@ export default function WorkOrders() {
                         </select>
                         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <button
-                        onClick={async () => {
-                            setIsSyncing(true);
-                            try {
-                                await api.post('/admin/work-orders/sync-robaws');
-                                await fetchOrders();
-                            } catch (e) {
-                                alert(t('work_orders.sync_error', 'Erreur de synchronisation API: ') + (e.response?.data?.detail || e.message));
-                            } finally {
-                                setIsSyncing(false);
-                            }
-                        }}
-                        disabled={isSyncing}
-                        className="flex items-center gap-2 px-5 h-10 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-bold rounded-full shadow-md shadow-indigo-500/20 transition-all hover:scale-105"
-                    >
-                        {isSyncing ? <Activity className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
-                        {isSyncing ? t('work_orders.syncing', 'Importation...') : t('work_orders.sync', 'Importer API')}
-                    </button>
+
                     <button
                         onClick={() => navigate('/admin/work-orders/new')}
                         className="flex items-center gap-2 px-5 h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full shadow-md shadow-blue-500/20 transition-all hover:scale-105"
@@ -536,33 +519,6 @@ export default function WorkOrders() {
                 </div>
             )}
 
-            {/* Teams Filters */}
-            {teams.filter(t => t.robaws_email).length > 0 && (
-                <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-                    <KPICard
-                        label={t('work_orders.all_trucks', 'Tous les Camions')}
-                        value={workOrders.length}
-                        icon={Package}
-                        colorTheme="slate"
-                        onClick={() => setFilterTeam('')}
-                        active={!filterTeam}
-                    />
-                    {teams.filter(t => t.robaws_email).map(team => {
-                        const count = workOrders.filter(w => w.assigned_team_id === team.id).length
-                        return (
-                            <KPICard
-                                key={team.id}
-                                label={team.name}
-                                value={count}
-                                icon={Truck}
-                                colorTheme="blue"
-                                onClick={() => setFilterTeam(filterTeam === team.id ? '' : team.id)}
-                                active={filterTeam === team.id}
-                            />
-                        )
-                    })}
-                </div>
-            )}
 
             {/* Table */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">

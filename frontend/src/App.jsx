@@ -317,7 +317,7 @@ function App() {
                     {/* Public Order Routes */}
                     <Route path="/confirm/:token" element={<WorkOrderConfirm />} />
                     <Route path="/public/quotes/:token/pdf" element={<DevisView />} />
-                    <Route path="/calculator" element={<QuoteCalculator />} />
+                    <Route path="/calculator" element={<PublicCalculator />} />
 
                     {/* Public Routes */}
                     <Route path="/login" element={

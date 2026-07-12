@@ -143,6 +143,13 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         foil_cost = pricing.plastic_foil_price_sqm * payload.surface if payload.has_foil else 0
         mesh_cost = pricing.metal_mesh_price_sqm * payload.surface if payload.has_mesh else 0
         
+        fiber_cost = 0
+        if payload.has_duramint:
+            if payload.surface <= pricing.fiber_large_threshold_sqm:
+                fiber_cost = pricing.fiber_price_sqm * payload.surface
+            else:
+                fiber_cost = pricing.fiber_price_sqm_large * payload.surface
+        
         # Determine hidden thresholds
         hidden_extra = 0
         if pricing.surface_thresholds:
@@ -152,7 +159,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
                 if min_s <= payload.surface < max_s:
                     hidden_extra += float(thresh.get("extra_charge") or 0)
         
-        estimated_price = base + extra_cost + foil_cost + mesh_cost + hidden_extra
+        estimated_price = base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra
         
     use_vat = True
     vat_rate = 21.0
@@ -163,7 +170,14 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
             vat_rate = pricing.vat_physical_repair if payload.work_type == "repair" else pricing.vat_physical_new
             
     prices_dict = {
+        "base": pricing.base_price_sqm if pricing else 12.5,
+        "extra_thickness_price_per_cm": pricing.extra_thickness_price_per_cm if pricing else 1.25,
+        "standard_thickness": pricing.standard_thickness_cm if pricing else 5.0,
+        "foil": pricing.plastic_foil_price_sqm if pricing else 1.2,
+        "mesh": pricing.metal_mesh_price_sqm if pricing else 2.5,
+        "fiber": (pricing.fiber_price_sqm if pricing else 2.5) if payload.surface <= (pricing.fiber_large_threshold_sqm if pricing else 200) else (pricing.fiber_price_sqm_large if pricing else 2.0),
         "useVat": use_vat,
+        "vat_type": vat_rate,
         "vat_legal_entity": pricing.vat_legal_entity if pricing else 0,
         "vat_physical_new": pricing.vat_physical_new if pricing else 21,
         "vat_physical_repair": pricing.vat_physical_repair if pricing else 6,

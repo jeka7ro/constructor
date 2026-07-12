@@ -235,6 +235,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
         WorkOrder.start_date == target_date,
         WorkOrder.status != 'cancelled',
         WorkOrder.status != 'draft',
+        WorkOrder.status != 'isoflex',
         or_(
             WorkOrder.is_quote == False,
             (WorkOrder.is_quote == True) & (WorkOrder.status == 'planning')

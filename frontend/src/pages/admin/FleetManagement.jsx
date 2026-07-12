@@ -346,7 +346,7 @@ export default function FleetManagement() {
             key: 'type', label: t('fleet.type'), sortable: true,
             render: (v) => (
                 <div className="flex flex-col gap-1.5 items-start">
-                    <span className="text-slate-700 dark:text-slate-200 font-medium text-sm">{t(`fleet.types.${v.type}`)}</span>
+                    <span className="text-slate-700 dark:text-slate-200 font-medium text-sm">{t(`fleet.types.${v.type}`, v.type)}</span>
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_COLORS[v.status] || STATUS_COLORS.inactive}`}>
                         {t(`fleet.statuses.${v.status}`)}
                     </span>
@@ -354,7 +354,7 @@ export default function FleetManagement() {
             )
         },
         { key: 'year', label: t('fleet.year'), sortable: true },
-        {
+        ...(tenant?.has_sites ? [{
             key: 'site_ids', label: t('fleet.allocated_sites', 'Chantiers alloués'),
             render: (v) => {
                 const vehicleSites = (v.site_ids || []).map(id => sites.find(s => s.id === id)).filter(Boolean)
@@ -367,7 +367,10 @@ export default function FleetManagement() {
                     </div>
                 )
             }
-        },
+        }] : [{
+            key: 'imei', label: 'IMEI GPS',
+            render: (v) => v.imei ? <span className="text-sm font-mono font-medium text-slate-700 dark:text-slate-300">{v.imei}</span> : <span className="text-slate-300 dark:text-slate-600">—</span>
+        }]),
         {
             key: 'user_ids', label: t('fleet.drivers', 'Chauffeurs'),
             render: (v) => {
