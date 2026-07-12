@@ -991,18 +991,20 @@ def get_live_vehicles(
         # 2. Fetch Vehicles (Flespi)
         vehicle_rows = db.execute(sqlt("""
             SELECT v.id, v.name, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
-                   COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path
+                   COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path,
+                   recent_team.team_color
             FROM saas_app.vehicles v
             LEFT JOIN saas_app.vehicle_user_assignments vua ON vua.vehicle_id = v.id AND vua.is_active = true
             LEFT JOIN saas_app.users u_direct ON u_direct.id = vua.user_id
-            -- Try to find if vehicle is assigned to a team (via a recent work order) and get leader's avatar
+            -- Try to find if vehicle is assigned to a team (via a recent work order) and get leader's avatar and team color
             LEFT JOIN (
-                SELECT wo.assigned_vehicle_id, t.team_leader_id
+                SELECT DISTINCT ON (wo.assigned_vehicle_id)
+                       wo.assigned_vehicle_id, t.team_leader_id, t.color as team_color
                 FROM saas_app.work_orders wo
                 JOIN saas_app.teams t ON t.id = wo.assigned_team_id
                 WHERE wo.created_at >= CURRENT_DATE - INTERVAL '7 days'
-                ORDER BY wo.created_at DESC
-                LIMIT 1
+                  AND wo.assigned_vehicle_id IS NOT NULL
+                ORDER BY wo.assigned_vehicle_id, wo.created_at DESC
             ) recent_team ON recent_team.assigned_vehicle_id = v.id
             LEFT JOIN saas_app.users u_leader ON u_leader.id = recent_team.team_leader_id
             WHERE v.last_lat IS NOT NULL
@@ -1039,7 +1041,7 @@ def get_live_vehicles(
                 "last_seen":  str(v.last_seen_at).replace(' ', 'T') + 'Z' if v.last_seen_at else None,
                 "speed":      v.last_speed,
                 "team_name":  "GPS Flespi",
-                "team_color": "#0ea5e9", # Sky blue for vehicles
+                "team_color": v.team_color or "#0ea5e9", # Use team color or default sky blue
                 "avatar_url": v.avatar_path,
             })
 

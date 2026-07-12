@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { useTranslation } from 'react-i18next'
 import api from '../lib/api'
+import { useTenantStore } from '../store/tenantStore'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { Clock, Gauge, RefreshCw, Radio } from 'lucide-react'
@@ -66,6 +67,7 @@ const POLL_INTERVAL = 15000;
 
 export default function MiniLiveTrackingMap() {
   const { t } = useTranslation();
+  const tenant = useTenantStore(s => s.tenant);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
@@ -92,15 +94,15 @@ export default function MiniLiveTrackingMap() {
   const center = [51.2, 4.4]; // Belgium default
 
   return (
-    <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
-        <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide text-sm">
-          <Radio className="w-4 h-4 text-blue-500" />
+    <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <Radio className="w-4 h-4 text-white" />
           {t('dashboard.live_tracking', 'LIVE TRACKING')}
         </h3>
         <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 rounded-full">{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
-            <button onClick={fetchLive} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+            <span className="text-xs font-bold text-blue-800 bg-white px-2 py-0.5 rounded-full shadow-sm">{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
+            <button onClick={fetchLive} className="text-white/80 hover:text-white transition-colors">
                 <RefreshCw className="w-3.5 h-3.5" />
             </button>
         </div>
