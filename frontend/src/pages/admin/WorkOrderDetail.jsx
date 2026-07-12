@@ -1543,6 +1543,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 />
                             </div>
 
+                            {wo?.is_invoiced && activeDocTab === 'facture' && (
+                                <div className="mt-3 flex justify-end">
+                                    <button
+                                        onClick={handleSendToBilltobox}
+                                        disabled={wo?.billtobox_status === 'sent' || wo?.billtobox_status === 'pending'}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${wo?.billtobox_status === 'sent' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
+                                    >
+                                        {wo?.billtobox_status === 'pending' ? <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" /> : (wo?.billtobox_status === 'sent' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />)}
+                                        {wo?.billtobox_status === 'sent' ? t('invoicing.sent_to_billtobox', 'Envoyé à Billtobox') : t('invoicing.send_to_billtobox', 'Envoyer à Billtobox')}
+                                    </button>
+                                </div>
+                            )}
                     </Section>
                 </div>
 
@@ -1867,19 +1879,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 >
                                     <CheckCircle2 className="w-5 h-5" />
                                     {t('work_order_detail.invoicing.issue_invoice', 'Émettre la Facture')}
-                                </button>
-                            )}
-                            {wo?.is_invoiced && (
-                                <button
-                                    onClick={() => {
-                                        setDocDrawerState(null);
-                                        handleSendToBilltobox();
-                                    }}
-                                    disabled={wo?.billtobox_status === 'sent' || wo?.billtobox_status === 'pending'}
-                                    className={`px-6 py-2.5 rounded-full font-bold shadow-lg transition-all flex items-center gap-2 ${wo?.billtobox_status === 'sent' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30'}`}
-                                >
-                                    {wo?.billtobox_status === 'pending' ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (wo?.billtobox_status === 'sent' ? <CheckCircle2 className="w-5 h-5" /> : <Send className="w-5 h-5" />)}
-                                    {wo?.billtobox_status === 'sent' ? t('invoicing.sent_to_billtobox', 'Envoyé à Billtobox') : t('invoicing.send_to_billtobox', 'Envoyer à Billtobox')}
                                 </button>
                             )}
                             <button 
