@@ -37,22 +37,24 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     // Translation helper specifically for Proforma (bypass hook state with global)
     const tL = (key) => {
         const tFunc = config?.lang ? i18nGlobal.getFixedT(config.lang) : t;
-        return tFunc(`proforma.${key}`, {
             defaultValue: {
-                'proforma': 'Factură Proformă',
-                'date': 'Data:',
-                'due': 'Scadență:',
-                'to': 'Către',
-                'address': 'Șantier / Locație',
-                'desc': 'Descriere Servicii / Materiale',
-                'qty': 'Cantitate',
-                'price': 'Preț Unitar',
-                'total': 'Total (Net)',
-                'subtotal': 'Subtotal Brut',
-                'base': 'Bază de calcul',
+                'proforma': 'FACTURE PROFORMA',
+                'date': 'Date :',
+                'due': 'Échéance :',
+                'to': 'À l\'attention de',
+                'address': 'Chantier / Adresse',
+                'desc': 'Description Services / Matériaux',
+                'qty': 'Quantité',
+                'price': 'Prix Unitaire',
+                'total': 'Total Net (HTVA)',
+                'subtotal': 'Sous-total',
+                'base': 'Base de calcul',
                 'vat': 'TVA',
-                'grand_total': 'TOTAL NET DE PLATĂ',
-                'note': 'Aceasta este o factură proformă. Produsele și serviciile vor fi prestate după confirmarea plății sau conform contractului în vigoare.'
+                'grand_total': 'TOTAL À PAYER',
+                'supplier': 'FOURNISSEUR',
+                'client_none': 'Sans Client',
+                'invoice_title': 'FACTURE',
+                'note': 'Ceci est une facture proforma. Les produits et services seront fournis après confirmation du paiement ou selon le contrat en vigueur.'
             }[key] || key
         })
     }
@@ -87,7 +89,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }, [pData?.lang, i18n]);
 
     if (loading) return <div className="flex h-full items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
-    if (!wo) return <div className="flex h-full items-center justify-center font-bold text-red-600">Comanda nu a fost găsită.</div>
+    if (!wo) return <div className="flex h-full items-center justify-center font-bold text-red-600">{t('common.not_found', 'Commande introuvable.')}</div>
 
     // Fiscal logic
     const isBelgium = tenant?.country === 'BE'
@@ -242,10 +244,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             }
         }
 
-        if (defaultFallbackItems.length === 0) {
             defaultFallbackItems = [{
                 id: 'default',
-                desc: `${tL('items.custom_work') || 'Lucrări conform deviz'} (${wo.title || tL('items.labor_materials') || 'Manoperă și materiale'})`,
+                desc: `${tL('items.custom_work') || 'Travaux selon devis'} (${wo.title || tL('items.labor_materials') || 'Main-d\'œuvre et matériaux'})`,
                 qty: 1,
                 price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0')
             }];
@@ -363,7 +364,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 {/* Header Middle: Supplier and Client Details (Same Row, Identical Cards) */}
                 <div className="flex gap-6 mb-8">
                     <div className="flex-1 bg-white border border-slate-200/70 shadow-sm rounded-2xl p-4 print:border-none print:shadow-none print:p-0 print:pr-4">
-                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">FURNIZORI</h3>
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{tL('supplier')}</h3>
                         <p className="font-bold text-slate-800 text-base mb-1">{tenant?.name || 'Davide Chape SRL'}</p>
                         <div className="text-sm text-slate-600 leading-snug">
                             <p>TVA: BE 0785.292.895</p>
@@ -382,10 +383,10 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         <div className="col-span-5">{tL('desc')}</div>
                         <div className={isInvoiceView ? "col-span-1 text-center" : "col-span-2 text-center"}>{tL('qty')}</div>
-                        <div className="col-span-1 text-center">UNIT</div>
+                        <div className="col-span-1 text-center">{tL('unit', 'UNITÉ')}</div>
                         <div className="col-span-2 text-right">{tL('price')}</div>
                         {isInvoiceView && <div className="col-span-1 text-right">TVA</div>}
-                        <div className="col-span-2 text-right">{isInvoiceView ? 'Sous-total (EUR)' : 'Montant'}</div>
+                        <div className="col-span-2 text-right">{isInvoiceView ? tL('subtotal_eur', 'Sous-total (EUR)') : tL('amount', 'Montant')}</div>
                     </div>
                     {items.map((item, idx) => (
                         <div key={item.id || idx} className="grid grid-cols-12 gap-4 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
@@ -414,7 +415,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         {isInvoiceView ? (
                             <>
                                 <div className="flex justify-between mb-2">
-                                    <span className="font-bold text-slate-800 text-sm">Sous-total:</span>
+                                    <span className="font-bold text-slate-800 text-sm">{tL('subtotal', 'Sous-total :')}</span>
                                     <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{priceRaw.toFixed(2)} EUR</span>
                                 </div>
                                 {discountAmount > 0 && (
@@ -425,19 +426,19 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                                 {useVat && vatRate > 0 ? (
                                     <div className="flex justify-between mb-6">
-                                        <span className="font-bold text-slate-800 text-sm">TVA {vatRate}%:</span>
+                                        <span className="font-bold text-slate-800 text-sm">{tL('vat_rate', 'TVA {{rate}}% :').replace('{{rate}}', vatRate)}</span>
                                         <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{vatAmount.toFixed(2)} EUR</span>
                                     </div>
                                 ) : (
                                     <div className="mb-6">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="font-bold text-slate-800 text-sm">TVA 0,0% Autoliquidation:</span>
+                                            <span className="font-bold text-slate-800 text-sm">{tL('vat_0_auto', 'TVA 0,0% Autoliquidation :')}</span>
                                             <div className="flex gap-12 items-center">
                                                 <span className="font-bold text-slate-800 whitespace-nowrap text-sm">{subtotal.toFixed(2)} EUR</span>
                                                 <span className="font-bold text-slate-800 whitespace-nowrap text-sm">0,00 EUR</span>
                                             </div>
                                         </div>
-                                        <span className="text-sm text-slate-500 block w-full">Autoliquidation</span>
+                                        <span className="text-sm text-slate-500 block w-full">{tL('autoliquidation', 'Autoliquidation')}</span>
                                     </div>
                                 )}
                             </>
@@ -452,7 +453,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             </>
                         )}
                         <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
-                            <span>Total:</span>
+                            <span>{tL('total_label', 'Total :')}</span>
                             <span>{totalAmount.toFixed(2)} EUR</span>
                         </div>
                     </div>
@@ -462,28 +463,28 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                 <div className="flex flex-col gap-4 mb-8">
                     {isInvoiceView && (
                         <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-none">
-                            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Informations bancaires</div>
+                            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">{tL('bank_info', 'Informations bancaires')}</div>
                             <div className="p-4 text-sm text-slate-700 leading-relaxed">
                                 <p>{tenant?.name || 'DAVIDE CHAPE'}</p>
                                 <p>IBAN: BE46363221149936 | BIC: BBRUBEBB</p>
                                 <p>IBAN: BE97733069599449 | BIC: KREDBEBB</p>
                                 <br/>
-                                <p>Référence de Paiement: <span className="font-medium">{isInvoiceView ? (wo.invoice_number || '') : (wo.quote_number || '')}</span></p>
+                                <p>{tL('payment_ref', 'Référence de Paiement :')} <span className="font-medium">{isInvoiceView ? (wo.invoice_number || '') : (wo.quote_number || '')}</span></p>
                             </div>
                         </div>
                     )}
                     
                     <div className={`${isInvoiceView ? 'border border-slate-200 rounded-xl overflow-hidden print:rounded-none' : ''}`}>
-                        {isInvoiceView && <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">Commentaires</div>}
+                        {isInvoiceView && <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-sm font-normal text-slate-700 print:bg-slate-100">{tL('comments', 'Commentaires')}</div>}
                         <div className={`${isInvoiceView ? 'p-4' : 'pt-2'} text-sm text-slate-700 leading-relaxed text-justify`}>
                             {isInvoiceView ? (
-                                'Autoliquidation : en l’absence de contestation par écrit, dans un délai d’un mois à compter de la réception de la facture, le client est présumé reconnaître qu’il est un assujetti tenu au dépôt de déclarations périodiques. Si cette condition n’est pas remplie, le client endossera, par rapport à cette condition, la responsabilité quant au paiement de la taxe, des intérêts et des amendes dus (nouvel article 20, §3 AR n° 1).'
+                                tL('invoice_comment', 'Autoliquidation : en l’absence de contestation par écrit, dans un délai d’un mois à compter de la réception de la facture, le client est présumé reconnaître qu’il est un assujetti tenu au dépôt de déclarations périodiques. Si cette condition n’est pas remplie, le client endossera, par rapport à cette condition, la responsabilité quant au paiement de la taxe, des intérêts et des amendes dus (nouvel article 20, §3 AR n° 1).')
                             ) : (
                                 <>
-                                    <p className="font-medium mb-1">Le devis total exclut la TVA :</p>
-                                    <p>pour les nouvelles constructions TVA 21%</p>
-                                    <p>pour les renouvellements TVA 6%</p>
-                                    <p>pour les entreprises disposant de numéros de TVA, autoliquidation et TVA non appliquée</p>
+                                    <p className="font-medium mb-1">{tL('quote_comment_1', 'Le devis total exclut la TVA :')}</p>
+                                    <p>{tL('quote_comment_2', 'pour les nouvelles constructions TVA 21%')}</p>
+                                    <p>{tL('quote_comment_3', 'pour les renouvellements TVA 6%')}</p>
+                                    <p>{tL('quote_comment_4', 'pour les entreprises disposant de numéros de TVA, autoliquidation et TVA non appliquée')}</p>
                                 </>
                             )}
                         </div>
