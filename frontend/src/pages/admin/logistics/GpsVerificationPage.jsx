@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import api from '../../../lib/api'
 import DataTable from '../../../components/DataTable'
+import MiniLiveTrackingMap from '../../../components/MiniLiveTrackingMap'
 
 function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371; // km
@@ -877,7 +878,14 @@ export default function GpsVerificationPage() {
             )}
 
             {!loading && data?.results && (
-                <div className="space-y-5 mt-2">
+                <div className="space-y-5 mt-6">
+                    {/* Live Tracking Map ca primul card */}
+                    {!urlVehicle && date === today && (
+                        <div className="h-[400px] w-full rounded-2xl shadow-sm border border-slate-200 overflow-hidden bg-white mb-6">
+                            <MiniLiveTrackingMap />
+                        </div>
+                    )}
+
                     {filteredResults.length === 0 ? (
                         <div className="text-center py-12 text-slate-400">
                             <Truck className="w-10 h-10 mx-auto mb-3 opacity-30" />
