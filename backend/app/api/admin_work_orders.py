@@ -330,6 +330,10 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
         "external_id": wo.external_id,
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
+        # Billtobox
+        "billtobox_status": wo.billtobox_status,
+        "billtobox_error": wo.billtobox_error,
+        "billtobox_sent_at": wo.billtobox_sent_at.isoformat() if wo.billtobox_sent_at else None,
         # Echipa si vehicul
         "assigned_team_id": wo.assigned_team_id,
         "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
