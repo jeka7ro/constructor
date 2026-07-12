@@ -243,8 +243,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                     defaultFallbackItems.push({ id: 'fiber_gen', desc: `Fibre + Duramint`, qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
                 }
             }
-        }
-
+        } else {
             defaultFallbackItems = [{
                 id: 'default',
                 desc: `${tL('items.custom_work') || 'Travaux selon devis'} (${wo.title || tL('items.labor_materials') || 'Main-d\'œuvre et matériaux'})`,
