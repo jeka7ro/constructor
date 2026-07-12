@@ -305,8 +305,6 @@ def daily_verification(
     try:
         from app.config import settings
         FLESPI_TOKEN = settings.FLESPI_TOKEN
-        if not FLESPI_TOKEN:
-            return {"error": "Flespi token not configured", "results": []}
 
         query = db.query(Vehicle).filter(
             Vehicle.status == "active"
@@ -329,7 +327,7 @@ def daily_verification(
 
             device_ids = [str(v.flespi_device_id) for v in vehicles if getattr(v, 'flespi_device_id', None)]
 
-            if device_ids:
+            if device_ids and FLESPI_TOKEN:
                 url = f"https://flespi.io/gw/devices/{','.join(device_ids)}/messages"
                 headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
 
