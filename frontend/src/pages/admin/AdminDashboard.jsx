@@ -569,20 +569,22 @@ export default function AdminDashboard() {
                 </nav>
 
                 {/* Footer Brand */}
-                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-1.5 w-full overflow-hidden ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
+                <div className={`py-5 px-4 border-t shrink-0 flex flex-col items-center justify-center gap-2 w-full overflow-hidden ${darkMode ? 'border-slate-700' : 'border-[color:var(--tenant-border)]'}`}>
                     <div 
-                        className={`flex items-center justify-center w-full ${sidebarOpen ? 'ml-7' : 'ml-0'}`}
+                        className="flex items-center justify-center w-full"
                         title="Smart Timesheet"
                     >
                         {sidebarOpen ? (
-                             <img src="/getapp_smart_timesheet_white.png" alt="Smart Timesheet" className="w-[188px] h-auto object-contain opacity-70" />
+                             <img src="https://getapp.ro/logo_getapp_original.png" alt="GetApp Smart Timesheet" className="h-8 w-auto object-contain" />
                         ) : (
-                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-10 h-10 object-contain opacity-70 scale-110" />
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-10 h-10 object-contain opacity-90 scale-110" />
                         )}
                     </div>
                     {sidebarOpen && (
-                        <div className="text-[10px] font-mono text-slate-500 dark:text-slate-600 opacity-50 select-none text-center mt-0.5">
-                            v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+                        <div className={`text-[10px] font-mono mt-1 opacity-70 select-none text-center ${darkMode ? 'text-slate-400' : 'text-white'}`}>
+                            Build v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+                            <br />
+                            {typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : ''}
                         </div>
                     )}
                 </div>

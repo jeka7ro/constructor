@@ -8,6 +8,7 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')
 export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
+        __BUILD_TIME__: JSON.stringify(new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' })),
     },
     plugins: [
         react(),
