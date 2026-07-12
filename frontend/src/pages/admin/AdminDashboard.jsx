@@ -575,9 +575,13 @@ export default function AdminDashboard() {
                         title="Smart Timesheet"
                     >
                         {sidebarOpen ? (
-                             <img src="https://getapp.ro/logo_getapp_original.png" alt="GetApp Smart Timesheet" className="h-8 w-auto object-contain" />
+                             <div className="bg-white/95 px-4 py-2 rounded-xl shadow-sm flex items-center justify-center">
+                                 <img src="https://getapp.ro/logo_getapp_original.png" alt="GetApp Smart Timesheet" className="h-6 w-auto object-contain" />
+                             </div>
                         ) : (
-                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-10 h-10 object-contain opacity-90 scale-110" />
+                             <div className="bg-white/95 p-1.5 rounded-xl shadow-sm flex items-center justify-center">
+                                 <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet Icon" className="w-8 h-8 object-contain" />
+                             </div>
                         )}
                     </div>
                     {sidebarOpen && (
