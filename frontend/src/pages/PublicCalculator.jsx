@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, User, Loader2, CheckCircle2, Calendar, HardHat, FileText, ChevronRight, Calculator, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search } from 'lucide-react';
+import { Building2, User, Loader2, CheckCircle2, Calendar, HardHat, FileText, ChevronRight, Calculator, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -20,6 +20,7 @@ export default function PublicCalculator() {
     
     // Form State
     const [step, setStep] = useState(1);
+    const [photos, setPhotos] = useState([]);
     const [formData, setFormData] = useState({
         client_type: 'fizica', // fizica | juridica
         client_first_name: '',
@@ -38,8 +39,7 @@ export default function PublicCalculator() {
         has_mesh: false,
         has_duramint: true, // Always true
         approximate_date: '',
-        honeypot: '', // Spam protection
-        agreed_photos: false
+        honeypot: '' // Spam protection
     });
 
     const [isSearchingVies, setIsSearchingVies] = useState(false);
@@ -162,6 +162,20 @@ export default function PublicCalculator() {
 
             const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe });
             if (res.data.token) {
+                // Upload photos if user attached any
+                if (photos.length > 0) {
+                    try {
+                        const fd = new FormData();
+                        photos.forEach(f => fd.append('files', f));
+                        // Using axios directly to avoid publicApi baseURL which points to /calculator
+                        await axios.post(`/api/public/work-orders/${res.data.token}/documents`, fd, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                    } catch (err) {
+                        console.error("Failed to upload photos", err);
+                    }
+                }
+
                 if (isIframe) {
                     // Dacă e iframe, putem afișa un mesaj de succes direct sau redirecționare
                     navigate(`/public/proforma/${res.data.token}?iframe=true`);
@@ -356,13 +370,13 @@ export default function PublicCalculator() {
                 {/* Progress Bar (QuoteCalculator style) */}
                 <div className="mb-8 px-2">
                     <div className="flex justify-between text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                        <span>Étape {step} sur 3</span>
-                        <span>{Math.round((step / 3) * 100)}%</span>
+                        <span>Étape {step} sur 4</span>
+                        <span>{Math.round((step / 4) * 100)}%</span>
                     </div>
                     <div className="h-1.5 sm:h-2 w-full bg-slate-200 rounded-full overflow-hidden">
                         <div 
                             className="h-full bg-yellow-400 transition-all duration-500 ease-out"
-                            style={{ width: `${(step / 3) * 100}%` }}
+                            style={{ width: `${(step / 4) * 100}%` }}
                         ></div>
                     </div>
                 </div>
@@ -521,8 +535,68 @@ export default function PublicCalculator() {
                                 </div>
                             )}
 
-                            {/* STEP 3: EXTRAS & CLIENT INFO */}
+                            {/* STEP 3: PHOTOS */}
                             {step === 3 && (
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
+                                        {t('calculator.photosTitle', 'Photos du chantier (Optionnel)')}
+                                    </h1>
+                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
+                                        {t('calculator.photosSub', "Ajoutez des photos pour nous aider à évaluer les travaux. Cela nous permet de vous proposer un devis plus précis.")}
+                                    </p>
+
+                                    <div className="mb-8">
+                                        <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative">
+                                            <input 
+                                                type="file" 
+                                                multiple 
+                                                accept="image/*"
+                                                onChange={e => setPhotos(Array.from(e.target.files))}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center gap-2 text-slate-500">
+                                                <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
+                                                    <Camera className="w-6 h-6" />
+                                                </div>
+                                                <span className="font-bold text-sm">Cliquez ici pour sélectionner des photos</span>
+                                                <span className="text-xs">ou glissez-déposez les fichiers</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {photos.length > 0 && (
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {photos.map((p, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-xs font-bold flex items-center gap-2">
+                                                        <FileText className="w-3.5 h-3.5" />
+                                                        <span className="truncate max-w-[150px]">{p.name}</span>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep(2)}
+                                            className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
+                                        >
+                                            {t('calculator.back', 'Retour')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep(4)}
+                                            className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            {t('calculator.continue', 'Continuer')} 
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 4: EXTRAS & CLIENT INFO */}
+                            {step === 4 && (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
                                         {t('calculator.extrasTitle', 'Options Supplémentaires')}
@@ -548,21 +622,7 @@ export default function PublicCalculator() {
                                         </label>
                                     </div>
 
-                                    {/* Mesaj informativ obligatoriu pentru poze (Mutat inainte de datele clientului) */}
-                                    <label className={`flex items-start gap-3 p-4 mb-8 rounded-xl border-2 cursor-pointer transition-all ${formData.agreed_photos ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-200 hover:border-yellow-200 bg-white'}`}>
-                                        <div className="pt-0.5">
-                                            <input 
-                                                type="checkbox" 
-                                                required
-                                                checked={formData.agreed_photos} 
-                                                onChange={e => setFormData({ ...formData, agreed_photos: e.target.checked })} 
-                                                className="w-5 h-5 text-yellow-500 rounded focus:ring-yellow-400 border-slate-300"
-                                            />
-                                        </div>
-                                        <span className="text-sm text-slate-700 font-medium leading-snug">
-                                            {t('calculator.agree_photos', "Je comprends qu'il me sera demandé de fournir des photos du chantier à l'étape suivante pour valider le devis.")}
-                                        </span>
-                                    </label>
+                                    </div>
 
                                     <div className="border-t-2 border-slate-100 pt-6 mb-8">
                                         <h2 className="text-xl font-extrabold mb-4 text-slate-900">{t('clients.client_details', 'Vos coordonnées')}</h2>
@@ -667,7 +727,7 @@ export default function PublicCalculator() {
                                     <div className="flex gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => setStep(2)}
+                                            onClick={() => setStep(3)}
                                             className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
                                         >
                                             {t('calculator.back', 'Retour')}
