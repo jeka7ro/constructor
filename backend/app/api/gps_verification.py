@@ -122,6 +122,9 @@ def get_dynamic_speed_limits(track):
 
 
 def fetch_flespi_track(imei: str, date_str: str, flespi_data: dict) -> List[dict]:
+    if not imei:
+        return []
+        
     day = datetime.strptime(date_str, "%Y-%m-%d")
     ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0).timestamp()) - 7200
     ts_to = ts_from + 86400
@@ -306,7 +309,6 @@ def daily_verification(
             return {"error": "Flespi token not configured", "results": []}
 
         query = db.query(Vehicle).filter(
-            Vehicle.imei.isnot(None),
             Vehicle.status == "active"
         )
         if vehicle:
