@@ -1059,7 +1059,7 @@ export default function AdminOverview() {
                         />
                     </div>
                     {!isCalendarFull && (
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 h-[800px]">
                             {/* Panel DEVIS — draggable pe calendar */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
                                 <div className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
@@ -1090,44 +1090,41 @@ export default function AdminOverview() {
                                             onDragEnd={(e) => {
                                                 e.currentTarget.classList.remove('opacity-50', 'scale-95')
                                             }}
-                                            className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
+                                            className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
+                                            title={`Client: ${quote.client_name || quote.title || 'Devis'}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.site_latitude && bases?.[0] ? getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0) + ' km' : '?'}`}
                                         >
-                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <GripVertical className="w-4 h-4 text-rose-300 dark:text-rose-600" />
+                                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-800/80 rounded">
+                                                <GripVertical className="w-3.5 h-3.5 text-rose-400 dark:text-rose-500" />
                                             </div>
-                                            <div className="font-bold text-[13px] text-rose-900 dark:text-rose-100 pr-4 truncate">
-                                                {quote.client_name || quote.title || 'Devis'}
-                                            </div>
-                                            {quote.site_address && (
-                                                <div className="text-[10px] text-rose-600 dark:text-rose-400 truncate mt-0.5 flex items-center justify-between">
-                                                    <span className="truncate pr-2 flex items-center gap-1">
-                                                        <MapPin className="w-2.5 h-2.5 shrink-0" />
-                                                        {formatCityOnly(quote.site_address)}
-                                                    </span>
-                                                    <div className="flex items-center gap-1.5 shrink-0">
-                                                        {quote.approximate_date && (
-                                                            <span className="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[9px] font-bold text-rose-700 dark:text-rose-300">
-                                                                {new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                            
+                                            {/* ROW 1: Name + Date */}
+                                            <div className="flex justify-between items-center pr-4">
+                                                <div className="font-bold text-[11px] text-rose-900 dark:text-rose-100 truncate flex-1">
+                                                    {quote.client_name || quote.title || 'Devis'}
                                                 </div>
-                                            )}
-                                            <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2">
-                                                {quote.volumes?.[0]?.quantity && (
-                                                    <span>{quote.volumes[0].quantity} m² · {quote.volumes[0].thickness || '?'} cm</span>
+                                                {quote.approximate_date && (
+                                                    <div className="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[8px] font-bold text-rose-700 dark:text-rose-300 shrink-0 ml-1">
+                                                        {new Date(quote.approximate_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }).replace(/\//g, '.')}
+                                                    </div>
                                                 )}
-                                                {bases?.[0] ? (
-                                                    quote.site_latitude && quote.site_longitude ? (
-                                                        <span className="font-semibold text-rose-700 dark:text-rose-300">
-                                                            · {getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0)} km
-                                                        </span>
-                                                    ) : (
-                                                        <span className="font-semibold text-red-500/50 dark:text-red-400/50" title={t('overview.missing_gps_tooltip', 'Coordonnées GPS manquantes. Sélectionnez l\'adresse dans Google Maps lors de l\'édition du devis.')}>
-                                                            · ? km
-                                                        </span>
-                                                    )
-                                                ) : null}
+                                            </div>
+                                            
+                                            {/* ROW 2: Location + Surface + Distance */}
+                                            <div className="text-[9px] text-rose-600 dark:text-rose-400 mt-0.5 flex items-center gap-1.5 truncate">
+                                                {quote.site_address && (
+                                                    <span className="flex items-center gap-0.5 shrink-0">
+                                                        <MapPin className="w-2.5 h-2.5" />
+                                                        <span className="truncate max-w-[65px]">{formatCityOnly(quote.site_address)}</span>
+                                                    </span>
+                                                )}
+                                                {quote.volumes?.[0]?.quantity && (
+                                                    <span className="text-slate-500 shrink-0">· {quote.volumes[0].quantity}m²x{quote.volumes[0].thickness || '?'}</span>
+                                                )}
+                                                {bases?.[0] && quote.site_latitude && quote.site_longitude && (
+                                                    <span className="font-bold shrink-0">
+                                                        · {getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0)}km
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -1865,9 +1862,16 @@ export default function AdminOverview() {
             )}
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
+            {/* Live Tracking Module full width under calendar */}
+            {isShortTerm && (
+                <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[500px]">
+                    <MiniLiveTrackingMap />
+                </div>
+            )}
+
 {/* Recent Work Orders */}
             {dashboardLayout.recent_work_orders?.visible && (
-                <div className={`${isShortTerm ? 'xl:col-span-3' : 'xl:col-span-4'} bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden`}>
+                <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                         <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <ClipboardList className="w-4 h-4 text-white" />
@@ -1952,13 +1956,6 @@ export default function AdminOverview() {
                             />
                         </div>
                     )}
-                </div>
-            )}
-            
-            {/* Live Tracking Module next to Recent Orders */}
-            {isShortTerm && (
-                <div className="xl:col-span-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[400px]">
-                    <MiniLiveTrackingMap />
                 </div>
             )}
             </div>
