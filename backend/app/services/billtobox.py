@@ -188,6 +188,8 @@ def generate_efff_xml(work_order, client):
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime
+import httpx
+import os
 
 def send_invoice_to_billtobox(work_order, client):
     """
@@ -218,6 +220,32 @@ def send_invoice_to_billtobox(work_order, client):
             subtype='xml',
             filename=filename
         )
+        
+        # Attach the PDF file
+        if work_order.pdf_path:
+            try:
+                pdf_data = None
+                if work_order.pdf_path.startswith('http'):
+                    response = httpx.get(work_order.pdf_path, timeout=15.0)
+                    if response.status_code == 200:
+                        pdf_data = response.content
+                else:
+                    local_path = os.path.join(os.getcwd(), work_order.pdf_path.lstrip('/'))
+                    if os.path.exists(local_path):
+                        with open(local_path, 'rb') as f:
+                            pdf_data = f.read()
+                
+                if pdf_data:
+                    msg.add_attachment(
+                        pdf_data,
+                        maintype='application',
+                        subtype='pdf',
+                        filename=f"Factura_{invoice_number}.pdf"
+                    )
+                else:
+                    logger.warning(f"Could not load PDF data for Billtobox from path: {work_order.pdf_path}")
+            except Exception as pdf_err:
+                logger.error(f"Eroare atasare PDF la Billtobox: {str(pdf_err)}")
         
         # Send email
         with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT) as server:

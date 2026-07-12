@@ -681,6 +681,26 @@ export default function InvoicingManagement() {
                 <p className="text-sm font-medium text-slate-500 mt-1">{t('invoicing.page_desc', 'Gestion des factures, devis et paiements')}</p>
             </div>
 
+            {/* KPIs Dashboard */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_total', 'Total Commandes')}</p>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{workOrders.length}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_to_invoice', 'À Facturer (Devis/Proforma)')}</p>
+                    <p className="text-2xl font-black text-amber-600 dark:text-amber-500">{workOrders.filter(w => !w.is_invoiced && (w.is_quote || w.proforma_path)).length}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_invoiced', 'Facturées')}</p>
+                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-500">{workOrders.filter(w => w.is_invoiced).length}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('invoicing.kpi_billtobox', 'Envoyées Billtobox')}</p>
+                    <p className="text-2xl font-black text-blue-600 dark:text-blue-500">{workOrders.filter(w => w.billtobox_status === 'sent').length}</p>
+                </div>
+            </div>
+
             {/* Filtre rapide — stil consistent cu restul aplicatiei */}
             <div className="flex flex-wrap items-center gap-2">
                 {/* Filtre Status */}
@@ -1070,7 +1090,7 @@ export default function InvoicingManagement() {
             )}
 
             {toast && (
-                <div className="fixed bottom-4 right-4 z-[9999]">
+                <div className="fixed top-20 right-4 z-[9999] animate-in slide-in-from-top-4">
                     <div className={`px-4 py-2 rounded-full shadow-lg text-[11px] font-bold uppercase tracking-wide border 
                         ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                         {toast.msg}

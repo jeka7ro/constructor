@@ -606,7 +606,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                                                     </div>
                                                 )}
                                                 <div className="flex-1 relative bg-slate-100">
-                                                    <MapContainer center={[displayStartPoint?.[0] || 50.85, displayStartPoint?.[1] || 4.35]} zoom={11} className="w-full h-full" scrollWheelZoom={true}>
+                                                    <MapContainer center={[displayStartPoint?.[0] || 50.85, displayStartPoint?.[1] || 4.35]} zoom={11} className="w-full h-full" scrollWheelZoom={false}>
                                                         <MapResizer isFullscreen={true} />
                                                         <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                                                         <MapFitter all={displayPoints} />

@@ -117,10 +117,12 @@ export default function MiniLiveTrackingMap() {
           className="w-full h-full"
           style={{ background: '#f8fafc' }}
           zoomControl={false}
+          scrollWheelZoom={false}
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            attribution='&copy; CARTO'
+            url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+            attribution="&copy; Google Maps"
+            maxZoom={20}
           />
           {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
           {vehicles.map(v => (

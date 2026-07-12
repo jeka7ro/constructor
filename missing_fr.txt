@@ -1,0 +1,1181 @@
+quotes.geo_unsupported ||| Geolocația nu este suportată de browser.
+quotes.geo_error ||| Impossible de récupérer la position. Vérifiez vos autorisations.
+weather.no_data ||| Date meteo indisponibile pentru
+weather.location ||| Vremea la locație
+weather.no_location ||| Locație nespecificată
+weather.start ||| Start
+weather.feels_like ||| Ressenti
+weather.wind ||| Vent
+weather.humidity ||| Humidité
+live.ago_sec ||| il y a {{count}}s
+live.ago_min ||| il y a {{count}}min
+live.ago_h ||| il y a {{count}}h
+dashboard.live_tracking ||| LIVE TRACKING
+live.active ||| actif
+live.last_seen ||| Vu
+live.speed ||| Vitesse
+status.in_progress ||| În progres
+general.today ||| Aujourd
+general.order ||| chantier
+general.orders ||| chantiers
+general.sand ||| Sable
+general.from_prev ||| du chantier précédent
+general.from_base ||| de la base
+general.no_orders_day ||| Aucun chantier pour ce jour.
+street_view.title ||| Street View (Destinație)
+street_view.exact_address ||| Adresse Exacte
+street_view.facade_large ||| Adresse Exacte (Façade)
+street_view.angle ||| Angle
+calculator.service_unavailable ||| Le service est temporairement indisponible.
+clients.vies_error ||| Firma nu a fost găsită. Verificați codul TVA.
+clients.vies_error ||| Eroare la căutarea firmei.
+workorders.surface_required ||| Suprafața este obligatorie.
+calendar.mon ||| Lu
+calendar.tue ||| Ma
+calendar.wed ||| Mi
+calendar.thu ||| Jo
+calendar.fri ||| Vi
+calendar.sat ||| Sâ
+calendar.sun ||| Du
+calculator.backToSite ||| Retour
+calculator.projectDetails ||| Détails du Projet
+calculator.projectDetailsSub ||| Dites-nous quelques éléments pour calculer les matériaux.
+calculator.workType ||| Type de Travail
+calculator.newBuild ||| Nouvelle Construction
+calculator.renovation ||| Rénovation
+calculator.surface ||| Surface (m²)
+calculator.thickness ||| Épaisseur (cm)
+errors.missing_details ||| La surface est obligatoire.
+calculator.continue ||| Continuer
+calculator.site_address ||| Adresse du chantier
+calculator.addressSub ||| Veuillez introduire l\
+workorders.site_address ||| Adresse complète du chantier
+calculator.desired_date ||| Date souhaitée
+calculator.back ||| Retour
+errors.missing_details ||| L
+calculator.extrasTitle ||| Options Supplémentaires
+calculator.foil ||| Film plastique
+calculator.mesh ||| Treillis
+clients.client_details ||| Vos coordonnées
+clients.type_physical ||| Particulier
+clients.type_legal ||| Entreprise
+clients.cui ||| Numéro de TVA
+clients.billing_address ||| Adresse de facturation (optionnel)
+calculator.photosTitle ||| Photos du chantier (Optionnel)
+calculator.photosSub ||| Ajoutez des photos pour nous aider à évaluer les travaux. Cela nous permet de vous proposer un devis plus précis.
+calculator.get_quote ||| Obtenir le devis
+calculator.secureData ||| Données sécurisées.
+accommodations.load_error ||| Erreur de chargement
+accommodations.details_error ||| Erreur de détails
+accommodations.fill_name_error ||| Veuillez remplir le nom
+accommodations.acc_updated ||| Cazare actualizată
+accommodations.acc_added ||| Cazare adăugată
+accommodations.save_error ||| Erreur d\
+accommodations.delete_title ||| Supprimerre Cazare
+accommodations.delete_msg ||| Sigur doriți să ștergeți această cazare? Toate repartizările vor fi pierdute.
+accommodations.acc_deleted ||| Hébergement supprimé
+accommodations.error ||| Erreur
+accommodations.select_worker_error ||| Sélectionnez au moins un employé
+accommodations.assigned_success ||| {{count}} employés affectés
+accommodations.assigned_errors ||| {{count}} erreurs d\
+accommodations.remove_worker_title ||| Eliminare Muncitor
+accommodations.remove_worker_msg ||| Sigur doriți să eliminați repartizarea?
+accommodations.worker_removed ||| Employé retiré
+accommodations.back_to_list ||| Retour aux hébergements
+accommodations.occupied_spots ||| locuri ocupate
+accommodations.workers_housed ||| muncitori cazați
+accommodations.edit_btn ||| Éditer
+accommodations.add_workers_btn ||| Ajouter Muncitori
+accommodations.col_nr ||| Nr.
+accommodations.col_employee ||| Angajat
+accommodations.col_from ||| De la
+accommodations.col_to ||| Până la
+accommodations.col_actions ||| Acțiuni
+accommodations.no_workers_housed ||| Niciun muncitor cazat momentan.
+accommodations.undefined ||| Non défini
+accommodations.total_label ||| Total:
+accommodations.spots ||| locuri
+accommodations.add_workers_title ||| Ajouter Muncitori
+accommodations.available_workers ||| disponibili
+accommodations.selected ||| selectați
+accommodations.search_employee_placeholder ||| Rechercher un employé...
+accommodations.all_sites ||| Toate șantierele
+accommodations.select_all ||| Selectează Toți
+accommodations.clear_selection ||| Golire selecție
+accommodations.no_available_employee ||| Nu s-a găsit niciun angajat disponibil.
+accommodations.from_date ||| De la
+accommodations.to_date ||| Până la
+accommodations.cancel ||| Anulează
+accommodations.new_acc_btn ||| Cazare Nouă
+accommodations.selected ||| sélectionnés
+accommodations.batch_delete_title ||| Supprimerre multiplă
+accommodations.batch_delete_msg ||| Ștergi {{count}} cazări?
+accommodations.delete_selected ||| Supprimer Selectatele
+accommodations.col_name ||| Denumire
+accommodations.col_capacity ||| Capacitate
+accommodations.col_occupants ||| Ocupanți
+accommodations.add_workers_title ||| Ajouter muncitori la cazare
+accommodations.show ||| Afficher
+accommodations.total_label ||| Total :
+accommodations.page_of ||| Pagina {{current}} din {{total}}
+accommodations.select_all ||| Tout sélectionner
+accommodations.clear_selection ||| Vider la sélection
+accommodations.edit_acc_title ||| Modifică Cazare
+accommodations.new_acc_title ||| Cazare Nouă
+accommodations.name_placeholder ||| ex: Pensiunea Florin, Ap. 2 Str. Mihai...
+accommodations.address_placeholder ||| Stradă, număr, localitate...
+accommodations.capacity_label ||| Capacitate (nr. locuri)
+accommodations.ex_capacity ||| ex: 6
+accommodations.notes_label ||| Observații
+accommodations.notes_placeholder ||| Note, informații suplimentare...
+accommodations.save_btn ||| Enregistrer
+accommodations.add_btn ||| Ajouter
+accommodations.yes_delete ||| Da, Supprimer
+common.error ||| Erreur
+activities.archive_inactive ||| Archive (Inactives)
+activities.delete_category ||| Supprimer la catégorie
+nav.isoflex_history ||| Historique Isoflex
+nav.pricing_settings ||| Tarifs
+admin.new_complaints ||| Nouvelles plaintes
+admin.happy_birthday ||| Joyeux anniversaire !
+admin.celebrating_today ||| Aujourd\
+admin.years ||| ans
+common.error_loading ||| Erreur de chargement
+common.updated_successfully ||| Mis à jour avec succès
+common.update_error ||| Erreur de mise à jour
+emergencies.delete_title ||| Supprimer l\
+emergencies.delete_confirm ||| Êtes-vous sûr de vouloir supprimer cette urgence ?
+emergencies.deleted_success ||| Urgence supprimée
+common.delete_error ||| Erreur de suppression
+common.selected ||| sélectionné(s)
+common.bulk_delete_title ||| Suppression Multiple
+emergencies.bulk_delete_confirm ||| Supprimer {{count}} urgences ?
+emergencies.bulk_deleted_success ||| Urgences supprimées
+common.delete_selected ||| Supprimer la Sélection
+emergencies.employee_site ||| Employé / Chantier
+emergencies.status_level ||| Statut / Niveau
+emergencies.no_emergencies ||| Aucune urgence.
+emergencies.critical_upper ||| CRITIQUE
+emergencies.details_title ||| Détails de l\
+emergencies.critical_badge ||| (CRITIQUE)
+emergencies.problem_description ||| Description du problème
+emergencies.resolution ||| Résolution
+emergencies.status_remain_active ||| Reste Active
+emergencies.status_mark_resolved ||| Marquer comme Résolue
+emergencies.resolution_details_placeholder ||| Détails sur la résolution (optionnel)...
+common.save_changes ||| Enregistrer les Modifications
+admin_login.auth_error ||| Erreur d\
+admin_login.manager_login ||| Authentification pour les managers
+common.password ||| Mot de passe
+admin_login.remember_me ||| Se souvenir de moi
+admin_login.authenticating ||| Authentification en cours...
+admin_login.admin_auth_btn ||| Authentification Admin
+admin_login.worker_access ||| ← Accès travailleurs
+admin_login.restricted_access ||| Accès restreint.
+material_req.delete_title ||| Supprimer la Demande
+material_req.delete_confirm ||| Êtes-vous sûr de vouloir supprimer cette demande de matériel ?
+material_req.deleted_success ||| Demande supprimée
+material_req.search_placeholder ||| Rechercher matériel, employé, chantier...
+common.id ||| ID
+common.employee ||| Employé
+material_req.materials ||| Matériaux
+material_req.no_requests ||| Aucune demande.
+common.of ||| sur
+common.previous ||| Précédent
+common.next ||| Suivant
+material_req.details_title ||| Détails de la Demande de Matériel
+material_req.requested_materials ||| Matériaux Sollicités
+material_req.employee_notes ||| Notes de l\
+material_req.add_tools_from_warehouse ||| Ajouter des Outils du Magasin
+material_req.tools_deducted_auto ||| Les outils sélectionnés ici seront automatiquement déduits du stock lorsque le travailleur confirmera la réception sur son téléphone.
+material_req.choose_tool_material ||| -- Choisir un outil / matériel --
+material_req.code ||| Code :
+material_req.stock ||| Stock :
+common.qty ||| Qté
+material_req.insufficient_stock ||| Stock insuffisant. Maximum disponible : 
+material_req.unique_tools_one_by_one ||| Les outils uniques ne peuvent être ajoutés qu\
+material_req.item_already_in_list ||| Cet article est déjà dans la liste !
+material_req.full_timeline ||| Chronologie Complète
+material_req.requested ||| Sollicité
+common.site_label ||| Chantier :
+common.rejected ||| Rejetée
+common.approved ||| Approuvée
+common.admin ||| Administrateur
+material_req.delivered_to_site ||| 🚚 Livré sur le Chantier
+material_req.confirmed_by_worker ||| ✍️ Confirmé par le Travailleur
+material_req.digitally_signed ||| Signé numériquement ✓
+material_req.current_status ||| Statut actuel :
+material_req.materials_leaving_stock ||| Les matériaux quittent-ils le stock ?
+material_req.mark_delivered_desc ||| Marquez la demande comme livrée. Le travailleur devra confirmer la réception dans l\
+material_req.carrier_placeholder ||| Par qui les envoyez-vous ? (Optionnel, ex : Chauffeur Radu)
+material_req.sent_for_signature ||| Demande envoyée pour signature sur le chantier !
+material_req.delivery_error ||| Erreur de livraison
+material_req.send_for_signature_btn ||| Envoyer pour Signature au Travailleur
+material_req.forced_actions ||| Actions Forcées
+material_req.status_pending_desc ||| En attente (Retour)
+material_req.status_approved_desc ||| Approuver la demande (Sélection de stock nécessaire séparément)
+material_req.status_rejected_desc ||| Rejeter la demande
+material_req.status_delivered_desc ||| Livrer sur le chantier (Attente de Signature de l\
+material_req.status_completed_desc ||| Finaliser de force (Transférer le stock sans signature)
+common.add_comment_optional ||| Ajouter un commentaire (optionnel)...
+overview.fullscreen_error ||| Erreur lors de l\
+overview.team_assign_error ||| Erreur lors de l\
+overview.client_assign_error ||| Erreur lors de l\
+overview.geo_not_supported ||| La géolocalisation n\
+overview.geo_timeout ||| Délai dépassé. Vérifiez les paramètres de permission GPS.
+overview.geocode_error ||| Erreur de géocodage inversé :
+overview.location_detect_error ||| Erreur lors de la détection de la localisation.
+clients.vies_error ||| L
+clients.kbo_error ||| L
+overview.client_create_error ||| Erreur lors de la création du client.
+overview.quick_create_error ||| Une erreur est survenue lors de la création rapide de la commande.
+overview.save_changes_error ||| Une erreur est survenue lors de l\
+overview.no_pending_quotes ||| Aucun devis en attente
+overview.reported_activities ||| Activités Signalées
+dashboard.quick_create.client_mandatory ||| Client *
+dashboard.quick_create.work_type ||| Tip Lucrare (TVA)
+dashboard.quick_create.apply_vat ||| Aplică TVA
+dashboard.quick_create.work_new ||| Nouă (< 10 ani)
+dashboard.quick_create.work_repair ||| Renovare (> 10 ani)
+dashboard.quick_create.surface_mandatory ||| Surface (m²) *
+dashboard.quick_create.thickness_mandatory ||| Épaisseur (cm) *
+clients.from_database ||| Depuis la Base de Données
+overview.google_maps_new ||| Google Maps (Nouvelles entreprises)
+overview.search_vies ||| Rechercher l\
+overview.search_kbo ||| Rechercher dans KBO (Belgique)
+clients.address ||| Adresse du Siège
+clients.address_placeholder ||| Complétez ou recherchez automatiquement avec la loupe →
+clients.kbo_source ||| SOURCE KBO
+clients.kbo_details ||| Détails Officiels Extraits
+clients.status ||| Statut :
+clients.unknown ||| Inconnu
+clients.vat_subject ||| ASSUJETTI À LA TVA
+clients.no_vat ||| SANS TVA
+clients.representative ||| Représentant :
+dashboard.quick_create.include_fiber ||| Include Fibres
+common.unknown_client ||| Client Inconnu
+work_order_detail.invoicing.invoiced ||| Facturé
+work_order_detail.invoicing.not_invoiced ||| Non Facturé
+dashboard.fleet_alerts ||| Alertes Flotte (Documents)
+common.expired ||| Expiré
+common.expires_in_days ||| Expire dans {{count}} jours
+dashboard.need_to_deliver ||| Nécessaire à Livrer
+dashboard.all_delivered ||| Tout a été livré
+common.approved_upper ||| APPROUVÉ
+dashboard.recently_delivered ||| Récemment Livré
+dashboard.no_deliveries ||| Aucune livraison enregistrée
+dashboard.activity_singular ||| activité
+dashboard.activity_plural ||| activités
+dashboard.search_worker ||| Rechercher un travailleur...
+dashboard.search_finished_worker ||| Rechercher un travailleur terminé...
+common.error_loading ||| Erreur de chargement des données
+alerts.message_sent_success ||| Message envoyé avec succès !
+alerts.message_send_error ||| Erreur lors de l\
+alerts.digital_noticeboard ||| Panneau d\
+alerts.subtitle ||| Envoyer des messages et alertes instantanés aux travailleurs
+alerts.new_message_btn ||| Nouveau Message
+alerts.compose_new_message ||| Composer un Nouveau Message
+alerts.message_announcement ||| Message / Annonce
+alerts.message_placeholder ||| Écrivez ici le message qui apparaîtra sur l\
+alerts.recipient_label ||| Destinataire (Qui voit le message)
+alerts.recipient_all ||| Tout le monde (Global)
+alerts.recipient_site ||| Un chantier spécifique
+alerts.recipient_worker ||| Un travailleur spécifique
+alerts.choose_site ||| Choisir le Chantier
+alerts.choose_worker ||| Choisir le Travailleur
+alerts.send_message_btn ||| Envoyer le Message
+alerts.message_history ||| Historique des Messages
+alerts.no_messages_sent ||| Aucun message n\
+alerts.target_all ||| À tous
+alerts.target_site ||| Chantier Spécifique
+alerts.target_worker ||| Travailleur Spécifique
+alerts.confirmations ||| Confirmations
+common.saved_successfully ||| Client enregistré avec succès!
+common.deleted_successfully ||| Client supprimé avec succès!
+clients.search_vies ||| Rechercher entreprise dans VIES
+clients.search_kbo ||| Rechercher dans BCE (Belgique)
+complaints.write_response ||| Veuillez écrire une réponse
+complaints.response_sent ||| Réponse envoyée
+complaints.response_error ||| Erreur lors de l\
+common.status_updated ||| Statut mis à jour
+complaints.delete_title ||| Supprimer la Réclamation
+complaints.delete_confirm ||| Êtes-vous sûr de vouloir supprimer cette réclamation ?
+complaints.deleted_success ||| Réclamation supprimée
+complaints.search_placeholder ||| Rechercher une réclamation, un employé...
+complaints.bulk_delete_confirm ||| Supprimer {{count}} réclamations ?
+complaints.bulk_deleted_success ||| Réclamations supprimées
+complaints.no_complaints ||| Aucune réclamation
+complaints.with_selected_status ||| avec le statut sélectionné
+common.show ||| Afficher
+complaints.complaint_content ||| Contenu de la Réclamation
+complaints.change_status ||| Changer le Statut
+complaints.admin_response ||| Réponse de l\
+complaints.write_response_placeholder ||| Écrivez votre réponse...
+complaints.status_after_response ||| Statut après la réponse :
+complaints.in_review ||| En Analyse
+complaints.resolved ||| Résolue
+complaints.closed ||| Fermée
+complaints.previous_response ||| Réponse précédente
+complaints.send_response_btn ||| Envoyer la Réponse
+devis.not_found ||| Devis introuvable.
+devis.flat_rate ||| Forfait
+devis.flat_rate_unit ||| Forfait
+employees.site_attached_success ||| Șantier atașat cu succes
+employees.site_attach_error ||| Eroare la atașarea șantierului
+common.export_excel ||| Export Excel
+employees.id_card ||| Carte de Identitate
+employees.upload_id_pic ||| Încarcă poză CI
+employees.upload_id_hint ||| JPG, PNG, max 10MB
+employees.scan_id ||| Scanează CI
+employees.employee_code ||| Cod Angajat
+employees.emp_code_placeholder ||| ex: EMP001
+users_modal.last_name_placeholder ||| ex: Popescu
+users_modal.first_name_placeholder ||| ex: Ion
+users_modal.pin ||| PIN
+users_modal.pin_placeholder ||| 4-6 cifre
+users_modal.select_role ||| Selectează rol...
+employees.cnp ||| CNP
+employees.cnp_placeholder ||| 13 cifre
+employees.id_series ||| Serie Buletin
+employees.id_series_placeholder ||| ex: RD 123456
+employees.birth_date ||| Data Nașterii
+employees.birth_place ||| Loc Naștere
+employees.birth_place_placeholder ||| ex: București
+employees.phone ||| Telefon
+employees.phone_placeholder ||| 07xx xxx xxx
+employees.email ||| Email
+employees.email_placeholder ||| email@example.com
+employees.address ||| Domiciliu
+employees.address_placeholder ||| Strada, Număr, Oraș
+employees.hourly_rate ||| Tarif Orar (Lei/h)
+employees.confidential ||| confidential
+employees.hourly_rate_placeholder ||| ex: 25.00
+users_modal.active_account ||| Cont activ
+employees.work_contract ||| Contract de Muncă
+employees.view_contract ||| Vizualizează Contract
+common.success ||| Succes
+employees.contract_upload_success ||| Contract încărcat cu succes!
+common.error ||| Eroare
+employees.replace ||| Înlocuiește
+employees.upload_contract_hint ||| Încarcă Contract (PDF, JPG, PNG)
+users_modal.reset_pin ||| Resetare PIN
+users_modal.new_pin_label ||| PIN Nou (4-6 cifre)
+users_modal.reset_pin_button ||| Resetează PIN
+employees.avatar_updated ||| Avatar actualizat
+employees.avatar_update_error ||| Eroare la actualizare avatar
+employees.attach_site ||| Atașează Șantier
+employees.select_site ||| Selectează Șantierul
+employees.no_site ||| Niciun șantier (Anulează atașarea)
+employees.attach_site_hint ||| Angajatul va fi transferat direct pe acest șantier, ocolind necesitatea asocierii într-o Echipă dedicată.
+employees.delete_employee ||| Supprimerre Angajat:
+employees.delete_employee_hint ||| Ai ales să elimini acest angajat din lista curentă. Te rugăm să alegi cum dorești să fie procesat:
+users.archive_recommended ||| Mută în Arhivă (Recomandat)
+users.archive_hint ||| Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.
+users.delete_permanent ||| Supprimer Definitiv
+common.attention ||| Atenție!
+users.delete_hint ||| Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.
+common.view ||| Vizualizează
+users_modal.reset_pin ||| Resetează PIN
+expenses.error_load_data ||| Erreur de chargement des données de dépenses :
+expenses.error_upload_failed ||| Attention : le téléchargement du fichier a échoué. Le fichier doit être une image pour la route actuelle.
+expenses.error_save_expense ||| Erreur lors de l\
+expenses.confirm_delete ||| Êtes-vous sûr de vouloir supprimer cet enregistrement ?
+expenses.delete ||| Supprimer
+fleet.errors.save ||| Erreur lors de la sauvegarde
+fleet.errors.delete ||| Erreur lors de la suppression
+fleet.cat_saved ||| Catégorie enregistrée avec succès!
+fleet.errors.cat_save ||| Erreur d
+fleet.del_cat_confirm ||| Voulez-vous vraiment supprimer cette catégorie ?
+fleet.cat_deleted ||| Catégorie supprimée avec succès!
+fleet.cat_del_error ||| Erreur lors de la suppression
+fleet.errors.log_save ||| Erreur de sauvegarde de pointage machine: 
+fleet.doc_uploaded ||| Document téléchargé avec succès!
+fleet.errors.doc_upload ||| Erreur de téléchargement du document: 
+fleet.doc_updated ||| Document mis à jour avec succès!
+fleet.errors.doc_update ||| Erreur de mise à jour du document : 
+common.invalid_data ||| Données invalides
+fleet.del_doc_confirm ||| Voulez-vous vraiment supprimer ce document ?
+fleet.doc_deleted ||| Document supprimé avec succès!
+fleet.doc_del_error ||| Erreur de suppression du document : 
+fleet.allocated_sites ||| Chantiers alloués
+fleet.other_sites ||| autres chantiers
+common.documents ||| Documents
+fleet.view_all_docs ||| Voir tous les {{count}} documents
+fleet.view_doc ||| Voir le document
+fleet.attached_doc ||| Document atașat
+fleet.daily_timesheet ||| Pointage quotidien
+common.name_uppercase ||| NOM
+common.group_uppercase ||| GROUPE
+fleet.tab_cars ||| Voitures (Flotte)
+fleet.tab_equipment ||| Équipements
+fleet.tab_report ||| Rapport de consommation
+fleet.tab_categories ||| Catégories / Types
+fleet.search_cat ||| Rechercher catégorie...
+fleet.all_sites ||| Tous les chantiers
+common.from ||| De
+fleet.until ||| Jusqu\
+fleet.vehicle_machine ||| Véhicule / Engin
+fleet.days_worked ||| Jours travaillés
+fleet.active_km ||| KM Actifs
+fleet.fuel_liters ||| Carburant (L)
+fleet.refuel_events ||| Pleins
+fleet.last_operator ||| Dernier opérateur
+fleet.no_logs ||| Aucun enregistrement dans cette période. Générez le rapport ci-dessus.
+fleet.new_vehicle ||| Nouveau Véhicule
+fleet.tabs.info ||| Informations
+fleet.tabs.sites ||| Affectations Chantiers
+fleet.tabs.drivers ||| Chauffeurs / Opérateurs
+fleet.tabs.documents ||| Documents
+fleet.chassis ||| Numéro de châssis
+fleet.placeholders.chassis ||| Numéro d\
+fleet.gps_integration ||| Intégration GPS (Optionnel)
+fleet.imei_tracker ||| IMEI Tracker GPS
+fleet.imei_placeholder ||| 15 chiffres de l
+fleet.flespi_id ||| ID Appareil Flespi
+fleet.flespi_id_placeholder ||| ID créé dans Flespi
+common.select_all ||| Tout sélectionner
+fleet.search_site ||| Rechercher chantier...
+common.workers ||| Travailleurs
+fleet.search_driver ||| Rechercher chauffeur/opérateur...
+fleet.vehicle_docs ||| Documents du véhicule
+fleet.add_docs_desc ||| Ajouter carte grise, reçus, assurances.
+fleet.add_doc ||| Ajouter un document
+fleet.expired ||| Expiré
+fleet.expiring_soon ||| Expire bientôt
+fleet.added ||| Ajouté:
+fleet.expires_at ||| Expire le:
+common.open_new_tab ||| Ouvrir dans un nouvel onglet
+fleet.no_docs ||| Aucun document chargé.
+fleet.category_name ||| Nom de la catégorie
+fleet.category_name_placeholder ||| Ex: Grue
+fleet.car ||| Voiture
+gps.error_end_date_before_start ||| La date de fin doit être après la date de début.
+gps.error_max_7_days ||| Veuillez sélectionner un intervalle de maximum 7 jours pour éviter de bloquer le serveur.
+gps.error_session_expired ||| Session expirée ou jeton invalide.
+gps.error_fetch_prefix ||| Erreur lors de l
+gps.error_network ||| Erreur réseau
+import.only_pdf_allowed ||| Seuls les fichiers PDF sont autorisés !
+import.uploading_file ||| Téléchargement du fichier...
+import.parsing_data ||| Analyse des données sur le serveur...
+import.invoice_extracted_success ||| Facture extraite avec succès !
+import.extract_error_prefix ||| Erreur d\
+import.file_read_error ||| Erreur lors de la lecture du fichier
+import.import_success ||| Importation réussie !
+import.save_error_prefix ||| Erreur de sauvegarde : 
+import.title ||| Importer une Facture
+import.subtitle ||| Téléchargez une facture PDF pour extraire automatiquement les quantités et les ajouter à la gestion de stock.
+import.drag_drop_text ||| Faites glisser le PDF ici ou cliquez pour télécharger
+import.auto_extract_desc ||| Le système extraira automatiquement les matériaux et les quantités.
+import.analyzing_invoice ||| Analyse de la facture en cours...
+import.supplier ||| Fournisseur
+import.invoice_date ||| Date de la Facture
+import.invoice_number ||| N° Facture
+import.invoice_lines ||| Lignes de Facture
+import.quantity ||| Quantité
+import.unit ||| Unité
+import.invoice_item ||| Article de Facture
+import.mapping ||| Mappage en Gestion
+import.create_new_item ||| + Créer un Nouvel Article
+import.select_from_warehouse ||| Sélectionnez depuis la gestion...
+import.will_create_new ||| Un nouvel élément sera créé
+import.delete_row ||| Supprimer la ligne
+import.no_items_left ||| Aucun article restant.
+import.confirm_import ||| Confirmer l\
+import.error_pdf_only ||| Seuls les fichiers PDF sont autorisés !
+import.uploading ||| Téléchargement du fichier...
+import.parsing ||| Analyse des données sur le serveur...
+import.success_extract ||| Facture extraite avec succès !
+import.error_extract ||| Erreur lors de l\
+import.success_import ||| Importation réussie !
+import.error_save ||| Erreur de sauvegarde : 
+import.title ||| Importer une Facture de Matériaux
+import.subtitle ||| Extraction automatique des quantités vers la gestion
+import.drag_drop ||| Faites glisser le PDF ici ou cliquez pour télécharger
+import.drag_drop_desc ||| Le système extraira automatiquement les matériaux et les quantités.
+import.analyzing ||| Analyse de la facture...
+import.date ||| Date de la Facture
+import.lines ||| Lignes de Facture
+import.qty ||| Quantité
+import.article ||| Article de Facture
+import.actions ||| Actions
+import.create_new ||| + Créer un Nouvel Article
+import.select_inventory ||| Sélectionnez depuis la gestion...
+import.will_create ||| Un nouvel élément sera créé
+import.no_articles ||| Aucun article extrait automatiquement du PDF restant.
+import.extra_materials ||| Ajouter du Matériel Supplémentaire
+import.extra_materials_desc ||| Ajoutez rapidement des matériaux à partir des cases à cocher, les prix sont hors TVA.
+import.foil ||| Folie plastique
+import.foil_btn ||| Folie plastique (1.2/m²)
+import.mesh ||| Treillis métallique
+import.mesh_btn ||| Treillis métallique (2.50)
+import.physical_person ||| Client Personne Physique (Ajouter TVA)
+import.cancel ||| Annuler
+import.confirm ||| Confirmer l\
+quotes.link_copied ||| Le lien du client a été copié dans le presse-papiers !
+quotes.copy_link_invoice ||| Copier le lien de la facture
+quotes.copy_link_desc ||| Envoyer ce lien au client pour signature
+quotes.copy_link ||| Copier le lien client
+invoicing.devis ||| DEVIS
+invoicing.facture ||| FACTURE
+invoicing.print_pdf ||| Imprimer le PDF
+invoicing.issue_invoice ||| Émettre la Facture
+invoicing.sent_to_billtobox ||| Envoyé à Billtobox
+invoicing.send_to_billtobox ||| Envoyer à Billtobox
+invoicing.resend_billtobox ||| Renvoyer à Billtobox
+invoicing.send_billtobox ||| Envoyer à Billtobox
+clients.vies_error ||| L\
+invoicing.proforma_generated_success ||| Proforma générée avec succès !
+invoicing.proforma_generation_error ||| Une erreur est survenue lors de la génération de la proforma.
+invoicing.mark_invoiced_success ||| Le travail a été marqué comme facturé !
+invoicing.mark_invoiced_error ||| Une erreur est survenue.
+invoicing.storno_success ||| La facture a été annulée (Storno) et est revenue au stade de Proforma.
+invoicing.storno_error ||| Une erreur est survenue lors de l\
+invoicing.link_copied ||| Lien copié dans le presse-papiers !
+invoicing.token_unavailable ||| Jeton indisponible pour ce travail.
+invoicing.sending_billtobox ||| Envoi de la facture à Billtobox...
+invoicing.billtobox_success ||| La facture a été envoyée avec succès à Billtobox !
+invoicing.billtobox_error ||| Une erreur est survenue lors de l\
+invoicing.new_item_default ||| Nouveau matériel/service
+invoicing.page_desc ||| Gestion des factures, devis et paiements
+invoicing.kpi_total ||| Total Commandes
+invoicing.kpi_to_invoice ||| À Facturer (Devis/Proforma)
+invoicing.kpi_invoiced ||| Facturées
+invoicing.kpi_billtobox ||| Envoyées Billtobox
+work_order_detail.pdf_preview ||| APERÇU DU DEVIS
+work_order_detail.invoicing.issue_invoice ||| Émettre la Facture
+isoflex.status_open ||| Deschisă
+isoflex.status_closed ||| Închisă
+isoflex.status_cancelled ||| Anulată
+isoflex.status_planned ||| Planificată
+isoflex.status_completed ||| Finalizată
+isoflex.status_draft ||| Ciornă
+isoflex.in_system ||| În sistem
+isoflex.date ||| Dată
+isoflex.client ||| Client
+isoflex.team ||| Echipă
+isoflex.total_volume ||| Volum total
+isoflex.materials_works ||| Materiale / Lucrări
+isoflex.notes ||| Note
+isoflex.open_robaws ||| Deschide în Robaws
+isoflex.load_error ||| Eroare la încărcare
+isoflex.sync_error ||| Eroare la sincronizare
+isoflex.error ||| Eroare
+isoflex.col_date ||| Dată
+isoflex.col_title ||| Titlu
+isoflex.col_team ||| Echipă
+isoflex.col_address ||| Adresă
+isoflex.col_volume ||| Volum
+isoflex.col_status ||| Status Robaws
+isoflex.col_in_system ||| În sistem
+isoflex.yes ||| Da
+isoflex.no ||| Nu
+isoflex.all ||| Toate
+isoflex.search_placeholder ||| Rechercher titre, client, adresse...
+isoflex.not_imported ||| Neimportate
+isoflex.sync_title ||| Sincronizează din Robaws
+isoflex.syncing ||| Sync...
+isoflex.loading ||| Se încarcă...
+isoflex.no_results ||| Nu s-au găsit lucrări.
+isoflex.prev_page ||| Precedenta
+isoflex.page ||| Pagina
+isoflex.next_page ||| Următoarea
+leaves.title ||| Congés & Absences
+leaves.desc ||| Gestion des demandes de congé et des absences
+common.module_in_progress ||| Module en construction
+common.module_in_progress_desc ||| Ce module est en cours de développement et sera disponible prochainement.
+live.active_vehicles ||| Véhicules actifs
+notifications.check_in ||| Entrée
+notifications.check_out ||| Sortie
+notifications.break_start ||| Pause
+notifications.break_end ||| Retour
+notifications.events ||| événements
+notifications.search ||| Rechercher par nom, chantier...
+notifications.all_events ||| Tous les événements
+notifications.check_ins ||| Entrées
+notifications.check_outs ||| Sorties
+notifications.breaks ||| Pauses
+notifications.returns ||| Retours
+notifications.no_events ||| Aucun événement
+notifications.try_other_filters ||| Essayez d\
+notifications.today_events_here ||| Les événements d\
+common.type ||| Type
+common.event ||| Événement
+common.site_details ||| Chantier / Détails
+common.time ||| Heure
+notifications.showing_events ||| {{count}} sur {{total}} événements affichés
+notifications.auto_refresh ||| Mise à jour auto à 30s
+orgs.search_placeholder ||| Rechercher une entreprise...
+common.error_loading ||| Erreur de chargement des paramètres globaux
+common.error_loading ||| Erreur de chargement des clients
+common.error_loading ||| Erreur de chargement des paramètres
+common.saved_successfully ||| Paramètres globaux enregistrés avec succès!
+common.error_saving ||| Erreur lors de l
+common.saved_successfully ||| Prix client enregistrés avec succès!
+common.deleted_successfully ||| Prix réinitialisés avec succès!
+clients.name ||| Nom du Client
+quotes.unknown ||| Inconnu
+common.not_found ||| Commande introuvable.
+quotes.quote_details ||| N° Devis / Date
+status.planning ||| En planning
+status.pending ||| En attente
+quotes.client_address ||| Client & Adresse
+quotes.surface_thickness ||| Suprafață / Grosime
+quotes.err_delete ||| Erreur lors de la suppression du devis.
+Sélectionnez une date ! ||| error
+✅ Devis planifié dans le calendrier! ||| success
+Erreur lors de la planification. ||| error
+quotes.volumes ||| Travaux / Étages
+common.activities ||| Activité
+quotes.add_another ||| Ajouter un autre
+common.search_employee ||| Rechercher un employé...
+common.search_site ||| Rechercher un chantier...
+reports.error_load ||| Eroare incarcare rapoarte:
+reports.unknown_team ||| Echipă Necunoscută
+reports.volume ||| Volum
+reports.col_team ||| Echipă
+reports.col_works ||| Lucrări
+reports.col_volume ||| Volum (m²)
+reports.col_sand ||| Nisip Consumat
+reports.col_route ||| Traseu Parcurs (KM)
+reports.company_analysis ||| Analyse de l\
+reports.company_analysis_desc ||| Synthèse complète des volumes, itinéraires et matériaux consommés par équipes
+reports.current_month ||| Mois en Cours
+reports.no_works ||| Nu există lucrări finalizate în această perioadă.
+reports.choose_another_period ||| Alegeți altă perioadă de timp din filtrele de mai sus.
+reports.kpi_orders ||| Comenzi Realizate
+reports.average ||| Medie:
+reports.order ||| comandă
+reports.kpi_volume ||| Volum Total
+reports.kpi_vol_sub ||| m² șapă turnați
+reports.kpi_sand ||| Nisip Consumat
+reports.kpi_sand_sub ||| Tone extrase din calcule/aplicație
+reports.kpi_routes ||| Trasee (Total)
+reports.kpi_routes_sub ||| Kilometri parcurși cumulat
+reports.chart_title ||| Axa Timpului: Volum turnat vs Kilometri parcurși
+reports.km ||| Kilometri
+reports.team_report_title ||| Raport Agregat pe Echipe
+reports.team_report_desc ||| Compară performanța echipelor în funcție de kilometraj, consum și volumul realizat.
+reports.no_data ||| Nu există date.
+Setările au fost salvate cu succes! ||| success
+sites.urgency.on_track ||| En bonne voie
+sites.urgency.urgent ||| Urgent
+sites.urgency.overdue ||| En retard
+sites.urgency.completed ||| Terminé
+sites.client_name_required ||| Le nom du client est obligatoire!
+sites.client_added ||| Client ajouté avec succès!
+sites.client_save_error ||| Erreur lors de l
+sites.geo_not_supported ||| La géolocalisation n
+sites.geo_detecting ||| Détection de l
+sites.geo_success ||| Emplacement récupéré avec succès!
+sites.geo_error ||| Erreur lors de la récupération de l
+sites.name_required ||| Le nom du chantier est obligatoire!
+sites.save_success ||| Chantier enregistré avec succès!
+sites.save_error ||| Erreur lors de l
+sites.delete_title ||| Supprimer le chantier
+sites.delete_message ||| Êtes-vous sûr de vouloir suspendre ou supprimer ce chantier ?
+sites.delete_success ||| Chantier supprimé avec succès.
+sites.delete_error ||| Erreur lors de la suppression
+sites.bulk_delete_title ||| Suppression multiple
+sites.bulk_delete_message ||| Êtes-vous sûr de vouloir supprimer/suspendre les {{count}} chantiers sélectionnés ?
+sites.bulk_delete_confirm ||| Supprimer la sélection
+sites.bulk_delete_success ||| Les chantiers sélectionnés ont été supprimés.
+sites.bulk_delete_error ||| Erreur lors de la suppression en masse
+sites.types.residential ||| Résidentiel
+sites.types.commercial ||| Commercial
+sites.types.industrial ||| Industriel
+sites.tab_standard ||| Chantiers Standard
+sites.tab_short_term ||| Interventions / Travaux
+sites.work_orders_count ||| {{count}} commandes de travail
+sites.new_work_order ||| Nouvelle commande
+sites.no_active_work_orders ||| Il n
+sites.click_new_work_order ||| Cliquez sur 
+sites.wo_status.draft ||| Brouillon
+sites.wo_status.assigned ||| Attribué
+sites.wo_status.acknowledged ||| Confirmé
+sites.wo_status.in_progress ||| En cours
+sites.wo_status.completed ||| Terminé
+sites.wo_status.signed ||| Signé
+sites.team ||| Équipe
+common.open ||| Ouvrir
+sites.status.all ||| Tous les statuts
+sites.site ||| Chantier
+sites.edit_short_term ||| Éditer le travail
+sites.edit_site ||| Éditer le chantier
+sites.add_short_term ||| Ajouter un travail court
+sites.add_site_new ||| Ajouter un nouveau chantier
+sites.information ||| Informations
+sites.assigned_teams ||| Équipes allouées
+sites.work_title ||| Titre du travail *
+sites.site_name ||| Nom du chantier *
+sites.work_title_placeholder ||| ex: Révision électrique
+sites.site_name_placeholder ||| ex: Installation Panneaux Solaires
+sites.address_placeholder ||| Rue, Numéro, Ville
+sites.gps_coordinates ||| Coordonnées GPS
+sites.auto_detect ||| Détection automatique
+sites.latitude ||| Latitude
+sites.longitude ||| Longitude
+sites.geofence_radius ||| Rayon Geofence (m)
+sites.geofence_hint ||| Utilisées pour le geofencing. Si elles ne sont pas définies, nous tenterons de les récupérer à partir de l
+sites.new_client ||| Nouveau Client
+sites.no_client_associated ||| Aucun client associé
+sites.system_power ||| Puissance du système (kW)
+sites.description_placeholder ||| Détails sur le chantier...
+sites.start_time ||| Heure de début
+sites.end_time ||| Heure de fin
+sites.max_overtime ||| Heures supplémentaires max (min)
+sites.lunch_start ||| Début de pause déjeuner
+sites.lunch_end ||| Fin de pause déjeuner
+sites.schedule_hint ||| Le pointage peut se faire max 30 min avant. Heures supp sans approbation: {{minutes}} minutes.
+sites.teams_hint ||| Cochez les équipes qui travaillent sur ce chantier. Toute modification mettra à jour la main-d
+sites.team_leader ||| Chef
+sites.workers_count ||| {{count}} Travailleurs
+sites.no_teams ||| Il n
+sites.create_short_term ||| Créer le travail
+sites.create_site ||| Créer le chantier
+sites.site_photos ||| Photos du chantier
+sites.assign_workers ||| Allocation de travailleurs
+sites.search_worker ||| Rechercher un travailleur...
+sites.save_allocation ||| Enregistrer l
+sites.final_report ||| Rapport final
+sites.export_excel ||| Exporter vers Excel
+sites.hours_worked ||| Heures travaillées
+sites.materials ||| Matériaux
+sites.total_km ||| KM Total
+sites.code ||| Code
+sites.hours ||| Heures
+sites.days ||| Jours
+sites.days_worked ||| jours
+sites.used_materials ||| Matériaux utilisés
+sites.material_name ||| Dénomination
+sites.category ||| Catégorie
+sites.quantity ||| Quantité
+sites.add_client_quick ||| Ajouter un client rapide
+sites.company_name ||| Nom de l
+sites.hq_address ||| Adresse du siège
+teams.save_error ||| A apărut o eroare la salvarea echipei
+common.ok ||| OK
+teams.site ||| Șantier
+teams.search_placeholder ||| Rechercher une équipe...
+teams.edit_team ||| Editare Echipă
+teams.site_optional ||| Șantier (Opțional)
+teams.no_site ||| Fără șantier alocat
+teams.calendar_color ||| Culoare Alocată pe Calendar
+common.days_label ||| jours
+timesheets.search_placeholder ||| Rechercher un ouvrier ou un chantier...
+transport.schedule_inactive ||| Programme de transport inactif
+transport.schedule ||| Programme
+transport.days ||| Jours
+transport.strict_blocked ||| Strict (routes bloquées)
+transport.start ||| Démarrage
+transport.stop ||| Arrêt
+transport.map_unavailable ||| Carte indisponible (Leaflet JS manquant)
+transport.out_of_schedule_badge ||| Hors programme
+transport.km_driven ||| KM parcourus
+transport.duration ||| Durée
+transport.avg_speed ||| Vit. moyenne
+transport.max_speed ||| Vit. max
+transport.departure ||| Départ
+transport.start_odometer ||| Odomètre départ
+transport.arrival ||| Arrivée
+transport.end_odometer ||| Odomètre arrivée
+transport.gps_points_recorded ||| points GPS enregistrés
+transport.trip_out_of_schedule ||| Trajet en dehors des heures de transport
+transport.allocated_schedule ||| Programme alloué
+transport.gps_route ||| Itinéraire GPS
+transport.no_gps_points_recorded ||| Aucun point GPS enregistré pour ce trajet.
+transport.validate_trip ||| Validation de la feuille de route
+transport.reject_reason_optional ||| Motif de rejet (facultatif)...
+transport.approve ||| Approuver
+transport.reject ||| Rejeter
+transport.schedule_saved ||| Programme enregistré !
+transport.schedule_settings ||| Programme de transport
+transport.allowed_time_interval ||| Intervalle horaire autorisé
+transport.from_time ||| De
+transport.to_time ||| À
+transport.allowed_working_days ||| Jours ouvrables de transport
+transport.strict_schedule_title ||| Programme strict
+transport.strict_schedule_active_desc ||| Si actif — les trajets sont complètement bloqués en dehors des heures.
+transport.strict_schedule_inactive_desc ||| Si inactif — autorisés, mais marqués avec un avertissement.
+transport.save_schedule ||| Enregistrer le programme
+transport.select_vehicle_driver_error ||| Veuillez sélectionner le véhicule et le chauffeur.
+transport.start_new_trip ||| Démarrer un nouveau trajet
+transport.vehicle ||| Véhicule
+transport.select ||| Sélectionner
+transport.driver ||| Chauffeur
+transport.destination_site ||| Destination (chantier)
+transport.no_destination ||| Sans destination
+transport.km_start_odometer ||| KM Départ (odomètre)
+transport.ex_odometer ||| ex: 125430
+transport.trip_purpose ||| But du déplacement
+transport.purpose_details_optional ||| Détails du but (facultatif)...
+transport.start_address_optional ||| Adresse de départ (facultatif)...
+transport.start_trip_button ||| Démarrer le trajet
+transport.trip_approved ||| Feuille approuvée !
+transport.trip_rejected ||| Feuille rejetée !
+transport.route_sheets ||| Feuilles de Route
+transport.gps_history_tab ||| Historique GPS
+transport.export ||| Exporter
+transport.new_trip ||| Nouveau trajet
+transport.total_km ||| KM Totaux
+transport.total_trips_kpi ||| Trajets Totaux
+transport.avg_speed_kpi ||| Vit. moyenne
+transport.driving_hours ||| Heures de conduite
+transport.all_vehicles ||| Tous les véhicules
+transport.all_statuses ||| Tous les statuts
+transport.no_trips_found ||| Aucune feuille de route pour les filtres sélectionnés.
+transport.col_date ||| Date
+transport.col_vehicle ||| Véhicule
+transport.col_driver ||| Chauffeur
+transport.col_route ||| Départ → Destination
+transport.col_schedule ||| Horaire
+transport.col_km ||| KM
+transport.col_duration ||| Durée
+transport.col_avg_speed ||| Vit. Moyenne
+transport.col_status ||| Statut
+transport.out_of_sched_short ||| Hors prog.
+transport.top_drivers ||| Top Chauffeurs (KM)
+transport.trips ||| trajets
+transport.top_vehicles ||| Top Véhicules (KM)
+employees.select_id_card_first ||| Selectează o imagine cu buletinul mai întâi.
+employees.ocr_success ||| Datele au fost extrase cu succes din buletin!
+employees.ocr_error ||| Nu am putut extrage datele.
+employees.scan_error_title ||| Eroare Scanare
+employees.scan_error_msg ||| Nu am putut citi buletinul automat. Te rugăm să introduci datele manual.
+common.name_required ||| Numele și prenumele sunt obligatorii.
+users_modal.email_required ||| Email-ul este obligatoriu.
+users_modal.password_required ||| Parola este obligatorie pentru utilizator nou.
+users_modal.password_mismatch ||| Parolele nu coincid.
+users_modal.role_required ||| Selectează un rol.
+users.updated ||| Utilizator actualizat.
+users.created ||| Utilizator creat.
+users.delete_user ||| Supprimer Utilizator
+users.delete_confirm_msg ||| Sigur vrei să ștergi utilizatorul 
+users.deleted ||| Utilizator șters.
+common.contact ||| Contact
+employees.change_photo ||| Schimbă poza (doar Adminii autorizați)
+users.super_admin_only ||| Doar Super Admin poate edita
+Eroare la actualizare avatar ||| error
+users_modal.edit_title ||| Éditer Utilizator
+users_modal.add_title ||| Ajouter Utilizator
+employees.ocr_title ||| Extragere Automată Date (OCR)
+employees.upload_photo_pdf ||| Încărcă Poză / PDF
+employees.view_previous_doc ||| Vezi documentul încărcat anterior
+employees.id_series ||| Serie și Nr. CI
+employees.id_series_placeholder ||| ex: ZT 123456
+employees.birth_place ||| Locul Nașterii
+employees.birth_place_placeholder ||| ex: Mun. București
+users_modal.password ||| Parolă
+users_modal.leave_blank ||| (lasă gol pentru a o păstra)
+users_modal.new_password ||| Parolă nouă
+users_modal.repeat_password ||| Repetă Parola
+users_modal.leave_blank_short ||| (lasă gol)
+users_modal.confirm_password ||| Confirmă parola
+common.selected ||| selectați
+common.select_all ||| Selectează Toți
+warehouse.units.buc ||| buc (Bucăți)
+warehouse.units.l ||| L (Litri)
+warehouse.units.kg ||| kg (Kilograme)
+warehouse.units.m ||| m (Metri)
+warehouse.units.ml ||| ml (Metri liniari)
+warehouse.units.mp ||| mp (Metri pătrați)
+warehouse.units.roll ||| rolă
+warehouse.units.set ||| set
+warehouse.units.box ||| cutie
+warehouse.tool_functional ||| Sculă primită — FUNCȚIONALĂ
+warehouse.tool_defective ||| Sculă primită — DEFECTĂ
+warehouse.tool_lost ||| Sculă marcată ca PIERDUTĂ
+warehouse.errors.confirm ||| Eroare la confirmare
+warehouse.errors.load_stock ||| Eroare la încărcarea stocurilor
+warehouse.errors.load_history ||| Eroare la încărcarea istoricului
+warehouse.delete_tx.title ||| Supprimerre Tranzacție
+warehouse.delete_tx.message ||| Sigur doriți să ștergeți tranzacția? Stocul va fi actualizat automat.
+warehouse.tx_deleted ||| Tranzacție ștearsă
+warehouse.errors.delete_tx ||| Eroare la ștergerea tranzacției
+warehouse.delete_multi.title ||| Supprimerre Multiplă
+warehouse.delete_multi.message ||| Sigur doriți să ștergeți {{count}} tranzacții? Stocul va fi actualizat automat.
+warehouse.txs_deleted ||| Tranzacții șterse
+warehouse.errors.delete_txs ||| Eroare la ștergerea tranzacțiilor
+warehouse.item_updated ||| Articol actualizat
+warehouse.tool_created_assigned ||| Sculă creată și adăugată direct pe șantier
+warehouse.item_created_add_tx ||| Articol creat! Ajouter acum o tranzacție de Intrare pentru a adăuga stoc.
+warehouse.item_created ||| Articol creat
+common.save_error ||| Eroare la salvare
+warehouse.delete_item.title ||| Supprimerre Articol
+warehouse.delete_item.message ||| Sigur dorești să ștergi acest articol? Tot istoricul va fi pierdut.
+warehouse.item_deleted ||| Articol șters
+warehouse.errors.delete_item ||| Eroare la ștergerea articolului
+warehouse.tool_assigned ||| Sculă repartizată cu succes
+warehouse.errors.assign ||| Eroare la repartizare
+warehouse.checkin_confirm.default ||| Sunteți sigur că ați primit scula înapoi?
+warehouse.checkin_confirm.both ||| Sunteți sigur că ați primit scula înapoi de la {{name}} (șantierul {{site}})?
+warehouse.checkin_confirm.site ||| Sunteți sigur că ați primit scula înapoi de pe șantierul {{site}}?
+warehouse.checkin_confirm.holder ||| Sunteți sigur că ați primit scula înapoi de la {{name}}?
+warehouse.checkin_tool ||| Primire Sculă în Magazie
+warehouse.tool_received ||| Sculă primită în magazie
+warehouse.errors.receive ||| Eroare la primire
+warehouse.tool_functional_marked ||| Scula a fost marcată ca funcțională
+warehouse.tool_defective_marked ||| Scula a fost marcată ca defectă
+warehouse.errors.update_status ||| Eroare la actualizarea stării
+warehouse.invalid_quantity ||| Introduceți o cantitate validă
+warehouse.tx_updated ||| Tranzacție actualizată
+warehouse.txs_saved ||| Tranzacții salvate cu succes
+warehouse.errors.save_tx ||| Eroare la salvare tranzacție
+warehouse.item ||| Articol
+warehouse.category ||| Categorie
+warehouse.current_stock ||| Stoc Curent
+warehouse.unit ||| Unitate de Măsură
+warehouse.stock ||| Stoc
+warehouse.status.in_field ||| În teren
+warehouse.status.at_site ||| La șantier
+warehouse.status.in_warehouse ||| La magazie
+warehouse.current_stock_label ||| Stoc curent:
+warehouse.search_history ||| Rechercher dans l
+warehouse.in ||| Intrare
+warehouse.out ||| Ieșire
+warehouse.tool_path ||| Traseul sculei
+warehouse.requested ||| Solicitat
+warehouse.approved ||| Aprobat
+warehouse.handed_over ||| Predat
+warehouse.confirmed ||| Confirmat
+warehouse.digitally_signed ||| Semnat digital
+warehouse.status.in_field ||| In teren
+warehouse.status.in_warehouse_available ||| In magazie — disponibil
+common.modify ||| Modifica
+warehouse.worker ||| Muncitor
+warehouse.source ||| Sursa
+warehouse.worker_request ||| Cerere muncitor
+warehouse.admin_assigned ||| Atribuit de admin
+warehouse.nobody_warehouse ||| — Nimeni (inapoi in magazie) —
+warehouse.choose_site ||| — Alege santier —
+warehouse.holder_updated ||| Detinatorul actualizat!
+warehouse.errors.update ||| Eroare la actualizare
+warehouse.transactions_selected ||| tranzacții selectate
+warehouse.delete_selected ||| Supprimer Selectatele
+warehouse.notes_attachment ||| Notițe / Atașament
+warehouse.actions ||| Acțiuni
+warehouse.no_transactions ||| Nu s-au găsit tranzacții.
+warehouse.time ||| Ora:
+warehouse.view_document ||| Vezi Document
+warehouse.edit_transaction ||| Modifică tranzacție
+warehouse.delete_transaction ||| Supprimer tranzacție
+warehouse.pending_return_count ||| {{count}} Sculă în așteptare confirmare
+warehouse.workers_returned_confirm ||| Muncitorii au predat — confirmați starea
+warehouse.handed_over_by ||| Predat de
+warehouse.functional ||| Funcțională
+warehouse.lost ||| Pierdută
+common.all_sites ||| Toate Șantierele
+warehouse.um ||| UM
+warehouse.in_abbr ||| Intr.
+warehouse.out_abbr ||| Ieș.
+warehouse.total ||| Total
+warehouse.reserved ||| Rezervat
+warehouse.available ||| Disponibil
+warehouse.mod ||| Mod:
+warehouse.status.defective ||| Defect
+warehouse.status.in_warehouse ||| In Depozit
+warehouse.receive ||| Primire
+warehouse.assign ||| Repartizare
+warehouse.add_in ||| Ajouter Intrare
+warehouse.add_out ||| Ajouter Ieșire
+warehouse.edit_item ||| Modifică articol
+warehouse.delete_item_title ||| Supprimer articol
+common.show ||| Afișare
+warehouse.assign_to_site ||| Repartizare pe Șantier
+warehouse.destination_site_optional ||| Șantier Destinație (Opțional)
+warehouse.no_site ||| Nu asocia cu șantier...
+warehouse.employee_person_optional ||| Angajat / Persoană (Opțional)
+warehouse.no_employee ||| Nu asocia cu angajat...
+warehouse.assign_date ||| Data Repartizare
+warehouse.confirm_handover ||| Confirmă Predarea
+warehouse.choose_unit ||| Alege unitatea...
+warehouse.model_optional ||| Model (Opțional)
+warehouse.inventory_code_optional ||| Cod Inventar (Opțional)
+warehouse.allocate_to_site_optional ||| Alocă direct pe Șantier (Opțional)
+warehouse.no_general_warehouse ||| — Nu (Magazia Generală) —
+warehouse.edit_transaction ||| Modifică Tranzacție
+warehouse.stock_in ||| Intrare Stoc
+warehouse.stock_out ||| Ieșire Stoc
+warehouse.site_optional ||| Șantier (Opțional)
+warehouse.company_general ||| Companie General
+warehouse.employee_person ||| Angajat / Persoană
+warehouse.choose_employees ||| Alege angajați...
+warehouse.vehicle_machine ||| Utilaj / Mașină
+warehouse.choose_vehicles ||| Alege utilaje...
+warehouse.search_vehicle ||| Rechercher un engin...
+warehouse.attachment_optional ||| Atașament (Opțional)
+warehouse.choose_file ||| Alege fisier...
+warehouse.notes_optional ||| Notițe (Opțional)
+warehouse.in ||| Intrarea
+warehouse.out ||| Ieșirea
+analytics.screed_table_title ||| Tableau de Calcul (Chape)
+analytics.screed_table_desc ||| Commandes terminées. Formule: Quantité de Sable / Surface / 16.
+analytics.screed_results ||| Résultats d\
+common.search_work ||| Rechercher un ouvrage...
+common.cancelled ||| Annulée
+common.created ||| Créée
+work_order_detail.invoicing.proforma_generated ||| Proforma générée avec succès !
+common.error_proforma ||| Erreur lors de la génération du proforma.
+work_order_detail.invoicing.error_upload_invoice ||| Erreur lors du téléchargement de la facture.
+work_order_detail.invoicing.error_update_invoice_status ||| Erreur lors de la mise à jour du statut de la facture.
+work_order_detail.invoicing.error_save_invoice_number ||| Erreur lors de l
+work_order_detail.invoicing.sending_to_billtobox ||| Envoi de la facture vers Billtobox...
+work_order_detail.invoicing.sent_to_billtobox_success ||| La facture a été envoyée avec succès vers Billtobox !
+work_order_detail.invoicing.error_send_billtobox ||| Une erreur s
+work_order_detail.photo_upload_success ||| La photo a été téléchargée avec succès !
+work_order_detail.photo_upload_error ||| Erreur lors du téléchargement de la photo.
+work_order_detail.sync_success ||| Les prix ont été synchronisés avec succès.
+common.error ||| Erreur lors de la synchronisation des prix.
+work_order_detail.calc_edit.saved ||| Calcul mis à jour avec succès !
+work_order_detail.calc_edit.error ||| Erreur lors de la sauvegarde du calcul.
+work_order_detail.delete_confirm ||| Êtes-vous sûr de vouloir supprimer ceci définitivement ?
+work_order_detail.location.base_name ||| Base
+work_order_detail.project_info.title ||| Détails Projet & Construction
+work_order_detail.project_info.client_type ||| Type de Client
+quotes.pf ||| Particulier
+quotes.pj ||| Entreprise
+work_order_detail.project_info.construction_type ||| Type de Construction
+quotes.construction_new ||| Nouvelle Construction
+quotes.construction_renovation ||| Rénovation
+work_order_detail.project_info.materials ||| Matériaux Sélectionnés (Calcul)
+materials.foil ||| Film
+materials.mesh ||| Treillis métallique
+materials.fiber ||| Fibre
+materials.sound_insulation ||| Isolation acoustique
+materials.floor_heating_add ||| Additif pour chauffage
+general.none ||| Aucun matériau supplémentaire
+general.yes ||| Oui
+general.no ||| Non
+invoicing.billtobox_sent ||| Envoyé
+common.note ||| Note
+work_order_detail.materials_volumes.title_no_consumed ||| Quantités & Matériaux (Estimés)
+work_order_detail.materials.required ||| Matériaux Requis
+work_order_detail.materials.no_quantity ||| Aucune quantité enregistrée
+work_order_detail.materials_volumes.confirmed_surface ||| Surface confirmée
+work_order_detail.materials_volumes.confirmed_thickness ||| Épaisseur confirmée
+work_order_detail.materials_volumes.confirmed_sand ||| Sable
+work_order_detail.documents.from_client ||| Du client
+work_order_detail.documents.attachment ||| Pièce jointe
+work_order_detail.calc_estimatif ||| estimatif
+work_order_detail.sync_prices_title ||| Resynchroniser les prix avec les tarifs globaux actuels
+work_order_detail.calc_diff_alert ||| Différence importante détectée
+work_order_detail.calc_diff_pct ||| Écart entre estimatif et réel
+work_order_detail.invoicing.threshold ||| Forfait
+work_order_detail.invoicing.discount ||| Remise (Discount)
+work_order_detail.invoicing.net_htva ||| Total Net (HTVA)
+quotes.tva_disabled ||| TVA non appliquée
+work_order_detail.invoicing.no_calc ||| Aucun calcul disponible.
+work_order_detail.invoicing.calc_real ||| Calcul Réel (chef de chantier)
+work_order_detail.diff_vs_estim ||| Écart vs estimatif
+work_order_detail.invoicing.not_invoiced ||| Non facturé
+work_order_detail.photos.ai_verification ||| Vérification IA (Écrans Bremat)
+work_order_detail.photos.machine_screen ||| ÉCRAN MACHINE
+work_order_detail.photos.completion_photos ||| Photos de Finalisation (Client)
+work_order_detail.photos.final ||| FINAL
+work_order_detail.photos.other_photos ||| Autres Photos (Internes)
+work_order_detail.photos.internal ||| interne
+work_order_detail.calc_edit.title ||| Modifier le calcul Chape
+work_order_detail.calc_edit.surface ||| Surface (m²)
+work_order_detail.calc_edit.thickness ||| Épaisseur (cm)
+work_order_detail.calc_edit.options ||| Options incluses
+work_order_detail.calc_edit.foil ||| Feuille plastique
+work_order_detail.calc_edit.mesh ||| Treillis métallique
+work_order_detail.calc_edit.fiber ||| Fibres
+work_order_detail.calc_edit.duramint ||| Duramint
+work_order_detail.calc_edit.prices ||| Grille de Tarifs Personnalisée
+work_order_detail.calc_edit.base_price ||| Base /m²
+work_order_detail.calc_edit.extra_price ||| Extra /m²/cm
+work_order_detail.calc_edit.foil_price ||| Feuille /m²
+work_order_detail.calc_edit.mesh_price ||| Treillis /m²
+work_order_detail.calc_edit.fiber_price ||| Fibres /m²
+work_order_detail.calc_edit.discount ||| Remise (-EUR)
+work_order_detail.calc_edit.preview ||| Aperçu du total estimatif
+work_order_detail.documents.no_client ||| Sans Client
+work_order_detail.sync_prices_title_modal ||| Resynchronisation des Tarifs
+work_order_detail.sync_prices_confirm ||| Êtes-vous sûr de vouloir resynchroniser cette commande avec les tarifs globaux actuels ? Cela modifiera définitivement les prix historiques de la commande.
+work_order_form.gps_not_supported ||| La géolocalisation n
+work_order_form.gps_timeout ||| Le délai a expiré. Vérifiez si le navigateur a la permission d
+work_order_form.gps_error ||| Erreur de détection GPS : 
+work_order_form.gps_error_check ||| \nVeuillez vérifier si vous avez autorisé l
+common.confirm_delete ||| Etes-vous sûr de vouloir supprimer cette photo ?
+common.deleted ||| Photo supprimée
+common.error ||| Erreur lors de la suppression de la photo
+common.save_error ||| Erreur lors de la sauvegarde.
+work_order_form.error_new_client_name ||| Entrez le nom du nouveau client.
+work_order_form.error_select_client ||| Sélectionnez un client.
+work_order_form.error_select_site ||| Sélectionnez un emplacement.
+work_order_form.error_start_date ||| Choisissez la date de début.
+work_order_form.extra_charge_surface ||| Taxe supplémentaire surface ({{min}}-{{max}}m²)
+work_order_form.no_location ||| adresse non définie
+work_order_form.select_location ||| Choisir chantier
+work_order_form.address_placeholder ||| Chercher une adresse...
+work_order_form.planning_and_team ||| Planification & Équipe
+dashboard.quick_create.include_fiber ||| Inclure Fibres
+work_order_form.duramint ||| Duramint (Fibre)
+work_order_form.client_documents ||| Documents téléchargés par le client
+work_orders.api_error ||| Erreur API: 
+work_orders.email_subject ||| Devis / Proforma
+work_orders.err_send ||| Erreur d
+work_orders.err_delete ||| Erreur de suppression.
+work_orders.open_client_page ||| Ouvrir la page client
+work_orders.send_proforma_wa ||| Envoyer Proforma via WhatsApp
+work_orders.send_confirm_wa ||| Envoyer Confirmation via WhatsApp
+work_orders.send_proforma_email ||| Envoyer Proforma via Email
+work_orders.send_confirm_email ||| Envoyer Confirmation via Email
+work_orders.worked_hours ||| Heures travaillées
+work_orders.materials_consumed ||| Matériaux consommés
+work_orders.view_signature ||| Voir la signature numérique
+work_orders.marked_sent ||| La commande a été marquée comme envoyée !
+common.copied ||| Copié !
+common.copy ||| Copier
+work_orders.no_location_client ||| Sans emplacement / client
+work_orders.delete_order_title ||| Suppression de la commande
+work_orders.delete_confirm ||| Êtes-vous sûr de vouloir supprimer la commande
+work_orders.irreversible_action ||| Cette action est irréversible.
+common.deleting ||| Suppression...
+common.delete_permanently ||| Supprimer définitivement
+work_orders.materials_consumed ||| Matériaux Consommés
+work_orders.materials_info ||| Enregistrez les matériaux effectivement utilisés sur cette commande. La sauvegarde remplace la liste existante.
+work_orders.material_name_placeholder ||| Nom du matériau *
+work_orders.quantity_placeholder ||| Qté
+work_orders.unit_placeholder ||| Unité
+work_orders.note_placeholder ||| Note...
+common.saving ||| Enregistrement...
+work_orders.time_tracking_title ||| Pointage sur la commande
+common.load_error ||| Erreur de chargement.
+work_orders.total_hours_worked ||| Total des heures travaillées
+work_orders.sessions ||| Sessions
+work_orders.no_sessions ||| Aucun employé n
+work_orders.active ||| actif
+work_orders.digital_signature ||| Signature Numérique
+work_orders.confirmed_by ||| Confirmée par:
+work_orders.signature_authentic ||| Signature numérique authentique — stockée de manière sécurisée
+work_orders.send_modal_title ||| Envoyer
+work_orders.proforma ||| Proforma
+work_orders.confirmation ||| Confirmation
+work_orders.select_language_client ||| Sélectionnez la langue pour le client
+lang.ro ||| Roumain
+lang.en ||| Anglais
+lang.fr ||| Français
+lang.de ||| Allemand
+lang.nl ||| Néerlandais
+lang.ru ||| Russe
+work_orders.pref ||| Préf
+success ||| Am confirmat citirea.
+error ||| Eroare la confirmare.
+timesheets.calendar ||| Termen:
+team.create_desc ||| une équipe et ajoutez vos ouvriers
+team.workers_label ||| ouvriers
+team.no_worker_available ||| Aucun ouvrier disponible
+team.workers_selected ||| ouvrier(s) sélectionné(s)
+work_order.completion_photos ||| Photos de finalisation
+Erreur lors du chargement des commandes. ||| error
+Confirmé avec succès. ||| success
+Check-in enregistré. ||| success
+GPS indisponible. ||| error
+Photo ajoutée. ||| success
+⚠️ La superficie réelle (m²) est obligatoire pour finaliser! ||| error
+Analiza AI completată cu succes. ||| success
+Poza a fost ștearsă. ||| success
+roles.team_leader ||| Chef d
+roles.worker ||| Ouvrier
+Vous pouvez charger au maximum 10 fichiers à la fois. ||| error

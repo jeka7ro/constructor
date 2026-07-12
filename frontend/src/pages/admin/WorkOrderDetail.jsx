@@ -984,7 +984,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <div className="flex flex-col gap-5">
 
                     <Section className="flex-1" icon={FileText} title={t('work_order_detail.general_details.title', 'Détails Généraux')} contentClassName="!p-3">
-                                            <div className="grid grid-cols-2 gap-4 mb-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Commande')}</p>
                                                     <p className="font-mono text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
@@ -993,6 +993,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.status', 'Statut')}</p>
                                                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-700 uppercase tracking-wider">
                                                         {cfg?.label || wo.status}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('invoicing.status_invoiced', 'Facturé')}</p>
+                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${wo.is_invoiced ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                                        {wo.is_invoiced ? t('general.yes', 'Oui') : t('general.no', 'Non')}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">Billtobox</p>
+                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${wo.billtobox_status === 'sent' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                        {wo.billtobox_status === 'sent' ? t('invoicing.billtobox_sent', 'Envoyé') : t('general.no', 'Non')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1648,7 +1660,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             </Section>
 
             {/* ── Modal Editare Calcul (focalizat) ─────────────────────────── */}
-            {calcEditOpen && calcEditForm && (
+            {calcEditOpen && calcEditForm && createPortal(
                 <div className="fixed inset-0 bg-black/60 z-[99998] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setCalcEditOpen(false); }}>
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
@@ -1754,7 +1766,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ── Lightbox ────────────────────────────────────────────────────── */}

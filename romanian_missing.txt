@@ -1,0 +1,244 @@
+quotes.geo_unsupported ||| Geolocația nu este suportată de browser.
+weather.location ||| Vremea la locație
+weather.no_location ||| Locație nespecificată
+status.in_progress ||| În progres
+street_view.title ||| Street View (Destinație)
+clients.vies_error ||| Firma nu a fost găsită. Verificați codul TVA.
+clients.vies_error ||| Eroare la căutarea firmei.
+workorders.surface_required ||| Suprafața este obligatorie.
+calendar.sat ||| Sâ
+clients.billing_address ||| Adresse de facturation (optionnel)
+accommodations.acc_updated ||| Cazare actualizată
+accommodations.acc_added ||| Cazare adăugată
+accommodations.delete_msg ||| Sigur doriți să ștergeți această cazare? Toate repartizările vor fi pierdute.
+accommodations.remove_worker_msg ||| Sigur doriți să eliminați repartizarea?
+accommodations.workers_housed ||| muncitori cazați
+accommodations.col_employee ||| Angajat
+accommodations.col_to ||| Până la
+accommodations.col_actions ||| Acțiuni
+accommodations.total_label ||| Total:
+accommodations.selected ||| selectați
+accommodations.all_sites ||| Toate șantierele
+accommodations.select_all ||| Selectează Toți
+accommodations.clear_selection ||| Golire selecție
+accommodations.no_available_employee ||| Nu s-a găsit niciun angajat disponibil.
+accommodations.to_date ||| Până la
+accommodations.cancel ||| Anulează
+accommodations.new_acc_btn ||| Cazare Nouă
+accommodations.batch_delete_title ||| Supprimerre multiplă
+accommodations.batch_delete_msg ||| Ștergi {{count}} cazări?
+accommodations.col_occupants ||| Ocupanți
+accommodations.total_label ||| Total :
+accommodations.page_of ||| Pagina {{current}} din {{total}}
+accommodations.edit_acc_title ||| Modifică Cazare
+accommodations.new_acc_title ||| Cazare Nouă
+accommodations.address_placeholder ||| Stradă, număr, localitate...
+accommodations.notes_label ||| Observații
+accommodations.notes_placeholder ||| Note, informații suplimentare...
+emergencies.delete_confirm ||| Êtes-vous sûr de vouloir supprimer cette urgence ?
+emergencies.deleted_success ||| Urgence supprimée
+emergencies.bulk_delete_confirm ||| Supprimer {{count}} urgences ?
+emergencies.bulk_deleted_success ||| Urgences supprimées
+emergencies.no_emergencies ||| Aucune urgence.
+dashboard.quick_create.work_type ||| Tip Lucrare (TVA)
+dashboard.quick_create.apply_vat ||| Aplică TVA
+dashboard.quick_create.work_new ||| Nouă (< 10 ani)
+alerts.message_placeholder ||| Écrivez ici le message qui apparaîtra sur l\
+employees.site_attached_success ||| Șantier atașat cu succes
+employees.site_attach_error ||| Eroare la atașarea șantierului
+employees.upload_id_pic ||| Încarcă poză CI
+employees.scan_id ||| Scanează CI
+employees.employee_code ||| Cod Angajat
+users_modal.select_role ||| Selectează rol...
+employees.birth_date ||| Data Nașterii
+employees.birth_place ||| Loc Naștere
+employees.birth_place_placeholder ||| ex: București
+employees.address_placeholder ||| Strada, Număr, Oraș
+employees.work_contract ||| Contract de Muncă
+employees.view_contract ||| Vizualizează Contract
+employees.contract_upload_success ||| Contract încărcat cu succes!
+common.error ||| Eroare
+employees.replace ||| Înlocuiește
+employees.upload_contract_hint ||| Încarcă Contract (PDF, JPG, PNG)
+users_modal.reset_pin_button ||| Resetează PIN
+employees.avatar_update_error ||| Eroare la actualizare avatar
+employees.attach_site ||| Atașează Șantier
+employees.select_site ||| Selectează Șantierul
+employees.no_site ||| Niciun șantier (Anulează atașarea)
+employees.attach_site_hint ||| Angajatul va fi transferat direct pe acest șantier, ocolind necesitatea asocierii într-o Echipă dedicată.
+employees.delete_employee ||| Supprimerre Angajat:
+employees.delete_employee_hint ||| Ai ales să elimini acest angajat din lista curentă. Te rugăm să alegi cum dorești să fie procesat:
+users.archive_recommended ||| Mută în Arhivă (Recomandat)
+users.archive_hint ||| Păstrează tot istoricul și rapoartele de pontaj. Angajatul nu va mai avea acces, dar informațiile lui rămân în arhivă pentru statiscă.
+common.attention ||| Atenție!
+users.delete_hint ||| Toate pontajele și rapoartele asociate acestui angajat vor fi distruse. Folosește această opțiune doar dacă angajatul a fost creat dintr-o greșeală.
+common.view ||| Vizualizează
+users_modal.reset_pin ||| Resetează PIN
+fleet.attached_doc ||| Document atașat
+fleet.chassis ||| Numéro de châssis
+invoicing.kpi_total ||| Total Commandes
+isoflex.status_open ||| Deschisă
+isoflex.status_closed ||| Închisă
+isoflex.status_cancelled ||| Anulată
+isoflex.status_planned ||| Planificată
+isoflex.status_completed ||| Finalizată
+isoflex.status_draft ||| Ciornă
+isoflex.in_system ||| În sistem
+isoflex.date ||| Dată
+isoflex.team ||| Echipă
+isoflex.total_volume ||| Volum total
+isoflex.materials_works ||| Materiale / Lucrări
+isoflex.open_robaws ||| Deschide în Robaws
+isoflex.load_error ||| Eroare la încărcare
+isoflex.sync_error ||| Eroare la sincronizare
+isoflex.error ||| Eroare
+isoflex.col_date ||| Dată
+isoflex.col_team ||| Echipă
+isoflex.col_address ||| Adresă
+isoflex.col_in_system ||| În sistem
+isoflex.sync_title ||| Sincronizează din Robaws
+isoflex.loading ||| Se încarcă...
+isoflex.no_results ||| Nu s-au găsit lucrări.
+isoflex.next_page ||| Următoarea
+notifications.showing_events ||| {{count}} sur {{total}} événements affichés
+quotes.surface_thickness ||| Suprafață / Grosime
+reports.error_load ||| Eroare incarcare rapoarte:
+reports.unknown_team ||| Echipă Necunoscută
+reports.col_team ||| Echipă
+reports.col_works ||| Lucrări
+reports.col_sand ||| Nisip Consumat
+reports.no_works ||| Nu există lucrări finalizate în această perioadă.
+reports.choose_another_period ||| Alegeți altă perioadă de timp din filtrele de mai sus.
+reports.order ||| comandă
+reports.kpi_volume ||| Volum Total
+reports.kpi_vol_sub ||| m² șapă turnați
+reports.kpi_sand ||| Nisip Consumat
+reports.kpi_sand_sub ||| Tone extrase din calcule/aplicație
+reports.kpi_routes ||| Trasee (Total)
+reports.kpi_routes_sub ||| Kilometri parcurși cumulat
+reports.chart_title ||| Axa Timpului: Volum turnat vs Kilometri parcurși
+reports.team_report_desc ||| Compară performanța echipelor în funcție de kilometraj, consum și volumul realizat.
+reports.no_data ||| Nu există date.
+Setările au fost salvate cu succes! ||| success
+sites.urgency.on_track ||| En bonne voie
+sites.urgency.urgent ||| Urgent
+sites.urgency.overdue ||| En retard
+sites.urgency.completed ||| Terminé
+sites.total_km ||| KM Total
+teams.save_error ||| A apărut o eroare la salvarea echipei
+teams.site ||| Șantier
+teams.edit_team ||| Editare Echipă
+teams.site_optional ||| Șantier (Opțional)
+teams.no_site ||| Fără șantier alocat
+teams.calendar_color ||| Culoare Alocată pe Calendar
+transport.total_km ||| KM Totaux
+transport.total_trips_kpi ||| Trajets Totaux
+employees.select_id_card_first ||| Selectează o imagine cu buletinul mai întâi.
+employees.scan_error_title ||| Eroare Scanare
+employees.scan_error_msg ||| Nu am putut citi buletinul automat. Te rugăm să introduci datele manual.
+common.name_required ||| Numele și prenumele sunt obligatorii.
+users_modal.role_required ||| Selectează un rol.
+users.delete_confirm_msg ||| Sigur vrei să ștergi utilizatorul 
+users.deleted ||| Utilizator șters.
+employees.change_photo ||| Schimbă poza (doar Adminii autorizați)
+Eroare la actualizare avatar ||| error
+employees.ocr_title ||| Extragere Automată Date (OCR)
+employees.upload_photo_pdf ||| Încărcă Poză / PDF
+employees.view_previous_doc ||| Vezi documentul încărcat anterior
+employees.id_series ||| Serie și Nr. CI
+employees.birth_place ||| Locul Nașterii
+employees.birth_place_placeholder ||| ex: Mun. București
+users_modal.password ||| Parolă
+users_modal.leave_blank ||| (lasă gol pentru a o păstra)
+users_modal.new_password ||| Parolă nouă
+users_modal.repeat_password ||| Repetă Parola
+users_modal.leave_blank_short ||| (lasă gol)
+users_modal.confirm_password ||| Confirmă parola
+common.selected ||| selectați
+common.select_all ||| Selectează Toți
+warehouse.units.buc ||| buc (Bucăți)
+warehouse.units.mp ||| mp (Metri pătrați)
+warehouse.units.roll ||| rolă
+warehouse.tool_functional ||| Sculă primită — FUNCȚIONALĂ
+warehouse.tool_defective ||| Sculă primită — DEFECTĂ
+warehouse.tool_lost ||| Sculă marcată ca PIERDUTĂ
+warehouse.errors.confirm ||| Eroare la confirmare
+warehouse.errors.load_stock ||| Eroare la încărcarea stocurilor
+warehouse.errors.load_history ||| Eroare la încărcarea istoricului
+warehouse.delete_tx.title ||| Supprimerre Tranzacție
+warehouse.delete_tx.message ||| Sigur doriți să ștergeți tranzacția? Stocul va fi actualizat automat.
+warehouse.tx_deleted ||| Tranzacție ștearsă
+warehouse.errors.delete_tx ||| Eroare la ștergerea tranzacției
+warehouse.delete_multi.title ||| Supprimerre Multiplă
+warehouse.delete_multi.message ||| Sigur doriți să ștergeți {{count}} tranzacții? Stocul va fi actualizat automat.
+warehouse.txs_deleted ||| Tranzacții șterse
+warehouse.errors.delete_txs ||| Eroare la ștergerea tranzacțiilor
+warehouse.tool_created_assigned ||| Sculă creată și adăugată direct pe șantier
+warehouse.item_created_add_tx ||| Articol creat! Ajouter acum o tranzacție de Intrare pentru a adăuga stoc.
+common.save_error ||| Eroare la salvare
+warehouse.delete_item.message ||| Sigur dorești să ștergi acest articol? Tot istoricul va fi pierdut.
+warehouse.item_deleted ||| Articol șters
+warehouse.errors.delete_item ||| Eroare la ștergerea articolului
+warehouse.tool_assigned ||| Sculă repartizată cu succes
+warehouse.errors.assign ||| Eroare la repartizare
+warehouse.checkin_confirm.default ||| Sunteți sigur că ați primit scula înapoi?
+warehouse.checkin_confirm.both ||| Sunteți sigur că ați primit scula înapoi de la {{name}} (șantierul {{site}})?
+warehouse.checkin_confirm.site ||| Sunteți sigur că ați primit scula înapoi de pe șantierul {{site}}?
+warehouse.checkin_confirm.holder ||| Sunteți sigur că ați primit scula înapoi de la {{name}}?
+warehouse.checkin_tool ||| Primire Sculă în Magazie
+warehouse.tool_received ||| Sculă primită în magazie
+warehouse.errors.receive ||| Eroare la primire
+warehouse.tool_functional_marked ||| Scula a fost marcată ca funcțională
+warehouse.tool_defective_marked ||| Scula a fost marcată ca defectă
+warehouse.errors.update_status ||| Eroare la actualizarea stării
+warehouse.invalid_quantity ||| Introduceți o cantitate validă
+warehouse.tx_updated ||| Tranzacție actualizată
+warehouse.txs_saved ||| Tranzacții salvate cu succes
+warehouse.errors.save_tx ||| Eroare la salvare tranzacție
+warehouse.unit ||| Unitate de Măsură
+warehouse.status.in_field ||| În teren
+warehouse.status.at_site ||| La șantier
+warehouse.out ||| Ieșire
+warehouse.nobody_warehouse ||| — Nimeni (inapoi in magazie) —
+warehouse.errors.update ||| Eroare la actualizare
+warehouse.transactions_selected ||| tranzacții selectate
+warehouse.notes_attachment ||| Notițe / Atașament
+warehouse.actions ||| Acțiuni
+warehouse.no_transactions ||| Nu s-au găsit tranzacții.
+warehouse.edit_transaction ||| Modifică tranzacție
+warehouse.delete_transaction ||| Supprimer tranzacție
+warehouse.pending_return_count ||| {{count}} Sculă în așteptare confirmare
+warehouse.workers_returned_confirm ||| Muncitorii au predat — confirmați starea
+warehouse.functional ||| Funcțională
+warehouse.lost ||| Pierdută
+common.all_sites ||| Toate Șantierele
+warehouse.out_abbr ||| Ieș.
+warehouse.total ||| Total
+warehouse.add_out ||| Ajouter Ieșire
+warehouse.edit_item ||| Modifică articol
+common.show ||| Afișare
+warehouse.assign_to_site ||| Repartizare pe Șantier
+warehouse.destination_site_optional ||| Șantier Destinație (Opțional)
+warehouse.no_site ||| Nu asocia cu șantier...
+warehouse.employee_person_optional ||| Angajat / Persoană (Opțional)
+warehouse.no_employee ||| Nu asocia cu angajat...
+warehouse.confirm_handover ||| Confirmă Predarea
+warehouse.model_optional ||| Model (Opțional)
+warehouse.inventory_code_optional ||| Cod Inventar (Opțional)
+warehouse.allocate_to_site_optional ||| Alocă direct pe Șantier (Opțional)
+warehouse.no_general_warehouse ||| — Nu (Magazia Generală) —
+warehouse.edit_transaction ||| Modifică Tranzacție
+warehouse.stock_out ||| Ieșire Stoc
+warehouse.site_optional ||| Șantier (Opțional)
+warehouse.employee_person ||| Angajat / Persoană
+warehouse.choose_employees ||| Alege angajați...
+warehouse.vehicle_machine ||| Utilaj / Mașină
+warehouse.attachment_optional ||| Atașament (Opțional)
+warehouse.notes_optional ||| Notițe (Opțional)
+warehouse.out ||| Ieșirea
+work_order_detail.invoicing.net_htva ||| Total Net (HTVA)
+work_order_detail.calc_edit.preview ||| Aperçu du total estimatif
+work_orders.total_hours_worked ||| Total des heures travaillées
+error ||| Eroare la confirmare.
+Analiza AI completată cu succes. ||| success
+Poza a fost ștearsă. ||| success

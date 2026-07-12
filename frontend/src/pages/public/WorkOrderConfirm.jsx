@@ -780,7 +780,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 </div>
             </div>
             {toast && (
-                <div className="fixed bottom-4 right-4 z-[9999]">
+                <div className="fixed top-20 right-4 z-[9999] animate-in slide-in-from-top-4">
                     <div className={`px-4 py-2 rounded-full shadow-lg text-[11px] font-bold uppercase tracking-wide border 
                         ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                         {toast.msg}

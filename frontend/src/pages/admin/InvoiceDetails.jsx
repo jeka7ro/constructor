@@ -439,7 +439,7 @@ export default function InvoiceDetails() {
             </div>
 
             {toastMessage && (
-                <div className="fixed bottom-4 right-4 z-[9999] bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-bottom-4">
+                <div className="fixed top-20 right-4 z-[9999] bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-in slide-in-from-top-4">
                     <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     <span className="font-bold text-sm">{toastMessage}</span>
                 </div>

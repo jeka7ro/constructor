@@ -1035,14 +1035,12 @@ export default function ClockInPage() {
                             style={{ height: '100%', width: '100%' }}
                             zoomControl={true}
                             attributionControl={false}
+                            scrollWheelZoom={false}
                         >
                             <TileLayer
-                                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                                attribution="Esri Satellite"
-                            />
-                            {/* Labels overlay on satellite */}
-                            <TileLayer
-                                url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}"
+                                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                                attribution="Google Maps Satellite"
+                                maxZoom={20}
                             />
 
                             {/* Geofence circle */}

@@ -214,10 +214,12 @@ export default function LiveTracking() {
               zoom={10}
               className="w-full h-full"
               style={{ background: '#f8fafc' }}
+              scrollWheelZoom={false}
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://carto.com">CARTO</a>'
+                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                attribution="&copy; Google Maps"
+                maxZoom={20}
               />
 
               {vehicles.map(v => (
