@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import {
     Navigation, Truck, Clock, AlertTriangle,
     CheckCircle2, XCircle, MapPin, RefreshCw,
-    Loader2, ChevronDown, ChevronUp, ArrowLeft
+    Loader2, ChevronDown, ChevronUp, ArrowLeft,
+    ChevronLeft, ChevronRight
 } from 'lucide-react'
 import api from '../../../lib/api'
 import DataTable from '../../../components/DataTable'
@@ -678,6 +679,17 @@ export default function GpsVerificationPage() {
                         />
                         <span className="text-xs text-slate-500 ml-1">km/h</span>
                     </div>
+                    <button
+                        onClick={() => {
+                            const d = new Date(date);
+                            d.setDate(d.getDate() - 1);
+                            setDate(d.toISOString().split('T')[0]);
+                        }}
+                        className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                        title="Jour précédent"
+                    >
+                        <ChevronLeft className="w-4 h-4 text-slate-500" />
+                    </button>
                     <input
                         type="date"
                         value={date}
@@ -685,6 +697,18 @@ export default function GpsVerificationPage() {
                         onChange={e => setDate(e.target.value)}
                         className="px-4 h-10 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                     />
+                    <button
+                        onClick={() => {
+                            const d = new Date(date);
+                            d.setDate(d.getDate() + 1);
+                            const next = d.toISOString().split('T')[0];
+                            if (next <= today) setDate(next);
+                        }}
+                        className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                        title="Jour suivant"
+                    >
+                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                    </button>
                     <button
                         onClick={load}
                         disabled={loading}
@@ -698,19 +722,19 @@ export default function GpsVerificationPage() {
             {/* KPIs */}
             {data && !loading && (
                 <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
-                        <p className="text-xs text-blue-400 font-semibold uppercase tracking-wider mb-1">{t('gps.active_vehicles', 'Vehicules actifs')}</p>
-                        <p className="text-2xl font-bold text-blue-700">{vehiclesWithData}</p>
+                    <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
+                        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{t('gps.active_vehicles', 'Vehicules actifs')}</p>
+                        <p className="text-2xl font-bold text-slate-700">{vehiclesWithData}</p>
                     </div>
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                    <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
                         <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">{t('gps.total_km', 'KM total')}</p>
                         <p className="text-2xl font-bold text-slate-700">{totalKm.toFixed(1)}</p>
                     </div>
-                    <div className={`border rounded-2xl p-4 text-center ${totalViolations > 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                        <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${totalViolations > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center">
+                        <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${totalViolations > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                             {t('gps.speed_excess', 'Exces vitesse')}
                         </p>
-                        <p className={`text-2xl font-bold ${totalViolations > 0 ? 'text-red-700' : 'text-emerald-700'}`}>{totalViolations}</p>
+                        <p className={`text-2xl font-bold ${totalViolations > 0 ? 'text-red-600' : 'text-slate-700'}`}>{totalViolations}</p>
                     </div>
                 </div>
             )}
