@@ -38,7 +38,8 @@ export default function PublicCalculator() {
         has_mesh: false,
         has_duramint: true, // Always true
         approximate_date: '',
-        honeypot: '' // Spam protection
+        honeypot: '', // Spam protection
+        agreed_photos: false
     });
 
     const [isSearchingVies, setIsSearchingVies] = useState(false);
@@ -646,7 +647,21 @@ export default function PublicCalculator() {
                                             </div>
                                         </div>
                                     </div>
-
+                                    {/* Mesaj informativ obligatoriu pentru poze */}
+                                    <label className={`flex items-start gap-3 p-4 mb-6 rounded-xl border-2 cursor-pointer transition-all ${formData.agreed_photos ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-200 hover:border-yellow-200 bg-white'}`}>
+                                        <div className="pt-0.5">
+                                            <input 
+                                                type="checkbox" 
+                                                required
+                                                checked={formData.agreed_photos} 
+                                                onChange={e => setFormData({ ...formData, agreed_photos: e.target.checked })} 
+                                                className="w-5 h-5 text-yellow-500 rounded focus:ring-yellow-400 border-slate-300"
+                                            />
+                                        </div>
+                                        <span className="text-sm text-slate-700 font-medium leading-snug">
+                                            {t('calculator.agree_photos', "Je comprends qu'il me sera demandé de fournir des photos du chantier à l'étape suivante pour valider le devis.")}
+                                        </span>
+                                    </label>
 
                                     <div className="flex gap-3">
                                         <button
