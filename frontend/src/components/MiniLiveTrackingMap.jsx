@@ -39,25 +39,15 @@ function createVehicleIcon(color, name, avatarUrl) {
   const themeColor = color || '#3b82f6';
   
   const avatarHtml = fullAvatarUrl 
-    ? `<img src="${fullAvatarUrl}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid ${themeColor};" />`
-    : `<div style="width:24px;height:24px;border-radius:50%;background-color:${themeColor}20;border:2px solid ${themeColor};display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${themeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
-
-  const html = `
-    <div style="background:white; border:2px solid ${themeColor}; border-radius:12px; padding:4px 8px; display:flex; align-items:center; gap:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); width:120px; box-sizing:border-box;">
-      <div style="flex-shrink:0;">${avatarHtml}</div>
-      <div style="overflow:hidden; display:flex; flex-direction:column; justify-content:center;">
-        <span style="font-family:system-ui; font-size:12px; font-weight:800; color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.2;">${shortName}</span>
-      </div>
-    </div>
-    <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${themeColor}; margin: -1px auto 0 auto;"></div>
-  `;
+    ? `<img src="${fullAvatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid white;" />`
+    : `<div style="width:32px;height:32px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
 
   return L.divIcon({
-    html: html,
+    html: avatarHtml,
     className: '',
-    iconSize: [120, 48],
-    iconAnchor: [60, 48],
-    popupAnchor: [0, -48],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
   });
 }
 

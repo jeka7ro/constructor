@@ -210,7 +210,7 @@ function RoutingMachine({ positions, color, weight, opacity }) {
     if (!positions || positions.length < 2) return null
     const pts = routePositions || positions
     // Linie continua pentru ruta OSRM, gesticulata pentru fallback
-    return <Polyline positions={pts} color={color} weight={weight || 3} opacity={opacity || 0.8} dashArray={isFallback ? "5, 10" : null} />
+    return <Polyline positions={pts} pathOptions={{ color: color, weight: weight || 3, opacity: opacity || 0.8, dashArray: isFallback ? "5, 10" : null }} />
 }
 
 const createCustomIcon = (text, isBase, teamColor, vehicleType = '') => {
@@ -240,34 +240,20 @@ const createCustomIcon = (text, isBase, teamColor, vehicleType = '') => {
 
 
 function createVehicleIcon(color, name, avatarUrl) {
-    const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
     const apiBaseUrl = 'http://davidechape.localhost:5678';
     const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
+    const themeColor = color || '#3b82f6';
     
-    const innerContent = fullAvatarUrl 
-      ? `<clipPath id="circleView-${initials}"><circle cx="20" cy="19" r="13" /></clipPath>
-         <image href="${fullAvatarUrl}" x="7" y="6" width="26" height="26" clip-path="url(#circleView-${initials})" preserveAspectRatio="xMidYMid slice" />`
-      : `<circle cx="20" cy="19" r="13" fill="white" opacity="0.25"/>
-         <text x="20" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="bold" fill="white">${initials}</text>`;
+    const innerHtml = fullAvatarUrl 
+      ? `<img src="${fullAvatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid white;" />`
+      : `<div style="width:32px;height:32px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
   
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
-        <defs>
-          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-          </filter>
-        </defs>
-        <ellipse cx="20" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
-        <path d="M20 0 C9 0 0 9 0 20 C0 32 20 48 20 48 C20 48 40 32 40 20 C40 9 31 0 20 0Z" 
-              fill="${color}" filter="url(#shadow)"/>
-        ${innerContent}
-      </svg>`;
     return L.divIcon({
-      html: svg,
+      html: innerHtml,
       className: '',
-      iconSize: [40, 48],
-      iconAnchor: [20, 48],
-      popupAnchor: [0, -50],
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16],
     });
 }
 
@@ -574,9 +560,7 @@ export default function LogisticsDashboard() {
                                                         <React.Fragment>
                                                             <Polyline
                                                                 positions={gpsPositions}
-                                                                color={route.team_color}
-                                                                weight={5}
-                                                                opacity={0.8}
+                                                                pathOptions={{ color: route.team_color, weight: 5, opacity: 0.8 }}
                                                             />
                                                             <Marker 
                                                                 position={[lastPos.lat, lastPos.lng]}
@@ -776,7 +760,7 @@ export default function LogisticsDashboard() {
                             {data?.routes?.length > 0 && activeTeams.length > 0 && (
                                 <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto shrink-0 w-64 flex flex-col gap-3">
                                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white flex items-center justify-between gap-1.5">
-                                        <div className="flex items-center gap-1.5"><Truck className="w-3 h-3" /> Echipe Pe Traseu ({activeTeams.length})</div>
+                                        <div className="flex items-center gap-1.5"><Truck className="w-3 h-3" /> {t('logistics.teams_on_route', 'Équipes en Route')} ({activeTeams.length})</div>
                                         <div className="flex items-center gap-1 text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full" title="Șanse estimative de precipitații">
                                             <CloudRain className="w-3 h-3" /> {rainChance}%
                                         </div>
@@ -864,11 +848,11 @@ export default function LogisticsDashboard() {
                                 <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm uppercase tracking-wide">
                                     <Filter className="w-4 h-4 text-slate-500" /> {t('logistics.team_routes', 'Trasee Echipe')}
                                 </h3>
-                                <span className="text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-full">{data.routes.length} echipe</span>
+                                <span className="text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-full">{data.routes.length} {t('common.teams_lowercase', 'équipes')}</span>
                             </div>
                             <div className="p-3 space-y-3">
                                 {data.routes.length === 0 ? (
-                                    <div className="text-center py-6 text-slate-500 text-sm">Nu există lucrări planificate.</div>
+                                    <div className="text-center py-6 text-slate-500 text-sm">{t('logistics.no_planned_works', 'Aucun travail planifié.')}</div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {data.routes.map(route => {

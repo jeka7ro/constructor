@@ -99,15 +99,11 @@ def osrm_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate driving distance in KM using OSRM, fallback to haversine."""
     if None in (lat1, lon1, lat2, lon2):
         return 0.0
-    try:
-        url = f"https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
-        res = requests.get(url, timeout=3)
-        data = res.json()
-        if data.get("code") == "Ok" and data.get("routes"):
-            return data["routes"][0]["distance"] / 1000.0
-    except Exception as e:
-        print(f"OSRM Error: {e}")
-    return haversine(lat1, lon1, lat2, lon2)
+    
+    # [HOTFIX] Dezactivat OSRM temporar deoarece bloca pool-ul de conexiuni la baza de date timp de 30-50 de secunde (N+1 HTTP requests sincrone)
+    # Folosim o aproximare (haversine * 1.3 pentru distanța auto) pentru a fi instant.
+    dist_straight = haversine(lat1, lon1, lat2, lon2)
+    return dist_straight * 1.3
 
 def calc_sand_kg(work_order: WorkOrder) -> float:
     try:
@@ -314,12 +310,9 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                     if geocoded:
                         w_lat, w_lng = geocoded
                         # Persist coords so next load is instant
-                        try:
-                            w.site_latitude = w_lat
-                            w.site_longitude = w_lng
-                            db.add(w)
-                        except Exception:
-                            pass
+                        w.site_latitude = w_lat
+                        w.site_longitude = w_lng
+                        db.add(w)
 
                 if w_lat and w_lng:
                     dist_from_prev = 0
@@ -384,8 +377,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
                     })
                     last_wo.route_segments = segments
                 
-        # Save calculations into DB
-        db.commit()
+        # Save calculations into DB later
+        pass
 
         grand_total_sand_kg += team_sand_kg
         grand_total_distance_km += team_distance_km
@@ -410,6 +403,13 @@ def _calculate_daily_routes(target_date: date, db: Session, admin):
             "waypoints": waypoints,
             "vehicle_type": team_vehicle_type,
         })
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
 
     return {
         "date": target_date.isoformat(),

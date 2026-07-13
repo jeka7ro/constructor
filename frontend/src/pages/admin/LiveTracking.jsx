@@ -17,34 +17,20 @@ L.Icon.Default.mergeOptions({
 const POLL_INTERVAL = 30000; // 30s
 
 function createVehicleIcon(color, name, avatarUrl) {
-  const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
-  const apiBaseUrl = 'http://davidechape.localhost:5678'; // Since this is a hardcoded app URL locally, or we could use relative if hosted same origin. But typically we prepend the backend URL if it's not relative. Let's assume avatarUrl is relative e.g., /uploads/...
+  const apiBaseUrl = 'http://davidechape.localhost:5678';
   const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
+  const themeColor = color || '#3b82f6';
   
-  const innerContent = fullAvatarUrl 
-    ? `<clipPath id="circleView"><circle cx="20" cy="19" r="13" /></clipPath>
-       <image href="${fullAvatarUrl}" x="7" y="6" width="26" height="26" clip-path="url(#circleView)" preserveAspectRatio="xMidYMid slice" />`
-    : `<circle cx="20" cy="19" r="13" fill="white" opacity="0.25"/>
-       <text x="20" y="24" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="bold" fill="white">${initials}</text>`;
+  const innerHtml = fullAvatarUrl 
+    ? `<img src="${fullAvatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid white;" />`
+    : `<div style="width:32px;height:32px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
-      <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-        </filter>
-      </defs>
-      <ellipse cx="20" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
-      <path d="M20 0 C9 0 0 9 0 20 C0 32 20 48 20 48 C20 48 40 32 40 20 C40 9 31 0 20 0Z" 
-            fill="${color}" filter="url(#shadow)"/>
-      ${innerContent}
-    </svg>`;
   return L.divIcon({
-    html: svg,
+    html: innerHtml,
     className: '',
-    iconSize: [40, 48],
-    iconAnchor: [20, 48],
-    popupAnchor: [0, -50],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
   });
 }
 

@@ -610,7 +610,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                                                         <MapResizer isFullscreen={true} />
                                                         <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                                                         <MapFitter all={displayPoints} />
-                                                        {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} color={seg.color} weight={5} opacity={0.9} />)}
+                                                        {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} pathOptions={{ color: seg.color, weight: 5, opacity: 0.9 }} />)}
                                                         {displayStartPoint && (
                                                             <CircleMarker center={displayStartPoint} radius={8} color="#22c55e" fillColor="#22c55e" fillOpacity={1}>
                                                                 <Popup><div style={{ fontSize: 12, fontWeight: 'bold', color: '#16a34a' }}>Depart: {displayStartTime}<br/>Vitesse: {displayStartSpeed} km/h</div></Popup>
@@ -639,7 +639,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                                                     <MapResizer isFullscreen={false} />
                                                     <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                                                     <MapFitter all={displayPoints} />
-                                                    {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} color={seg.color} weight={4} opacity={0.85} />)}
+                                                    {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} pathOptions={{ color: seg.color, weight: 4, opacity: 0.85 }} />)}
                                                     {!focusedTrip && sitePoints.map(wo => <Marker key={wo.id} position={[wo.site_lat, wo.site_lng]} icon={dotIcon(result.team_color)}><Popup><strong>{wo.client_name}</strong><br/>{wo.site_address}</Popup></Marker>)}
                                                     {displayStartPoint && (
                                                         <CircleMarker center={displayStartPoint} radius={7} color="#22c55e" fillColor="#22c55e" fillOpacity={1}>

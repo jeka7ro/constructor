@@ -262,7 +262,7 @@ export default function QuotesManagement() {
             fetchQuotes();
         } catch (error) {
             console.error("Bulk delete error", error);
-            showToast(t('quotes.bulk_delete_error', 'Eroare la ștergerea devizelor.'), 'error');
+            showToast(t('quotes.bulk_delete_error', 'Erreur lors de la suppression des devis.'), 'error');
         } finally {
             setIsBulkDeleting(false);
             setShowBulkDeleteConfirm(false);
@@ -1585,10 +1585,10 @@ export default function QuotesManagement() {
                 isOpen={showBulkDeleteConfirm}
                 onClose={() => setShowBulkDeleteConfirm(false)}
                 onConfirm={handleBulkDelete}
-                title={t('quotes.bulk_delete_title', 'Ștergere Devize')}
+                title={t('quotes.bulk_delete_title', 'Supprimer les Devis')}
                 message={
                     <div>
-                        <p className="mb-2 text-slate-600">{t('quotes.bulk_delete_warning', 'Sunteți sigur că doriți să ștergeți următoarele devize? Toate datele asociate vor fi șterse definitiv.')}</p>
+                        <p className="mb-2 text-slate-600">{t('quotes.bulk_delete_warning', 'Êtes-vous sûr de vouloir supprimer les devis suivants ? Toutes les données associées seront définitivement supprimées.')}</p>
                         <ul className="list-disc pl-5 text-sm text-slate-700 font-bold max-h-40 overflow-y-auto">
                             {quotes.filter(q => selectedIds.includes(q.id)).map(q => (
                                 <li key={q.id}>{q.external_id || q.quote_number || q.id} - {q.client_name}</li>
@@ -1596,8 +1596,8 @@ export default function QuotesManagement() {
                         </ul>
                     </div>
                 }
-                confirmText={isBulkDeleting ? t('common.deleting', 'Ștergere...') : t('common.delete', 'Șterge')}
-                cancelText={t('common.cancel', 'Anulează')}
+                confirmText={isBulkDeleting ? t('common.deleting', 'Suppression...') : t('common.delete', 'Supprimer')}
+                cancelText={t('common.cancel', 'Annuler')}
                 type="danger"
                 disabled={isBulkDeleting}
             />

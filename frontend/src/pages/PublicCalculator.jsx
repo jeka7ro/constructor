@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, User, Loader2, CheckCircle2, Calendar, HardHat, FileText, ChevronRight, Calculator, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera } from 'lucide-react';
+import { Building2, User, Loader2, CheckCircle2, Calendar, HardHat, FileText, ChevronRight, Calculator, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -368,15 +368,16 @@ export default function PublicCalculator() {
             <main className="flex-1 w-full max-w-xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center mt-8">
                 
                 {/* Progress Bar (QuoteCalculator style) */}
+                {/* Progress Bar */}
                 <div className="mb-8 px-2">
                     <div className="flex justify-between text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                        <span>Étape {step} sur 4</span>
-                        <span>{Math.round((step / 4) * 100)}%</span>
+                        <span>Étape {step} sur 5</span>
+                        <span>{Math.round((step / 5) * 100)}%</span>
                     </div>
                     <div className="h-1.5 sm:h-2 w-full bg-slate-200 rounded-full overflow-hidden">
                         <div 
                             className="h-full bg-yellow-400 transition-all duration-500 ease-out"
-                            style={{ width: `${(step / 4) * 100}%` }}
+                            style={{ width: `${(step / 5) * 100}%` }}
                         ></div>
                     </div>
                 </div>
@@ -392,9 +393,87 @@ export default function PublicCalculator() {
                             {/* Honeypot */}
                             <input type="text" name="b_name" value={formData.b_name || ''} onChange={e => setFormData({ ...formData, b_name: e.target.value })} style={{ display: 'none' }} tabIndex="-1" autoComplete="off" />
 
-                            {/* STEP 1: WORK SPECS */}
+                            {/* STEP 1: ADDRESS */}
                             {step === 1 && (
-                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
+                                        {t('calculator.site_address', 'Adresse du chantier')}
+                                    </h1>
+                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
+                                        {t('calculator.addressSub_address', "Veuillez introduire l'adresse du chantier.")}
+                                    </p>
+                                    
+                                    <div className="space-y-6">
+                                        <AddressAutocomplete
+                                            value={formData.site_address}
+                                            onChange={(val) => setFormData({ ...formData, site_address: val })}
+                                            onSelect={(addrObj) => setFormData({ ...formData, site_address: addrObj.address })}
+                                            placeholder={t('workorders.site_address', 'Adresse complète du chantier')}
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 sm:py-3 text-base text-slate-900 placeholder-slate-300 focus:outline-none focus:bg-white focus:border-yellow-400 focus:ring-0 transition-all shadow-inner"
+                                            required
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!formData.site_address) {
+                                                    setError(t('errors.missing_details', "L'adresse du chantier est obligatoire."));
+                                                    return;
+                                                }
+                                                setError('');
+                                                setStep(2);
+                                            }}
+                                            className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            {t('calculator.continue', 'Continuer')} 
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 2: DATES */}
+                            {step === 2 && (
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
+                                        {t('calculator.desired_date_title', "Date d'intervention")}
+                                    </h1>
+                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
+                                        {t('calculator.dateSub', 'Veuillez choisir la date souhaitée.')}
+                                    </p>
+                                    
+                                    <div className="space-y-6">
+                                        <div>
+                                            {renderCalendar()}
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep(1)}
+                                                className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
+                                            >
+                                                {t('calculator.back', 'Retour')}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setError('');
+                                                    setStep(3);
+                                                }}
+                                                className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                            >
+                                                {t('calculator.continue', 'Continuer')} 
+                                                <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 3: WORK SPECS */}
+                            {step === 3 && (
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
                                         {t('calculator.projectDetails', 'Détails du Projet')}
                                     </h1>
@@ -463,69 +542,25 @@ export default function PublicCalculator() {
                                             </div>
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (!formData.surface || parseFloat(formData.surface) <= 0) {
-                                                    setError(t('errors.missing_details', "La surface est obligatoire."));
-                                                    return;
-                                                }
-                                                setError('');
-                                                setStep(2);
-                                            }}
-                                            className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 mt-6 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
-                                        >
-                                            {t('calculator.continue', 'Continuer')} 
-                                            <ChevronRight className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* STEP 2: ADDRESS AND DATES */}
-                            {step === 2 && (
-                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
-                                        {t('calculator.site_address', 'Adresse du chantier')}
-                                    </h1>
-                                    <p className="text-slate-500 mb-5 text-sm sm:text-base">
-                                        {t('calculator.addressSub', 'Veuillez introduire l\'adresse et la date souhaitée.')}
-                                    </p>
-                                    
-                                    <div className="space-y-6">
-                                        <AddressAutocomplete
-                                            value={formData.site_address}
-                                            onChange={(val) => setFormData({ ...formData, site_address: val })}
-                                            onSelect={(addrObj) => setFormData({ ...formData, site_address: addrObj.address })}
-                                            placeholder={t('workorders.site_address', 'Adresse complète du chantier')}
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 sm:py-3 text-base text-slate-900 placeholder-slate-300 focus:outline-none focus:bg-white focus:border-yellow-400 focus:ring-0 transition-all shadow-inner"
-                                            required
-                                        />
-
-                                        <div>
-                                            <label className="block text-[11px] sm:text-xs font-bold text-slate-500 mb-2.5 uppercase tracking-wider">{t('calculator.desired_date', 'Date souhaitée')}</label>
-                                            {renderCalendar()}
-                                        </div>
-
                                         <div className="flex gap-3">
                                             <button
                                                 type="button"
-                                                onClick={() => setStep(1)}
-                                                className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
+                                                onClick={() => setStep(2)}
+                                                className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 mt-6 rounded-xl font-bold transition-colors"
                                             >
                                                 {t('calculator.back', 'Retour')}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    if (!formData.site_address) {
-                                                        setError(t('errors.missing_details', "L'adresse du chantier est obligatoire."));
+                                                    if (!formData.surface || parseFloat(formData.surface) <= 0) {
+                                                        setError(t('errors.missing_details', "La surface est obligatoire."));
                                                         return;
                                                     }
                                                     setError('');
-                                                    setStep(3);
+                                                    setStep(4);
                                                 }}
-                                                className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                                className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 mt-6 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
                                             >
                                                 {t('calculator.continue', 'Continuer')} 
                                                 <ChevronRight className="w-5 h-5" />
@@ -535,8 +570,8 @@ export default function PublicCalculator() {
                                 </div>
                             )}
 
-                            {/* STEP 3: EXTRAS & CLIENT INFO */}
-                            {step === 3 && (
+                            {/* STEP 4: EXTRAS & CLIENT INFO */}
+                            {step === 4 && (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
                                         {t('calculator.extrasTitle', 'Options Supplémentaires')}
@@ -600,32 +635,29 @@ export default function PublicCalculator() {
                                             </div>
                                         )}
 
-                                        {formData.client_type === 'fizica' && (
-                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.first_name', 'Prénom')}</label>
+                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.name', 'Nom')}</label>
                                                     <input 
                                                         type="text" 
                                                         required 
-                                                        value={formData.client_first_name} 
-                                                        onChange={e => setFormData({...formData, client_first_name: e.target.value})} 
+                                                        value={formData.client_name} 
+                                                        onChange={e => setFormData({...formData, client_name: e.target.value})} 
                                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.last_name', 'Nom')}</label>
+                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.phone', 'Téléphone')}</label>
                                                     <input 
-                                                        type="text" 
+                                                        type="tel" 
                                                         required 
-                                                        value={formData.client_last_name} 
-                                                        onChange={e => setFormData({...formData, client_last_name: e.target.value})} 
+                                                        value={formData.client_phone} 
+                                                        onChange={e => setFormData({...formData, client_phone: e.target.value})} 
                                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
                                                     />
                                                 </div>
                                             </div>
-                                        )}
-
-                                        <div className="space-y-4 mb-4">
                                             <div>
                                                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.email', 'Email')}</label>
                                                 <input 
@@ -633,16 +665,6 @@ export default function PublicCalculator() {
                                                     required 
                                                     value={formData.client_email} 
                                                     onChange={e => setFormData({...formData, client_email: e.target.value})} 
-                                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.phone', 'Téléphone')}</label>
-                                                <input 
-                                                    type="tel" 
-                                                    required 
-                                                    value={formData.client_phone} 
-                                                    onChange={e => setFormData({...formData, client_phone: e.target.value})} 
                                                     className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
                                                 />
                                             </div>
@@ -661,7 +683,7 @@ export default function PublicCalculator() {
                                     <div className="flex gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => setStep(2)}
+                                            onClick={() => setStep(3)}
                                             className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
                                         >
                                             {t('calculator.back', 'Retour')}
@@ -674,7 +696,7 @@ export default function PublicCalculator() {
                                                     form.reportValidity();
                                                     return;
                                                 }
-                                                setStep(4);
+                                                setStep(5);
                                             }}
                                             className="w-2/3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm"
                                         >
@@ -685,8 +707,8 @@ export default function PublicCalculator() {
                                 </div>
                             )}
 
-                            {/* STEP 4: PHOTOS */}
-                            {step === 4 && (
+                            {/* STEP 5: PHOTOS */}
+                            {step === 5 && (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5 text-slate-900 tracking-tight leading-tight">
                                         {t('calculator.photosTitle', 'Photos du chantier (Optionnel)')}
@@ -701,7 +723,7 @@ export default function PublicCalculator() {
                                                 type="file" 
                                                 multiple 
                                                 accept="image/*"
-                                                onChange={e => setPhotos(Array.from(e.target.files))}
+                                                onChange={e => setPhotos([...photos, ...Array.from(e.target.files)])}
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                             />
                                             <div className="flex flex-col items-center gap-2 text-slate-500">
@@ -714,12 +736,31 @@ export default function PublicCalculator() {
                                         </div>
                                         
                                         {photos.length > 0 && (
-                                            <div className="mt-4 flex flex-wrap gap-2">
+                                            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                                                 {photos.map((p, i) => (
-                                                    <span key={i} className="px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-xs font-bold flex items-center gap-2">
-                                                        <FileText className="w-3.5 h-3.5" />
-                                                        <span className="truncate max-w-[150px]">{p.name}</span>
-                                                    </span>
+                                                    <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-50 aspect-square flex items-center justify-center">
+                                                        {p.type && p.type.startsWith('image/') ? (
+                                                            <img src={URL.createObjectURL(p)} alt={p.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-1 text-slate-400 p-2 text-center">
+                                                                <FileText className="w-6 h-6" />
+                                                                <span className="text-[10px] break-all">{p.name}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setPhotos(photos.filter((_, idx) => idx !== i));
+                                                                }}
+                                                                className="bg-red-500 text-white p-2.5 rounded-full hover:bg-red-600 transition-transform hover:scale-110 shadow-lg"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 ))}
                                             </div>
                                         )}
@@ -728,7 +769,7 @@ export default function PublicCalculator() {
                                     <div className="flex gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => setStep(3)}
+                                            onClick={() => setStep(4)}
                                             className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 sm:py-4 rounded-xl font-bold transition-colors"
                                         >
                                             {t('calculator.back', 'Retour')}
