@@ -141,8 +141,16 @@ class WorkOrderUpdate(WorkOrderCreate):
     status: Optional[str] = None
 
 
-def _serialize(wo: WorkOrder, db: Session = None) -> dict:
+def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) -> dict:
     """Serializează un WorkOrder pentru răspuns JSON."""
+    # ── CACHE FAST-PATH: lucrările mai vechi decât azi se servesc din snapshot ──
+    from datetime import date as _date
+    _today = _date.today()
+    _is_past = wo.start_date is not None and wo.start_date < _today
+    if not force_recalc and _is_past and getattr(wo, 'cached_snapshot', None):
+        return wo.cached_snapshot
+    # ─────────────────────────────────────────────────────────────────────────────
+
     # Incarca surface_thresholds live din pricing settings (nu sunt stocate pe WO)
     wo_prices = dict(wo.prices or {})
     if db is not None and 'surface_thresholds' not in wo_prices:
@@ -277,7 +285,7 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
     except Exception as _e:
         computed_total = None  # silently fallback — nu oprim aplicatia
 
-    return {
+    result = {
         "id": wo.id,
         "token": wo.token,
         "title": wo.title,
@@ -383,6 +391,18 @@ def _serialize(wo: WorkOrder, db: Session = None) -> dict:
         # Prețul calculat pe backend — identic cu PDF-ul (sursa unică de adevăr)
         "computed_total": computed_total,
     }
+
+    # ── CACHE SAVE: dacă lucrarea e din trecut și nu are snapshot, îl salvăm acum ──
+    if _is_past and db is not None and not getattr(wo, 'cached_snapshot', None):
+        try:
+            wo.cached_snapshot = result
+            db.add(wo)
+            db.commit()
+        except Exception:
+            db.rollback()  # silently ignore — nu oprim aplicația
+    # ─────────────────────────────────────────────────────────────────────────────
+
+    return result
 
 
 # ──────────────────────────────────────────────────────────────────────────────
