@@ -150,14 +150,16 @@ export default function PublicCalculator() {
         try {
             const domain = window.location.hostname;
             
-            // Trimite către Webhook-ul agenției dacă e iframe (sau întotdeauna dacă dorim)
-            if (isIframe) {
-                try {
-                    await axios.post('https://n8n-uk6n.onrender.com/webhook/davide-chape-form', formData);
-                } catch (webhookErr) {
-                    console.error("Webhook n8n failed:", webhookErr);
-                    // Continuam chiar daca webhook-ul pica
-                }
+            // Trimite către Webhook-ul agenției întotdeauna la submit
+            try {
+                await axios.post('https://n8n-uk6n.onrender.com/webhook/davide-chape-form', {
+                    ...formData,
+                    source_domain: window.location.hostname,
+                    is_iframe: isIframe,
+                });
+            } catch (webhookErr) {
+                console.error("Webhook n8n failed:", webhookErr);
+                // Continuam chiar daca webhook-ul pica
             }
 
             const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe });
@@ -638,25 +640,35 @@ export default function PublicCalculator() {
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.name', 'Nom')}</label>
+                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.first_name', 'Prénom')}</label>
                                                     <input 
                                                         type="text" 
                                                         required 
-                                                        value={formData.client_name} 
-                                                        onChange={e => setFormData({...formData, client_name: e.target.value})} 
+                                                        value={formData.client_first_name} 
+                                                        onChange={e => setFormData({...formData, client_first_name: e.target.value})} 
                                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.phone', 'Téléphone')}</label>
+                                                    <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.last_name', 'Nom de famille')}</label>
                                                     <input 
-                                                        type="tel" 
+                                                        type="text" 
                                                         required 
-                                                        value={formData.client_phone} 
-                                                        onChange={e => setFormData({...formData, client_phone: e.target.value})} 
+                                                        value={formData.client_last_name} 
+                                                        onChange={e => setFormData({...formData, client_last_name: e.target.value})} 
                                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
                                                     />
                                                 </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.phone', 'Téléphone')}</label>
+                                                <input 
+                                                    type="tel" 
+                                                    required 
+                                                    value={formData.client_phone} 
+                                                    onChange={e => setFormData({...formData, client_phone: e.target.value})} 
+                                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base text-slate-900 placeholder-slate-300 focus:bg-white focus:border-yellow-400 outline-none transition-all" 
+                                                />
                                             </div>
                                             <div>
                                                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.email', 'Email')}</label>
