@@ -230,6 +230,45 @@ export default function QuotesManagement() {
     const [planningForm, setPlanningForm] = useState({ date: '', time: '07:00', teamId: '' })
     const [isSendingPlanning, setIsSendingPlanning] = useState(false)
     
+    // Bulk Delete State
+    const [selectedIds, setSelectedIds] = useState([])
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedIds(quotes.map(q => q.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectRow = (e, id) => {
+        if (e.target.checked) {
+            setSelectedIds(prev => [...prev, id]);
+        } else {
+            setSelectedIds(prev => prev.filter(x => x !== id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        setIsBulkDeleting(true);
+        try {
+            for (const id of selectedIds) {
+                await api.delete(`/admin/work-orders/${id}`);
+            }
+            showToast(t('quotes.bulk_delete_success', 'Devizele au fost șterse cu succes.'), 'success');
+            setSelectedIds([]);
+            fetchQuotes();
+        } catch (error) {
+            console.error("Bulk delete error", error);
+            showToast(t('quotes.bulk_delete_error', 'Eroare la ștergerea devizelor.'), 'error');
+        } finally {
+            setIsBulkDeleting(false);
+            setShowBulkDeleteConfirm(false);
+        }
+    };
+
     // Quick Add Form
     const [quickAddStep, setQuickAddStep] = useState(1) // 1: Info, 'new-client': New Client Form
     const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -461,6 +500,27 @@ export default function QuotesManagement() {
     }
 
     const columns = [
+        {
+            key: 'checkbox',
+            label: (
+                <input 
+                    type="checkbox" 
+                    checked={quotes.length > 0 && selectedIds.length === quotes.length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+            ),
+            sortable: false,
+            render: (row) => (
+                <input 
+                    type="checkbox" 
+                    checked={selectedIds.includes(row.id)}
+                    onChange={(e) => handleSelectRow(e, row.id)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                />
+            )
+        },
         {
             key: 'created_at',
             label: t('quotes.quote_details', 'N° Devis / Date'),
@@ -1129,10 +1189,21 @@ export default function QuotesManagement() {
             {/* Table */}
             <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[300px]">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                    <h2 className="font-bold text-slate-700">{t('quotes.list_title', 'Liste des Devis en Attente')}</h2>
-                    <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-full">
-                        {quotes.length} {t('quotes.total', 'total')}
-                    </span>
+                    <div className="flex items-center gap-3">
+                        <h2 className="font-bold text-slate-700">{t('quotes.list_title', 'Liste des Devis en Attente')}</h2>
+                        <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-full">
+                            {quotes.length} {t('quotes.total', 'total')}
+                        </span>
+                    </div>
+                    {selectedIds.length > 0 && (
+                        <button 
+                            onClick={() => setShowBulkDeleteConfirm(true)}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-red-200"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            {t('common.delete_selected', 'Șterge')} ({selectedIds.length})
+                        </button>
+                    )}
                 </div>
                 
                 <DataTable 
@@ -1508,6 +1579,28 @@ export default function QuotesManagement() {
                     onClose={() => setPreviewDocs(null)} 
                 />
             )}
+
+            {/* Bulk Delete Confirm Modal */}
+            <ConfirmModal
+                isOpen={showBulkDeleteConfirm}
+                onClose={() => setShowBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title={t('quotes.bulk_delete_title', 'Ștergere Devize')}
+                message={
+                    <div>
+                        <p className="mb-2 text-slate-600">{t('quotes.bulk_delete_warning', 'Sunteți sigur că doriți să ștergeți următoarele devize? Toate datele asociate vor fi șterse definitiv.')}</p>
+                        <ul className="list-disc pl-5 text-sm text-slate-700 font-bold max-h-40 overflow-y-auto">
+                            {quotes.filter(q => selectedIds.includes(q.id)).map(q => (
+                                <li key={q.id}>{q.external_id || q.quote_number || q.id} - {q.client_name}</li>
+                            ))}
+                        </ul>
+                    </div>
+                }
+                confirmText={isBulkDeleting ? t('common.deleting', 'Ștergere...') : t('common.delete', 'Șterge')}
+                cancelText={t('common.cancel', 'Anulează')}
+                type="danger"
+                disabled={isBulkDeleting}
+            />
         </div>
     )
 }
