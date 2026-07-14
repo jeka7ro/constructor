@@ -283,11 +283,13 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
         if wo.assigned_team_id:
             team_wos.setdefault(wo.assigned_team_id, []).append(wo)
 
-    # 3. Fetch all teams involved (to get their base and color)
-    team_ids = list(team_wos.keys())
-    teams = []
-    if team_ids:
-        teams = db.query(Team).filter(Team.id.in_(team_ids)).all()
+    # 3. Fetch all active teams involved (to get their base and color)
+    # We fetch ALL active teams so that teams without scheduled works (e.g. cranes) 
+    # still get their GPS trace rendered.
+    teams = db.query(Team).filter(
+        Team.organization_id == admin.organization_id,
+        Team.is_active == True
+    ).all()
 
     # Create a quick base lookup
     all_bases = db.query(LogisticBase).filter(LogisticBase.organization_id == admin.organization_id).all()

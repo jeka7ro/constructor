@@ -56,6 +56,7 @@ export default function ShortWorksCalendar({
     const [hoveredDay, setHoveredDay] = useState(null);
     const [orderToDelete, setOrderToDelete] = useState(null);
     const [animatingOrder, setAnimatingOrder] = useState(null);
+    const [deletedIds, setDeletedIds] = useState(new Set()); // Optimistic UI for instant deletion
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const { tenant } = useTenantStore();
@@ -539,20 +540,20 @@ export default function ShortWorksCalendar({
                 className="flex-1 hidden md:flex relative overflow-auto"
             >
                 {/* Time Gutter */}
-                <div className="w-16 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
+                <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
-                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
-                            {t('admin_overview.order_number', '#{{number}}', { number: i + 1 })}
+                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-bold pt-1">
+                            #{i + 1}
                         </div>
                     ))}
                 </div>
 
                 {/* Days Columns */}
-                <div className="flex-1 min-w-[800px]">
+                <div className="flex-1 min-w-[700px]">
 
                     {/* Header: Days */}
-                    <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30">
+                    <div className="grid border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr' }}>
                         {weekDays.map((day, i) => {
                             const isToday = isSameDay(day, new Date());
                             const dayStr = format(day, 'yyyy-MM-dd');
@@ -597,7 +598,7 @@ export default function ShortWorksCalendar({
                     </div>
 
                     {/* Events Grid */}
-                    <div className="relative grid grid-cols-7 bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(70px, 70px))` }}>
+                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr', gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(70px, 70px))` }}>
                         {weeklyOrders.length === 0 && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span className="text-slate-400 text-sm">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
@@ -729,17 +730,20 @@ export default function ShortWorksCalendar({
                                     }
                                     dayOccupancy[dayIndex].add(rowStart);
                                     
-                                    renderableOrders.push({ ...wo, dayIndex, rowStart });
+                                    if (!deletedIds.has(wo.id)) {
+                                        renderableOrders.push({ ...wo, dayIndex, rowStart });
+                                    }
                                 } catch (e) {}
                             });
                             
                             return renderableOrders.map(wo => {
                                 const colorHex = wo.team?.color || wo.assigned_team_color || '#93c5fd';
                                 
-                                // Calculate offset to avoid overlap
-                                const baseWidthPercent = 100 / 7;
-                                const leftPercent = wo.dayIndex * baseWidthPercent;
-                                const widthValue = `calc(${baseWidthPercent}% - 8px)`;
+                                // Calculate offset to avoid overlap for custom grid
+                                const totalFr = 6.6;
+                                const colFr = wo.dayIndex === 6 ? 0.6 : 1;
+                                const leftPercent = (wo.dayIndex / totalFr) * 100;
+                                const widthValue = `calc(${(colFr / totalFr) * 100}% - 8px)`;
                                 const isThisDragged = draggedOrder === wo.id;
                                 const isCompleted = wo.status === 'completed';
 
@@ -874,7 +878,7 @@ export default function ShortWorksCalendar({
                                     >
                                         {!isCompleted && (
                                             <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 opacity-100 group-hover:opacity-0`}>
-                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
+                                                <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
                                             </div>
                                         )}
 
@@ -897,14 +901,14 @@ export default function ShortWorksCalendar({
                                                                 if (onOrderEdit) onOrderEdit(wo);
                                                                 else navigate(`/admin/work-orders/${wo.id}/edit`, { state: { from: '/admin/planning' } }); 
                                                             }}
-                                                            className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
+                                                            className="hidden lg:flex p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
                                                             title={t('common.edit', 'Editează')}
                                                         >
                                                             <Edit2 className="w-3.5 h-3.5" />
                                                         </button>
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); setOrderToDelete(wo); }}
-                                                            className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
+                                                            className="hidden lg:flex p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
                                                             title={t('common.delete', 'Șterge')}
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
@@ -914,11 +918,10 @@ export default function ShortWorksCalendar({
                                         </div>
 
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
-                                            {wo.status === 'draft' && <AlertTriangle className="w-3 h-3 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
                                             <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                         </div>
-                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none lg:pointer-events-auto lg:cursor-pointer lg:hover:text-blue-600 lg:dark:hover:text-blue-400"
                                              onClick={(e) => {
                                                  e.stopPropagation();
                                                  const addr = wo.site_address || wo.site_name;
@@ -927,18 +930,12 @@ export default function ShortWorksCalendar({
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
                                             <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
                                         </div>
-                                        <div className="mt-1 flex items-center justify-between">
-                                            <div className="flex items-center gap-1.5 truncate bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-full shadow-sm">
-                                                <Truck className="w-3 h-3 shrink-0" style={{ color: colorHex }} />
-                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                    {(wo.assigned_team_name || t('common.unassigned', 'Neasignat')).replace(/^echipa\s*/i, '')}
+                                        <div className="mt-1 flex items-center gap-1.5 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
+                                            {getDistanceTextForOrder(wo) && (
+                                                <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                                                    {getDistanceTextForOrder(wo)}
                                                 </span>
-                                                {getDistanceTextForOrder(wo) && (
-                                                    <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded ml-1 whitespace-nowrap">
-                                                        {getDistanceTextForOrder(wo)}
-                                                    </span>
-                                                )}
-                                            </div>
+                                            )}
                                             {(() => {
                                                 const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
                                                 const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
@@ -952,7 +949,7 @@ export default function ShortWorksCalendar({
 
                                                 if (displaySurf > 0) {
                                                     return (
-                                                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded shadow-sm ${isReal ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
+                                                        <span className={`text-[9px] font-bold ${isReal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
                                                             {displaySurf}m²
                                                         </span>
                                                     )
@@ -960,7 +957,7 @@ export default function ShortWorksCalendar({
                                                 return null;
                                             })()}
                                             {calculateOrderSand(wo) > 0 && (
-                                                <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1 py-0.5 rounded shadow-sm">
+                                                <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">
                                                     {calculateOrderSand(wo).toFixed(1)}T
                                                 </span>
                                             )}
@@ -1001,6 +998,8 @@ export default function ShortWorksCalendar({
                             const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
                             const isCompleted = wo.status === 'completed';
                             
+                            if (deletedIds.has(wo.id)) return null;
+                            
                             return (
                                 <React.Fragment key={wo.id}>
                                     {isNewDay && parsedDate && (
@@ -1020,13 +1019,12 @@ export default function ShortWorksCalendar({
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10 flex items-center gap-1.5">
-                                                {wo.status === 'draft' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" title="Draft - Incomplet" />}
                                                 {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" title="Finalizată" />}
                                                 <span>{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                             </div>
                                             {!isCompleted && (
                                                 <div className="absolute top-2 right-2">
-                                                    <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={wo.start_date || wo.deadline_date} />
+                                                    <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
                                                 </div>
                                             )}
                                         </div>
@@ -1054,13 +1052,12 @@ export default function ShortWorksCalendar({
                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                                             <span className="truncate">{formatAddressCityFirst((wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Fără locație'))}</span>
                                         </div>
-                                        <div className="mt-1.5">
-                                            <div className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded-full shadow-sm max-w-full">
-                                                <Truck className="w-3.5 h-3.5 shrink-0" style={{ color: colorHex }} />
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                    {wo.assigned_team_name || t('common.unassigned', 'Neasignat')}
+                                        <div className="mt-1 flex items-center gap-1.5">
+                                            {getDistanceTextForOrder(wo) && (
+                                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md shadow-sm whitespace-nowrap">
+                                                    {getDistanceTextForOrder(wo)}
                                                 </span>
-                                            </div>
+                                            )}
                                         </div>
                                     </div>
                                 </React.Fragment>
@@ -1093,21 +1090,26 @@ export default function ShortWorksCalendar({
                                 </button>
                                 <button 
                                     onClick={async () => {
+                                        const idToDelete = orderToDelete.id;
+                                        setDeletedIds(prev => new Set(prev).add(idToDelete)); // Optimistic delete (instant)
+                                        setOrderToDelete(null); // Close popup instantly
                                         try {
-                                            setSyncing(true);
-                                            await api.delete(`/admin/work-orders/${orderToDelete.id}`);
+                                            await api.delete(`/admin/work-orders/${idToDelete}`);
                                             if (onOrderRescheduled) onOrderRescheduled();
                                             else window.location.reload();
                                         } catch (e) {
                                             console.error("Eroare la stergere:", e);
-                                        } finally {
-                                            setSyncing(false);
-                                            setOrderToDelete(null);
+                                            // Revert optimistic delete on error
+                                            setDeletedIds(prev => {
+                                                const next = new Set(prev);
+                                                next.delete(idToDelete);
+                                                return next;
+                                            });
                                         }
                                     }}
                                     className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
                                 >
-                                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.yes_delete', 'Da, șterge')}
+                                    {t('common.yes_delete', 'Da, șterge')}
                                 </button>
                             </div>
                         </div>

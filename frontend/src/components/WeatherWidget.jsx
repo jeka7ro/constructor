@@ -17,23 +17,42 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
         const roundedLat = parseFloat(lat).toFixed(1);
         const roundedLon = parseFloat(lon).toFixed(1);
         const cacheKey = `${roundedLat}_${roundedLon}`;
+        const hasTime = dateStr.includes('T') && dateStr.split('T')[1].length >= 5;
         const targetDate = dateStr.split('T')[0];
+        const targetHourStr = hasTime ? dateStr.substring(0, 13) + ':00' : null; // e.g., "2024-07-14T14:00"
 
-        const processData = (daily) => {
-            if (!daily || !daily.time) {
+        const processData = (res) => {
+            if (!res) {
                 setData({ error: true });
                 return;
             }
-            const index = daily.time.findIndex(t => t === targetDate);
-            if (index !== -1) {
-                setData({
-                    code: daily.weather_code[index],
-                    maxTemp: Math.round(daily.temperature_2m_max[index]),
-                    minTemp: Math.round(daily.temperature_2m_min[index])
-                });
-            } else {
-                setData({ error: true });
+            if (hasTime && res.hourly && res.hourly.time) {
+                const index = res.hourly.time.findIndex(t => t === targetHourStr);
+                if (index !== -1) {
+                    setData({
+                        code: res.hourly.weather_code[index],
+                        maxTemp: Math.round(res.hourly.temperature_2m[index]),
+                        minTemp: Math.round(res.hourly.temperature_2m[index]),
+                        isHourly: true
+                    });
+                    return;
+                }
             }
+            
+            // Fallback to daily
+            if (res.daily && res.daily.time) {
+                const index = res.daily.time.findIndex(t => t === targetDate);
+                if (index !== -1) {
+                    setData({
+                        code: res.daily.weather_code[index],
+                        maxTemp: Math.round(res.daily.temperature_2m_max[index]),
+                        minTemp: Math.round(res.daily.temperature_2m_min[index]),
+                        isHourly: false
+                    });
+                    return;
+                }
+            }
+            setData({ error: true });
         };
 
         if (weatherCache[cacheKey]) {
@@ -57,7 +76,7 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
         }
 
         setLoading(true);
-        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${roundedLat}&longitude=${roundedLon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&past_days=30`)
+        const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${roundedLat}&longitude=${roundedLon}&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=temperature_2m,weather_code&timezone=auto&past_days=30`)
             .then(res => res.json())
             .then(json => {
                 if (json.error || !json.daily) {
@@ -91,21 +110,21 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
 
     if (!isLarge) {
         const getSmallIcon = (code) => {
-            if (code === 0) return <Sun className="w-4 h-4 text-orange-500" />;
-            if ([1, 2].includes(code)) return <CloudSun className="w-4 h-4 text-blue-500" />;
-            if (code === 3) return <Cloud className="w-4 h-4 text-slate-500" />;
-            if ([45, 48].includes(code)) return <CloudFog className="w-4 h-4 text-slate-400" />;
-            if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className="w-4 h-4 text-blue-400" />;
-            if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className="w-4 h-4 text-blue-600" />;
-            if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className="w-4 h-4 text-sky-300" />;
-            if ([95, 96, 99].includes(code)) return <CloudLightning className="w-4 h-4 text-purple-600" />;
-            return <Cloud className="w-4 h-4 text-slate-500" />;
+            if (code === 0) return <Sun className="w-3 h-3 text-orange-500" />;
+            if ([1, 2].includes(code)) return <CloudSun className="w-3 h-3 text-blue-500" />;
+            if (code === 3) return <Cloud className="w-3 h-3 text-slate-500" />;
+            if ([45, 48].includes(code)) return <CloudFog className="w-3 h-3 text-slate-400" />;
+            if ([51, 53, 55, 56, 57].includes(code)) return <CloudDrizzle className="w-3 h-3 text-blue-400" />;
+            if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <CloudRain className="w-3 h-3 text-blue-600" />;
+            if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow className="w-3 h-3 text-sky-300" />;
+            if ([95, 96, 99].includes(code)) return <CloudLightning className="w-3 h-3 text-purple-600" />;
+            return <Cloud className="w-3 h-3 text-slate-500" />;
         };
 
         return (
-            <div className="flex items-center gap-1 opacity-90" title={`Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
+            <div className="flex items-center gap-0.5 opacity-90" title={data.isHourly ? `Temp la ora lucrării: ${data.maxTemp}°C` : `Max: ${data.maxTemp}°C / Min: ${data.minTemp}°C`}>
                 {getSmallIcon(data.code)}
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 leading-none">{data.maxTemp}°</span>
             </div>
         );
     }

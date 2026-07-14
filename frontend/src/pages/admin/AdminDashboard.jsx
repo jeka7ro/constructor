@@ -503,7 +503,7 @@ export default function AdminDashboard() {
 
             {/* Sidebar */}
             <aside className={`
-                ${sidebarOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
+                ${sidebarOpen ? 'w-56 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'} 
                 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[80]
                 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-[color:var(--tenant-bg)] border-[color:var(--tenant-border)] text-blue-50'} shadow-2xl
                 md:mb-3 md:ml-3 md:h-[calc(100dvh-100px)] md:rounded-[24px] md:border-0 max-md:border-r transition-all duration-300 flex flex-col relative shrink-0 overflow-hidden

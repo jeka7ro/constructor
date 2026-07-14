@@ -208,9 +208,9 @@ function RoutingMachine({ positions, color, weight, opacity }) {
     }, [positions?.map(p => p?.join(',')).join('|')])
 
     if (!positions || positions.length < 2) return null
+    // Offset infim, traseul simulat e punctat (dashed) și mai gros pentru a fi vizibil sub cel GPS real
     const pts = (routePositions || positions).map(p => [p[0] + 0.00015, p[1] + 0.00015])
-    // Traseul VIRTUAL (simulat) e mereu dashed — decalat puțin pentru a rula în paralel cu GPS-ul
-    return <Polyline positions={pts} pathOptions={{ color: color, weight: weight || 3, opacity: opacity || 0.6, dashArray: "8, 8" }} />
+    return <Polyline positions={pts} pathOptions={{ color: color, weight: 6, opacity: 0.5, dashArray: "8, 10" }} />
 }
 
 const createCustomIcon = (text, isBase, teamColor, vehicleType = '') => {
@@ -402,7 +402,6 @@ export default function LogisticsDashboard() {
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                         <Truck className="w-7 h-7 text-blue-600" /> {t('logistics.title', 'Logistică')}
                     </h1>
-                    <p className="text-slate-500 text-sm">{t('logistics.subtitle', 'Organizare zilnică, trasee și necesar de materiale.')}</p>
                 </div>
                 
                 <div className="flex items-center gap-3 w-full md:w-auto">
@@ -521,9 +520,8 @@ export default function LogisticsDashboard() {
                             {data.routes.filter(r => activeTeams.includes(r.team_id) && (!focusedTeamId || r.team_id === focusedTeamId)).map(route => {
                                 const validWps = route.waypoints.filter(wp => wp.lat && wp.lng)
 
-                                // Dacă nu există niciun waypoint cu GPS → cauta baza si pune un marker special
-                                if (validWps.length === 0) {
-                                    // Fara GPS deloc — nu putem afisa nimic
+                                // Dacă nu există niciun waypoint cu coordonate și NICI traseu GPS, abia atunci sărim
+                                if (validWps.length === 0 && (!route.gps_trace || route.gps_trace.length === 0)) {
                                     return null
                                 }
 
@@ -614,7 +612,7 @@ export default function LogisticsDashboard() {
 
                             {/* Sand Stations Rendering */}
                             {isDavideChape && showSandStations && SAND_STATIONS.map((station, idx) => {
-                                const _letter = station.type === 'theirs' ? 'I' : 'D'
+                                const _letter = 'S'
                                 const _bg = '#ef4444'
                                 const bgColor = '#ef4444'
                                 const borderColor = '#dc2626'
@@ -636,7 +634,7 @@ export default function LogisticsDashboard() {
                                             <br/>
                                             <div className="mt-1">
                                                 <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background: bgColor, border: `2px solid ${borderColor}`, color:'white'}}>
-                                                    {station.type === 'common' ? '● Noi + Ei (Comună)' : station.type === 'theirs' ? '● Doar Ei (Concurență)' : '● Doar Noi (Exclusivă)'}
+                                                    ● Station de Sable
                                                 </span>
                                             </div>
                                         </Popup>
@@ -727,27 +725,26 @@ export default function LogisticsDashboard() {
                             {/* Legend */}
                             <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto shrink-0 w-64">
                                 <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> {t('logistics.map_legend', 'Legenda Hartă')}</div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                        <div className="w-3 h-3 rounded-full bg-slate-800 dark:bg-slate-600 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.base_start', 'Bază / Start')}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Șantier / Lucrare')}
-                                    </div>
+                                <ul className="space-y-2 text-xs font-bold text-slate-900 dark:text-white">
+                                    <li className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-slate-800 dark:bg-slate-600 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.base_start', 'Base / Départ')}
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-700 shadow-sm"></div> {t('logistics.site_job', 'Chantier / Travail')}
+                                    </li>
                                     {isDavideChape && showSandStations && (
-                                        <>
-                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                            <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">D</div> Stații Nisip – Noi
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                            <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black">I</div> Stații Nisip – Concurență
-                                        </div>
-                                        </>
+                                        <li className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-500 flex items-center justify-center"><span className="text-[8px] text-white font-bold">S</span></div>
+                                            <span>Stations de Sable</span>
+                                        </li>
                                     )}
-                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                        <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> {t('logistics.car_route', 'Traseu auto')}
-                                    </div>
-                                </div>
+                                    <li className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700 mt-2">
+                                        <div className="w-5 h-1 border-b-2 border-dashed border-slate-400 dark:border-slate-500"></div> {t('logistics.simulated_route', 'Itinéraire simulé')}
+                                    </li>
+                                    <li className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
+                                        <div className="w-5 h-1 border-b-[3px] border-solid border-slate-600 dark:border-slate-300"></div> {t('logistics.gps_route', 'Itinéraire GPS')}
+                                    </li>
+                                </ul>
                             </div>
                             
                             {/* Active Teams Panel */}
@@ -755,9 +752,6 @@ export default function LogisticsDashboard() {
                                 <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto shrink-0 w-64 flex flex-col gap-3">
                                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white flex items-center justify-between gap-1.5">
                                         <div className="flex items-center gap-1.5"><Truck className="w-3 h-3" /> {t('logistics.teams_on_route', 'Équipes en Route')} ({activeTeams.length})</div>
-                                        <div className="flex items-center gap-1 text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-full" title="Șanse estimative de precipitații">
-                                            <CloudRain className="w-3 h-3" /> {rainChance}%
-                                        </div>
                                     </div>
                                     {data.routes.filter(r => activeTeams.includes(r.team_id)).map(route => {
                                         const workWps = route.waypoints.filter(wp => wp.type === 'work');
