@@ -79,7 +79,8 @@
     "col_thickness": "Dikte",
     "col_sand": "Zand",
     "col_km": "Km",
-    "col_status": "Status"
+    "col_status": "Status",
+    "legend": "Legende"
   },
   "common": {
     "error": "Erreur",

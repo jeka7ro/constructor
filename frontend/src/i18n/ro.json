@@ -79,7 +79,8 @@
     "col_thickness": "Grosime",
     "col_sand": "Nisip",
     "col_km": "Km",
-    "col_status": "Status"
+    "col_status": "Status",
+    "legend": "Legendă"
   },
   "common": {
     "error": "Erreur",

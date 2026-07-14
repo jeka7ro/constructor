@@ -79,7 +79,8 @@
     "col_thickness": "Thickness",
     "col_sand": "Sand",
     "col_km": "Km",
-    "col_status": "Status"
+    "col_status": "Status",
+    "legend": "Legend"
   },
   "common": {
     "error": "Erreur",
