@@ -32,16 +32,20 @@ function formatLastSeen(dateStr, t) {
   return t ? t('live.ago_h', 'il y a {{count}}h', { count: Math.floor(secs / 3600) }) : `il y a ${Math.floor(secs / 3600)}h`;
 }
 
-function createVehicleIcon(color, name, avatarUrl) {
+function createVehicleIcon(color, name, avatarUrl, vehicleType) {
   const shortName = name ? name.substring(0, 15) : '?';
   const initials = shortName[0].toUpperCase();
   const apiBaseUrl = 'http://davidechape.localhost:5678';
   const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${apiBaseUrl}${avatarUrl}`) : null;
   const themeColor = color || '#3b82f6';
   
+  const isCrane = vehicleType === 'Grue';
+  const truckSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>`;
+  const craneSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M7 21v-4"/><path d="M17 21v-4"/><path d="M12 17V3l-7 4"/><path d="M12 10l5 3"/></svg>`;
+
   const avatarHtml = fullAvatarUrl 
     ? `<img src="${fullAvatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid white;" />`
-    : `<div style="width:32px;height:32px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
+    : `<div style="width:32px;height:32px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.3);">${isCrane ? craneSvg : truckSvg}</div>`;
 
   return L.divIcon({
     html: avatarHtml,
@@ -61,6 +65,7 @@ export default function MiniLiveTrackingMap() {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
   const [isMapFull, setIsMapFull] = useState(false);
+  const mapRef = useRef(null);
   const intervalRef = useRef(null);
 
   const fetchLive = useCallback(async () => {
@@ -118,7 +123,11 @@ export default function MiniLiveTrackingMap() {
                 {vehicles.map(v => {
                     const isMoving = v.speed > 0;
                     return (
-                        <div key={v.id} className="flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-700/50 pt-2 first:border-0 first:pt-0">
+                        <div key={v.id} className="flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-700/50 pt-2 first:border-0 first:pt-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-lg p-1 -mx-1" onClick={() => {
+                            if (mapRef.current) {
+                                mapRef.current.flyTo([v.lat, v.lng], 16, { animate: true, duration: 1.5 });
+                            }
+                        }}>
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 overflow-hidden">
                                     <div className="relative shrink-0">
@@ -146,7 +155,7 @@ export default function MiniLiveTrackingMap() {
                 })}
             </div>
         </div>
-            <MapContainer
+            <MapContainer ref={mapRef}
             center={center}
             zoom={8}
             className="w-full h-full"
@@ -164,7 +173,7 @@ export default function MiniLiveTrackingMap() {
                 <Marker
                 key={v.id}
                 position={[v.lat, v.lng]}
-                icon={createVehicleIcon(v.team_color, v.name, v.avatar_url)}
+                icon={createVehicleIcon(v.team_color, v.name, v.avatar_url, v.vehicle_type)}
                 >
                 <Popup className="tracking-popup">
                     <div className="flex items-center gap-3 mb-2">
