@@ -606,7 +606,7 @@ export default function ShortWorksCalendar({
                         )}
                         
                         {/* Grid Lines acting as Drop Zones */}
-                        {Array.from({ length: 13 * 7 }).map((_, i) => {
+                        {Array.from({ length: (END_HOUR - dynamicStartHour) * 7 }).map((_, i) => {
                             const dayIndex = i % 7;
                             const hourIndex = Math.floor(i / 7);
                             return (

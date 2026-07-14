@@ -66,6 +66,7 @@ export default function MiniLiveTrackingMap() {
   const [connected, setConnected] = useState(true);
   const [isMapFull, setIsMapFull] = useState(false);
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const intervalRef = useRef(null);
 
   const fetchLive = useCallback(async () => {
@@ -83,13 +84,28 @@ export default function MiniLiveTrackingMap() {
   useEffect(() => {
     fetchLive();
     intervalRef.current = setInterval(fetchLive, POLL_INTERVAL);
-    return () => clearInterval(intervalRef.current);
+    
+    const handleFullscreenChange = () => {
+        setIsMapFull(!!document.fullscreenElement);
+        // Force Leaflet to recalculate its size after a small delay
+        setTimeout(() => {
+            if (mapRef.current) {
+                mapRef.current.invalidateSize();
+            }
+        }, 100);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
+    return () => {
+        clearInterval(intervalRef.current);
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
   }, [fetchLive]);
 
   const center = [51.2, 4.4]; // Belgium default
 
   return (
-    <div className={`flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 ${isMapFull ? "fixed inset-0 z-50 rounded-none border-none" : "w-full h-full"}`}>
+    <div ref={containerRef} className={`flex flex-col bg-white dark:bg-slate-900 overflow-hidden shadow-sm ${isMapFull ? "fixed inset-0 z-[9999] rounded-none border-none w-screen h-screen" : "w-full h-full rounded-xl border border-slate-200 dark:border-slate-700"}`}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
         <h3 className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 uppercase tracking-wide text-sm">
           <Radio className="w-4 h-4 text-blue-500" />
@@ -97,7 +113,15 @@ export default function MiniLiveTrackingMap() {
         </h3>
         <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 rounded-full">{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
-            <button onClick={() => setIsMapFull(!isMapFull)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mr-2">
+            <button onClick={() => {
+                if (!document.fullscreenElement) {
+                    containerRef.current?.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mr-2">
                 {isMapFull ? <Shrink className="w-4 h-4" /> : <Expand className="w-4 h-4" />}
             </button>
             <button onClick={fetchLive} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
