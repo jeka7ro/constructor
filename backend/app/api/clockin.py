@@ -990,7 +990,7 @@ def get_live_vehicles(
 
         # 2. Fetch Vehicles (Flespi)
         vehicle_rows = db.execute(sqlt("""
-            SELECT v.id, v.name, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
+            SELECT v.id, v.imei, v.name, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
                    COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path,
                    COALESCE(t_direct.color, recent_team.team_color) AS team_color
             FROM saas_app.vehicles v
