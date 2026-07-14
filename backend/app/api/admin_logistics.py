@@ -594,6 +594,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                 pass
 
         # Calculate distance from GPS trace
+        if not gps_trace:
+            gps_trace = []
         gps_distance_km = 0.0
         if len(gps_trace) > 1:
             from math import radians, cos, sin, asin, sqrt
