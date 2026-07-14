@@ -253,28 +253,15 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
     # - Pentru ziua curentă/viitoare: STRICT status='planning' (ce vede utilizatorul pe planning board)
     # - Pentru zilele din TRECUT: extindem la toate statusurile relevante (lucrările au putut progresa
     #   la confirmed/in_progress/completed după ce au ieșit din planificare)
-    today = date.today()
-    if is_past or target_date < today:
-        # Zilele din trecut: acceptăm toate statusurile except cancelled
-        # INCLUSIV draft-urile care au echipă asignată (au fost planificate dar nu formalizate)
-        wos = db.query(WorkOrder).filter(
-            WorkOrder.organization_id == admin.organization_id,
-            WorkOrder.start_date == target_date,
-            WorkOrder.status != 'cancelled',
-            WorkOrder.assigned_team_id != None   # cu echipă asignată
-        ).all()
-    else:
-        # Ziua curentă/viitoare: planning + draft cu echipă (ce e pe board-ul de planificare)
-        from sqlalchemy import or_
-        wos = db.query(WorkOrder).filter(
-            WorkOrder.organization_id == admin.organization_id,
-            WorkOrder.start_date == target_date,
-            WorkOrder.assigned_team_id != None,
-            or_(
-                WorkOrder.status == 'planning',
-                WorkOrder.status == 'draft'
-            )
-        ).all()
+    # Zilele din trecut, curente sau viitoare: acceptăm toate statusurile except cancelled
+    # INCLUSIV draft-urile care au echipă asignată (au fost planificate dar nu formalizate),
+    # in_progress, completed, etc., pentru ca Logistică să reflecte traseul complet al zilei.
+    wos = db.query(WorkOrder).filter(
+        WorkOrder.organization_id == admin.organization_id,
+        WorkOrder.start_date == target_date,
+        WorkOrder.status != 'cancelled',
+        WorkOrder.assigned_team_id != None   # cu echipă asignată
+    ).all()
 
 
     # 2. Group works by Team
@@ -552,7 +539,74 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
             "waypoints": waypoints,
             "vehicle_type": team_vehicle_type,
             "gps_trace": gps_trace,
+            "vehicle_id": team_vehicle_id
         })
+
+    # ── 5. Add Cranes / Unassigned Vehicles with IMEI ────────────────────────
+    # Include all active vehicles that have an IMEI and are not already handled by a team
+    handled_vehicle_ids = {r.get("vehicle_id") for r in routes if r.get("vehicle_id")}
+    
+    unassigned_vehicles = db.query(Vehicle).filter(
+        Vehicle.organization_id == admin.organization_id,
+        Vehicle.is_active == True,
+        Vehicle.imei != None
+    ).all()
+
+    for v in unassigned_vehicles:
+        if v.id in handled_vehicle_ids:
+            continue
+            
+        # Get GPS Trace for this vehicle
+        gps_trace = []
+        import os
+        import httpx
+        from datetime import datetime, timezone
+        FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
+        if FLESPI_TOKEN and v.imei:
+            try:
+                day = target_date
+                tz_offset = 2
+                ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
+                ts_to = int(datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
+                
+                url = f"https://flespi.io/gw/devices/all/messages"
+                headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.get(url, headers=headers)
+                    if resp.status_code == 200:
+                        flespi_data = resp.json().get("result", [])
+                        for msg in flespi_data:
+                            if str(msg.get("ident", "")) == str(v.imei):
+                                ts = msg.get("timestamp")
+                                if ts and ts >= ts_from and ts <= ts_to:
+                                    lat = msg.get("position.latitude")
+                                    lng = msg.get("position.longitude")
+                                    if lat and lng:
+                                        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                                        gps_trace.append({
+                                            "lat": lat,
+                                            "lng": lng,
+                                            "ts": dt.isoformat(),
+                                            "speed": round(msg.get("position.speed", 0), 1)
+                                        })
+                        gps_trace.sort(key=lambda x: x["ts"])
+            except Exception:
+                pass
+
+        routes.append({
+            "team_id": v.id,  # Folosim ID-ul vehiculului pe post de ID echipă ca să nu crape UI-ul
+            "team_name": f"{v.name} (Fără Echipă)",
+            "team_color": "#94a3b8", # Gri
+            "base_name": "N/A",
+            "total_sand_kg": 0,
+            "total_distance_km": 0,
+            "works_count": 0,
+            "waypoints": [],
+            "vehicle_type": v.type or "Camion",
+            "gps_trace": gps_trace,
+            "vehicle_id": v.id
+        })
+
 
     try:
         db.commit()
