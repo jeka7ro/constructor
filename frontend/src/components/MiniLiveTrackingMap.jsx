@@ -170,7 +170,7 @@ export default function MiniLiveTrackingMap() {
                             <div className="flex flex-col gap-1 pl-5">
                                 <div className="flex justify-between items-center gap-2">
                                     <div className="text-[10px] font-medium text-slate-900 dark:text-white truncate flex items-center gap-1.5 text-slate-500 italic">
-                                        {isMoving ? `${Math.round(v.speed)} km/h` : t('live.stopped', "À l'arrêt")}
+                                        {isMoving ? `${Math.round(v.speed)} km/h` : (v.location_text || t('live.stopped', "À l'arrêt"))}
                                     </div>
                                 </div>
                             </div>

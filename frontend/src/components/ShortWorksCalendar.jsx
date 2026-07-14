@@ -49,6 +49,7 @@ export default function ShortWorksCalendar({
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
     const hasAutoScrolled = useRef(false); // prevent re-jumping on data refresh
+    const lastSwipeTime = useRef(0); // prevent accidental click after scroll
     const [showScrollHint, setShowScrollHint] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [draggedOrder, setDraggedOrder] = useState(null);
@@ -327,6 +328,11 @@ export default function ShortWorksCalendar({
         
         const distanceX = touchStart.x - touchEnd.x;
         const distanceY = touchStart.y - touchEnd.y;
+        
+        if (Math.abs(distanceX) > 10 || Math.abs(distanceY) > 10) {
+            lastSwipeTime.current = Date.now();
+        }
+
         const minSwipeDistance = 60;
         
         if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > minSwipeDistance) {
@@ -614,6 +620,7 @@ export default function ShortWorksCalendar({
                                     key={i} 
                                     className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
                                     onClick={() => {
+                                        if (Date.now() - lastSwipeTime.current < 400) return; // Prevent accidental click after scroll
                                         if (!isDragging) {
                                             const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
                                             const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;

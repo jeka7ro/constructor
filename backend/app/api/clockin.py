@@ -944,6 +944,49 @@ def push_worker_location(
     return {"ok": True}
 
 
+_flespi_cache = {"ts": 0, "distances": {}}
+def get_flespi_distances(token):
+    import time, httpx, json, math
+    from datetime import datetime, timezone
+    global _flespi_cache
+    if time.time() - _flespi_cache["ts"] < 60:
+        return _flespi_cache["distances"]
+    
+    day = datetime.utcnow()
+    tz_offset = 2
+    ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
+    ts_to = int(day.timestamp())
+    url = "https://flespi.io/gw/devices/all/messages"
+    headers = {"Authorization": f"FlespiToken {token}", "Accept": "application/json"}
+    params = {"data": json.dumps({"from": ts_from, "to": ts_to, "fields": "ident,position.latitude,position.longitude"})}
+    
+    distances = {}
+    try:
+        resp = httpx.get(url, headers=headers, params=params, timeout=5.0)
+        if resp.status_code == 200:
+            msgs = resp.json().get("result", [])
+            last_pos = {}
+            for m in msgs:
+                ident = str(m.get("ident"))
+                lat = m.get("position.latitude")
+                lng = m.get("position.longitude")
+                if not lat or not lng: continue
+                if ident not in distances:
+                    distances[ident] = 0.0
+                    last_pos[ident] = (lng, lat)
+                else:
+                    lon1, lat1 = last_pos[ident]
+                    dlon = math.radians(lng - lon1)
+                    dlat = math.radians(lat - lat1)
+                    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat)) * math.sin(dlon/2)**2
+                    d = 6371 * 2 * math.asin(math.sqrt(a))
+                    distances[ident] += d
+                    last_pos[ident] = (lng, lat)
+            _flespi_cache = {"ts": time.time(), "distances": distances}
+    except Exception as e:
+        print("Flespi distance error:", e)
+    return distances
+
 @router.get("/admin/vehicles/live")
 def get_live_vehicles(
     db: Session = Depends(get_db)
@@ -1004,7 +1047,8 @@ def get_live_vehicles(
         vehicle_rows = db.execute(sqlt("""
             SELECT v.id, v.imei, v.name, v.type, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
                    COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path,
-                   COALESCE(t_direct.color, recent_team.team_color) AS team_color
+                   COALESCE(t_direct.color, recent_team.team_color) AS team_color,
+                   COALESCE(t_direct.name, recent_team.team_name, u_direct.full_name) AS driver_name
             FROM saas_app.vehicles v
             LEFT JOIN saas_app.vehicle_user_assignments vua ON vua.vehicle_id = v.id AND vua.is_active = true
             LEFT JOIN saas_app.users u_direct ON u_direct.id = vua.user_id
@@ -1013,7 +1057,7 @@ def get_live_vehicles(
             -- Try to find if vehicle is assigned to a team (via a recent work order) and get leader's avatar and team color
             LEFT JOIN (
                 SELECT DISTINCT ON (wo.assigned_vehicle_id)
-                       wo.assigned_vehicle_id, t.team_leader_id, t.color as team_color
+                       wo.assigned_vehicle_id, t.team_leader_id, t.color as team_color, t.name as team_name
                 FROM saas_app.work_orders wo
                 JOIN saas_app.teams t ON t.id = wo.assigned_team_id
                 WHERE wo.created_at >= CURRENT_DATE - INTERVAL '7 days'
@@ -1045,30 +1089,47 @@ def get_live_vehicles(
                 "avatar_url": r.avatar_path,
             })
             
+                # Fetch Bases and Today's Work Orders for Location Matching
+        bases = db.execute(sqlt("SELECT name, latitude, longitude FROM saas_app.logistic_bases WHERE latitude IS NOT NULL AND longitude IS NOT NULL")).fetchall()
+        today_str = datetime.utcnow().strftime("%Y-%m-%d")
+        wos = db.execute(sqlt("SELECT title, client_name, site_latitude, site_longitude FROM saas_app.work_orders WHERE (start_date = :td OR deadline_date = :td) AND status NOT IN ('draft', 'completed') AND site_latitude IS NOT NULL AND site_longitude IS NOT NULL"), {"td": today_str}).fetchall()
+        
+        # Calculate Flespi Distances
+        flespi_distances = {}
+        import os
+        FLESPI_TOKEN = os.getenv("FLESPI_TOKEN")
+        if FLESPI_TOKEN:
+            flespi_distances = get_flespi_distances(FLESPI_TOKEN)
+            
+        def is_near(lat1, lng1, lat2, lng2):
+            return haversine(lng1, lat1, lng2, lat2) < 0.2 # 200 meters
+
         for v in vehicle_rows:
-            dist = 0.0
-            try:
-                trips = db.query(TripLog).filter(
-                    TripLog.vehicle_id == v.id,
-                    TripLog.date == today_start.date()
-                ).all()
-                if trips:
-                    trip_ids = [t.id for t in trips]
-                    pts = db.query(TripGPSPoint).filter(
-                        TripGPSPoint.trip_id.in_(trip_ids)
-                    ).order_by(TripGPSPoint.timestamp).all()
-                    if len(pts) > 1:
-                        for i in range(1, len(pts)):
-                            dist += haversine(
-                                pts[i-1].longitude, pts[i-1].latitude,
-                                pts[i].longitude, pts[i].latitude
-                            )
-            except Exception as e:
-                print(f"Error calculating distance for vehicle {v.id}: {e}")
+            dist = flespi_distances.get(str(v.imei), 0.0) if v.imei else 0.0
+            
+            loc_text = ""
+            if v.last_speed is not None and v.last_speed < 5:
+                # Check if at base
+                for b in bases:
+                    if is_near(v.last_lat, v.last_lng, b.latitude, b.longitude):
+                        loc_text = f"La baza: {b.name}"
+                        break
+                # Check if at work order
+                if not loc_text:
+                    for w in wos:
+                        if is_near(v.last_lat, v.last_lng, w.site_latitude, w.site_longitude):
+                            loc_text = f"La lucrare: {w.client_name if w.client_name and w.client_name != 'None' else w.title}"
+                            break
+
+            # Format name: use driver_name/team_name if available, else vehicle name
+            display_name = v.driver_name if hasattr(v, 'driver_name') and v.driver_name else (f"{v.name} ({v.plate_number})" if v.plate_number else v.name)
+            if display_name and str(display_name).lower().startswith("echipa"):
+                display_name = str(display_name)[6:].strip() # remove 'echipa'
+                
             result.append({
                 "type":       "vehicle",
                 "id":         v.id,
-                "name":       f"{v.name} ({v.plate_number})" if v.plate_number else v.name,
+                "name":       display_name,
                 "vehicle_type": getattr(v, 'type', "Camion"),
                 "lat":        v.last_lat,
                 "lng":        v.last_lng,
@@ -1077,7 +1138,8 @@ def get_live_vehicles(
                 "team_name":  "GPS Flespi",
                 "team_color": v.team_color or "#0ea5e9",
                 "avatar_url": v.avatar_path,
-                "distance_today": round(dist, 1)
+                "distance_today": round(dist, 1),
+                "location_text": loc_text
             })
 
         return result
