@@ -548,7 +548,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
     
     unassigned_vehicles = db.query(Vehicle).filter(
         Vehicle.organization_id == admin.organization_id,
-        Vehicle.is_active == True,
+        Vehicle.status == 'active',
         Vehicle.imei != None
     ).all()
 
