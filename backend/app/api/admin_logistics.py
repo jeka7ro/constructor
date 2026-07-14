@@ -595,7 +595,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
 
         routes.append({
             "team_id": v.id,  # Folosim ID-ul vehiculului pe post de ID echipă ca să nu crape UI-ul
-            "team_name": f"{v.name} (Fără Echipă)",
+            "team_name": v.name,
+            "is_unassigned": True,
             "team_color": "#94a3b8", # Gri
             "base_name": "N/A",
             "total_sand_kg": 0,
