@@ -611,11 +611,20 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                     gps_trace[i]['lng'], gps_trace[i]['lat']
                 )
 
+        # Generate a distinct consistent color based on vehicle ID
+        import hashlib
+        palette = [
+            "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+            "#06b6d4", "#3b82f6", "#6366f1", "#a855f7", "#ec4899",
+            "#84cc16", "#8b5cf6", "#10b981", "#0ea5e9", "#d946ef"
+        ]
+        color_idx = int(hashlib.md5(v.id.encode()).hexdigest(), 16) % len(palette)
+        
         routes.append({
             "team_id": v.id,  # Folosim ID-ul vehiculului pe post de ID echipă ca să nu crape UI-ul
             "team_name": v.name,
             "is_unassigned": True,
-            "team_color": "#94a3b8", # Gri
+            "team_color": palette[color_idx],
             "base_name": "N/A",
             "total_sand_kg": 0,
             "total_distance_km": round(gps_distance_km, 1),
