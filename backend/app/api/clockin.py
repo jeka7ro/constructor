@@ -989,7 +989,7 @@ def get_live_vehicles(
             print(f"Users live tracking skipped due to schema mismatch: {_ue}")
 
         # 2. Fetch Vehicles (Flespi)
-        from app.api.admin_logistics import get_triplog_for_day
+        from app.models import TripLog, TripGPSPoint
         from math import radians, cos, sin, asin, sqrt
         def haversine(lon1, lat1, lon2, lat2):
             lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
@@ -1047,17 +1047,24 @@ def get_live_vehicles(
             
         for v in vehicle_rows:
             dist = 0.0
-            if getattr(v, 'imei', None):
-                try:
-                    fetched = get_triplog_for_day(v.imei, today_start)
-                    if fetched and len(fetched) > 1:
-                        for i in range(1, len(fetched)):
+            try:
+                trips = db.query(TripLog).filter(
+                    TripLog.vehicle_id == v.id,
+                    TripLog.date == today_start.date()
+                ).all()
+                if trips:
+                    trip_ids = [t.id for t in trips]
+                    pts = db.query(TripGPSPoint).filter(
+                        TripGPSPoint.trip_id.in_(trip_ids)
+                    ).order_by(TripGPSPoint.timestamp).all()
+                    if len(pts) > 1:
+                        for i in range(1, len(pts)):
                             dist += haversine(
-                                fetched[i-1]['lng'], fetched[i-1]['lat'],
-                                fetched[i]['lng'], fetched[i]['lat']
+                                pts[i-1].longitude, pts[i-1].latitude,
+                                pts[i].longitude, pts[i].latitude
                             )
-                except Exception:
-                    pass
+            except Exception as e:
+                print(f"Error calculating distance for vehicle {v.id}: {e}")
             result.append({
                 "type":       "vehicle",
                 "id":         v.id,
