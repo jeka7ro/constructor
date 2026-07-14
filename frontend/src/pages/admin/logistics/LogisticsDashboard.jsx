@@ -208,9 +208,9 @@ function RoutingMachine({ positions, color, weight, opacity }) {
     }, [positions?.map(p => p?.join(',')).join('|')])
 
     if (!positions || positions.length < 2) return null
-    const pts = routePositions || positions
-    // Traseul VIRTUAL (simulat) e mereu dashed — se diferențiază clar față de GPS-ul real (solid, 100%)
-    return <Polyline positions={pts} pathOptions={{ color: color, weight: weight || 3, opacity: opacity || 0.5, dashArray: "8, 8" }} />
+    const pts = (routePositions || positions).map(p => [p[0] + 0.00015, p[1] + 0.00015])
+    // Traseul VIRTUAL (simulat) e mereu dashed — decalat puțin pentru a rula în paralel cu GPS-ul
+    return <Polyline positions={pts} pathOptions={{ color: color, weight: weight || 3, opacity: opacity || 0.6, dashArray: "8, 8" }} />
 }
 
 const createCustomIcon = (text, isBase, teamColor, vehicleType = '') => {
