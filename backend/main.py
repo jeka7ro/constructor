@@ -167,9 +167,15 @@ async def lifespan(app: FastAPI):
     # Startup — auto-create tables (needed for fresh PostgreSQL)
     from app.database import engine, Base, warmup_pool
     from app import models  # noqa: ensure all models are imported
-    Base.metadata.create_all(bind=engine)
-    _run_migrations(engine)
-    warmup_pool()
+    # Base.metadata.create_all(bind=engine)
+    # _run_migrations(engine)
+    
+    # Try to warm up pool to see if connection is alive, but don't block
+    # try:
+    #     warmup_pool()
+    # except Exception as e:
+    #     print("Warmup failed but continuing...", e)
+        
     print("🚀 Starting Pontaj Digital API...")
 
     # Start daily scheduler

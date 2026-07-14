@@ -907,7 +907,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
                                     <div className="flex items-baseline gap-1 text-xs">
                                         <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(wo.start_date)}</span>
-                                        {wo.start_time && <span className="text-slate-400 font-medium">· {wo.start_time.substring(0,5)}</span>}
+                                        
                                     </div>
                                 </div>
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2">

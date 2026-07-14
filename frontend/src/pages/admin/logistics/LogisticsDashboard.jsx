@@ -209,8 +209,8 @@ function RoutingMachine({ positions, color, weight, opacity }) {
 
     if (!positions || positions.length < 2) return null
     const pts = routePositions || positions
-    // Linie continua pentru ruta OSRM, gesticulata pentru fallback
-    return <Polyline positions={pts} pathOptions={{ color: color, weight: weight || 3, opacity: opacity || 0.8, dashArray: isFallback ? "5, 10" : null }} />
+    // Traseul VIRTUAL (simulat) e mereu dashed — se diferențiază clar față de GPS-ul real (solid, 100%)
+    return <Polyline positions={pts} pathOptions={{ color: color, weight: weight || 3, opacity: opacity || 0.5, dashArray: "8, 8" }} />
 }
 
 const createCustomIcon = (text, isBase, teamColor, vehicleType = '') => {
@@ -317,7 +317,7 @@ export default function LogisticsDashboard() {
     const [activeTeams, setActiveTeams] = useState([])
     const [selectedWork, setSelectedWork] = useState(null)
     const [isMapFull, setIsMapFull] = useState(false)
-    const [gpsData, setGpsData] = useState(null)
+    // gpsData removed — GPS comes from route.gps_trace (TripLog snapshot) only
     const [showSandStations, setShowSandStations] = useState(() => {
         try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
     })
@@ -356,7 +356,7 @@ export default function LogisticsDashboard() {
     const fetchRoutes = async () => {
         try {
             setLoading(true)
-            // Load routes immediately — does NOT wait for slow Flespi GPS call
+            // GPS trace comes from route.gps_trace (TripLog) in the snapshot — no secondary Flespi fetch needed
             const res = await api.get(`/admin/logistics/daily-routes?target_date=${targetDate}`)
             setData(res.data)
             setActiveTeams(res.data.routes.map(r => r.team_id))
@@ -364,18 +364,6 @@ export default function LogisticsDashboard() {
             console.error("Error fetching daily routes:", error)
         } finally {
             setLoading(false)
-        }
-
-        // GPS data loads in background — won't block the page
-        try {
-            const gpsRes = await api.get(`/admin/gps-verification/daily?date=${targetDate}&speed_limit=90`)
-            if (gpsRes.data?.results) {
-                setGpsData(gpsRes.data.results)
-            } else {
-                setGpsData(null)
-            }
-        } catch {
-            setGpsData(null)
         }
     }
 
@@ -466,22 +454,30 @@ export default function LogisticsDashboard() {
                             <ChevronRight className="w-5 h-5" />
                         </button>
                     </div>
-                    {/* Archive Badge (Auto-Archived) */}
-                    {data?.is_archived && (
+                    {/* Archive Badge + Recalculează */}
+                    {(data?.is_archived || data?.archive_pending || (data && targetDate < new Date().toISOString().split('T')[0])) && (
                         <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800">
-                                <CheckCircle2 className="w-4 h-4" /> Arhivată
-                            </div>
+                            {data?.is_archived && (
+                                <div className="flex items-center gap-1.5 px-3 h-11 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-full border border-emerald-200 dark:border-emerald-800">
+                                    <CheckCircle2 className="w-4 h-4" /> {t('logistics.archived', 'Archivé')}
+                                </div>
+                            )}
+                            {data?.archive_pending && (
+                                <div className="flex items-center gap-1.5 px-3 h-11 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-bold text-sm rounded-full border border-orange-200 dark:border-orange-800">
+                                    <RefreshCw className="w-4 h-4" /> {t('logistics.incomplete_coords', 'Coordonnées manquantes')}
+                                </div>
+                            )}
                             <button
                                 onClick={recalculate}
                                 disabled={loading}
                                 className="flex items-center gap-1.5 px-3 h-11 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold text-sm rounded-full border border-amber-200 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors disabled:opacity-50"
-                                title="Recalculează traseele pentru această zi (util dacă datele sunt incomplete)"
+                                title={t('logistics.recalculate_tooltip', 'Recalculer les itinéraires pour cette journée')}
                             >
-                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Recalculează
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> {t('logistics.recalculate', 'Recalculer')}
                             </button>
                         </div>
                     )}
+
                 </div>
             </div>
 
@@ -539,51 +535,49 @@ export default function LogisticsDashboard() {
 
                                 return (
                                     <React.Fragment key={`map-route-${route.team_id}`}>
-                                        {/* Linia de traseu (Virtual) */}
+                                        {/* Linia de traseu Virtual (simulat) — 50% opacitate, dashed */}
                                         {positions.length > 1 && !hasOnlyBase && (
                                             <RoutingMachine
                                                 positions={positions}
                                                 color={route.team_color}
-                                                weight={3}
-                                                opacity={0.7}
+                                                weight={4}
+                                                opacity={0.5}
                                             />
                                         )}
 
-                                        {/* Traseul GPS real (daca exista) */}
-                                        {gpsData && (
+                                        {/* Traseul GPS real (din TripLog/Flespi) — acum vine direct din route.gps_trace */}
+                                        {route.gps_trace && route.gps_trace.length > 1 && (
                                             (() => {
-                                                const teamGps = gpsData.find(g => g.team_id === route.team_id);
-                                                if (teamGps && teamGps.track && teamGps.track.length > 1) {
-                                                    const gpsPositions = teamGps.track.map(p => [p.lat, p.lng]);
-                                                    const lastPos = teamGps.track[teamGps.track.length - 1];
-                                                    return (
-                                                        <React.Fragment>
-                                                            <Polyline
-                                                                positions={gpsPositions}
-                                                                pathOptions={{ color: route.team_color, weight: 5, opacity: 0.8 }}
-                                                            />
-                                                            <Marker 
-                                                                position={[lastPos.lat, lastPos.lng]}
-                                                                icon={createVehicleIcon(route.team_color, teamGps.vehicle_name || route.team_name, teamGps.avatar_url)}
-                                                            >
-                                                                <Popup>
-                                                                    <div className="flex items-center gap-3">
-                                                                        {teamGps.avatar_url && (
-                                                                            <img src={teamGps.avatar_url.startsWith('http') ? teamGps.avatar_url : `http://davidechape.localhost:5678${teamGps.avatar_url}`} alt="avatar" className="w-10 h-10 rounded-full border-2 object-cover" style={{ borderColor: route.team_color }} />
-                                                                        )}
-                                                                        <div>
-                                                                            <strong className="text-sm">{teamGps.vehicle_name || route.team_name}</strong>
-                                                                            <br/><span className="text-xs text-slate-500">Poziție Curentă GPS</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </Popup>
-                                                            </Marker>
-                                                        </React.Fragment>
-                                                    );
-                                                }
-                                                return null;
+                                                const gpsPositions = route.gps_trace.map(p => [p.lat, p.lng]);
+                                                const lastPos = route.gps_trace[route.gps_trace.length - 1];
+                                                return (
+                                                    <React.Fragment key={`gps-frag-${route.team_id}`}>
+                                                        <Polyline
+                                                            key={`gps-poly-${route.team_id}`}
+                                                            positions={gpsPositions}
+                                                            pathOptions={{ color: route.team_color, weight: 5, opacity: 1.0 }}
+                                                        />
+                                                        <Marker 
+                                                            position={[lastPos.lat, lastPos.lng]}
+                                                            icon={createCustomIcon('★', false, route.team_color, route.vehicle_type)}
+                                                        >
+                                                            <Popup>
+                                                                <div>
+                                                                    <strong className="text-sm">{route.team_name}</strong>
+                                                                    <br/><span className="text-xs text-slate-500">Dernière position GPS</span>
+                                                                    {lastPos.speed > 0 && (
+                                                                        <><br/><span className="text-xs text-blue-600">{lastPos.speed} km/h</span></>
+                                                                    )}
+                                                                </div>
+                                                            </Popup>
+                                                        </Marker>
+                                                    </React.Fragment>
+                                                );
                                             })()
                                         )}
+
+                                        {/* Fallback Flespi removed — GPS comes only from route.gps_trace (TripLog) */}
+
 
                                         {validWps.map((wp, idx) => {
                                             // Daca echipa nu are GPS pe santiere, afisam baza cu camion normal
@@ -881,17 +875,24 @@ export default function LogisticsDashboard() {
                                                         <div className="font-bold text-slate-900 dark:text-white">{Math.round(route.total_distance_km)} km</div>
                                                         
                                                         {(() => {
-                                                            if (!gpsData) return null;
-                                                            const teamGps = gpsData.find(g => g.team_id === route.team_id);
-                                                            if (!teamGps || !teamGps.total_km) return null;
-                                                            const devKm = teamGps.total_km - route.total_distance_km;
+                                                            // GPS deviation badge — uses gps_trace from route (TripLog snapshot)
+                                                            const gpsTrace = route.gps_trace;
+                                                            if (!gpsTrace || gpsTrace.length === 0) return null;
+                                                            // Calculate approximate GPS distance from trace points
+                                                            let gpsTotalKm = 0;
+                                                            for (let i = 1; i < gpsTrace.length; i++) {
+                                                                const dx = (gpsTrace[i].lng - gpsTrace[i-1].lng) * Math.cos((gpsTrace[i].lat + gpsTrace[i-1].lat) * Math.PI / 360) * 111.32;
+                                                                const dy = (gpsTrace[i].lat - gpsTrace[i-1].lat) * 111.32;
+                                                                gpsTotalKm += Math.sqrt(dx*dx + dy*dy);
+                                                            }
+                                                            const devKm = gpsTotalKm - route.total_distance_km;
                                                             if (devKm > 5) {
                                                                 return (
                                                                     <div className="absolute top-2 right-2 flex flex-col items-end">
-                                                                        <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800 animate-pulse" title="Deviație traseu">
+                                                                        <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800 animate-pulse" title="Écart de trajet GPS">
                                                                             +{Math.round(devKm)} km
                                                                         </span>
-                                                                        <span className="text-[9px] text-red-500 mt-0.5 font-semibold">Deviație</span>
+                                                                        <span className="text-[9px] text-red-500 mt-0.5 font-semibold">Écart GPS</span>
                                                                     </div>
                                                                 )
                                                             }
@@ -902,24 +903,27 @@ export default function LogisticsDashboard() {
                                                 
                                                 {isActive && route.waypoints.length > 0 && (
                                                     <div className="space-y-2 relative before:absolute before:inset-y-2 before:left-2.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
-                                                        {route.waypoints.map((wp, idx) => (
+                                                        {route.waypoints.map((wp, idx) => {
+                                                            const isBase = wp.type === 'base' || wp.type === 'base_return';
+                                                            const isReturn = wp.type === 'base_return';
+                                                            return (
                                                             <div
                                                                 key={idx}
-                                                                className={`flex gap-3 relative z-10 text-xs ${!wp.type.includes('base') ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg px-1 -mx-1 transition-colors' : ''}`}
+                                                                className={`flex gap-3 relative z-10 text-xs ${!isBase ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg px-1 -mx-1 transition-colors' : ''}`}
                                                                 onClick={e => {
                                                                     e.stopPropagation()
-                                                                    if (!wp.type.includes('base')) setSelectedWork({ wp, route })
+                                                                    if (!isBase) setSelectedWork({ wp, route })
                                                                 }}
                                                             >
                                                                 <div 
-                                                                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${wp.type.includes('base') ? 'bg-slate-800 dark:bg-slate-600' : ''}`}
-                                                                    style={wp.type.includes('base') ? {} : { backgroundColor: route.team_color }}
+                                                                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-[9px] shadow-sm ${isBase ? 'bg-slate-800 dark:bg-slate-600' : ''}`}
+                                                                    style={isBase ? {} : { backgroundColor: route.team_color }}
                                                                 >
-                                                                    {wp.type.includes('base') ? 'B' : idx}
+                                                                    {isReturn ? '↩' : isBase ? 'B' : idx}
                                                                 </div>
                                                                 <div className="flex-1 pt-0.5">
-                                                                    <div className="font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                                                                        {wp.name}
+                                                                    <div className={`font-bold leading-tight ${isReturn ? 'text-slate-500 dark:text-slate-400 italic text-[10px]' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                                        {isReturn ? t('logistics.return_base', 'Retour à la base') : wp.name}
                                                                         {wp.distance_from_prev_km > 0 && (
                                                                             <span className="text-slate-500 dark:text-slate-400 ml-1.5 font-bold whitespace-nowrap">
                                                                                 (+{Math.round(wp.distance_from_prev_km)} km)
@@ -929,7 +933,7 @@ export default function LogisticsDashboard() {
                                                                     {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{t('logistics.sand', 'Nisip')}: {(wp.sand_kg/1000).toFixed(1)} t</div>}
                                                                 </div>
                                                             </div>
-                                                        ))}
+                                                        )})}
                                                     </div>
                                                 )}
                                                 </div>

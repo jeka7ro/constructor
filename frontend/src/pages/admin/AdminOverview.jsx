@@ -120,19 +120,9 @@ export default function AdminOverview() {
     const [monthSandTons, setMonthSandTons] = useState(0)
     
     const calcSandKg = (wo) => {
-        let kg = 0;
-        if (wo.volumes && wo.volumes.length > 0) {
-            wo.volumes.forEach(vol => {
-                const surface = parseFloat(vol.quantity) || 0;
-                const thickness = parseFloat(vol.thickness) || 0;
-                kg += surface * thickness * 16;
-            });
-        } else {
-            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
-            const fallbackThick = parseFloat(wo.thickness) || 0;
-            kg += fallbackSurface * fallbackThick * 16;
-        }
-        return kg;
+        // REGULA: Nu recalculăm niciodată pe frontend!
+        // Citim direct din valoarea salvată în DB la creare/editare.
+        return parseFloat(wo.route_sand_kg) || 0;
     };
     
     useEffect(() => {
@@ -313,7 +303,7 @@ export default function AdminOverview() {
 
     const fetchPendingQuotes = async () => {
         try {
-            const res = await api.get('/admin/work-orders?is_quote=true')
+            const res = await api.get('/admin/work-orders?is_quote=true&slim=true')
             // Panelul arata DOAR devisele INCA netrimise — cele cu status=planning au mers deja in calendar
             setPendingQuotes((res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning'))
         } catch (e) { console.error('fetchPendingQuotes', e) }
@@ -360,27 +350,23 @@ export default function AdminOverview() {
 
     useEffect(() => {
         const loadAll = async () => {
-            // Batch 1: RAPID — date critice pentru UI imediat vizibil
-            await Promise.allSettled([
-                fetchTeams(),
-                fetchClients(),
-                fetchStats(),          // stat cards vizibile imediat
-                fetchActiveWorkers(),  // lista lucratori vizibila imediat
-                fetchBases(),
-            ])
+            // FIRE CALENDAR FIRST (Top Priority)
+            if (isShortTerm) {
+                await fetchWorkOrdersStats();
+            }
             
-            // Batch 2: MEDIU — devisuri + alerte
-            await Promise.allSettled([
-                fetchPendingQuotes(),
-                fetchFleetAlerts(),
-            ])
+            // Le rulăm secvențial pe cele importante pentru a NU sufoca pool-ul de conexiuni la DB (QueuePool Overflow)
+            await fetchTeams();
+            await fetchClients();
+            await fetchBases();
             
-            // Batch 3: LENT — date grele in background (nu blocheaza UI)
-            await Promise.allSettled([
-                isShortTerm ? fetchWorkOrdersStats() : Promise.resolve(),
-                fetchChartData(),
-                fetchComplaints()
-            ])
+            // Restul (statistici mici) pot rula în paralel
+            fetchActiveWorkers();
+            fetchStats();
+            fetchPendingQuotes();
+            fetchFleetAlerts();
+            fetchChartData();
+            fetchComplaints();
         }
         
         loadAll()
@@ -432,7 +418,8 @@ export default function AdminOverview() {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const end = new Date(now.getFullYear(), now.getMonth() + 1, 28);
-        return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}&_t=${Date.now()}`;
+        // slim=true: planning nu are nevoie de calcul preț, documente sau poze
+        return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}&slim=true&_t=${Date.now()}`;
     }
 
     const fetchWorkOrdersStats = async () => {
@@ -959,34 +946,29 @@ export default function AdminOverview() {
             {/* Header removed as it duplicates the top navbar title */}
 
             {/* KPI Row */}
-            <div className={`grid gap-2 mb-3 ${isScreeds ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
-                {statsLoading ? (
-                    Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="h-24 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
-                    ))
-                ) : isScreeds ? (
-                    <>
-                        <KPICard label={t('admin_overview.jobs_today', 'Lucrări Azi')} value={todayOrdersCount} icon={Timer} colorTheme="blue" subtitle={new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'nl' ? 'nl-NL' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })} onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.current_week', 'Săptămâna Curentă')} value={weeklyOrdersCount} icon={Calendar} colorTheme="violet" subtitle={t('admin_overview.this_week', 'Săptămâna în curs')} onClick={() => navigate('/admin/work-orders')} />
-                        <KPICard label={t('admin_overview.sand_consumption', 'Consum Nisip')} value={`${weekSandTons} t`} icon={Package} colorTheme="amber" subtitle={t('admin_overview.this_week', 'Săptămâna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                        <KPICard label={t('admin_overview.sand_consumption', 'Consum Nisip')} value={`${monthSandTons} t`} icon={Package} colorTheme="orange" subtitle={t('admin_overview.this_month', 'Luna')} onClick={() => document.getElementById('necesar-materiale-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                    </>
-                ) : (
-                    <>
-                        <KPICard label={t('dashboard.employees')} value={stats.total_users} icon={Users} colorTheme="blue" onClick={() => navigate('/admin/users')} />
-                        {isLongTerm && (
-                            <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} colorTheme="indigo" onClick={() => navigate('/admin/sites')} />
-                        )}
-                        {isShortTerm && (
-                            <KPICard label={t('admin_overview.orders', 'Comenzi')} value={workOrdersStats.total} icon={ClipboardList} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
-                        )}
-                        <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} colorTheme="green" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                        <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} colorTheme="orange" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                        <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} colorTheme="purple" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
-                        <KPICard label={t('dashboard.hours_week')} value={formatTime(stats.total_hours_week)} icon={TrendingUp} colorTheme="slate" isText onClick={() => navigate('/admin/reports')} />
-                    </>
-                )}
-            </div>
+            {!isScreeds && (
+                <div className="grid gap-2 mb-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                    {statsLoading ? (
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="h-24 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+                        ))
+                    ) : (
+                        <>
+                            <KPICard label={t('dashboard.employees')} value={stats.total_users} icon={Users} colorTheme="blue" onClick={() => navigate('/admin/users')} />
+                            {isLongTerm && (
+                                <KPICard label={t('dashboard.sites')} value={stats.total_sites} icon={Building2} colorTheme="indigo" onClick={() => navigate('/admin/sites')} />
+                            )}
+                            {isShortTerm && (
+                                <KPICard label={t('admin_overview.orders', 'Comenzi')} value={workOrdersStats.total} icon={ClipboardList} colorTheme="violet" onClick={() => navigate('/admin/work-orders')} />
+                            )}
+                            <KPICard label={t('dashboard.working_now')} value={activeCount} icon={Timer} colorTheme="green" pulse={activeCount > 0} onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                            <KPICard label={t('dashboard.on_break')} value={breakCount} icon={Coffee} colorTheme="orange" onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                            <KPICard label={t('dashboard.hours_today')} value={formatTime(totalHoursToday)} icon={Clock} colorTheme="purple" isText pulse onClick={() => document.getElementById('live-workers-table')?.scrollIntoView({ behavior: 'smooth' })} />
+                            <KPICard label={t('dashboard.hours_week')} value={formatTime(stats.total_hours_week)} icon={TrendingUp} colorTheme="slate" isText onClick={() => navigate('/admin/reports')} />
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Calendar Timesheet and Radar - Visible only for short term interventions */}
             {isShortTerm && (
@@ -1091,7 +1073,7 @@ export default function AdminOverview() {
                                                 e.currentTarget.classList.remove('opacity-50', 'scale-95')
                                             }}
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
-                                            title={`Client: ${quote.client_name || quote.title || 'Devis'}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.site_latitude && bases?.[0] ? getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0) + ' km' : '?'}`}
+                                            title={`Client: ${quote.client_name || quote.title || 'Devis'}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
                                         >
                                             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-800/80 rounded">
                                                 <GripVertical className="w-3.5 h-3.5 text-rose-400 dark:text-rose-500" />
@@ -1120,9 +1102,9 @@ export default function AdminOverview() {
                                                 {quote.volumes?.[0]?.quantity && (
                                                     <span className="text-slate-500 shrink-0">· {quote.volumes[0].quantity}m²x{quote.volumes[0].thickness || '?'}</span>
                                                 )}
-                                                {bases?.[0] && quote.site_latitude && quote.site_longitude && (
+                                                {(quote.route_distance_km || quote.route_distance_km === 0) && (
                                                     <span className="font-bold shrink-0">
-                                                        · {getDistanceKm(bases[0].latitude, bases[0].longitude, quote.site_latitude, quote.site_longitude)?.toFixed(0)}km
+                                                        · {parseFloat(quote.route_distance_km).toFixed(0)}km
                                                     </span>
                                                 )}
                                             </div>

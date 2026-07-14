@@ -347,10 +347,11 @@ def update_vehicle(
         v.plate_number = payload.plate_number
     if hasattr(payload, 'chassis_number') and payload.chassis_number is not None:
         v.chassis_number = payload.chassis_number
-    if hasattr(payload, 'flespi_device_id') and payload.flespi_device_id is not None:
-        v.flespi_device_id = payload.flespi_device_id
-    if hasattr(payload, 'imei') and payload.imei is not None:
-        v.imei = payload.imei
+    # IMEI și flespi_device_id pot fi explicit șterse (null) → nu verifica is not None
+    if hasattr(payload, 'flespi_device_id'):
+        v.flespi_device_id = payload.flespi_device_id if payload.flespi_device_id else None
+    if hasattr(payload, 'imei'):
+        v.imei = payload.imei.strip() if payload.imei else None
     if payload.type is not None:
         v.type = payload.type
     if payload.year is not None:

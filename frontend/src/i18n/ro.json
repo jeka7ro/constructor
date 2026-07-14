@@ -1857,5 +1857,9 @@
   "transport": {
     "total_km": "KM Totaux",
     "total_trips_kpi": "Trajets Totaux"
+  },
+  "worker": {
+    "route_distance": "Distanță de la precedentul / bază:",
+    "return_to_base": "Retur la bază:"
   }
 }

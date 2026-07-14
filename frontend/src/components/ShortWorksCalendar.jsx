@@ -10,60 +10,9 @@ import api from '../lib/api';
 import WeatherWidget from './WeatherWidget';
 
 const calculateOrderSand = (wo) => {
-    // 1. Check materials for explicit sand
-    if (wo.materials && Array.isArray(wo.materials)) {
-        let matSandKg = 0;
-        wo.materials.forEach(m => {
-            if (m.name && m.name.toLowerCase().includes('nisip')) {
-                let q = parseFloat(m.quantity) || 0;
-                if (m.unit && m.unit.toLowerCase().startsWith('t')) q *= 1000;
-                matSandKg += q;
-            }
-        });
-        if (matSandKg > 0) return matSandKg / 1000;
-    }
-
-    let totalKg = 0;
-    // 2. Check volumes
-    if (wo.volumes && Array.isArray(wo.volumes)) {
-        wo.volumes.forEach(vol => {
-            const surface = parseFloat(vol.quantity) || 0;
-            const thickness = parseFloat(vol.thickness) || 0;
-            if (surface > 0 && thickness > 0) {
-                totalKg += surface * thickness * 16;
-            }
-        });
-    }
-
-    // 3. Check legacy surface_area/thickness fields
-    if (totalKg === 0) {
-        const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
-        const fallbackThick = parseFloat(wo.thickness) || 0;
-        if (fallbackSurface > 0 && fallbackThick > 0) {
-            totalKg = fallbackSurface * fallbackThick * 16;
-        }
-    }
-
-    // 4. Ultimate fallback: try to extract area from title (e.g. "93 m2 - Chape") assuming 5cm thickness
-    if (totalKg === 0 && wo.title) {
-        const titleAreaMatch = wo.title.match(/(\d+(?:[.,]\d+)?)\s*m/i);
-        if (titleAreaMatch) {
-            const extractedSurface = parseFloat(titleAreaMatch[1].replace(',', '.'));
-            if (extractedSurface > 0) {
-                totalKg = extractedSurface * 5 * 16; // assume 5cm
-            }
-        }
-    }
-
-    // 5. Ultimate fallback 2: Use estimated_surface or surface and assume 5cm
-    if (totalKg === 0) {
-        const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.estimated_surface) || 0;
-        if (fallbackSurface > 0) {
-            totalKg = fallbackSurface * 5 * 16; // assume 5cm
-        }
-    }
-
-    return totalKg / 1000;
+    // REGULĂ STRICTĂ: Totul se calculează la creare și se citește direct din baza de date.
+    // wo.route_sand_kg este deja salvat în DB. Nu facem recalculări pe frontend.
+    return (parseFloat(wo.route_sand_kg) || 0) / 1000;
 };
 
 export const formatAddressCityFirst = (address) => {
@@ -218,64 +167,37 @@ export default function ShortWorksCalendar({
         });
     }, [workOrders, weekDayStrings]);
 
+    // O(N) grouping by date to prevent O(N * 7) filtering during render
+    const ordersByDateStr = useMemo(() => {
+        const dict = {};
+        weeklyOrders.forEach(wo => {
+            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            if (!ds) return;
+            if (!dict[ds]) dict[ds] = [];
+            dict[ds].push(wo);
+        });
+        return dict;
+    }, [weeklyOrders]);
+
+    // Pre-sort orders to prevent re-sorting on every render frame
+    const sortedWeeklyOrders = useMemo(() => {
+        return [...weeklyOrders].sort((a, b) => {
+            const tA = a.start_time ? String(a.start_time) : '07:00';
+            const tB = b.start_time ? String(b.start_time) : '07:00';
+            return tA.localeCompare(tB);
+        });
+    }, [weeklyOrders]);
+
     const [bases, setBases] = useState([]);
-    // Calcul distantă (Haversine) - instant, fără limite de API
-    const getDistanceKm = (lat1, lon1, lat2, lon2) => {
-        if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    };
-
-    useEffect(() => {
-        api.get('/admin/logistics/bases')
-            .then(res => setBases(res.data.bases || res.data || []))
-            .catch(e => console.error("Eroare incarcare baze:", e));
-    }, []);
-
     const getDistanceTextForOrder = (wo) => {
-        const teamId = wo.team?.id || wo.assigned_team_id;
-        if (!teamId) return null;
-        const base = bases.find(b => b.team_ids && b.team_ids.map(String).includes(String(teamId)));
-        if (!base) return null;
-
-        const dateStr = (wo.start_date || wo.deadline_date)?.split('T')[0];
-        const dayOrders = weeklyOrders.filter(o => {
-            const d = (o.start_date || o.deadline_date)?.split('T')[0];
-            const t = o.team?.id || o.assigned_team_id;
-            return d === dateStr && String(t) === String(teamId);
-        }).sort((a, b) => (a.start_time || '07:00').localeCompare(b.start_time || '07:00'));
-
-        const idx = dayOrders.findIndex(o => String(o.id) === String(wo.id));
-        if (idx === -1) return null;
-
-        let prevLat = base.latitude;
-        let prevLon = base.longitude;
-
-        if (!prevLat || !prevLon) return null;
-
-        for (let i = 0; i < idx; i++) {
-            if (dayOrders[i].site_latitude && dayOrders[i].site_longitude) {
-                prevLat = dayOrders[i].site_latitude;
-                prevLon = dayOrders[i].site_longitude;
-            }
-        }
-
-        const currLat = wo.site_latitude;
-        const currLon = wo.site_longitude;
-
-        if (!currLat || !currLon) return null;
-
-        const dist = getDistanceKm(prevLat, prevLon, currLat, currLon);
-        if (dist === null) return null;
+        // REGULĂ STRICTĂ: Totul se citește din baza de date
+        if (!wo.route_distance_km && wo.route_distance_km !== 0) return null;
         
-        const legDist = Math.round(dist) + ' km';
-
-        return idx > 0 ? `+ ${legDist}` : legDist;
+        const dist = Math.round(wo.route_distance_km);
+        
+        // Dacă are timp de start mai târziu de ora de bază (07:00), înseamnă că e un punct pe traseu
+        const isLeg = wo.start_time && wo.start_time > '07:30'; 
+        return isLeg ? `+ ${dist} km` : `${dist} km`;
     };
 
 
@@ -621,7 +543,7 @@ export default function ShortWorksCalendar({
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
                         <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-medium pt-1">
-                            {(i + dynamicStartHour).toString().padStart(2, '0')}:00
+                            {t('admin_overview.order_number', '#{{number}}', { number: i + 1 })}
                         </div>
                     ))}
                 </div>
@@ -657,10 +579,7 @@ export default function ShortWorksCalendar({
                                         </span>
                                     )}
                                     {hoveredDay === i && (() => {
-                                        const dayOrders = weeklyOrders.filter(wo => {
-                                            const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
-                                            return ds === dayStr;
-                                        });
+                                        const dayOrders = ordersByDateStr[dayStr] || [];
                                         const allDone = dayOrders.length > 0 && dayOrders.every(wo => wo.status === 'completed');
                                         return (
                                             <button
@@ -759,10 +678,14 @@ export default function ShortWorksCalendar({
 
                                         setSyncing(true);
                                         try {
-                                            await api.put(`/admin/work-orders/${woId}`, {
+                                            // Fix: dacă WO-ul e în 'draft', îl promovăm la 'planning' în DB
+                                            // (UI-ul face asta optimistic, dar API-ul trebuia să salveze statusul)
+                                            const updatePayload = {
                                                 start_date: targetDate,
-                                                start_time: targetTime
-                                            });
+                                                start_time: targetTime,
+                                                ...(wo?.status === 'draft' ? { status: 'planning' } : {})
+                                            };
+                                            await api.put(`/admin/work-orders/${woId}`, updatePayload);
                                             if (onOrderRescheduled) {
                                                 onOrderRescheduled(woId, targetDate, targetTime);
                                             } else {
@@ -784,11 +707,7 @@ export default function ShortWorksCalendar({
                             const renderableOrders = [];
                             const dayOccupancy = {};
                             
-                            const sortedOrders = [...weeklyOrders].sort((a, b) => {
-                                const tA = a.start_time ? String(a.start_time) : '07:00';
-                                const tB = b.start_time ? String(b.start_time) : '07:00';
-                                return tA.localeCompare(tB);
-                            });
+                            const sortedOrders = sortedWeeklyOrders;
                             
                             sortedOrders.forEach(wo => {
                                 const dateStr = wo.start_date || wo.deadline_date;

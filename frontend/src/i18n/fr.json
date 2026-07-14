@@ -1907,5 +1907,9 @@
   "transport": {
     "total_km": "KM Totaux",
     "total_trips_kpi": "Trajets Totaux"
+  },
+  "worker": {
+    "route_distance": "Distance de la précédente / base :",
+    "return_to_base": "Retour à la base :"
   }
 }
