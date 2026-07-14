@@ -141,6 +141,57 @@ class WorkOrderUpdate(WorkOrderCreate):
     status: Optional[str] = None
 
 
+def _serialize_slim(wo: WorkOrder) -> dict:
+    """Versiune ultra-rapidă pentru planning — fără calcul preț, documente sau poze."""
+    site_name = wo.site.name if wo.site else None
+    client_display = wo.client_name or (wo.client.name if wo.client else None)
+    return {
+        "id": wo.id,
+        "token": wo.token,
+        "title": wo.title,
+        "start_date": str(wo.start_date) if wo.start_date else None,
+        "start_time": wo.start_time,
+        "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
+        "is_quote": bool(wo.is_quote),
+        "approximate_date": wo.approximate_date,
+        "work_type": wo.work_type,
+        "status": wo.status,
+        "site_id": wo.site_id,
+        "site_name": site_name,
+        "site_address": wo.site_address or (wo.site.address if wo.site else None),
+        "site_latitude": float(wo.site.latitude) if wo.site and wo.site.latitude else wo.site_latitude,
+        "site_longitude": float(wo.site.longitude) if wo.site and wo.site.longitude else wo.site_longitude,
+        "client_id": wo.client_id,
+        "client_name": client_display,
+        "client_email": wo.client_email,
+        "client_phone": wo.client_phone,
+        "client_type": wo.client.client_type if wo.client else "juridica",
+        "volumes": wo.volumes or [],
+        "assigned_team_id": wo.assigned_team_id,
+        "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
+        "assigned_team_color": wo.assigned_team.color if wo.assigned_team else None,
+        "assigned_vehicle_id": wo.assigned_vehicle_id,
+        "assigned_vehicle_name": wo.assigned_vehicle.name if wo.assigned_vehicle else None,
+        "is_invoiced": bool(wo.is_invoiced),
+        "quote_number": wo.quote_number,
+        "invoice_number": wo.invoice_number,
+        "estimated_price": wo.estimated_price,
+        "computed_total": None,  # nu se calculeaza in slim mode
+        "documents": [],
+        "photos": [],
+        "proforma_data": None,
+        "prices": wo.prices or {},
+        "route_distance_km": wo.route_distance_km,
+        "route_sand_kg": wo.route_sand_kg,
+        "access_notes": wo.access_notes,
+        "min_photos_required": wo.min_photos_required,
+        "checkin_at": wo.checkin_at.isoformat() if wo.checkin_at else None,
+        "checkout_at": wo.checkout_at.isoformat() if wo.checkout_at else None,
+        "created_at": wo.created_at.isoformat() if wo.created_at else None,
+        "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
+    }
+
+
 def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) -> dict:
     """Serializează un WorkOrder pentru răspuns JSON."""
     # ── CACHE FAST-PATH: lucrările mai vechi decât azi se servesc din snapshot ──
@@ -336,6 +387,7 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
         "proforma_path": wo.proforma_path,
         "proforma_issued_at": wo.proforma_issued_at.isoformat() if wo.proforma_issued_at else None,
         "external_id": wo.external_id,
+        "source_system": wo.source_system or "manual",
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
         # Billtobox
@@ -415,6 +467,7 @@ def list_work_orders(
     end_date: Optional[str] = None,
     is_quote: Optional[bool] = Query(None),
     limit: Optional[int] = None,
+    slim: bool = Query(False),  # Mod rapid pentru planning — fără calcul preț
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -470,14 +523,23 @@ def list_work_orders(
             (WorkOrder.is_quote == True) & (WorkOrder.status == 'planning')
         ))
 
-    q = q.options(
-        joinedload(WorkOrder.site),
-        joinedload(WorkOrder.client),
-        joinedload(WorkOrder.assigned_team),
-        joinedload(WorkOrder.assigned_vehicle),
-        selectinload(WorkOrder.documents),
-        selectinload(WorkOrder.photos)
-    )
+    if slim:
+        # Mod rapid: nu incarca documente/poze (expensive selectinload)
+        q = q.options(
+            joinedload(WorkOrder.site),
+            joinedload(WorkOrder.client),
+            joinedload(WorkOrder.assigned_team),
+            joinedload(WorkOrder.assigned_vehicle),
+        )
+    else:
+        q = q.options(
+            joinedload(WorkOrder.site),
+            joinedload(WorkOrder.client),
+            joinedload(WorkOrder.assigned_team),
+            joinedload(WorkOrder.assigned_vehicle),
+            selectinload(WorkOrder.documents),
+            selectinload(WorkOrder.photos)
+        )
     if status:
         q = q.filter(WorkOrder.status == status)
     else:
@@ -501,6 +563,8 @@ def list_work_orders(
     if limit:
         q = q.limit(limit)
     wos = q.all()
+    if slim:
+        return [_serialize_slim(wo) for wo in wos]
     return [_serialize(wo, db) for wo in wos]
 
 
@@ -887,13 +951,24 @@ def update_work_order(
     db.commit()
     db.refresh(wo)
     
-    try:
-        if wo.start_date and getattr(wo, 'assigned_team_id', None):
-            from app.api.admin_logistics import _calculate_daily_routes
-            _calculate_daily_routes(wo.start_date, db, current_admin)
-            db.refresh(wo)
-    except Exception as e:
-        print(f"Logistics recalculation warning: {e}")
+    # ── Invalidare cache logistic — NUMAI dacă s-a schimbat echipa sau adresa ──
+    # Nu recalculăm la fiecare update (costuri API Google!)
+    # Ștergem cache-ul → se va recalcula lazy la primul acces la pagina Logistică
+    logistics_invalidating_fields = {"assigned_team_id", "site_address", "site_latitude", "site_longitude", "start_date"}
+    if logistics_invalidating_fields.intersection(set(update_data.keys())):
+        try:
+            from app.models import LogisticsDailyPlan
+            if wo.start_date:
+                existing_plan = db.query(LogisticsDailyPlan).filter(
+                    LogisticsDailyPlan.organization_id == current_admin.organization_id,
+                    LogisticsDailyPlan.date == wo.start_date
+                ).first()
+                if existing_plan:
+                    db.delete(existing_plan)
+                    db.commit()
+                    print(f"Cache logistic invalidat pentru {wo.start_date} (echipă/adresă schimbată pe WO {wo_id})")
+        except Exception as e:
+            print(f"Logistics cache invalidation warning: {e}")
 
     return _serialize(wo, db)
 

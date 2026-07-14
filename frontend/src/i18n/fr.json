@@ -1298,7 +1298,16 @@
       "confirmed_by": "Confirmé par",
       "at_date": "le",
       "not_confirmed_by_client": "Non confirmé par le client"
-    }
+    },
+    "calc_edit": {
+      "discount_pct": "Remise (%)"
+    },
+    "calc_edit_real": {
+      "title": "Modifier Calcul Réel",
+      "saved": "Calcul réel mis à jour avec succès !",
+      "error": "Erreur lors de la sauvegarde du calcul réel."
+    },
+    "edit_real": "Modifier le calcul réel"
   },
   "admin_dashboard": {
     "header_planning": {},

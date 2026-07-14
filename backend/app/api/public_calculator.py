@@ -213,7 +213,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         }],
         estimated_price=str(estimated_price) if estimated_price > 0 else None,
         prices=prices_dict,
-        proforma_issued_at=datetime.utcnow()
+        proforma_issued_at=datetime.utcnow(),
+        source_system="calculator_public" if payload.is_iframe else "devis_online"
     )
     
     count = db.query(WorkOrder).filter(

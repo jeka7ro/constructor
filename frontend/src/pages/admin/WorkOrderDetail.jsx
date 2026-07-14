@@ -203,10 +203,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showCamera, setShowCamera] = useState(false)
     const [toast, setToast] = useState({ message: null, type: 'success' })
-    // Calcul Edit Modal
+    // Calcul Edit Modal (Estimatif)
     const [calcEditOpen, setCalcEditOpen] = useState(false)
     const [calcEditSaving, setCalcEditSaving] = useState(false)
     const [calcEditForm, setCalcEditForm] = useState(null)
+    
+    // Calcul Edit Modal (Real)
+    const [calcRealEditOpen, setCalcRealEditOpen] = useState(false)
+    const [calcRealEditSaving, setCalcRealEditSaving] = useState(false)
+    const [calcRealEditForm, setCalcRealEditForm] = useState(null)
     const [generatingProforma, setGeneratingProforma] = useState(false)
     const [activeDocTab, setActiveDocTab] = useState('devis')
     const [docDrawerState, setDocDrawerState] = useState(null)
@@ -483,19 +488,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let matValue = '—';
     let matSub = t('work_order_detail.kpi.no_material', 'aucun matériau');
 
-    // Auto-calculate estimated sand from volumes if no materials are explicitly added
-    let autoSandKg = 0;
-    if (wo.volumes && wo.volumes.length > 0) {
-        wo.volumes.forEach(vol => {
-            const surface = parseFloat(vol.quantity) || 0;
-            const thickness = parseFloat(vol.thickness) || 0;
-            autoSandKg += (surface * thickness * 16);
-        });
-    } else {
-        const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
-        const fallbackThick = parseFloat(wo.thickness) || 0;
-        autoSandKg = fallbackSurface * fallbackThick * 16;
-    }
+    // REGULĂ STRICTĂ: Nu se calculează pe frontend. Se citește valoarea din DB.
+    let autoSandKg = parseFloat(wo.route_sand_kg) || 0;
 
         if (activeMats.length === 1) {
             const m = activeMats[0];
@@ -547,7 +541,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             fiberRate = parseFloat(prices?.fiber || 2.5);
         }
         const fiber = (flags?.has_fiber || flags?.has_duramint) ? fiberRate * surface : 0;
-        const discountAmount = parseFloat(prices?.discount || 0);
+        const discountPct = parseFloat(prices?.discount_pct || 0);
         // ── Aplicare Seuil de Surface (grila de suprafață) ─────────────────────
         const thresholds = prices?.surface_thresholds || [];
         let threshold = 0;
@@ -558,7 +552,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             if (match) threshold = parseFloat(match.extra_charge) || 0;
         }
         const grossBeforeDiscount = base + extra + foil + mesh + fiber + threshold;
-        return { base, extra, foil, mesh, fiber, threshold, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick };
+        const discountAmount = (grossBeforeDiscount * discountPct) / 100;
+        return { base, extra, foil, mesh, fiber, threshold, discountPct, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick };
     };
 
     // Calculation Logic for Sapa — Estimatif (din volumes[])
@@ -607,8 +602,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const realSurface   = parseFloat(wo.actual_surface_m2)   || 0;
     const realThickness = parseFloat(wo.actual_thickness_cm) || 0;
     const hasRealData   = realSurface > 0;
+    const realChapeFlags = wo.prices?.invoice ? {
+        has_foil: wo.prices.invoice.has_foil,
+        has_mesh: wo.prices.invoice.has_mesh,
+        has_fiber: wo.prices.invoice.has_fiber,
+        has_duramint: wo.prices.invoice.has_duramint
+    } : chapeFlags;
     const realCalc = hasRealData
-        ? computeChapeTotal(realSurface, realThickness, chapeFlags, wo.prices)
+        ? computeChapeTotal(realSurface, realThickness, realChapeFlags, wo.prices?.invoice || wo.prices)
         : null;
     const realVat   = realCalc ? realCalc.net * vatRate : 0;
     const realGross = realCalc ? realCalc.net + realVat : 0;
@@ -664,7 +665,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 foil: parseFloat(calcEditForm.foil_price) || 0,
                 mesh: parseFloat(calcEditForm.mesh_price) || 0,
                 fiber: parseFloat(calcEditForm.fiber_price) || 0,
-                discount: parseFloat(calcEditForm.discount) || 0,
+                discount_pct: parseFloat(calcEditForm.discount_pct) || 0,
             };
             // Stergem logica cu threshold daca pretul fiber a fost editat custom
             delete newPrices.fiber_large;
@@ -676,9 +677,50 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setCalcEditOpen(false);
             showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès !'));
         } catch (e) {
-            showToast(t('work_order_detail.calc_edit.error', 'Erreur lors de la sauvegarde du calcul.'));
+            showToast(t('work_order_detail.calc_edit.error', 'Erreur lors de la sauvegarde du calcul.'), 'error');
         } finally {
             setCalcEditSaving(false);
+        }
+    };
+
+    // Handler salvare modal Calcul Real Edit
+    const handleCalcRealEditSave = async () => {
+        if (!calcRealEditForm) return;
+        setCalcRealEditSaving(true);
+        try {
+            const surface = parseFloat(calcRealEditForm.surface) || 0;
+            const thickness = parseFloat(calcRealEditForm.thickness) || 0;
+            
+            const newInvoicePrices = {
+                base: parseFloat(calcRealEditForm.base_price) || 0,
+                extra: parseFloat(calcRealEditForm.extra_price) || 0,
+                foil: parseFloat(calcRealEditForm.foil_price) || 0,
+                mesh: parseFloat(calcRealEditForm.mesh_price) || 0,
+                fiber: parseFloat(calcRealEditForm.fiber_price) || 0,
+                discount_pct: parseFloat(calcRealEditForm.discount_pct) || 0,
+                has_foil: !!calcRealEditForm.has_foil,
+                has_mesh: !!calcRealEditForm.has_mesh,
+                has_fiber: !!calcRealEditForm.has_fiber,
+                has_duramint: !!calcRealEditForm.has_duramint,
+            };
+
+            const newPrices = {
+                ...(wo.prices || {}),
+                invoice: newInvoicePrices
+            };
+
+            const res = await api.put(`/admin/work-orders/${id}`, { 
+                actual_surface_m2: surface, 
+                actual_thickness_cm: thickness, 
+                prices: newPrices 
+            });
+            setWo(res.data);
+            setCalcRealEditOpen(false);
+            showToast(t('work_order_detail.calc_edit_real.saved', 'Calcul réel mis à jour avec succès !'));
+        } catch (e) {
+            showToast(t('work_order_detail.calc_edit_real.error', 'Erreur lors de la sauvegarde du calcul réel.'), 'error');
+        } finally {
+            setCalcRealEditSaving(false);
         }
     };
 
@@ -1327,7 +1369,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     foil_price: parseFloat(wo.prices?.foil || 1.2),
                                                     mesh_price: parseFloat(wo.prices?.mesh || 2.5),
                                                     fiber_price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)),
-                                                    discount: parseFloat(wo.prices?.discount || 0)
+                                                    discount_pct: parseFloat(wo.prices?.discount_pct || 0)
                                                 });
                                                 setCalcEditOpen(true);
                                             }}
@@ -1388,7 +1430,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     )}
                                     {estimCalc.discount > 0 && (
                                         <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                                            <span className="font-medium">{t('work_order_detail.invoicing.discount', 'Remise (Discount)')}</span>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.discount', 'Remise (Discount)')} ({estimCalc.discountPct}%)</span>
                                             <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
@@ -1426,11 +1468,37 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         {/* ── Calcul RÉEL (date de la șeful de echipă) ── */}
                         {isAuto && hasRealData && realCalc && (
                             <div className="mt-4 bg-white dark:bg-slate-900 rounded-xl p-0 border border-slate-200 dark:border-slate-700">
-                                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                        </div>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{t('work_order_detail.invoicing.calc_real', 'Calcul Réel (chef de chantier)')}</p>
                                     </div>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{t('work_order_detail.invoicing.calc_real', 'Calcul Réel (chef de chantier)')}</p>
+                                    <button 
+                                        onClick={() => {
+                                            const realPrices = wo.prices?.invoice || wo.prices;
+                                            setCalcRealEditForm({
+                                                surface: realSurface || '',
+                                                thickness: realThickness || '',
+                                                has_foil: realChapeFlags?.has_foil || false,
+                                                has_mesh: realChapeFlags?.has_mesh || false,
+                                                has_fiber: realChapeFlags?.has_fiber || false,
+                                                has_duramint: realChapeFlags?.has_duramint || false,
+                                                base_price: parseFloat(realPrices?.base || 12.5),
+                                                extra_price: parseFloat(realPrices?.extra || 1.25),
+                                                foil_price: parseFloat(realPrices?.foil || 1.2),
+                                                mesh_price: parseFloat(realPrices?.mesh || 2.5),
+                                                fiber_price: parseFloat(realPrices?.fiber || 2.5),
+                                                discount_pct: parseFloat(realPrices?.discount_pct || 0)
+                                            });
+                                            setCalcRealEditOpen(true);
+                                        }}
+                                        className="text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm"
+                                        title={t('work_order_detail.edit_real', 'Modifier le calcul réel')}
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
@@ -1467,6 +1535,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
                                             <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
                                             <span className="text-right tabular-nums">+ <b>{realCalc.threshold.toFixed(2)} EUR</b></span>
+                                        </div>
+                                    )}
+                                    {realCalc.discount > 0 && (
+                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                                            <span className="font-medium">{t('work_order_detail.invoicing.discount', 'Remise (Discount)')} ({realCalc.discountPct}%)</span>
+                                            <span className="text-right tabular-nums">- <b>{realCalc.discount.toFixed(2)} EUR</b></span>
                                         </div>
                                     )}
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
@@ -1735,7 +1809,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         { key: 'foil_price', label: t('work_order_detail.calc_edit.foil_price', 'Feuille /m²') },
                                         { key: 'mesh_price', label: t('work_order_detail.calc_edit.mesh_price', 'Treillis /m²') },
                                         { key: 'fiber_price', label: t('work_order_detail.calc_edit.fiber_price', 'Fibres /m²') },
-                                        { key: 'discount', label: t('work_order_detail.calc_edit.discount', 'Remise (-EUR)') }
+                                        { key: 'discount_pct', label: t('work_order_detail.calc_edit.discount_pct', 'Remise (%)') }
                                     ].map(({ key, label }) => (
                                         <div key={key}>
                                             <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">{label}</label>
@@ -1757,7 +1831,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     foil: parseFloat(calcEditForm.foil_price) || 0,
                                     mesh: parseFloat(calcEditForm.mesh_price) || 0,
                                     fiber: parseFloat(calcEditForm.fiber_price) || 0,
-                                    discount: parseFloat(calcEditForm.discount) || 0
+                                    discount_pct: parseFloat(calcEditForm.discount_pct) || 0
                                 };
                                 const prev = computeChapeTotal(parseFloat(calcEditForm.surface), parseFloat(calcEditForm.thickness) || 0, calcEditForm, livePrices);
                                 return (
@@ -1774,6 +1848,117 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             </button>
                             <button onClick={handleCalcEditSave} disabled={calcEditSaving || !parseFloat(calcEditForm.surface)} className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                 {calcEditSaving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                {t('common.save', 'Enregistrer')}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── Modal Editare Calcul Real ────────────────────────────────────────── */}
+            {calcRealEditOpen && calcRealEditForm && createPortal(
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20">
+                            <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <Calculator className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                {t('work_order_detail.calc_edit_real.title', 'Modifier Calcul Réel')}
+                            </h3>
+                            <button onClick={() => setCalcRealEditOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-5 overflow-y-auto space-y-4 custom-scrollbar">
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.surface', 'Surface (m²)')} *</label>
+                                <input
+                                    type="number" min="0" step="0.5"
+                                    value={calcRealEditForm.surface}
+                                    onChange={e => setCalcRealEditForm(f => ({ ...f, surface: e.target.value }))}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="ex: 130"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.thickness', 'Épaisseur (cm)')}</label>
+                                <input
+                                    type="number" min="0" step="0.5"
+                                    value={calcRealEditForm.thickness}
+                                    onChange={e => setCalcRealEditForm(f => ({ ...f, thickness: e.target.value }))}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="ex: 10"
+                                />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">{t('work_order_detail.calc_edit.options', 'Options incluses')}</p>
+                                <div className="space-y-2">
+                                    {[
+                                        { key: 'has_foil',     label: t('work_order_detail.calc_edit.foil',     'Feuille plastique') },
+                                        { key: 'has_mesh',     label: t('work_order_detail.calc_edit.mesh',     'Treillis métallique') },
+                                        { key: 'has_fiber',    label: t('work_order_detail.calc_edit.fiber',    'Fibres') },
+                                        { key: 'has_duramint', label: t('work_order_detail.calc_edit.duramint', 'Duramint') },
+                                    ].map(({ key, label }) => (
+                                        <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!calcRealEditForm[key]}
+                                                onChange={e => setCalcRealEditForm(f => ({ ...f, [key]: e.target.checked }))}
+                                                className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                            />
+                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 transition-colors">{label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">{t('work_order_detail.calc_edit.prices', 'Grille de Tarifs Personnalisée')}</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { key: 'base_price', label: t('work_order_detail.calc_edit.base_price', 'Base /m²') },
+                                        { key: 'extra_price', label: t('work_order_detail.calc_edit.extra_price', 'Extra /m²/cm') },
+                                        { key: 'foil_price', label: t('work_order_detail.calc_edit.foil_price', 'Feuille /m²') },
+                                        { key: 'mesh_price', label: t('work_order_detail.calc_edit.mesh_price', 'Treillis /m²') },
+                                        { key: 'fiber_price', label: t('work_order_detail.calc_edit.fiber_price', 'Fibres /m²') },
+                                        { key: 'discount_pct', label: t('work_order_detail.calc_edit.discount_pct', 'Remise (%)') }
+                                    ].map(({ key, label }) => (
+                                        <div key={key}>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">{label}</label>
+                                            <input
+                                                type="number" min="0" step="0.01"
+                                                value={calcRealEditForm[key]}
+                                                onChange={e => setCalcRealEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            {parseFloat(calcRealEditForm.surface) > 0 && (() => {
+                                const livePrices = {
+                                    ...wo.prices,
+                                    base: parseFloat(calcRealEditForm.base_price) || 0,
+                                    extra: parseFloat(calcRealEditForm.extra_price) || 0,
+                                    foil: parseFloat(calcRealEditForm.foil_price) || 0,
+                                    mesh: parseFloat(calcRealEditForm.mesh_price) || 0,
+                                    fiber: parseFloat(calcRealEditForm.fiber_price) || 0,
+                                    discount_pct: parseFloat(calcRealEditForm.discount_pct) || 0
+                                };
+                                const prev = computeChapeTotal(parseFloat(calcRealEditForm.surface), parseFloat(calcRealEditForm.thickness) || 0, calcRealEditForm, livePrices);
+                                return (
+                                    <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 border border-emerald-100 dark:border-emerald-800">
+                                        <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">{t('work_order_detail.calc_edit.preview', 'Aperçu du total estimatif')}</p>
+                                        <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">{prev.net.toFixed(2)} EUR</p>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                            <button onClick={() => setCalcRealEditOpen(false)} className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button onClick={handleCalcRealEditSave} disabled={calcRealEditSaving || !parseFloat(calcRealEditForm.surface)} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                {calcRealEditSaving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                                 {t('common.save', 'Enregistrer')}
                             </button>
                         </div>

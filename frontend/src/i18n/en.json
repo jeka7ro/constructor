@@ -1190,7 +1190,16 @@
       "confirmed_by": "Confirmed by",
       "at_date": "at",
       "not_confirmed_by_client": "Not confirmed by client"
-    }
+    },
+    "calc_edit": {
+      "discount_pct": "Discount (%)"
+    },
+    "calc_edit_real": {
+      "title": "Edit Real Calculation",
+      "saved": "Real calculation updated successfully!",
+      "error": "Error saving real calculation."
+    },
+    "edit_real": "Edit real calculation"
   },
   "admin_dashboard": {
     "header_planning": {},

@@ -212,7 +212,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     }
 
     const totalNet = items.reduce((s, i) => s + i.qty * i.price, 0)
-    const discountAmount = parseFloat(wo.prices?.discount || 0)
+    const discountPct = parseFloat(wo.prices?.discount_pct || 0)
+    const discountAmount = (totalNet * discountPct) / 100
     const netAfterDiscount = totalNet - discountAmount
     
     let vatRate = 0
@@ -314,7 +315,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             <div className="w-72 space-y-1 text-sm">
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between py-1 px-4 font-bold text-emerald-600">
-                                        <span>Remise (Discount)</span>
+                                        <span>Remise (Discount) ({discountPct}%)</span>
                                         <span>- {discountAmount.toFixed(2)} €</span>
                                     </div>
                                 )}

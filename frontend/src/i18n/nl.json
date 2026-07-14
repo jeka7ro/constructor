@@ -1190,7 +1190,16 @@
       "confirmed_by": "Bevestigd door",
       "at_date": "op",
       "not_confirmed_by_client": "Niet bevestigd door klant"
-    }
+    },
+    "calc_edit": {
+      "discount_pct": "Korting (%)"
+    },
+    "calc_edit_real": {
+      "title": "Echte berekening bewerken",
+      "saved": "Echte berekening succesvol bijgewerkt!",
+      "error": "Fout bij opslaan van echte berekening."
+    },
+    "edit_real": "Bewerk echte berekening"
   },
   "admin_dashboard": {
     "header_planning": {},

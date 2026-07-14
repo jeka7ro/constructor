@@ -1287,7 +1287,16 @@
       "confirmed_by": "Confirmat de",
       "at_date": "la",
       "not_confirmed_by_client": "Neconfirmat de client"
-    }
+    },
+    "calc_edit": {
+      "discount_pct": "Reducere (%)"
+    },
+    "calc_edit_real": {
+      "title": "Editare Calcul Real",
+      "saved": "Calculul real a fost actualizat cu succes!",
+      "error": "Eroare la salvarea calculului real."
+    },
+    "edit_real": "Editează calculul real"
   },
   "admin_dashboard": {
     "header_planning": {},

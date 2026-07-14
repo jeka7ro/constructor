@@ -351,6 +351,12 @@ export default function QuotesManagement() {
         fetchClients()
         fetchActivities()
         fetchTeams()
+
+        // Auto-refresh: poll every 30s pentru devize noi (fara F5)
+        const interval = setInterval(() => {
+            fetchQuotes()
+        }, 30000)
+        return () => clearInterval(interval)
     }, [])
 
     const fetchTeams = async () => {
@@ -539,47 +545,36 @@ export default function QuotesManagement() {
                         display = row.created_at
                     }
                 }
-                const getStatusBadge = (status) => {
-                    switch (status) {
-                        case 'planning':
-                            return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide border border-emerald-200 whitespace-nowrap w-fit">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                                    {t('status.planning', 'En planning')}
-                                </span>
-                            );
-                        case 'confirmed':
-                            return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-wide border border-green-200 whitespace-nowrap w-fit">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
-                                    {t('status.confirmed', 'Signé')}
-                                </span>
-                            );
-                        case 'completed':
-                            return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-wide border border-slate-200 whitespace-nowrap w-fit">
-                                    <CheckCircle2 className="w-3 h-3 text-slate-500" />
-                                    {t('status.completed', 'Terminé')}
-                                </span>
-                            );
-                        case 'cancelled':
-                            return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wide border border-red-200 whitespace-nowrap w-fit">
-                                    <X className="w-3 h-3 text-red-500" />
-                                    {t('status.cancelled', 'Annulé')}
-                                </span>
-                            );
-                        default:
-                            return (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wide border border-amber-200 whitespace-nowrap w-fit">
-                                    <AlertCircle className="w-3 h-3 text-amber-500" />
-                                    {t('status.pending', 'En attente')}
-                                </span>
-                            );
+                const getStatusDot = (status) => {
+                    const map = {
+                        planning:  { color: 'bg-emerald-500 animate-pulse', label: t('status.planning', 'En planning'),  text: 'text-emerald-700' },
+                        confirmed: { color: 'bg-green-500',                 label: t('status.confirmed', 'Signé'),       text: 'text-green-700'   },
+                        completed: { color: 'bg-slate-400',                 label: t('status.completed', 'Terminé'),     text: 'text-slate-500'   },
+                        cancelled: { color: 'bg-red-400',                   label: t('status.cancelled', 'Annulé'),      text: 'text-red-500'     },
                     }
+                    const cfg = map[status] || { color: 'bg-amber-400', label: t('status.pending', 'En attente'), text: 'text-amber-600' }
+                    return (
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap ${cfg.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${cfg.color}`}></span>
+                            {cfg.label}
+                        </span>
+                    )
+                }
+                const getSourceBadge = (src) => {
+                    if (src === 'calculator_public') return (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-600 whitespace-nowrap">
+                            <span>📊</span> Calculator
+                        </span>
+                    )
+                    if (src === 'devis_online') return (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-500 whitespace-nowrap">
+                            <span>🔗</span> Devis en ligne
+                        </span>
+                    )
+                    return null
                 }
                 return (
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5 text-sm text-slate-700">
                             <span>
                                 {row.quote_number || '-'}
@@ -590,7 +585,8 @@ export default function QuotesManagement() {
                                 <span>{display}</span>
                             </div>
                         </div>
-                        {getStatusBadge(row.status)}
+                        {getStatusDot(row.status)}
+                        {getSourceBadge(row.source_system)}
                     </div>
                 )
             }
@@ -659,7 +655,6 @@ export default function QuotesManagement() {
                 );
             }
         },
-
         {
             key: 'estimated_price',
             label: t('quotes.price', 'Prix (€)'),
@@ -733,7 +728,7 @@ export default function QuotesManagement() {
                             // Scroll to top
                             window.scrollTo({ top: 0, behavior: 'smooth' })
                         }}
-                        className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
+                        className="p-2 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-xl transition-colors"
                     >
                         <Pencil className="w-4 h-4" />
                     </button>

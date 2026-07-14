@@ -1175,7 +1175,16 @@
       "no_consumed_materials": "Kein verbrauchtes Material erfasst",
       "distribution": "Mengenverteilung",
       "no_quantities": "Keine Menge erfasst"
-    }
+    },
+    "calc_edit": {
+      "discount_pct": "Rabatt (%)"
+    },
+    "calc_edit_real": {
+      "title": "Reale Berechnung bearbeiten",
+      "saved": "Reale Berechnung erfolgreich aktualisiert!",
+      "error": "Fehler beim Speichern der realen Berechnung."
+    },
+    "edit_real": "Reale Berechnung bearbeiten"
   },
   "admin_dashboard": {
     "header_planning": {},

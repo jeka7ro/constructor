@@ -140,6 +140,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     // ─── REGULA DE BAZA: Devis = cantitati estimative, Factura = cantitati reale ───
+    const activePrices = isInvoiceView && wo.prices?.invoice ? wo.prices.invoice : (wo.prices || {});
     let defaultFallbackItems = []
     
     if (wo.volumes && wo.volumes.length > 0) {
@@ -158,14 +159,14 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             
             if (surfaceForAuto > 0) {
                 if (isChape) {
-                    const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
+                    const stdThick = parseFloat(activePrices.standard_thickness || 5)
                     const extraThickForAuto = Math.max(0, thickForAuto - stdThick)
                     
                     defaultFallbackItems.push({
                         id: `base_${idx}`,
                         desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`,
                         qty: surfaceForAuto,
-                        price: parseFloat(wo.prices?.base || 12.5)
+                        price: parseFloat(activePrices.base || 12.5)
                     });
                     
                     if (extraThickForAuto > 0) {
@@ -173,7 +174,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             id: `extra_${idx}`,
                             desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`,
                             qty: surfaceForAuto,
-                            price: extraThickForAuto * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25)
+                            price: extraThickForAuto * parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25)
                         });
                     }
                     
@@ -182,7 +183,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             id: `foil_${idx}`,
                             desc: `Feuille de plastique (Visqueen)`,
                             qty: surfaceForAuto,
-                            price: parseFloat(wo.prices?.foil || 1.2)
+                            price: parseFloat(activePrices.foil || 1.2)
                         });
                     }
                     
@@ -191,7 +192,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             id: `mesh_${idx}`,
                             desc: `Armature (Paillasse)`,
                             qty: surfaceForAuto,
-                            price: parseFloat(wo.prices?.mesh || 2.5)
+                            price: parseFloat(activePrices.mesh || 2.5)
                         });
                     }
                     
@@ -200,7 +201,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             id: `fiber_${idx}`,
                             desc: `Fibre + Duramint`,
                             qty: surfaceForAuto,
-                            price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
+                            price: parseFloat(activePrices.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0))
                         });
                     }
 
@@ -226,21 +227,21 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             const surfaceForAuto = parseFloat(isInvoiceView && wo.actual_surface_m2 > 0 ? wo.actual_surface_m2 : (wo.surface_m2 || 0));
             const thickForAuto = parseFloat(isInvoiceView && wo.actual_thickness_cm > 0 ? wo.actual_thickness_cm : (wo.thickness_cm || 5));
             if (surfaceForAuto > 0) {
-                const stdThick = parseFloat(wo.prices?.standard_thickness || 5);
+                const stdThick = parseFloat(activePrices.standard_thickness || 5);
                 const extraThickForAuto = Math.max(0, thickForAuto - stdThick);
                 
-                defaultFallbackItems.push({ id: 'base_gen', desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`, qty: surfaceForAuto, price: parseFloat(wo.prices?.base || 12.5) });
+                defaultFallbackItems.push({ id: 'base_gen', desc: `Pose de chape ${Math.min(thickForAuto, stdThick)} cm`, qty: surfaceForAuto, price: parseFloat(activePrices.base || 12.5) });
                 if (extraThickForAuto > 0) {
-                    defaultFallbackItems.push({ id: 'extra_gen', desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`, qty: surfaceForAuto, price: extraThickForAuto * parseFloat(wo.prices?.extra_thickness_price_per_cm || wo.prices?.extra || 1.25) });
+                    defaultFallbackItems.push({ id: 'extra_gen', desc: `Épaisseur supplémentaire (${extraThickForAuto} cm)`, qty: surfaceForAuto, price: extraThickForAuto * parseFloat(activePrices.extra_thickness_price_per_cm || activePrices.extra || 1.25) });
                 }
                 if (wo.has_foil || wo.actual_has_foil) {
-                    defaultFallbackItems.push({ id: 'foil_gen', desc: `Feuille de plastique (Visqueen)`, qty: surfaceForAuto, price: parseFloat(wo.prices?.foil || 1.2) });
+                    defaultFallbackItems.push({ id: 'foil_gen', desc: `Feuille de plastique (Visqueen)`, qty: surfaceForAuto, price: parseFloat(activePrices.foil || 1.2) });
                 }
                 if (wo.has_mesh || wo.actual_has_mesh) {
-                    defaultFallbackItems.push({ id: 'mesh_gen', desc: `Armature (Paillasse)`, qty: surfaceForAuto, price: parseFloat(wo.prices?.mesh || 2.5) });
+                    defaultFallbackItems.push({ id: 'mesh_gen', desc: `Armature (Paillasse)`, qty: surfaceForAuto, price: parseFloat(activePrices.mesh || 2.5) });
                 }
                 if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) {
-                    defaultFallbackItems.push({ id: 'fiber_gen', desc: `Fibre + Duramint`, qty: surfaceForAuto, price: parseFloat(wo.prices?.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
+                    defaultFallbackItems.push({ id: 'fiber_gen', desc: `Fibre + Duramint`, qty: surfaceForAuto, price: parseFloat(activePrices.fiber || (surfaceForAuto <= 200 ? 2.5 : 2.0)) });
                 }
             }
         } else {
@@ -297,9 +298,9 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }) : defaultFallbackItems
 
     // Calcul seuil de surface — adaugat ca linie in deviz
-    if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
+    if (activePrices.surface_thresholds && Array.isArray(activePrices.surface_thresholds)) {
         const surfCheck = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : parseFloat(wo.volumes?.[0]?.quantity || 0)
-        wo.prices.surface_thresholds.forEach(thresh => {
+        activePrices.surface_thresholds.forEach(thresh => {
             const minS = parseFloat(thresh.min_sqm || 0)
             const maxS = parseFloat(thresh.max_sqm || 999999)
             if (surfCheck >= minS && surfCheck <= maxS) {
@@ -318,7 +319,8 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
-    const discountAmount = (priceRaw * (discountPct / 100)) + parseFloat(wo.prices?.discount || 0)
+    const activeDiscountPct = parseFloat(activePrices.discount_pct || discountPct || 0)
+    const discountAmount = (priceRaw * (activeDiscountPct / 100)) + parseFloat(activePrices.discount || 0)
     const subtotal = priceRaw - discountAmount
     const vatAmount = subtotal * (vatRate / 100)
     const totalAmount = subtotal + vatAmount
@@ -420,7 +422,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 </div>
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between mb-2 text-green-600">
-                                        <span className="font-bold text-sm">{discountPct > 0 ? `Remise (${discountPct}%)` : 'Remise (Discount)'}</span>
+                                        <span className="font-bold text-sm">{activeDiscountPct > 0 ? `Remise (${activeDiscountPct}%)` : 'Remise (Discount)'}</span>
                                         <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                                     </div>
                                 )}
@@ -446,7 +448,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <>
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between mb-2 text-green-600">
-                                        <span className="font-bold text-sm">{discountPct > 0 ? `Remise (${discountPct}%)` : 'Remise (Discount)'}</span>
+                                        <span className="font-bold text-sm">{activeDiscountPct > 0 ? `Remise (${activeDiscountPct}%)` : 'Remise (Discount)'}</span>
                                         <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                                     </div>
                                 )}
