@@ -593,6 +593,24 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
             except Exception:
                 pass
 
+        # Calculate distance from GPS trace
+        gps_distance_km = 0.0
+        if len(gps_trace) > 1:
+            from math import radians, cos, sin, asin, sqrt
+            def haversine(lon1, lat1, lon2, lat2):
+                lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+                dlon = lon2 - lon1 
+                dlat = lat2 - lat1 
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                c = 2 * asin(sqrt(a)) 
+                return 6371 * c
+
+            for i in range(1, len(gps_trace)):
+                gps_distance_km += haversine(
+                    gps_trace[i-1]['lng'], gps_trace[i-1]['lat'],
+                    gps_trace[i]['lng'], gps_trace[i]['lat']
+                )
+
         routes.append({
             "team_id": v.id,  # Folosim ID-ul vehiculului pe post de ID echipă ca să nu crape UI-ul
             "team_name": v.name,
@@ -600,7 +618,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
             "team_color": "#94a3b8", # Gri
             "base_name": "N/A",
             "total_sand_kg": 0,
-            "total_distance_km": 0,
+            "total_distance_km": round(gps_distance_km, 1),
             "works_count": 0,
             "waypoints": [],
             "vehicle_type": v.type or "Camion",
