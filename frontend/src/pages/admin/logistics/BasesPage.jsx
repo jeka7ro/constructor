@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, MapPin, Loader2, Save, X, ArrowLeft } from 'lucide-react'
 import api from '../../../lib/api'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { reverseGeocode } from '../../../lib/geocode'
 import AddressAutocomplete from '../../../components/AddressAutocomplete'
 import MapView from '../../../components/MapView'
 import DataTable from '../../../components/DataTable'
 
 export default function BasesPage() {
+    const { t } = useTranslation();
     const [bases, setBases] = useState([])
     const [teams, setTeams] = useState([])
     const [vehicles, setVehicles] = useState([])
@@ -138,13 +140,13 @@ export default function BasesPage() {
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <MapPin className="w-6 h-6 text-blue-600" /> Baze (Puncte de plecare)
+                        <MapPin className="w-6 h-6 text-blue-600" /> {t('logistics.bases_title', 'Baze (Puncte de plecare)')}
                     </h1>
-                    <p className="text-slate-500 text-sm">Gestionează garajele/locațiile unde sunt parcate camioanele peste noapte.</p>
+                    <p className="text-slate-500 text-sm">{t('logistics.bases_desc', 'Gestionează garajele/locațiile unde sunt parcate camioanele peste noapte.')}</p>
                 </div>
                 <div className="ml-auto">
                     <button onClick={() => openModal()} className="px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2 shadow-sm">
-                        <Plus className="w-4 h-4" /> Ajouter Bază
+                        <Plus className="w-4 h-4" /> {t('logistics.add_base', 'Ajouter Bază')}
                     </button>
                 </div>
             </div>
@@ -154,13 +156,13 @@ export default function BasesPage() {
                 const columns = [
                     {
                         key: 'name',
-                        label: 'Nume Bază',
+                        label: t('common.base_name', 'Nume Bază'),
                         sortable: true,
                         render: (row) => <span className="font-bold text-slate-900 dark:text-white">{row.name}</span>
                     },
                     {
                         key: 'teams',
-                        label: 'Camioane / Echipe',
+                        label: t('logistics.trucks_teams', 'Camioane / Echipe'),
                         render: (row) => {
                             const baseTeams = teams.filter(t => (row.team_ids || []).includes(t.id))
                             if (baseTeams.length === 0) return <span className="text-xs text-slate-400">Niciunul</span>
@@ -181,18 +183,18 @@ export default function BasesPage() {
                     },
                     {
                         key: 'address',
-                        label: 'Adresă',
+                        label: t('common.address', 'Adresă'),
                         sortable: true,
                         render: (row) => <span className="text-slate-600 dark:text-slate-400 text-sm">{row.address || '-'}</span>
                     },
                     {
                         key: 'coords',
-                        label: 'Coordonate',
+                        label: t('common.coordinates', 'Coordonate'),
                         render: (row) => <span className="text-slate-500 dark:text-slate-500 text-xs font-mono">{row.latitude}, {row.longitude}</span>
                     },
                     {
                         key: 'actions',
-                        label: 'Acțiuni',
+                        label: t('common.actions', 'Acțiuni'),
                         render: (row) => (
                             <div className="flex items-center justify-end gap-2">
                                 <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg">
@@ -210,16 +212,16 @@ export default function BasesPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
                             <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-white" /> Tabel Baze (Garaje)
+                                <MapPin className="w-4 h-4 text-white" /> {t('logistics.bases_table', 'Tabel Baze (Garaje)')}
                             </h2>
                         </div>
                         <DataTable
                             columns={columns}
                             data={bases}
                             loading={loading}
-                            emptyText="Nu există baze configurate."
+                            emptyText={t('logistics.no_bases', 'Nu există baze configurate.')}
                             searchable
-                            searchPlaceholder="Rechercher une base..."
+                            searchPlaceholder={t('logistics.search_base', 'Rechercher une base...')}
                             defaultPageSize={25}
                         />
                     </div>
@@ -230,17 +232,17 @@ export default function BasesPage() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-blue-600 dark:bg-slate-800 rounded-t-2xl">
-                            <h2 className="text-lg font-bold text-white">{editingBase ? 'Éditer Bază' : 'Bază Nouă'}</h2>
+                            <h2 className="text-lg font-bold text-white">{editingBase ? t('logistics.edit_base', 'Éditer Bază') : t('logistics.new_base', 'Bază Nouă')}</h2>
                             <button onClick={() => setIsModalOpen(false)} className="text-blue-100 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nume *</label>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">{t('common.name', 'Nume')} *</label>
                                 <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                             <div>
                                 <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-xs font-bold uppercase text-slate-500">Adresă / Căutare pe Hartă</label>
+                                    <label className="block text-xs font-bold uppercase text-slate-500">{t('common.address_search', 'Adresă / Căutare pe Hartă')}</label>
                                     <button 
                                         type="button" 
                                         onClick={handleDetectGPS} 
@@ -248,7 +250,7 @@ export default function BasesPage() {
                                         className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:text-blue-700 disabled:opacity-50"
                                     >
                                         {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                        Detectează
+                                        {t('common.detect', 'Detectează')}
                                     </button>
                                 </div>
                                 <AddressAutocomplete
@@ -276,20 +278,20 @@ export default function BasesPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Latitudine GPS</label>
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">{t('common.latitude', 'Latitudine GPS')}</label>
                                     <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Longitudine GPS</label>
+                                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">{t('common.longitude', 'Longitudine GPS')}</label>
                                     <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold uppercase text-slate-500 mb-2">Camioane Alocate Bazei</label>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-2">{t('logistics.allocated_trucks', 'Camioane Alocate Bazei')}</label>
                                 <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50 custom-scrollbar">
                                     {teams.length === 0 ? (
-                                        <div className="col-span-2 text-sm text-slate-500 p-2">Nu există echipe/camioane.</div>
+                                        <div className="col-span-2 text-sm text-slate-500 p-2">{t('logistics.no_teams', 'Nu există echipe/camioane.')}</div>
                                     ) : (
                                         teams.map(team => {
                                             const isSelected = formData.team_ids.includes(team.id)
@@ -316,9 +318,9 @@ export default function BasesPage() {
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-medium">Anulare</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-medium">{t('common.cancel', 'Anulare')}</button>
                                 <button type="submit" disabled={saving} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-2">
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('common.save', 'Enregistrer')}
                                 </button>
                             </div>
                         </form>

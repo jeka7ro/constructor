@@ -10,14 +10,14 @@ import requests
 import time
 
 from app.database import get_db
-from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite, LogisticsDailyPlan, Vehicle, TripLog, TripGPSPoint
+from app.models import LogisticBase, LogisticSandStation, Team, WorkOrder, ConstructionSite, LogisticsDailyPlan, Vehicle, TripLog, TripGPSPoint, VehicleUserAssignment
 from app.api.admin_auth import get_current_admin
 
 # ── Cache în-memorie pentru ziua curentă/viitoare (5 minute TTL) ──────────
 # Formatul cheii: "{org_id}:{date_iso}"
 # Valoarea: {"data": {...}, "cached_at": float_timestamp}
 TODAY_ROUTE_CACHE: dict = {}
-TODAY_ROUTE_CACHE_TTL = 300  # 5 minute — invalidare automată
+TODAY_ROUTE_CACHE_TTL = 0  # 0 secunde — dezactivat pentru a reflecta modificarile instantaneu
 
 def _invalidate_route_cache(org_id: str, target_date: date):
     """Invalideaza cache-ul pentru o dată și organizație."""
@@ -259,7 +259,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
     wos = db.query(WorkOrder).filter(
         WorkOrder.organization_id == admin.organization_id,
         WorkOrder.start_date == target_date,
-        WorkOrder.status != 'cancelled',
+        WorkOrder.status.notin_(['cancelled', 'isoflex']),
         WorkOrder.assigned_team_id != None   # cu echipă asignată
     ).all()
 
@@ -287,7 +287,119 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
     grand_total_sand_kg = 0.0
     grand_total_distance_km = 0.0
 
+
+    # --- PERF OPTIMIZATION: Bulk load data ---
+    all_vehicle_ids = set()
+    for w in wos:
+        if getattr(w, 'assigned_vehicle_id', None):
+            all_vehicle_ids.add(getattr(w, 'assigned_vehicle_id', None))
+    for t in teams:
+        if getattr(t, 'assigned_vehicle_id', None):
+            all_vehicle_ids.add(getattr(t, 'assigned_vehicle_id', None))
+    
+    vehicles_dict = {}
+    if all_vehicle_ids:
+        v_list = db.query(Vehicle).filter(Vehicle.id.in_(list(all_vehicle_ids))).all()
+        vehicles_dict = {v.id: v for v in v_list}
+        
+    team_leader_ids = [t.team_leader_id for t in teams if t.team_leader_id]
+    leader_assignments_dict = {}
+    if team_leader_ids:
+        assignments = db.query(VehicleUserAssignment).filter(
+            VehicleUserAssignment.user_id.in_(team_leader_ids),
+            VehicleUserAssignment.is_active == True
+        ).all()
+        leader_assignments_dict = {a.user_id: a for a in assignments}
+        
+        # Load those vehicles too
+        extra_v_ids = [a.vehicle_id for a in assignments if a.vehicle_id not in vehicles_dict]
+        if extra_v_ids:
+            extra_v_list = db.query(Vehicle).filter(Vehicle.id.in_(extra_v_ids)).all()
+            for v in extra_v_list:
+                vehicles_dict[v.id] = v
+
+    # Pre-load Flespi GPS Traces
+    all_team_v_ids = set()
+    for t in teams:
+        vid = None
+        for w in team_wos.get(t.id, []):
+            if getattr(w, 'assigned_vehicle_id', None) and getattr(w, 'assigned_vehicle_id', None) in vehicles_dict:
+                vid = getattr(w, 'assigned_vehicle_id', None)
+                break
+        if not vid and getattr(t, 'assigned_vehicle_id', None) and getattr(t, 'assigned_vehicle_id', None) in vehicles_dict:
+            vid = getattr(t, 'assigned_vehicle_id', None)
+        if not vid and t.team_leader_id in leader_assignments_dict:
+            vid = leader_assignments_dict[t.team_leader_id].vehicle_id
+        if vid:
+            all_team_v_ids.add(vid)
+            
+    gps_traces_by_vid = {}
+    if all_team_v_ids:
+        trips = db.query(TripLog).filter(
+            TripLog.vehicle_id.in_(list(all_team_v_ids)),
+            TripLog.date == target_date
+        ).order_by(TripLog.start_time).all()
+        
+        trip_ids = [t.id for t in trips]
+        if trip_ids:
+            pts = db.query(TripGPSPoint).filter(
+                TripGPSPoint.trip_id.in_(trip_ids)
+            ).order_by(TripGPSPoint.timestamp).all()
+            
+            pts_by_trip = {}
+            for p in pts:
+                pts_by_trip.setdefault(p.trip_id, []).append(p)
+                
+            for t in trips:
+                v_trace = gps_traces_by_vid.setdefault(t.vehicle_id, [])
+                for p in pts_by_trip.get(t.id, []):
+                    v_trace.append({
+                        "lat": p.latitude,
+                        "lng": p.longitude,
+                        "ts": p.timestamp.isoformat() if p.timestamp else None,
+                        "speed": round(p.speed_kmh or 0, 1)
+                    })
+    all_client_ids = {w.client_id for w in wos if w.client_id}
+    clients_dict = {}
+    if all_client_ids:
+        from app.models import Client
+        c_list = db.query(Client).filter(Client.id.in_(list(all_client_ids))).all()
+        clients_dict = {c.id: c for c in c_list}
+        
+    all_site_ids = {w.site_id for w in wos if w.site_id}
+    sites_dict = {}
+    if all_site_ids:
+        s_list = db.query(ConstructionSite).filter(ConstructionSite.id.in_(list(all_site_ids))).all()
+        sites_dict = {s.id: s for s in s_list}
+
+    # --- END PERF OPTIMIZATION ---
+
+
+    # --- FLESPI GLOBAL FETCH ---
+    day_flespi_data = []
+    import os
+    import httpx
+    from datetime import datetime, timezone
+    FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
+    if FLESPI_TOKEN:
+        try:
+            day = target_date
+            tz_offset = 2
+            ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
+            ts_to = int(datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
+            url = f"https://flespi.io/gw/devices/all/messages"
+            headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
+            import json
+            params = {"data": json.dumps({"from": ts_from, "to": ts_to, "fields": "ident,timestamp,position.latitude,position.longitude,position.speed"})}
+            with httpx.Client(timeout=10.0) as client:
+                resp = client.get(url, headers=headers, params=params)
+                if resp.status_code == 200:
+                    day_flespi_data = resp.json().get("result", [])
+        except Exception as e:
+            print("Flespi global fetch error:", e)
+
     for team in teams:
+
         works = team_wos.get(team.id, [])
         # Sort works by start_time if possible
         works.sort(key=lambda x: x.start_time or "23:59")
@@ -321,12 +433,18 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                 # Resolve Client Name explicitly ignoring title
                 w_name = w.client_name
                 if not w_name and w.client_id:
-                    from app.models import Client
-                    c = db.query(Client).filter(Client.id == w.client_id).first()
+                    c = clients_dict.get(w.client_id)
                     if c:
                         w_name = c.name
-                if not w_name:
-                    w_name = "Client necunoscut"
+                
+                # Appending Address to Name for clarity on Logistics map
+                display_name = w_name if w_name else ""
+                if w.site_address:
+                    display_name = f"{display_name} - {w.site_address}" if display_name else w.site_address
+                elif not display_name:
+                    display_name = "Oprire GPS"
+                
+                w_name = display_name
                 
                 # Resolve Work Site Lat/Lng
                 w_lat = w.site_latitude
@@ -334,11 +452,13 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                 
                 # Try from ConstructionSite if available
                 if w.site_id:
-                    s = db.query(ConstructionSite).filter(ConstructionSite.id == w.site_id).first()
+                    s = sites_dict.get(w.site_id)
                     if s and s.latitude and s.longitude:
                         w_lat = s.latitude
                         w_lng = s.longitude
-                        w_name = f"{w_name} ({s.name})"
+                        # if site has a specific name and it's different from the address, add it
+                        if s.name and s.name not in w_name:
+                            w_name = f"{w_name} ({s.name})"
 
                 # Fallback: geocode site_address via Google Maps API
                 # Se încearcă MEREU dacă nu avem coordonate (nu doar prima dată)
@@ -445,8 +565,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
         team_vehicle_type = "Camion"
         team_vehicle_id = None
         for w in works:
-            if w.assigned_vehicle_id:
-                v = db.query(Vehicle).filter(Vehicle.id == w.assigned_vehicle_id).first()
+            if getattr(w, 'assigned_vehicle_id', None):
+                v = vehicles_dict.get(getattr(w, 'assigned_vehicle_id', None))
                 if v:
                     if v.type:
                         team_vehicle_type = v.type
@@ -455,13 +575,9 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
         
         # Fallback: if no vehicle assigned directly to WOs, check if team leader has an active vehicle assignment
         if not team_vehicle_id and team.team_leader_id:
-            from app.models import VehicleUserAssignment
-            leader_assignment = db.query(VehicleUserAssignment).filter(
-                VehicleUserAssignment.user_id == team.team_leader_id,
-                VehicleUserAssignment.is_active == True
-            ).first()
+            leader_assignment = leader_assignments_dict.get(team.team_leader_id)
             if leader_assignment:
-                v = db.query(Vehicle).filter(Vehicle.id == leader_assignment.vehicle_id).first()
+                v = vehicles_dict.get(leader_assignment.vehicle_id)
                 if v:
                     team_vehicle_id = v.id
                     if v.type:
@@ -470,25 +586,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
         # ── GPS Trace réel (Flespi via TripLog) ─────────────────────────────
         gps_trace = []
         if team_vehicle_id:
-            trips = db.query(TripLog).filter(
-                TripLog.vehicle_id == team_vehicle_id,
-                TripLog.date == target_date
-            ).order_by(TripLog.start_time).all()
-            if trips:
-                trip_ids = [t.id for t in trips]
-                pts = db.query(TripGPSPoint).filter(
-                    TripGPSPoint.trip_id.in_(trip_ids)
-                ).order_by(TripGPSPoint.timestamp).all()
-                gps_trace = [
-                    {
-                        "lat": p.latitude,
-                        "lng": p.longitude,
-                        "ts": p.timestamp.isoformat() if p.timestamp else None,
-                        "speed": round(p.speed_kmh or 0, 1)
-                    }
-                    for p in pts
-                ]
-            else:
+            gps_trace = gps_traces_by_vid.get(team_vehicle_id, [])
+            if not gps_trace:
                 # Fallback: Query Flespi directly if TripLog is empty
                 v = db.query(Vehicle).filter(Vehicle.id == team_vehicle_id).first()
                 if v and v.imei:
@@ -496,37 +595,47 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                     import httpx
                     from datetime import datetime, timezone
                     FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
-                    if FLESPI_TOKEN:
+                    if FLESPI_TOKEN and day_flespi_data:
                         try:
                             day = target_date
                             tz_offset = 2
                             ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
                             ts_to = int(datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
-                            
-                            url = f"https://flespi.io/gw/devices/all/messages"
-                            headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
-                            with httpx.Client(timeout=10.0) as client:
-                                resp = client.get(url, headers=headers)
-                                if resp.status_code == 200:
-                                    flespi_data = resp.json().get("result", [])
-                                    for msg in flespi_data:
-                                        if str(msg.get("ident", "")) == str(v.imei):
-                                            ts = msg.get("timestamp")
-                                            if ts and ts >= ts_from and ts <= ts_to:
-                                                lat = msg.get("position.latitude")
-                                                lng = msg.get("position.longitude")
-                                                if lat and lng:
-                                                    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
-                                                    gps_trace.append({
-                                                        "lat": lat,
-                                                        "lng": lng,
-                                                        "ts": dt.isoformat(),
-                                                        "speed": round(msg.get("position.speed", 0), 1)
-                                                    })
-                                    gps_trace.sort(key=lambda x: x["ts"])
+                            for msg in day_flespi_data:
+                                if str(msg.get("ident", "")) == str(getattr(v, "imei", "")):
+                                    ts = msg.get("timestamp")
+                                    if ts and ts >= ts_from and ts <= ts_to:
+                                        lat = msg.get("position.latitude")
+                                        lng = msg.get("position.longitude")
+                                        if lat and lng:
+                                            dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                                            gps_trace.append({
+                                                "lat": lat,
+                                                "lng": lng,
+                                                "ts": dt.isoformat(),
+                                                "speed": round(msg.get("position.speed", 0), 1)
+                                            })
+                            gps_trace.sort(key=lambda x: x["ts"])
                         except Exception:
                             pass
         # ────────────────────────────────────────────────────────────────────
+
+
+        if len(works) == 0 and len(gps_trace) > 1:
+            from math import radians, cos, sin, asin, sqrt
+            def haversine_dist(lon1, lat1, lon2, lat2):
+                lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+                dlon = lon2 - lon1 
+                dlat = lat2 - lat1 
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                c = 2 * asin(sqrt(a)) 
+                return 6371 * c
+            for i in range(1, len(gps_trace)):
+                team_distance_km += haversine_dist(
+                    gps_trace[i-1]['lng'], gps_trace[i-1]['lat'],
+                    gps_trace[i]['lng'], gps_trace[i]['lat']
+                )
+            grand_total_distance_km += team_distance_km
 
         routes.append({
             "team_id": team.id,
@@ -551,45 +660,33 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
         Vehicle.status == 'active',
         Vehicle.imei != None
     ).all()
-
     for v in unassigned_vehicles:
         if v.id in handled_vehicle_ids:
             continue
             
         # Get GPS Trace for this vehicle
         gps_trace = []
-        import os
-        import httpx
-        from datetime import datetime, timezone
-        FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
-        if FLESPI_TOKEN and v.imei:
+        if FLESPI_TOKEN and getattr(v, "imei", None) and day_flespi_data:
             try:
                 day = target_date
                 tz_offset = 2
                 ts_from = int(datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
                 ts_to = int(datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc).timestamp()) - (tz_offset * 3600)
-                
-                url = f"https://flespi.io/gw/devices/all/messages"
-                headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
-                with httpx.Client(timeout=10.0) as client:
-                    resp = client.get(url, headers=headers)
-                    if resp.status_code == 200:
-                        flespi_data = resp.json().get("result", [])
-                        for msg in flespi_data:
-                            if str(msg.get("ident", "")) == str(v.imei):
-                                ts = msg.get("timestamp")
-                                if ts and ts >= ts_from and ts <= ts_to:
-                                    lat = msg.get("position.latitude")
-                                    lng = msg.get("position.longitude")
-                                    if lat and lng:
-                                        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
-                                        gps_trace.append({
-                                            "lat": lat,
-                                            "lng": lng,
-                                            "ts": dt.isoformat(),
-                                            "speed": round(msg.get("position.speed", 0), 1)
-                                        })
-                        gps_trace.sort(key=lambda x: x["ts"])
+                for msg in day_flespi_data:
+                    if str(msg.get("ident", "")) == str(getattr(v, "imei", "")):
+                        ts = msg.get("timestamp")
+                        if ts and ts >= ts_from and ts <= ts_to:
+                            lat = msg.get("position.latitude")
+                            lng = msg.get("position.longitude")
+                            if lat and lng:
+                                dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                                gps_trace.append({
+                                    "lat": lat,
+                                    "lng": lng,
+                                    "ts": dt.isoformat(),
+                                    "speed": round(msg.get("position.speed", 0), 1)
+                                })
+                gps_trace.sort(key=lambda x: x["ts"])
             except Exception:
                 pass
 
@@ -613,20 +710,43 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                     gps_trace[i]['lng'], gps_trace[i]['lat']
                 )
 
-        # Generate a distinct consistent color based on vehicle ID
-        import hashlib
-        palette = [
-            "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
-            "#06b6d4", "#3b82f6", "#6366f1", "#a855f7", "#ec4899",
-            "#84cc16", "#8b5cf6", "#10b981", "#0ea5e9", "#d946ef"
-        ]
-        color_idx = int(hashlib.md5(v.id.encode()).hexdigest(), 16) % len(palette)
+        # Check if this vehicle is assigned to a team leader or team member to inherit team color and name
+        from app.models import VehicleUserAssignment as M_VehicleUserAssignment, Team as M_Team, TeamMember as M_TeamMember
+        assignment = db.query(M_VehicleUserAssignment).filter(M_VehicleUserAssignment.vehicle_id == v.id).first()
+        
+        team_color = None
+        team_name = v.name
+        team_id = v.id
+        
+        if assignment:
+            # First check if assigned user is a team leader
+            owner_team = db.query(M_Team).filter(M_Team.team_leader_id == assignment.user_id).first()
+            if not owner_team:
+                # Then check if assigned user is an active team member
+                tm = db.query(M_TeamMember).filter(M_TeamMember.user_id == assignment.user_id, M_TeamMember.is_active == True).first()
+                if tm:
+                    owner_team = db.query(M_Team).filter(M_Team.id == tm.team_id).first()
+            
+            if owner_team:
+                team_color = owner_team.color
+                team_name = owner_team.name
+                team_id = owner_team.id
+
+        if not team_color:
+            import hashlib
+            palette = [
+                "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+                "#06b6d4", "#3b82f6", "#6366f1", "#a855f7", "#ec4899",
+                "#84cc16", "#8b5cf6", "#10b981", "#0ea5e9", "#d946ef"
+            ]
+            color_idx = int(hashlib.md5(v.id.encode()).hexdigest(), 16) % len(palette)
+            team_color = palette[color_idx]
         
         routes.append({
-            "team_id": v.id,  # Folosim ID-ul vehiculului pe post de ID echipă ca să nu crape UI-ul
-            "team_name": v.name,
+            "team_id": team_id,
+            "team_name": team_name,
             "is_unassigned": True,
-            "team_color": palette[color_idx],
+            "team_color": team_color,
             "base_name": "N/A",
             "total_sand_kg": 0,
             "total_distance_km": round(gps_distance_km, 1),
@@ -796,7 +916,7 @@ def get_period_report(
 
     vehicles = {}
     if Vehicle:
-        vehicle_ids = list({wo.assigned_vehicle_id for wo in wos if wo.assigned_vehicle_id})
+        vehicle_ids = list({getattr(wo, 'assigned_vehicle_id', None) for wo in wos if getattr(wo, 'assigned_vehicle_id', None)})
         if vehicle_ids:
             vehicles = {v.id: v for v in db.query(Vehicle).filter(Vehicle.id.in_(vehicle_ids)).all()}
 
@@ -814,7 +934,7 @@ def get_period_report(
         avg_thickness = (weighted_thickness / total_surface) if total_surface > 0 else 0
 
         team = teams.get(wo.assigned_team_id)
-        vehicle = vehicles.get(wo.assigned_vehicle_id) if wo.assigned_vehicle_id else None
+        vehicle = vehicles.get(getattr(wo, 'assigned_vehicle_id', None)) if getattr(wo, 'assigned_vehicle_id', None) else None
 
         rows.append({
             "id": wo.id,

@@ -18,6 +18,12 @@
 
   html {
     scroll-behavior: smooth;
+    overflow-y: auto !important;
+  }
+
+  body {
+    overflow-y: auto !important;
+    pointer-events: auto !important;
   }
 
   /* Hide number input arrows */

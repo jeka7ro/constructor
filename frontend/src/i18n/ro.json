@@ -80,7 +80,18 @@
     "col_sand": "Nisip",
     "col_km": "Km",
     "col_status": "Status",
-    "legend": "Legendă"
+    "legend": "Legendă",
+    "bases_title": "Baze (Puncte de plecare)",
+    "bases_desc": "Gestionează garajele/locațiile unde sunt parcate camioanele peste noapte.",
+    "add_base": "Adaugă Bază",
+    "trucks_teams": "Camioane / Echipe",
+    "bases_table": "Tabel Baze (Garaje)",
+    "no_bases": "Nu există baze configurate.",
+    "search_base": "Caută o bază...",
+    "edit_base": "Editează Baza",
+    "new_base": "Bază Nouă",
+    "allocated_trucks": "Camioane Alocate Bazei",
+    "no_teams": "Nu există echipe/camioane."
   },
   "common": {
     "error": "Erreur",
@@ -1464,11 +1475,11 @@
   },
   "status": {
     "in_progress": "En cours",
-    "draft": "NEW",
-    "sent": "SENT",
-    "confirmed": "CONFIRMED",
-    "completed": "COMPLETED",
-    "cancelled": "CANCELLED",
+    "draft": "NOUVEAU",
+    "sent": "ENVOYÉ",
+    "confirmed": "CONFIRMÉ",
+    "completed": "TERMINÉ",
+    "cancelled": "ANNULÉ",
     "isoflex": "ISOFLEX"
   },
   "expenses": {
@@ -1852,7 +1863,9 @@
     "last_seen": "Vu",
     "speed": "Vitesse",
     "stopped": "Staționează",
-    "today": "azi"
+    "today": "azi",
+    "at_base": "La baza: ",
+    "at_worksite": "La lucrare: "
   },
   "workorders": {
     "surface_required": "La surface est requise."

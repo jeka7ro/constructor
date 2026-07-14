@@ -960,12 +960,12 @@ def get_flespi_distances(token):
     headers = {"Authorization": f"FlespiToken {token}", "Accept": "application/json"}
     params = {"data": json.dumps({"from": ts_from, "to": ts_to, "fields": "ident,position.latitude,position.longitude"})}
     
-    distances = {}
     try:
-        resp = httpx.get(url, headers=headers, params=params, timeout=5.0)
+        resp = httpx.get(url, headers=headers, params=params, timeout=10.0)
         if resp.status_code == 200:
             msgs = resp.json().get("result", [])
             last_pos = {}
+            distances = {}
             for m in msgs:
                 ident = str(m.get("ident"))
                 lat = m.get("position.latitude")
@@ -983,9 +983,16 @@ def get_flespi_distances(token):
                     distances[ident] += d
                     last_pos[ident] = (lng, lat)
             _flespi_cache = {"ts": time.time(), "distances": distances}
+        else:
+            print(f"Flespi API error: {resp.status_code}")
+            # Rate limit or API error: update ts to backoff for 60s but keep old distances
+            _flespi_cache["ts"] = time.time()
     except Exception as e:
         print("Flespi distance error:", e)
-    return distances
+        # Exception (e.g. timeout): update ts to backoff for 60s
+        _flespi_cache["ts"] = time.time()
+        
+    return _flespi_cache.get("distances", {})
 
 @router.get("/admin/vehicles/live")
 def get_live_vehicles(

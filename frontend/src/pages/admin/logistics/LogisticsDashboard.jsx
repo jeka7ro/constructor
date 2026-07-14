@@ -188,8 +188,15 @@ function RoutingMachine({ positions, color, weight, opacity }) {
         // Apel OSRM Route API
         let cancelled = false
         const coords = positions.map(([lat, lng]) => `${lng},${lat}`).join(';')
-        fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
-            .then(r => r.json())
+        
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+        fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`, { signal: controller.signal })
+            .then(r => {
+                clearTimeout(timeoutId)
+                return r.json()
+            })
             .then(data => {
                 if (cancelled) return
                 if (data.routes?.[0]) {
@@ -201,10 +208,14 @@ function RoutingMachine({ positions, color, weight, opacity }) {
                 }
             })
             .catch(() => {
+                clearTimeout(timeoutId)
                 if (!cancelled) setIsFallback(true)
             })
 
-        return () => { cancelled = true }
+        return () => { 
+            cancelled = true 
+            controller.abort()
+        }
     }, [positions?.map(p => p?.join(',')).join('|')])
 
     if (!positions || positions.length < 2) return null
@@ -383,9 +394,14 @@ export default function LogisticsDashboard() {
     }, [targetDate])
 
     const toggleTeam = (teamId) => {
-        setActiveTeams(prev => 
-            prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
-        )
+        setActiveTeams(prev => {
+            if (prev.length === 1 && prev[0] === teamId) {
+                // If it's already the only selected team, clicking it shows all teams again
+                return data?.routes.map(r => r.team_id) || []
+            }
+            // Otherwise, isolate this team
+            return [teamId]
+        })
     }
 
     // Calculăm o șansă de ploaie fictivă (0-70%) dar constantă pentru o anumită dată
@@ -485,7 +501,7 @@ export default function LogisticsDashboard() {
                     <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
                 </div>
             ) : !data ? (
-                <div className="flex-1 flex items-center justify-center text-slate-500">Nu s-au putut încărca datele.</div>
+                <div className="flex-1 flex items-center justify-center text-slate-500">{t('logistics.error_loading_data', 'Impossible de charger les données.')}</div>
             ) : (
                 <div className="flex-1 flex flex-col gap-6">
                      {/* Top Area: Interactive Map */}
@@ -599,7 +615,7 @@ export default function LogisticsDashboard() {
                                                     icon={createCustomIcon(wp.type?.includes('base') ? 'B' : idx, wp.type?.includes('base'), route.team_color, route.vehicle_type)}
                                                 >
                                                     <Popup>
-                                                        <strong className="text-sm">{wp.name}</strong>
+                                                        <strong className="text-sm">{wp.name === 'UNKNOWN_CLIENT_LOGISTICS' ? 'Client necunoscut' : wp.name}</strong>
                                                     </Popup>
                                                 </Marker>
                                             )
@@ -789,7 +805,7 @@ export default function LogisticsDashboard() {
                                                                 <div key={i} className="flex justify-between items-center gap-2">
                                                                     <div className="text-[10px] font-medium text-slate-900 dark:text-white truncate flex items-center gap-1.5" title={wp.name}>
                                                                         <div className="w-1 h-1 rounded-full bg-slate-900 dark:bg-white shrink-0"></div>
-                                                                        <span className="truncate">{wp.name}</span>
+                                                                        <span className="truncate">{wp.name === 'UNKNOWN_CLIENT_LOGISTICS' || wp.name === 'Client necunoscut' ? t('logistics.unknown_client', 'Client inconnu') : wp.name}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5 shrink-0">
                                                                         {wp.distance_from_prev_km > 0 && (
@@ -807,9 +823,7 @@ export default function LogisticsDashboard() {
                                                             )
                                                         })}
                                                     </div>
-                                                ) : (
-                                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 italic pl-5">{t('logistics.no_works', 'Fără comenzi.')}</div>
-                                                )}
+                                                ) : null}
                                             </div>
                                         )
                                     })}
@@ -822,11 +836,11 @@ export default function LogisticsDashboard() {
                     <div className="w-full flex flex-col gap-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.total_sand', 'Total Nisip')}</span>
-                                <div className="text-2xl font-black text-amber-600 dark:text-amber-500">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('logistics.tons', 'tone')}</span></div>
+                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.total_sand', 'Total Sable')}</span>
+                                <div className="text-2xl font-black text-amber-600 dark:text-amber-500">{(data.grand_total_sand_kg / 1000).toFixed(1)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{t('logistics.tons', 'tonnes')}</span></div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.est_distance', 'Distanță Est.')}</span>
+                                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{t('logistics.est_distance', 'Distance Est.')}</span>
                                 <div className="text-2xl font-black text-blue-600 dark:text-blue-500">{Math.round(data.grand_total_distance_km)} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">km</span></div>
                             </div>
                         </div>
@@ -917,14 +931,14 @@ export default function LogisticsDashboard() {
                                                                 </div>
                                                                 <div className="flex-1 pt-0.5">
                                                                     <div className={`font-bold leading-tight ${isReturn ? 'text-slate-500 dark:text-slate-400 italic text-[10px]' : 'text-slate-800 dark:text-slate-200'}`}>
-                                                                        {isReturn ? t('logistics.return_base', 'Retour à la base') : wp.name}
+                                                                        {isReturn ? t('logistics.return_base', 'Retour à la base') : (wp.name === 'UNKNOWN_CLIENT_LOGISTICS' || wp.name === 'Client necunoscut' ? t('logistics.unknown_client', 'Client inconnu') : wp.name)}
                                                                         {wp.distance_from_prev_km > 0 && (
                                                                             <span className="text-slate-500 dark:text-slate-400 ml-1.5 font-bold whitespace-nowrap">
                                                                                 (+{Math.round(wp.distance_from_prev_km)} km)
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{t('logistics.sand', 'Nisip')}: {(wp.sand_kg/1000).toFixed(1)} t</div>}
+                                                                    {wp.sand_kg > 0 && <div className="text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{t('logistics.sand', 'Sable')}: {(wp.sand_kg/1000).toFixed(1)} t</div>}
                                                                 </div>
                                                             </div>
                                                         )})}
@@ -978,7 +992,7 @@ export default function LogisticsDashboard() {
                             <div className="grid grid-cols-2 gap-3">
                                 {selectedWork.wp.sand_kg > 0 && (
                                     <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800">
-                                        <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Nisip</div>
+                                        <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">{t('logistics.sand', 'Sable')}</div>
                                         <div className="text-lg font-black text-amber-700 dark:text-amber-300 mt-0.5">
                                             {(selectedWork.wp.sand_kg / 1000).toFixed(2)} <span className="text-sm font-normal text-amber-500">t</span>
                                         </div>
@@ -986,7 +1000,7 @@ export default function LogisticsDashboard() {
                                 )}
                                 {selectedWork.wp.distance_from_prev_km > 0 && (
                                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
-                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Distanță</div>
+                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{t('logistics.distance', 'Distance')}</div>
                                         <div className="text-lg font-black text-blue-700 dark:text-blue-300 mt-0.5">
                                             +{Math.round(selectedWork.wp.distance_from_prev_km)} <span className="text-sm font-normal text-blue-500">km</span>
                                         </div>
@@ -1000,7 +1014,7 @@ export default function LogisticsDashboard() {
                                 style={{ backgroundColor: selectedWork.route.team_color }}
                             >
                                 <ExternalLink className="w-4 h-4" />
-                                Detalii comandă
+                                {t('logistics.order_details', 'Détails de la commande')}
                             </button>
                         </div>
                     </div>

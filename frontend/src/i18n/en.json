@@ -80,7 +80,18 @@
     "col_sand": "Sand",
     "col_km": "Km",
     "col_status": "Status",
-    "legend": "Legend"
+    "legend": "Legend",
+    "bases_title": "Bases (Start Points)",
+    "bases_desc": "Manage garages/locations where trucks are parked overnight.",
+    "add_base": "Add Base",
+    "trucks_teams": "Trucks / Teams",
+    "bases_table": "Bases (Garages) Table",
+    "no_bases": "No bases configured.",
+    "search_base": "Search a base...",
+    "edit_base": "Edit Base",
+    "new_base": "New Base",
+    "allocated_trucks": "Trucks Allocated to Base",
+    "no_teams": "No teams/trucks."
   },
   "common": {
     "error": "Erreur",
@@ -1368,11 +1379,11 @@
   },
   "status": {
     "in_progress": "En cours",
-    "draft": "NEW",
-    "sent": "SENT",
-    "confirmed": "CONFIRMED",
-    "completed": "COMPLETED",
-    "cancelled": "CANCELLED",
+    "draft": "NOUVEAU",
+    "sent": "ENVOYÉ",
+    "confirmed": "CONFIRMÉ",
+    "completed": "TERMINÉ",
+    "cancelled": "ANNULÉ",
     "isoflex": "ISOFLEX"
   },
   "expenses": {
@@ -1743,7 +1754,9 @@
     "last_seen": "Vu",
     "speed": "Vitesse",
     "stopped": "Stopped",
-    "today": "today"
+    "today": "today",
+    "at_base": "At Base: ",
+    "at_worksite": "At Worksite: "
   },
   "workorders": {
     "surface_required": "La surface est requise."

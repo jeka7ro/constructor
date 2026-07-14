@@ -81,7 +81,18 @@
     "col_sand": "Sable",
     "col_km": "Km",
     "col_status": "Statut",
-    "legend": "Légende"
+    "legend": "Légende",
+    "bases_title": "Bases (Points de départ)",
+    "bases_desc": "Gérer les garages/emplacements où les camions sont garés pour la nuit.",
+    "add_base": "Ajouter une base",
+    "trucks_teams": "Camions / Équipes",
+    "bases_table": "Tableau des Bases (Garages)",
+    "no_bases": "Aucune base configurée.",
+    "search_base": "Rechercher une base...",
+    "edit_base": "Modifier la base",
+    "new_base": "Nouvelle base",
+    "allocated_trucks": "Camions alloués à la base",
+    "no_teams": "Aucune équipe/camion."
   },
   "common": {
     "error": "Erreur",
@@ -1902,7 +1913,9 @@
     "last_seen": "Vu",
     "speed": "Vitesse",
     "stopped": "À l'arrêt",
-    "today": "aujourd'hui"
+    "today": "aujourd'hui",
+    "at_base": "À la base: ",
+    "at_worksite": "Au chantier: "
   },
   "workorders": {
     "surface_required": "La surface est requise."

@@ -1327,11 +1327,11 @@
   },
   "status": {
     "in_progress": "En cours",
-    "draft": "NEW",
-    "sent": "SENT",
-    "confirmed": "CONFIRMED",
-    "completed": "COMPLETED",
-    "cancelled": "CANCELLED",
+    "draft": "NOUVEAU",
+    "sent": "ENVOYÉ",
+    "confirmed": "CONFIRMÉ",
+    "completed": "TERMINÉ",
+    "cancelled": "ANNULÉ",
     "isoflex": "ISOFLEX"
   },
   "expenses": {

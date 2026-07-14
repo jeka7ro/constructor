@@ -214,6 +214,9 @@ export default function MiniLiveTrackingMap() {
                     </div>
                     </div>
                     <div className="text-xs mt-1 text-slate-500">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen, t)}</div>
+                    {v.location_text && (
+                      <div className="text-xs mt-1 text-blue-600 font-bold">{v.location_text}</div>
+                    )}
                     {v.speed != null && (
                     <div className="text-xs text-slate-500">{t('live.speed', 'Vitesse')}: {Math.round(v.speed)} km/h</div>
                     )}

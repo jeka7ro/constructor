@@ -1062,7 +1062,7 @@ export default function AdminOverview() {
                                             onDragStart={(e) => {
                                                 e.dataTransfer.setData("type", "quote")
                                                 e.dataTransfer.setData("id", String(quote.id))
-                                                e.dataTransfer.setData("name", quote.client_name || quote.title || 'Devis')
+                                                e.dataTransfer.setData("name", quote.client_name || t('common.unknown_client', 'Client Inconnu'))
                                                 e.dataTransfer.setData("address", quote.site_address || '')
                                                 e.dataTransfer.setData("latitude", String(quote.site_latitude || ''))
                                                 e.dataTransfer.setData("longitude", String(quote.site_longitude || ''))
@@ -1073,7 +1073,7 @@ export default function AdminOverview() {
                                                 e.currentTarget.classList.remove('opacity-50', 'scale-95')
                                             }}
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
-                                            title={`Client: ${quote.client_name || quote.title || 'Devis'}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
+                                            title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
                                         >
                                             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-800/80 rounded">
                                                 <GripVertical className="w-3.5 h-3.5 text-rose-400 dark:text-rose-500" />
@@ -1082,7 +1082,7 @@ export default function AdminOverview() {
                                             {/* ROW 1: Name + Date */}
                                             <div className="flex justify-between items-center pr-4">
                                                 <div className="font-bold text-[11px] text-rose-900 dark:text-rose-100 truncate flex-1">
-                                                    {quote.client_name || quote.title || 'Devis'}
+                                                    {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
                                                 </div>
                                                 {quote.approximate_date && (
                                                     <div className="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[8px] font-bold text-rose-700 dark:text-rose-300 shrink-0 ml-1">

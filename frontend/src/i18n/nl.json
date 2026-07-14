@@ -80,7 +80,18 @@
     "col_sand": "Zand",
     "col_km": "Km",
     "col_status": "Status",
-    "legend": "Legende"
+    "legend": "Legende",
+    "bases_title": "Basissen (Startpunten)",
+    "bases_desc": "Beheer garages/locaties waar vrachtwagens 's nachts geparkeerd staan.",
+    "add_base": "Basis Toevoegen",
+    "trucks_teams": "Vrachtwagens / Teams",
+    "bases_table": "Basissen (Garages) Tabel",
+    "no_bases": "Geen basissen geconfigureerd.",
+    "search_base": "Zoek een basis...",
+    "edit_base": "Basis Bewerken",
+    "new_base": "Nieuwe Basis",
+    "allocated_trucks": "Toegewezen Vrachtwagens",
+    "no_teams": "Geen teams/vrachtwagens."
   },
   "common": {
     "error": "Erreur",
@@ -1368,11 +1379,11 @@
   },
   "status": {
     "in_progress": "En cours",
-    "draft": "NEW",
-    "sent": "SENT",
-    "confirmed": "CONFIRMED",
-    "completed": "COMPLETED",
-    "cancelled": "CANCELLED",
+    "draft": "NOUVEAU",
+    "sent": "ENVOYÉ",
+    "confirmed": "CONFIRMÉ",
+    "completed": "TERMINÉ",
+    "cancelled": "ANNULÉ",
     "isoflex": "ISOFLEX"
   },
   "expenses": {
@@ -1667,7 +1678,9 @@
     "last_seen": "Vu",
     "speed": "Vitesse",
     "stopped": "Gestopt",
-    "today": "vandaag"
+    "today": "vandaag",
+    "at_base": "Op de basis: ",
+    "at_worksite": "Op de werkplek: "
   },
   "workorders": {
     "surface_required": "La surface est requise."
