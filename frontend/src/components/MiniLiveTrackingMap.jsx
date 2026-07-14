@@ -100,14 +100,14 @@ export default function MiniLiveTrackingMap() {
             </button>
         </div>
       </div>
-      <div className="flex-1 relative">
+      <div className="flex-1 flex flex-row overflow-hidden relative">
         {loading && (
             <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-white/50 dark:bg-slate-900/50">
                 <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
             </div>
         )}
-                {/* Legend Card */}
-        <div className="absolute top-4 left-4 z-[1000] w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur shadow-lg border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden flex flex-col max-h-[80%]">
+        {/* Legend Sidebar */}
+        <div className="w-72 flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 z-[10]">
             <div className="p-3 border-b border-slate-100 dark:border-slate-800 font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center justify-between">
                 <span>{t('logistics.legend', 'Legendă Echipe & Utilaje')}</span>
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{vehicles.length}</span>
@@ -143,49 +143,52 @@ export default function MiniLiveTrackingMap() {
                 })}
             </div>
         </div>
-
-        <MapContainer
-          center={center}
-          zoom={8}
-          className="w-full h-full"
-          style={{ background: '#f8fafc' }}
-          zoomControl={true}
-          scrollWheelZoom={true}
-        >
-          <TileLayer
-            url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-            attribution="&copy; Google Maps"
-            maxZoom={20}
-          />
-          {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
-          {vehicles.map(v => (
-            <Marker
-              key={v.id}
-              position={[v.lat, v.lng]}
-              icon={createVehicleIcon(v.team_color, v.name, v.avatar_url)}
+        
+        {/* Map Area */}
+        <div className="flex-1 relative">
+            <MapContainer
+            center={center}
+            zoom={8}
+            className="w-full h-full"
+            style={{ background: '#f8fafc' }}
+            zoomControl={true}
+            scrollWheelZoom={true}
             >
-              <Popup className="tracking-popup">
-                <div className="flex items-center gap-3 mb-2">
-                  {v.avatar_url && (
-                    <img 
-                      src={v.avatar_url.startsWith('http') ? v.avatar_url : `http://davidechape.localhost:5678${v.avatar_url}`} 
-                      alt="avatar" 
-                      className="w-8 h-8 rounded-full object-cover border-2" 
-                      style={{ borderColor: v.team_color }}
-                    />
-                  )}
-                  <div>
-                    <div className="text-sm font-bold">{v.name}</div>
-                  </div>
-                </div>
-                <div className="text-xs mt-1 text-slate-500">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen, t)}</div>
-                {v.speed != null && (
-                  <div className="text-xs text-slate-500">{t('live.speed', 'Vitesse')}: {Math.round(v.speed)} km/h</div>
-                )}
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+            <TileLayer
+                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                attribution="&copy; Google Maps"
+                maxZoom={20}
+            />
+            {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
+            {vehicles.map(v => (
+                <Marker
+                key={v.id}
+                position={[v.lat, v.lng]}
+                icon={createVehicleIcon(v.team_color, v.name, v.avatar_url)}
+                >
+                <Popup className="tracking-popup">
+                    <div className="flex items-center gap-3 mb-2">
+                    {v.avatar_url && (
+                        <img 
+                        src={v.avatar_url.startsWith('http') ? v.avatar_url : `http://davidechape.localhost:5678${v.avatar_url}`} 
+                        alt="avatar" 
+                        className="w-8 h-8 rounded-full object-cover border-2" 
+                        style={{ borderColor: v.team_color }}
+                        />
+                    )}
+                    <div>
+                        <div className="text-sm font-bold">{v.name}</div>
+                    </div>
+                    </div>
+                    <div className="text-xs mt-1 text-slate-500">{t('live.last_seen', 'Vu')}: {formatLastSeen(v.last_seen, t)}</div>
+                    {v.speed != null && (
+                    <div className="text-xs text-slate-500">{t('live.speed', 'Vitesse')}: {Math.round(v.speed)} km/h</div>
+                    )}
+                </Popup>
+                </Marker>
+            ))}
+            </MapContainer>
+        </div>
       </div>
     </div>
   )

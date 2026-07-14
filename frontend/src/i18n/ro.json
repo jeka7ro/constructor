@@ -1849,7 +1849,9 @@
     "ago_h": "il y a {{count}}h",
     "active": "actif",
     "last_seen": "Vu",
-    "speed": "Vitesse"
+    "speed": "Vitesse",
+    "stopped": "Staționează",
+    "today": "azi"
   },
   "workorders": {
     "surface_required": "La surface est requise."
