@@ -808,7 +808,7 @@ export default function LogisticsDashboard() {
                                                         })}
                                                     </div>
                                                 ) : (
-                                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 italic pl-5">Fără comenzi.</div>
+                                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 italic pl-5">{t('logistics.no_works', 'Fără comenzi.')}</div>
                                                 )}
                                             </div>
                                         )
