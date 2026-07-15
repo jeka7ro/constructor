@@ -85,10 +85,10 @@ export default function Login() {
             <div className="w-full max-w-md relative z-10 mt-8">
 
                 {/* Login Card */}
-                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 sm:p-10 border border-slate-200/50 slide-up">
+                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 sm:p-8 border border-slate-200/50 slide-up">
                     {/* Logo & Title moved inside */}
-                    <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-48 h-32 mb-3 drop-shadow-sm">
+                    <div className="text-center mb-6">
+                        <div className="inline-flex items-center justify-center w-48 h-32 mt-2 mb-2 drop-shadow-sm">
                             {tenant?.logo_url ? (
                                 <img src={tenant.logo_url} alt={tenant.name} className="w-full h-full object-contain" />
                             ) : (
@@ -105,7 +105,7 @@ export default function Login() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Employee Code Input */}
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -115,7 +115,7 @@ export default function Login() {
                                 type="text"
                                 value={employeeCode}
                                 onChange={(e) => setEmployeeCode(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl 
+                                className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl 
                          focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 
                          outline-none transition-all duration-200 text-slate-900 font-medium
                          placeholder:text-slate-400 placeholder:font-normal"
@@ -135,7 +135,7 @@ export default function Login() {
                                     type={showPin ? 'text' : 'password'}
                                     value={pin}
                                     onChange={(e) => setPin(e.target.value.slice(0, 4))}
-                                    className="w-full px-4 py-3 pr-12 bg-slate-50 border-2 border-slate-200 rounded-2xl 
+                                    className="w-full px-4 py-2.5 pr-12 bg-slate-50 border-2 border-slate-200 rounded-2xl 
                              focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 
                              outline-none transition-all duration-200 text-slate-900 font-medium
                              placeholder:text-slate-400 placeholder:font-normal"
@@ -211,7 +211,7 @@ export default function Login() {
                     <p className="text-sm text-blue-200/90 font-medium tracking-wide">
                         © 2025 Pontaj Digital.<br className="sm:hidden" />
                         <span className="hidden sm:inline"> Tous droits réservés. | </span>
-                        Une solution numérique de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
+                        Une solution de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
                     </p>
                     <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
                         <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-12 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by Smart Timesheet</span>' }} />
