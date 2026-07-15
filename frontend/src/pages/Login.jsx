@@ -101,7 +101,7 @@ export default function Login() {
                             {tenant?.name || "Pontaj Digital"}
                         </h1>
                         <p className="text-sm text-slate-500 font-medium">
-                            Sistem modern de pontaj pentru construcții
+                            Système de pointage moderne pour la construction
                         </p>
                     </div>
 
@@ -109,7 +109,7 @@ export default function Login() {
                         {/* Employee Code Input */}
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Cod Angajat
+                                Code Employé
                             </label>
                             <input
                                 type="text"
@@ -128,7 +128,7 @@ export default function Login() {
                         {/* PIN Input */}
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                PIN (4 cifre)
+                                Code PIN (4 chiffres)
                             </label>
                             <div className="relative">
                                 <input
@@ -191,7 +191,7 @@ export default function Login() {
                                 </>
                             ) : (
                                 <>
-                                    <span>Autentificare</span>
+                                    <span>Se connecter</span>
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -201,7 +201,7 @@ export default function Login() {
                     {/* Footer Link */}
                     <div className="mt-6 text-center">
                         <a href="#" className="text-sm text-slate-600 hover:text-blue-600 transition-colors font-medium">
-                            Ai uitat PIN-ul?
+                            Code PIN oublié ?
                         </a>
                     </div>
                 </div>
@@ -210,8 +210,8 @@ export default function Login() {
                 <div className="mt-8 text-center flex flex-col items-center justify-center fade-in stagger-2 gap-3">
                     <p className="text-sm text-blue-200/90 font-medium tracking-wide">
                         © 2025 Pontaj Digital.<br className="sm:hidden" />
-                        <span className="hidden sm:inline"> Toate drepturile rezervate. | </span>
-                        O soluție digitală de {t('common.solution_by')} <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
+                        <span className="hidden sm:inline"> Tous droits réservés. | </span>
+                        Une solution numérique de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
                     </p>
                     <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
                         <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-12 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by Smart Timesheet</span>' }} />
