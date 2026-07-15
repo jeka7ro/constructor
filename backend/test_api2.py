@@ -1,33 +1,30 @@
-from fastapi.testclient import TestClient
-from main import app
-from app.database import get_db
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import requests
+import json
 import os
-from dotenv import load_dotenv
-from jose import jwt
-from app.api.admin_auth import SECRET_KEY, ALGORITHM
+from datetime import datetime
+from app.database import SessionLocal
+from app.models import User
+from app.api.admin_auth import create_access_token
 
-load_dotenv()
-engine = create_engine(os.getenv("DATABASE_URL"))
-SessionLocal = sessionmaker(bind=engine)
+def main():
+    db = SessionLocal()
+    admin = db.query(User).filter(User.full_name == 'Iulian Carabet').first()
+    
+    # In FastAPI, we usually generate tokens with "sub": id or email
+    token = create_access_token({"sub": admin.email})
+    url = "http://127.0.0.1:8000/api/admin/logistics/daily-routes?target_date=2026-07-14"
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    print(f"Fetching {url}...")
+    resp = requests.get(url, headers=headers)
+    print("Status Code:", resp.status_code)
+    
+    if resp.status_code == 200:
+        data = resp.json()
+        print("Cached:", data.get("cached"))
+        for r in data.get("routes", []):
+            print(f"ROUTE: {r.get('team_name')} - {r.get('total_distance_km')} km (trace: {len(r.get('gps_trace', []))})")
+    else:
+        print(resp.text)
 
-def override_get_db():
-    try:
-        db = SessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-client = TestClient(app)
-
-db = SessionLocal()
-from app.models import Admin
-admin = db.query(Admin).first()
-token_data = {"sub": admin.id}
-token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-
-response = client.get("/admin/timesheets/stats", headers={"Authorization": f"Bearer {token}"})
-print("Stats code:", response.status_code)
-print("Stats body:", response.content)
+main()

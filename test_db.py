@@ -1,14 +1,10 @@
-import sys
-import os
+import os, sys
 from dotenv import load_dotenv
-load_dotenv('backend/.env')
-
+load_dotenv(os.path.join(os.getcwd(), 'backend', '.env'))
 sys.path.append(os.path.join(os.getcwd(), 'backend'))
-from app.database import SessionLocal
-from app.models import WorkOrder
-from datetime import date
-db = SessionLocal()
-wos = db.query(WorkOrder).filter(WorkOrder.start_date == date(2026,7,13)).all()
-print(f"Total WOs on 2026-07-13: {len(wos)}")
-for wo in wos:
-    print(f"{wo.id} | status: {wo.status} | is_quote: {wo.is_quote} | team: {wo.assigned_team_id}")
+from app.database import engine
+from sqlalchemy import text
+with engine.connect() as conn:
+    res = conn.execute(text("SELECT id, name, status, imei FROM saas_app.vehicles WHERE imei IS NOT NULL")).fetchall()
+    for row in res:
+        print(row)

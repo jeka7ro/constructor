@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { MessageSquareWarning, Plus, ChevronLeft, Send, Loader2, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
+import EmployeeHeader from '../../components/layout/EmployeeHeader'
 
 const STATUS_CONFIG = {
     open:      { label: 'Deschisă',   icon: AlertCircle,  cls: 'bg-blue-100 text-blue-700' },
@@ -48,28 +49,20 @@ export default function EmployeeComplaints() {
     }
 
     return (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 shadow-lg">
-                <div className="flex items-center justify-between max-w-md mx-auto">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-full transition-colors">
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        <div className="flex items-center gap-2">
-                            <MessageSquareWarning className="w-5 h-5 text-white/80" />
-                            <h1 className="font-bold text-lg">Sesizări și Reclamații</h1>
-                        </div>
-                    </div>
+        <div className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-200">
+            <EmployeeHeader 
+                title="Sesizări și Reclamații" 
+                showBack={true} 
+                rightContent={
                     <button
                         onClick={() => setShowForm(!showForm)}
-                        className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                        className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md w-10 h-10 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all"
                         title="Sesizare nouă"
                     >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="w-6 h-6" />
                     </button>
-                </div>
-            </div>
+                }
+            />
 
             <div className="max-w-md mx-auto p-4 space-y-4">
                 {/* Success banner */}

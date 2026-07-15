@@ -3,6 +3,7 @@ import { PackageSearch, Plus, ChevronLeft, Send, Loader2, CheckCircle, Clock, XC
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
+import EmployeeHeader from '../../components/layout/EmployeeHeader'
 
 const STATUS_CONFIG = {
     pending:   { label: 'În Așteptare',  icon: Clock,        cls: 'bg-amber-100 text-amber-700' },
@@ -188,28 +189,20 @@ export default function EmployeeMaterialRequests() {
     }, {})
 
     return (
-        <div className="bg-gradient-to-br from-slate-50 to-orange-50/30">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg sticky top-0 z-10">
-                <div className="flex items-center justify-between max-w-md mx-auto">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/')} className="p-2 hover:bg-white/20 rounded-full transition-colors">
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        <div className="flex items-center gap-2">
-                            <PackageSearch className="w-5 h-5 text-white/80" />
-                            <h1 className="font-bold text-lg">Necesar Materiale</h1>
-                        </div>
-                    </div>
+        <div className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-200 pb-24">
+            <EmployeeHeader 
+                title="Cereri Materiale" 
+                showBack={true} 
+                rightContent={
                     <button
                         onClick={() => setShowForm(!showForm)}
-                        className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                        className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md w-10 h-10 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all"
                         title="Cerere nouă"
                     >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="w-6 h-6" />
                     </button>
-                </div>
-            </div>
+                }
+            />
 
             <div className="max-w-md mx-auto p-4 space-y-4">
                 {/* Success banner */}

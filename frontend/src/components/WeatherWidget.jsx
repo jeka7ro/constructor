@@ -79,14 +79,13 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
         const promise = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${roundedLat}&longitude=${roundedLon}&daily=weather_code,temperature_2m_max,temperature_2m_min&hourly=temperature_2m,weather_code&timezone=auto&past_days=30`)
             .then(res => res.json())
             .then(json => {
-                if (json.error || !json.daily) {
+                if (json.error || (!json.daily && !json.hourly)) {
                     const errObj = { _error: true, _ts: Date.now() };
                     weatherCache[cacheKey] = errObj;
                     return errObj;
                 }
-                const daily = json.daily;
-                weatherCache[cacheKey] = daily;
-                return daily;
+                weatherCache[cacheKey] = json;
+                return json;
             })
             .catch(err => {
                 const errObj = { _error: true, _ts: Date.now() };
@@ -106,7 +105,12 @@ export default function WeatherWidget({ lat, lon, dateStr, isLarge = false }) {
     }, [lat, lon, dateStr]);
 
     if (loading && !data) return <Loader2 className="w-4 h-4 animate-spin opacity-50 text-slate-500" />;
-    if (!data || data.error) return null;
+    if (!data || data.error) return (
+        <div className="flex items-center gap-0.5 opacity-50" title="Vreme indisponibilă">
+            <Cloud className="w-3 h-3 text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 leading-none">--°</span>
+        </div>
+    );
 
     if (!isLarge) {
         const getSmallIcon = (code) => {

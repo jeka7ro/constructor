@@ -40,11 +40,12 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - După ce scrii și testezi codul, raportează modificările și AȘTEAPTĂ până când utilizatorul spune "dă push" sau "ok, commit".
 
 ## 9. PROTECȚIA BAZEI DE DATE — REGULĂ CRITICĂ ABSOLUTĂ
-- **ESTE COMPLET INTERZISĂ** orice comandă care șterge, modifică sau trunchiază date din baza de date (inclusiv `db.delete()`, `DELETE FROM`, `DROP TABLE`, `TRUNCATE`, sau orice script Python care face `db.commit()` după o operație de ștergere) **FĂRĂ confirmarea explicită și clară a utilizatorului**, cu specificarea exactă a CE date vor fi șterse.
-- **ÎNAINTE** de orice operație distructivă pe baza de date, agentul TREBUIE să:
-  1. Listeze EXACT ce rânduri/tabele vor fi afectate
-  2. Ceară confirmarea explicită a utilizatorului ("Ești sigur că vrei să ștergi X?")
-  3. Aștepte răspunsul utilizatorului înainte de a executa orice comandă
+- **ESTE COMPLET INTERZISĂ** orice modificare a înregistrărilor din baza de date prin scripturi, terminal sau alte metode ascunse. Asta include: mutarea înregistrărilor de la o echipă la alta, modificarea câmpurilor, ștergerea (DELETE/DROP/TRUNCATE), adăugarea sau trunchierea datelor.
+- **Agentul NU ARE VOIE NICIODATĂ să facă "teste" modificând datele reale (de producție)**. Orice `db.commit()` după un UPDATE, INSERT sau DELETE pe baza de date de producție este o încălcare gravă.
+- **ÎNAINTE** de orice operație pe baza de date (chiar și pentru corectarea unei erori), agentul TREBUIE să:
+  1. Prezinte exact scriptul sau acțiunea.
+  2. Ceară confirmarea explicită a utilizatorului ("Ești de acord să modificăm X în Y?").
+  3. Aștepte răspunsul clar al utilizatorului.
 - **ESTE STRICT INTERZIS** să folosești `venv`, executabile sau orice resurse din foldere din afara workspace-ului curent (`Client B - pontaje`). Nu se folosesc căi de tipul `../../alt_proiect/venv/...` sub NICIO formă.
 - Dacă nu există un `venv` funcțional în workspace-ul curent, raportează problema utilizatorului și cere instrucțiuni — nu improviza cu resurse din alte proiecte.
 - **CASCADE DELETE**: Înainte de a șterge orice WorkOrder sau entitate principală, agentul TREBUIE să verifice relațiile `CASCADE` și să avertizeze utilizatorul că ștergerea va elimina și toate datele legate (poze, pontaje GPS, check-in-uri, calcule materiale).

@@ -190,15 +190,45 @@ export default function ShortWorksCalendar({
         });
     }, [weeklyOrders]);
 
+    // Calculate sequential index of orders for a team on a specific day
+    const teamDailyOrderIndices = useMemo(() => {
+        const counters = {}; // key: `${team_id}_${dateStr}`, value: counter
+        const indices = {};  // key: `wo.id`, value: index (0 = first)
+        
+        // We need a fully sorted array by Date THEN Time to process sequentially
+        const fullySorted = [...weeklyOrders].sort((a, b) => {
+            const dA = (a.start_date || a.deadline_date || '').split('T')[0];
+            const dB = (b.start_date || b.deadline_date || '').split('T')[0];
+            if (dA !== dB) return dA.localeCompare(dB);
+            
+            const tA = a.start_time ? String(a.start_time) : '07:00';
+            const tB = b.start_time ? String(b.start_time) : '07:00';
+            return tA.localeCompare(tB);
+        });
+        
+        fullySorted.forEach(wo => {
+            const dateStr = (wo.start_date || wo.deadline_date || '').split('T')[0];
+            const teamId = wo.assigned_team_id || 'unassigned';
+            const key = `${teamId}_${dateStr}`;
+            
+            if (counters[key] === undefined) counters[key] = 0;
+            indices[wo.id] = counters[key];
+            counters[key]++;
+        });
+        
+        return indices;
+    }, [weeklyOrders]);
+
     const [bases, setBases] = useState([]);
     const getDistanceTextForOrder = (wo) => {
         // REGULĂ STRICTĂ: Totul se citește din baza de date
         if (!wo.route_distance_km && wo.route_distance_km !== 0) return null;
         
         const dist = Math.round(wo.route_distance_km);
+        const orderIndex = teamDailyOrderIndices[wo.id] || 0;
         
-        // Dacă are timp de start mai târziu de ora de bază (07:00), înseamnă că e un punct pe traseu
-        const isLeg = wo.start_time && wo.start_time > '07:30'; 
+        // Dacă e a doua (sau următoarea) lucrare pe ziua respectivă pentru această echipă, se adaugă '+'
+        const isLeg = orderIndex > 0; 
         return isLeg ? `+ ${dist} km` : `${dist} km`;
     };
 

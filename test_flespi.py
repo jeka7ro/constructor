@@ -1,3 +1,9 @@
-import os, httpx, time
-FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "FlespiToken 123") # We will run this via app runner or similar?
-# Wait, I don't have the token.
+import os, httpx, json
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.getcwd(), 'backend', '.env'))
+FLESPI_TOKEN = os.getenv("FLESPI_TOKEN", "")
+
+url = "https://flespi.io/gw/devices/all"
+headers = {"Authorization": f"FlespiToken {FLESPI_TOKEN}", "Accept": "application/json"}
+resp = httpx.get(url, headers=headers)
+print(json.dumps(resp.json(), indent=2))

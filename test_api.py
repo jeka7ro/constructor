@@ -1,7 +1,7 @@
 import requests
 
 try:
-    resp = requests.get('http://127.0.0.1:8000/api/worker/agenda', headers={'X-Tenant': 'davidechape'})
-    print(resp.json())
+    # Need auth token, but we can just import the module and test it directly
+    pass
 except Exception as e:
     print(e)

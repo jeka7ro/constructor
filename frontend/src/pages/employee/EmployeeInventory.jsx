@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../lib/api'
 import { ChevronLeft, Wrench, Package, Flame, CheckCircle, Loader2, Minus, PackageSearch, RotateCcw, AlertTriangle, X } from 'lucide-react'
+import EmployeeHeader from '../../components/layout/EmployeeHeader'
 
 // ─── Generic Modal Shell ─────────────────────────────────────────────────────
 function Modal({ onClose, children }) {

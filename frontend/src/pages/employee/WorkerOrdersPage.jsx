@@ -24,13 +24,15 @@ import WeatherWidget from '../../components/WeatherWidget'
 import StreetViewPhotos from '../../components/StreetViewPhotos'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
+import useViewPreferencesStore from '../../store/viewPreferencesStore'
+import EmployeeHeader from '../../components/layout/EmployeeHeader'
 import {
     MapPin, Calendar as CalendarIcon, Clock, Users, Truck, Phone, Mail,
     FileImage, Download, ChevronRight, CheckCircle2,
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
     Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home,
-    FileText, ExternalLink, Loader2
+    FileText, ExternalLink, Loader2, Sun, Moon
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import { isToday, isFuture, format, startOfDay, startOfWeek, addWeeks, subWeeks, isSameWeek, isSameDay, addDays, parseISO } from 'date-fns'
@@ -163,7 +165,6 @@ function NavButtons({ lat, lon, address }) {
 function OrderCard({ order, onClick }) {
     const { t } = useTranslation()
     const isLeader = order.team_leader_accepted_at != null
-    const hasCheckin = order.my_checkin_at != null
     const isActive = order.status === 'in_progress'
 
     // REGULĂ STRICTĂ: Citim tonajul pre-calculat din DB
@@ -256,12 +257,7 @@ function OrderCard({ order, onClick }) {
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {order.my_acknowledged ? 'Confirmé' : 'Non confirmé'}
                     </span>
-                    {hasCheckin && (
-                        <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-600">
-                            <LogIn className="w-3.5 h-3.5" />
-                            Check-in {fmtTime(order.my_checkin_at)}
-                        </span>
-                    )}
+
                     <span className="ml-auto flex items-center gap-1 text-[10px] text-slate-400">
                         <Camera className="w-3.5 h-3.5" />
                         {order.photo_count}/{order.min_photos_required}
@@ -741,117 +737,6 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                 </Section>
             )}
 
-            {/* Buton confirmare */}
-            {!order.my_acknowledged && (
-                <div className="px-4 mt-2">
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-4">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-sm font-bold text-amber-900">Le chantier nécessite une confirmation</p>
-                                <p className="text-xs text-amber-700 mt-0.5">
-                                    Veuillez confirmer la prise de connaissance des détails.
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            disabled={acknowledging}
-                            onClick={onAcknowledge}
-                            className="mt-3 w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                        >
-                            <CheckCircle2 className="w-4 h-4" />
-                            {acknowledging ? 'Confirmation...' : "J'ai pris connaissance"}
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB: ORE (Check-in / Check-out)
-// ─────────────────────────────────────────────────────────────────────────────
-function TabHeures({ order, checkins, onCheckin, onCheckout, location, loadingAction }) {
-    const openCheckin = checkins.find(c => !c.checkout_at)
-    const hasOpenCheckin = Boolean(openCheckin)
-
-    return (
-        <div className="pb-28 px-4 pt-4 space-y-4">
-
-            {/* Statut GPS */}
-            {location ? (
-                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <p className="text-xs text-green-700 font-semibold">GPS actif</p>
-                    <span className="text-xs text-green-600 ml-auto">
-                        {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
-                    </span>
-                </div>
-            ) : (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                    <p className="text-xs text-red-700 font-semibold">GPS indisponible — autoriser l'accès</p>
-                </div>
-            )}
-
-            {/* Sosire comanda pe comanda */}
-            {order.checkin_at && (
-                <Section label="Première arrivée équipe">
-                    <Row label="Check-in à" value={fmtTime(order.checkin_at)} />
-                    {order.checkout_at && <Row label="Check-out à" value={fmtTime(order.checkout_at)} />}
-                </Section>
-            )}
-
-            {/* Istoricul check-in-urilor mele */}
-            {checkins.length > 0 && (
-                <Section label="Mon historique">
-                    <div className="space-y-2">
-                        {checkins.map(c => (
-                            <div key={c.id} className="bg-white border border-slate-200 rounded-xl px-4 py-3">
-                                <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <LogIn className="w-4 h-4 text-green-500" />
-                                        <span className="text-sm font-bold text-slate-800">{fmtTime(c.checkin_at)}</span>
-                                    </div>
-                                    {c.gps_match === true && (
-                                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                                            GPS OK
-                                        </span>
-                                    )}
-                                    {c.gps_match === false && (
-                                        <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                                            GPS divergent
-                                        </span>
-                                    )}
-                                </div>
-                                {c.checkout_at ? (
-                                    <div className="flex items-center gap-2">
-                                        <LogOut className="w-4 h-4 text-slate-400" />
-                                        <span className="text-sm text-slate-600">{fmtTime(c.checkout_at)}</span>
-                                        <span className="ml-auto text-xs font-semibold text-slate-500">{fmtDuration(c.worked_minutes)}</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-xs text-green-600 font-semibold">En cours</span>
-                                    </div>
-                                )}
-                                {c.checkin_address && (
-                                    <p className="text-xs text-slate-400 mt-1 truncate">{c.checkin_address}</p>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </Section>
-            )}
-
-            {checkins.length === 0 && !hasOpenCheckin && (
-                <div className="text-center py-8 text-slate-400">
-                    <Timer className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Aucun check-in enregistré.</p>
-                </div>
-            )}
         </div>
     )
 }
@@ -1375,6 +1260,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const showToast = useUIStore(s => s.showToast)
     const navigate = useNavigate()
     const { t } = useTranslation()
+    const globalTheme = useViewPreferencesStore(state => state.globalTheme)
+    const toggleTheme = useViewPreferencesStore(state => state.toggleTheme)
 
     const handleLogout = async () => {
         try {
@@ -1396,7 +1283,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [activeTab, setActiveTab]   = useState('info')
     const [photos, setPhotos]         = useState([])
     const [documents, setDocuments]   = useState([])
-    const [checkins, setCheckins]     = useState([])
     const [location, setLocation]     = useState(null)
     const [actualSurface, setActualSurface] = useState('')
     const [actualThickness, setActualThickness] = useState('')
@@ -1488,14 +1374,12 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         setActiveTab('info') // Always open info tab first
         setPhotos([])
         setDocuments([])
-        setCheckins([])
         setActualSurface(order.actual_surface_m2 || '')
         setActualThickness(order.actual_thickness_cm || '')
         setActualSand(order.actual_sand_quantity || '')
         setActualSandM3(order.actual_sand_m3 || '')
         fetchOrderPhotos(order.id)
         fetchOrderDocuments(order.id)
-        fetchOrderCheckins(order.id)
     }
 
     const fetchOrderPhotos = async (id) => {
@@ -1512,13 +1396,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         } catch {}
     }
 
-    const fetchOrderCheckins = async (id) => {
-        try {
-            const res = await api.get(`/worker/orders/${id}/checkins`)
-            setCheckins(res.data || [])
-        } catch {}
-    }
-
     const refreshSelected = async () => {
         if (!selected) return
         const res = await api.get(`/worker/orders/${selected.id}`)
@@ -1526,7 +1403,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         await fetchOrders()
         await fetchOrderPhotos(selected.id)
         await fetchOrderDocuments(selected.id)
-        await fetchOrderCheckins(selected.id)
     }
 
     // ACKNOWLEDGE
@@ -1540,42 +1416,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             showToast(e.response?.data?.detail || 'Erreur lors de la confirmation.', 'error')
         } finally {
             setAcknowledging(false)
-        }
-    }
-
-    // CHECK-IN
-    const handleCheckin = async () => {
-        if (!location) { showToast('GPS indisponible. Autoriser l\'accès à la localisation.', 'error'); return }
-        setLoadingAction(true)
-        try {
-            await api.post(`/worker/orders/${selected.id}/checkin`, {
-                latitude: location.latitude,
-                longitude: location.longitude,
-            })
-            showToast('Check-in enregistré.', 'success')
-            await refreshSelected()
-        } catch (e) {
-            showToast(e.response?.data?.detail || 'Erreur lors du check-in.', 'error')
-        } finally {
-            setLoadingAction(false)
-        }
-    }
-
-    // CHECK-OUT
-    const handleCheckout = async () => {
-        if (!location) { showToast('GPS indisponible.', 'error'); return }
-        setLoadingAction(true)
-        try {
-            const res = await api.post(`/worker/orders/${selected.id}/checkout`, {
-                latitude: location.latitude,
-                longitude: location.longitude,
-            })
-            showToast(res.data?.message || 'Check-out enregistré.', 'success')
-            await refreshSelected()
-        } catch (e) {
-            showToast(e.response?.data?.detail || 'Erreur lors du check-out.', 'error')
-        } finally {
-            setLoadingAction(false)
         }
     }
 
@@ -1749,8 +1589,6 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     }
 
     // ── State derivat
-    const openCheckin = checkins.find(c => c.user_id === user?.id && !c.checkout_at)
-    const hasOpenCheckin = Boolean(openCheckin)
     const isCompleted = selected?.status === 'completed'
     const completionPhotos = photos.filter(p => p.photo_type === 'completion')
     const machinePhotos = photos.filter(p => p.photo_type === 'machine_computer')
@@ -1762,7 +1600,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     // ─────────────────────────────────────────────────────────────────────────
     if (!selected) {
         return (
-            <div className="min-h-screen bg-slate-50">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-200">
                 {/* Header cu Profil si Logout */}
                 <div 
                     className="text-white p-4 shadow-lg sticky top-0 z-20 bg-[color:var(--mobile-bg)]"
@@ -1788,6 +1626,13 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         </div>
                         <div className="flex items-center gap-2">
                             <LanguageSelector variant="light" className="bg-white/20 border-0 text-white hover:bg-white/30" />
+                            <button
+                                onClick={toggleTheme}
+                                className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors text-white"
+                                title={globalTheme === 'dark' ? t('live.light_mode', 'Mode Clair') : t('live.dark_mode', 'Mode Sombre')}
+                            >
+                                {globalTheme === 'dark' ? <Sun className="w-5 h-5 text-yellow-300" /> : <Moon className="w-5 h-5" />}
+                            </button>
                             <button onClick={handleLogout} className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors">
                                 <LogOut className="w-5 h-5 text-white" />
                             </button>
@@ -1820,26 +1665,19 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     // RENDER: DETALIU comanda
     // ─────────────────────────────────────────────────────────────────────────
     return (
-        <div className={`fixed inset-x-0 top-0 bottom-0 z-[60] bg-slate-50 flex flex-col transition-transform duration-300 ${selected ? 'translate-x-0' : 'translate-x-full'}`}>
-            {/* Header comanda */}
-            <div 
-                className="shrink-0 z-20"
-                style={{ backgroundColor: tenant?.primary_color || '#1e40af' }}
-            >
-                <div className="flex items-center gap-3 px-4 py-3 text-white">
+        <div className={`fixed inset-x-0 top-0 bottom-0 z-[60] bg-slate-50 dark:bg-slate-900 flex flex-col transition-transform duration-300 ${selected ? 'translate-x-0' : 'translate-x-full'}`}>
+            <EmployeeHeader 
+                title={selected.client_name || "Client Necunoscut"} 
+                showBack={false} 
+                rightContent={
                     <button
                         onClick={() => setSelected(null)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors"
+                        className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md w-10 h-10 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all"
                     >
-                        <ChevronRight className="w-5 h-5 rotate-180" />
+                        <ChevronRight className="w-6 h-6 rotate-180" />
                     </button>
-                    <h2 className="text-sm font-bold text-white truncate flex-1">{selected.client_name || "Client Necunoscut"}</h2>
-                    <div className="shrink-0 flex justify-end">
-                        
-
-                    </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Continut tab */}
             <div className="flex-1 overflow-y-auto pb-6">
@@ -1856,16 +1694,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         completionPhotos={completionPhotos}
                     />
                 )}
-                {activeTab === 'ore' && (
-                    <TabHeures
-                        order={selected}
-                        checkins={checkins}
-                        onCheckin={handleCheckin}
-                        onCheckout={handleCheckout}
-                        location={location}
-                        loadingAction={loadingAction}
-                    />
-                )}
+
                 {activeTab === 'materiale' && (
                     <TabMatériaux
                         order={selected}

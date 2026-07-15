@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ClipboardList, MapPin, Calendar, CircleDot, Package, Wrench, ChevronDown, ChevronUp, Plus, Trash, Check, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
+import EmployeeHeader from '../../components/layout/EmployeeHeader'
 
 export default function EmployeeWorkOrdersPanel() {
     const { t } = useTranslation()
@@ -82,12 +83,9 @@ export default function EmployeeWorkOrdersPanel() {
     }
 
     return (
-        <div className="p-4 space-y-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-2">
-                <ClipboardList className="w-6 h-6 text-blue-500" />
-                {t('work_orders.active_orders', 'Comenzi Active')}
-            </h2>
-
+        <div className="bg-slate-50 dark:bg-slate-900 min-h-[100dvh] pb-24 text-slate-800 dark:text-slate-200">
+            <EmployeeHeader title={t('work_orders.active_orders', 'Comenzi Active')} showBack={false} />
+            <div className="p-4 space-y-4 max-w-3xl mx-auto mt-2">
             {workOrders.map(wo => {
                 const isExpanded = expandedId === wo.id
                 const isEditingMat = editingMatId === wo.id
@@ -299,6 +297,7 @@ export default function EmployeeWorkOrdersPanel() {
                     </div>
                 )
             })}
+        </div>
         </div>
     )
 }

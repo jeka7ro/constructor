@@ -112,44 +112,29 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
     return (
         <div className="flex flex-col gap-4 pb-10">
             {/* Navigare Saptamana */}
-            <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 <button 
                     onClick={() => setCurrentDate(d => addDays(d, -1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors shrink-0"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors shrink-0"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
                 
                 <div className="flex flex-col items-center flex-1 text-center">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                             {format(currentDate, 'MMM yyyy', { locale })}
                         </span>
-                        {(() => {
-                            const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-                            const currentDayOrders = ordersByDay[currentDateStr] || [];
-                            const firstOrder = currentDayOrders.find(o => (o.site_latitude || o.site_lat) && (o.site_longitude || o.site_lng));
-                            const weatherLat = firstOrder?.site_latitude || firstOrder?.site_lat;
-                            const weatherLng = firstOrder?.site_longitude || firstOrder?.site_lng;
-                            
-                            if (weatherLat && weatherLng) {
-                                return (
-                                    <div className="scale-90 origin-left">
-                                        <WeatherWidget lat={weatherLat} lon={weatherLng} dateStr={currentDateStr} isLarge={true} />
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
+                        {/* WeatherWidget removed from here as per user request */}
                     </div>
-                    <span className="text-sm font-bold text-slate-900 capitalize">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">
                         {format(currentDate, 'EEEE, d MMM', { locale })}
                     </span>
                 </div>
 
                 <button 
                     onClick={() => setCurrentDate(d => addDays(d, 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors shrink-0"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors shrink-0"
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
@@ -168,17 +153,17 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                             {isTodayFlag && (
                                 <div className="flex items-center gap-2 px-1 mb-1">
                                     <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                    <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wide">
+                                    <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                                         {t("general.today", "Aujourd'hui")}
                                     </h3>
-                                    <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                    <span className="ml-auto text-xs font-semibold text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
                                         {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
                                     </span>
                                 </div>
                             )}
                             {!isTodayFlag && (
                                 <div className="flex justify-end px-1 mb-1">
-                                    <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
                                         {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
                                     </span>
                                 </div>
@@ -186,161 +171,171 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
 
                             {/* Lista Comenzi pt Zi */}
                             {dayOrders.length > 0 ? (
-                                <div className="space-y-3">
-                                                                        {dayOrders.map((wo, index) => {
-                                        const time = wo.start_time || '--:--';
-                                        
-                                        let sandTons = 0;
-                                        let totalSurface = 0;
-                                        if (wo.actual_surface_m2) {
-                                            totalSurface = parseFloat(wo.actual_surface_m2);
-                                        }
+                                (() => {
+                                    const teamCounters = {};
+                                    const teamIndices = [];
+                                    dayOrders.forEach(wo => {
+                                        const tId = wo.assigned_team_id || 'unassigned';
+                                        if (teamCounters[tId] === undefined) teamCounters[tId] = 0;
+                                        teamIndices.push(teamCounters[tId]++);
+                                    });
 
-                                        if (wo.actual_sand_quantity) {
-                                            sandTons = parseFloat(wo.actual_sand_quantity) / 1000;
-                                            if (!totalSurface) {
-                                                (wo.volumes || []).forEach(vol => {
-                                                    const surface = parseFloat(vol.quantity) || 0;
-                                                    totalSurface += surface;
-                                                });
-                                            }
-                                        } else {
-                                            let totalKg = 0;
-                                            (wo.volumes || []).forEach(vol => {
-                                                const surface = parseFloat(vol.quantity) || 0;
-                                                const thickness = parseFloat(vol.thickness) || 0;
-                                                if (!wo.actual_surface_m2) {
-                                                    totalSurface += surface;
+                                    return (
+                                        <div className="space-y-3">
+                                            {dayOrders.map((wo, index) => {
+                                                const legNumber = teamIndices[index] + 1;
+                                                const teamName = wo.team?.name || wo.assigned_team_name || 'Echipă Neasignată';
+                                                
+                                                let sandTons = 0;
+                                                let totalSurface = 0;
+                                                if (wo.actual_surface_m2) {
+                                                    totalSurface = parseFloat(wo.actual_surface_m2);
                                                 }
-                                                if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
-                                            });
-                                            sandTons = totalKg / 1000;
-                                        }
 
-                                        let prevWo = null;
-                                        let prevLat = null;
-                                        let prevLng = null;
-                                        if (index > 0) {
-                                            prevWo = dayOrders[index - 1];
-                                            prevLat = prevWo.site_latitude || prevWo.site_lat;
-                                            prevLng = prevWo.site_longitude || prevWo.site_lng;
-                                        }
+                                                if (wo.actual_sand_quantity) {
+                                                    sandTons = parseFloat(wo.actual_sand_quantity) / 1000;
+                                                    if (!totalSurface) {
+                                                        (wo.volumes || []).forEach(vol => {
+                                                            const surface = parseFloat(vol.quantity) || 0;
+                                                            totalSurface += surface;
+                                                        });
+                                                    }
+                                                } else {
+                                                    let totalKg = 0;
+                                                    (wo.volumes || []).forEach(vol => {
+                                                        const surface = parseFloat(vol.quantity) || 0;
+                                                        const thickness = parseFloat(vol.thickness) || 0;
+                                                        if (!wo.actual_surface_m2) {
+                                                            totalSurface += surface;
+                                                        }
+                                                        if (surface > 0 && thickness > 0) totalKg += surface * thickness * 16;
+                                                    });
+                                                    sandTons = totalKg / 1000;
+                                                }
 
-                                        const color = wo.assigned_team_color || '#3b82f6';
-                                        const bgStyle = {
-                                            backgroundColor: color + '1a',
-                                            borderColor: color + '33',
-                                            backdropFilter: 'blur(8px)'
-                                        };
+                                                let prevWo = null;
+                                                let prevLat = null;
+                                                let prevLng = null;
+                                                if (index > 0) {
+                                                    prevWo = dayOrders[index - 1];
+                                                    prevLat = prevWo.site_latitude || prevWo.site_lat;
+                                                    prevLng = prevWo.site_longitude || prevWo.site_lng;
+                                                }
 
-                                        const lat = wo.site_latitude || wo.site_lat;
-                                        const lng = wo.site_longitude || wo.site_lng;
-                                        const address = wo.site_address || wo.site?.address || wo.address;
-                                        const staticMapLoc = (lat && lng) ? `${lat},${lng}` : (address ? encodeURIComponent(address) : null);
+                                                const color = wo.assigned_team_color || '#3b82f6';
+                                                const bgStyle = {
+                                                    backgroundColor: color + '1a',
+                                                    borderColor: color + '33',
+                                                    backdropFilter: 'blur(8px)'
+                                                };
 
-                                        return (
-                                            <button
-                                                key={wo.id}
-                                                onClick={() => onOrderClick(wo)}
-                                                className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800 dark:text-slate-100"
-                                                style={bgStyle}
-                                            >
-                                                {staticMapLoc && (
-                                                    <div 
-                                                        className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 dark:opacity-20 mix-blend-multiply dark:mix-blend-lighten" 
-                                                        style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
+                                                const lat = wo.site_latitude || wo.site_lat;
+                                                const lng = wo.site_longitude || wo.site_lng;
+                                                const address = wo.site_address || wo.site?.address || wo.address;
+                                                const staticMapLoc = (lat && lng) ? `${lat},${lng}` : (address ? encodeURIComponent(address) : null);
+
+                                                return (
+                                                    <button
+                                                        key={wo.id}
+                                                        onClick={() => onOrderClick(wo)}
+                                                        className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800 dark:text-slate-100"
+                                                        style={bgStyle}
                                                     >
-                                                        <img 
-                                                            src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
-                                                            alt="Map" 
-                                                            className="w-full h-full object-cover" 
-                                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
-                                                    <div className="flex items-start justify-between w-full">
-                                                        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg shrink-0" style={{ backgroundColor: color + '26' }}>
-                                                            <Clock className="w-3.5 h-3.5 opacity-80" />
-                                                            <span className="text-sm font-bold opacity-90">{time}</span>
-                                                        </div>
-                                                        <div className="flex-1 flex justify-center scale-[1.15] origin-top mt-[-4px]">
-                                                            {(lat && lng) ? (
-                                                                <WeatherWidget lat={lat} lon={lng} dateStr={wo.start_date || dateStr} />
-                                                            ) : null}
-                                                        </div>
-                                                        <div className="shrink-0 text-right flex flex-col items-end gap-1">
-                                                            {sandTons > 0 && (
-                                                                <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
-                                                                    {sandTons.toFixed(1)} T {t('general.sand', 'Sable')}
-                                                                </span>
-                                                            )}
-                                                            {totalSurface > 0 && (
-                                                                <span className="text-xs font-bold px-2 py-1 rounded-md inline-block" style={{ backgroundColor: color + '1a', color: color }}>
-                                                                    {totalSurface.toFixed(0)} m²
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-1">
-                                                        <h4 className="font-bold text-[16px] leading-tight opacity-90">
-                                                            {wo.client?.name || wo.client_name || 'Client Necunoscut'}
-                                                        </h4>
-                                                    </div>
-
-
-
-                                                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
-                                                        <MapPin className="w-4 h-4 shrink-0 opacity-70" />
-                                                        <div className="flex flex-col flex-1">
-                                                            <span className="text-xs font-medium leading-tight opacity-80">
-                                                                {address || 'Fără adresă'}
-                                                            </span>
-                                                            {prevWo ? (
-                                                                <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
-                                                                    <OsrmDistance 
-                                                                        lat1={prevLat} lon1={prevLng} 
-                                                                        lat2={lat} lon2={lng} 
-                                                                        label={t("general.from_prev", "du chantier précédent")} 
-                                                                    />
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-[10px] font-bold mt-0.5" style={{ color: color }}>
-                                                                    <OsrmDistance 
-                                                                        lat1={50.88243} lon1={4.39343} 
-                                                                        lat2={lat} lon2={lng} 
-                                                                        label={t('general.from_base', 'de la base')}
-                                                                    />
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        {wo.status === 'completed' || wo.status === 'done' ? (
+                                                        {staticMapLoc && (
                                                             <div 
-                                                                className="ml-auto w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
-                                                                title={t('status.completed', 'Terminé')}
+                                                                className="absolute top-0 right-0 bottom-0 w-2/3 pointer-events-none overflow-hidden rounded-r-2xl opacity-40 dark:opacity-20 mix-blend-multiply dark:mix-blend-lighten" 
+                                                                style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black)', maskImage: 'linear-gradient(to right, transparent, black)' }}
                                                             >
-                                                                <CheckCircle2 className="w-5 h-5" />
+                                                                <img 
+                                                                    src={`https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=400,300&z=14&l=map`} 
+                                                                    alt="Map" 
+                                                                    className="w-full h-full object-cover" 
+                                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                                />
                                                             </div>
-                                                        ) : (
-                                                            <a 
-                                                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
-                                                            >
-                                                                <Navigation className="w-4 h-4" />
-                                                            </a>
                                                         )}
-                                                    </div>
+                                                        <div className="p-3.5 flex flex-col gap-2.5 relative z-10">
+                                                            <div className="flex items-center justify-between w-full gap-1">
+                                                                <div className="flex items-center gap-1 px-2 py-1 rounded-md shrink-0" style={{ backgroundColor: color + '26' }}>
+                                                                    <span className="text-xs font-extrabold text-slate-900 truncate max-w-[95px] drop-shadow-sm">{teamName} #{legNumber}</span>
+                                                                </div>
+                                                                <div className="flex items-center justify-center flex-1">
+                                                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800/70 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
+                                                                        <div className="text-[11px] font-bold shrink-0">
+                                                                            {prevWo ? (
+                                                                                <OsrmDistance 
+                                                                                    lat1={prevLat} lon1={prevLng} 
+                                                                                    lat2={lat} lon2={lng} 
+                                                                                    label="" 
+                                                                                />
+                                                                            ) : (
+                                                                                <OsrmDistance 
+                                                                                    lat1={50.88243} lon1={4.39343} 
+                                                                                    lat2={lat} lon2={lng} 
+                                                                                    label=""
+                                                                                />
+                                                                            )}
+                                                                        </div>
+                                                                        {totalSurface > 0 && (
+                                                                            <div className="text-[11px] font-bold shrink-0">
+                                                                                {totalSurface.toFixed(0)} m²
+                                                                            </div>
+                                                                        )}
+                                                                        {sandTons > 0 && (
+                                                                            <div className="text-[11px] font-bold shrink-0">
+                                                                                {sandTons.toFixed(1)} T
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="shrink-0 flex items-center justify-end">
+                                                                    {(lat && lng) && (
+                                                                        <div className="scale-125 origin-right pr-2">
+                                                                            <WeatherWidget lat={lat} lon={lng} dateStr={wo.start_date || dateStr} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
-                                
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                            <div className="space-y-1 mt-1">
+                                                                <h4 className="font-bold text-[16px] leading-tight opacity-90">
+                                                                    {wo.client?.name || wo.client_name || 'Client Necunoscut'}
+                                                                </h4>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: color + '26' }}>
+                                                                <MapPin className="w-4 h-4 shrink-0 opacity-70" />
+                                                                <div className="flex flex-col flex-1">
+                                                                    <span className="text-xs font-medium leading-tight opacity-80">
+                                                                        {address || 'Fără adresă'}
+                                                                    </span>
+                                                                </div>
+                                                                {wo.status === 'completed' || wo.status === 'done' ? (
+                                                                    <div 
+                                                                        className="ml-auto w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"
+                                                                        title={t('status.completed', 'Terminé')}
+                                                                    >
+                                                                        <CheckCircle2 className="w-5 h-5" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <a 
+                                                                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wo.site_address || wo.site?.address || wo.address || '')}`}
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        className="ml-auto w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors shrink-0"
+                                                                    >
+                                                                        <Navigation className="w-4 h-4" />
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()
                             ) : (
                                 <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-2xl p-4 flex items-center justify-center">
                                     <span className="text-xs font-medium text-slate-400">

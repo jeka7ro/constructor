@@ -9,6 +9,10 @@ import { persist } from 'zustand/middleware'
 const useViewPreferencesStore = create(
     persist(
         (set, get) => ({
+            // Global Theme Preference
+            globalTheme: 'light',
+            toggleTheme: () => set((state) => ({ globalTheme: state.globalTheme === 'light' ? 'dark' : 'light' })),
+
             // Preferences per page (keyed by page identifier)
             preferences: {},
 

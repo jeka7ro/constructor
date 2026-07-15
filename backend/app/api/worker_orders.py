@@ -130,7 +130,9 @@ def get_my_orders(
     current_user: User = Depends(get_current_user)
 ):
     team_ids = _get_user_team_ids(db, current_user.id, current_user.organization_id)
-    if not team_ids:
+    is_driver = getattr(current_user, "role", None) and current_user.role.name.lower() == "sofer"
+    
+    if not team_ids and not is_driver:
         return []
 
     # Get recent orders (last 60 days) to avoid fetching thousands.
@@ -138,16 +140,20 @@ def get_my_orders(
     from sqlalchemy.orm import joinedload
     sixty_days_ago = datetime.utcnow() - timedelta(days=60)
 
-    orders = db.query(WorkOrder).options(
+    query = db.query(WorkOrder).options(
         joinedload(WorkOrder.site),
         joinedload(WorkOrder.client)
     ).filter(
         WorkOrder.organization_id == current_user.organization_id,
-        WorkOrder.assigned_team_id.in_(team_ids),
         WorkOrder.status.notin_(["cancelled", "isoflex"]),
         WorkOrder.is_quote == False,
         WorkOrder.start_date >= sixty_days_ago.date()
-    ).order_by(WorkOrder.start_date.asc()).all()
+    )
+    
+    if not is_driver:
+        query = query.filter(WorkOrder.assigned_team_id.in_(team_ids))
+        
+    orders = query.order_by(WorkOrder.start_date.asc()).all()
     
     # Deduplicate in Python to avoid Postgres DISTINCT on JSON columns
     orders = list({o.id: o for o in orders}.values())

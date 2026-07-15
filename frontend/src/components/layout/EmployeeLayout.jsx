@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Wrench, AlertTriangle, Calendar, ClipboardList } from 'lucide-react'
+import { Home, Wrench, AlertTriangle, Calendar, ClipboardList, Map as MapIcon, Moon, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTenantStore } from '../../store/tenantStore'
+import useViewPreferencesStore from '../../store/viewPreferencesStore'
 import api from '../../lib/api'
 
 export default function EmployeeLayout() {
@@ -12,6 +13,18 @@ export default function EmployeeLayout() {
     const isHome = location.pathname === '/'
     const tenant = useTenantStore((state) => state.tenant)
     const hasLongTerm = tenant?.has_long_term_sites !== false
+    
+    const globalTheme = useViewPreferencesStore(state => state.globalTheme)
+    const toggleTheme = useViewPreferencesStore(state => state.toggleTheme)
+
+    // Sync dark mode to HTML tag for global portals/scrollbars
+    useEffect(() => {
+        if (globalTheme === 'dark') {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    }, [globalTheme])
 
     // ── Live Location Tracking (pasiv) ───────────────────────────────────────
     // Trimite pozitia GPS la server din 60 in 60s, indiferent de modul de lucru
@@ -80,7 +93,7 @@ export default function EmployeeLayout() {
     };
 
     return (
-        <div className="flex flex-col min-h-[100dvh] bg-slate-50">
+        <div className={`flex flex-col min-h-[100dvh] bg-slate-50 dark:bg-slate-900 transition-colors ${globalTheme === 'dark' ? 'dark' : ''}`}>
             {/* Main Content Area */}
             <main className="flex-grow flex flex-col pb-24">
                 <Outlet />
@@ -92,22 +105,22 @@ export default function EmployeeLayout() {
                 style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
             >
 
-                {/* 1. Istoric sau Spacer */}
+                {/* 1. Harta (Live Fleet) */}
                 {hasLongTerm ? (
                     <NavLink
-                        to="/history"
+                        to="/harta"
                         className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
-                        <Calendar className="w-7 h-7 mb-1.5" />
-                        <span className="text-xs font-bold">{t('nav.history', 'Istoric')}</span>
+                        <MapIcon className="w-7 h-7 mb-1.5" />
+                        <span className="text-xs font-bold">{t('live.fleet_map_short', 'Carte')}</span>
                     </NavLink>
                 ) : (
                     <NavLink
-                        to="/istoric"
+                        to="/harta"
                         className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
                     >
-                        <Calendar className="w-7 h-7 mb-1.5" />
-                        <span className="text-[10px] font-bold text-center leading-tight">{t('nav.history', 'Istoric')}</span>
+                        <MapIcon className="w-7 h-7 mb-1.5" />
+                        <span className="text-[10px] font-bold text-center leading-tight">{t('live.fleet_map_short', 'Carte')}</span>
                     </NavLink>
                 )}
 

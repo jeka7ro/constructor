@@ -11,6 +11,7 @@ import {
     Navigation, ChevronDown, ChevronRight, LogOut, Users, Settings, XCircle,
     Building2, ShieldCheck, ArrowLeftRight, MessageSquareWarning, PackageSearch, Wrench, CloudRain
 } from 'lucide-react'
+import useViewPreferencesStore from '../../store/viewPreferencesStore'
 import TeamLeaderPanel from './TeamLeaderPanel'
 import SiteManagerPanel from './SiteManagerPanel'
 import EmployeeWorkOrdersPanel from './EmployeeWorkOrdersPanel'
@@ -79,6 +80,8 @@ export default function ClockInPage() {
     const navigate = useNavigate()
     const { user, setAuth, accessToken, refreshToken, logout } = useAuthStore()
     const tenant = useTenantStore(s => s.tenant)
+    const globalTheme = useViewPreferencesStore(state => state.globalTheme)
+    const toggleTheme = useViewPreferencesStore(state => state.toggleTheme)
 
     const [loading, setLoading] = useState(true)
     const [unreadComplaints, setUnreadComplaints] = useState(0)
@@ -892,14 +895,14 @@ export default function ClockInPage() {
 
     if (loading && !activeShift) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+            <div className="flex justify-center p-4">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
         )
     }
 
     return (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 pb-4">
+        <div className="bg-slate-50 dark:bg-slate-900 min-h-screen pb-4 text-slate-800 dark:text-slate-200">
             {/* Error Message Banner */}
             {errorMessage && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-sm w-[90%] animate-[slideDown_0.3s_ease-out]">
@@ -965,6 +968,13 @@ export default function ClockInPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-1">
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+                            title={globalTheme === 'dark' ? t('live.light_mode', 'Mode Clair') : t('live.dark_mode', 'Mode Sombre')}
+                        >
+                            {globalTheme === 'dark' ? <Sun className="w-5 h-5 text-yellow-300" /> : <Moon className="w-5 h-5" />}
+                        </button>
                         <button
                             onClick={() => { logout(); navigate('/login'); }}
                             className="p-2 hover:bg-red-500/30 rounded-full transition-colors"

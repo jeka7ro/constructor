@@ -61,6 +61,7 @@ const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMat
 const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
 const EmployeeInventory = lazy(() => import('./pages/employee/EmployeeInventory'))
 const WorkerOrdersPage = lazy(() => import('./pages/employee/WorkerOrdersPage'))
+const EmployeeFleetMap = lazy(() => import('./pages/employee/EmployeeFleetMap'))
 import EmployeeLayout from './components/layout/EmployeeLayout'
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
@@ -342,6 +343,7 @@ function App() {
                             <Route path="/emergencies" element={<EmployeeEmergencies />} />
                             <Route path="/comenzi" element={<WorkerOrdersPage />} />
                             <Route path="/istoric" element={<WorkerOrdersPage isHistory={true} />} />
+                            <Route path="/harta" element={<EmployeeFleetMap />} />
                         </Route>
                     ) : null}
 
