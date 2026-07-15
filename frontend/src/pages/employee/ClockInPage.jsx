@@ -928,11 +928,11 @@ export default function ClockInPage() {
                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
                             <CheckCircle className="w-10 h-10 text-green-600" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-2">Check-in Reușit!</h3>
+                        <h3 className="text-2xl font-bold text-slate-800 mb-2">{t('worker_ui.checkin_success')}</h3>
                         <p className="text-slate-600 mb-6 text-[15px] leading-relaxed">
-                            Te-ai pontat mai devreme cu succes. Ești <strong>Activ</strong>, dar timpul tău va fi calculat automat începând cu ora <strong className="text-blue-600 font-bold text-lg">{earlyClockinData}</strong>.
+                            Te-ai pontat mai devreme cu succes. Ești <strong>{t('worker_ui.status_active')}</strong>, dar timpul tău va fi calculat automat începând cu ora <strong className="text-blue-600 font-bold text-lg">{earlyClockinData}</strong>.
                             <br/><br/>
-                            <span className="text-sm text-slate-500">Nu este nevoie să mai dai check-in încă o dată!</span>
+                            <span className="text-sm text-slate-500">{t('worker_ui.already_checked_in')}</span>
                         </p>
                         <button
                             onClick={() => setEarlyClockinData(null)}
@@ -1008,7 +1008,7 @@ export default function ClockInPage() {
                             }`}
                     >
                         <ClipboardList className="w-4 h-4" />
-                        {t('work_orders.tab_orders', 'Comenzi')}
+                        {t('work_orders.tab_orders', t('worker_ui.tab_orders'))}
                     </button>
 
                     {hasTeamTab && (
@@ -1108,7 +1108,7 @@ export default function ClockInPage() {
                     ) : (
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-600">
                             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span>GPS indisponibil — activați locația</span>
+                            <span>{t('worker_ui.gps_unavailable')}</span>
                         </div>
                     )}
 
@@ -1172,7 +1172,7 @@ export default function ClockInPage() {
                     {!location && !activeShift && !locationError && (
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-2 flex items-center gap-2">
                             <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                            <p className="text-xs text-amber-700">Locație obligatorie pentru a începe tura.</p>
+                            <p className="text-xs text-amber-700">{t('worker_ui.location_required')}</p>
                         </div>
                     )}
 

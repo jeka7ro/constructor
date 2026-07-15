@@ -195,7 +195,7 @@ export default function EmployeeWorkOrdersPanel() {
                                 <div className="pt-4 border-t border-slate-200">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                            <Package className="w-3.5 h-3.5 text-emerald-500" /> {t('work_orders.consumed_materials', 'Materiale Consumate')}
+                                            <Package className="w-3.5 h-3.5 text-emerald-500" /> {t('work_orders.consumed_materials', t('worker_ui.consumed_materials'))}
                                         </h4>
                                         {!isEditingMat && !wo.is_robaws && (
                                             <button 
@@ -223,7 +223,7 @@ export default function EmployeeWorkOrdersPanel() {
                                                 ))}
                                             </ul>
                                         ) : (
-                                            <div className="text-sm text-slate-400 italic">Nu s-au raportat materiale consumate.</div>
+                                            <div className="text-sm text-slate-400 italic">{t('worker_ui.no_materials_reported')}</div>
                                         )
                                     ) : (
                                         /* EDIT MODE */
@@ -279,14 +279,14 @@ export default function EmployeeWorkOrdersPanel() {
                                                     onClick={() => setEditingMatId(null)}
                                                     className="flex-1 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold flex items-center justify-center gap-1"
                                                 >
-                                                    <X className="w-4 h-4" /> {t('work_orders.cancel', 'Anulează')}
+                                                    <X className="w-4 h-4" /> {t('work_orders.cancel', t('worker_ui.cancel'))}
                                                 </button>
                                                 <button
                                                     disabled={matSaving}
                                                     onClick={() => saveMaterials(wo.id)}
                                                     className="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-md flex items-center justify-center gap-1 disabled:opacity-50"
                                                 >
-                                                    <Check className="w-4 h-4" /> {matSaving ? t('work_orders.saving', 'Se salvează...') : t('work_orders.save', 'Salvează')}
+                                                    <Check className="w-4 h-4" /> {matSaving ? t('work_orders.saving', 'Se salvează...') : t('work_orders.save', t('worker_ui.save'))}
                                                 </button>
                                             </div>
                                         </div>

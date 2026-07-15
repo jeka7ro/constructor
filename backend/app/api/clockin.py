@@ -1055,7 +1055,8 @@ def get_live_vehicles(
             SELECT v.id, v.imei, v.name, v.type, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
                    COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path,
                    COALESCE(t_direct.color, t_leader.color, recent_team.team_color) AS team_color,
-                   COALESCE(t_direct.name, t_leader.name, recent_team.team_name, u_direct.full_name) AS driver_name
+                   COALESCE(t_direct.name, t_leader.name, recent_team.team_name, u_direct.full_name) AS driver_name,
+                   COALESCE(u_direct.id, u_leader.id, recent_team.team_leader_id) AS assigned_user_id
             FROM saas_app.vehicles v
             LEFT JOIN saas_app.vehicle_user_assignments vua ON vua.vehicle_id = v.id AND vua.is_active = true
             LEFT JOIN saas_app.users u_direct ON u_direct.id = vua.user_id
@@ -1147,7 +1148,8 @@ def get_live_vehicles(
                 "team_color": v.team_color or "#0ea5e9",
                 "avatar_url": v.avatar_path,
                 "distance_today": round(dist, 1),
-                "location_text": loc_text
+                "location_text": loc_text,
+                "assigned_user_id": getattr(v, "assigned_user_id", None)
             })
 
         return result

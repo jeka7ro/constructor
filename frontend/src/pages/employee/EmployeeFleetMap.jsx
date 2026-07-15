@@ -242,7 +242,7 @@ export default function EmployeeFleetMap() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-slate-50 dark:bg-slate-950 relative">
+    <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950 relative">
         <EmployeeHeader 
           title={t('live.title_live', 'FLOTTE EN DIRECT')} 
           showBack={true} 
@@ -403,15 +403,22 @@ export default function EmployeeFleetMap() {
 
         {/* Compact Vertical List in a Single Panel */}
         {!loading && vehicles.length > 0 && (
-          <div className={`absolute bottom-20 md:bottom-4 left-4 right-4 z-[1000] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl dark:shadow-2xl border border-slate-200/60 dark:border-slate-700/80 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${isPanelOpen ? 'max-h-[35vh]' : 'max-h-12'}`}>
+          <div className={`absolute bottom-24 md:bottom-8 left-4 right-4 z-[1000] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen ? 'max-h-[35vh]' : 'max-h-12'}`}>
             <div 
-              className="bg-slate-50/50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors"
+              className="px-4 py-3 flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10"
               onClick={() => setIsPanelOpen(!isPanelOpen)}
             >
                <div className="flex items-center gap-2">
-                 <span className="text-xs font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wide">{t('live.teams', 'Équipes')}</span>
-                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-transparent dark:border-slate-700">
+                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('live.teams', 'Équipes')}</span>
+                 <span className="text-[10px] font-bold text-slate-800 dark:text-slate-100 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                     {vehicles.filter(v => {
+                        if (v.assigned_user_id && user?.id) {
+                            return v.assigned_user_id !== user.id;
+                        }
+                        if (v.type === 'user' && user?.id) {
+                            return v.id !== user.id;
+                        }
                         const uName = (user?.full_name || '').toLowerCase();
                         const vName = (v.name || '').toLowerCase();
                         const vDriver = (v.driver_name || '').toLowerCase();
@@ -427,14 +434,20 @@ export default function EmployeeFleetMap() {
             </div>
             
             {isPanelOpen && (
-              <div className="overflow-y-auto overflow-x-hidden flex-1 p-2 grid grid-cols-2 gap-2 content-start">
+              <div className="flex-1 overflow-y-auto overscroll-contain pb-6">
+                <div className="flex flex-col p-2 gap-1.5">
                 {vehicles.filter(v => {
-                        const uName = (user?.full_name || '').toLowerCase();
-                        const vName = (v.name || '').toLowerCase();
-                        const vDriver = (v.driver_name || '').toLowerCase();
-                        if (!uName) return true;
-                        const isOwn = vName.includes(uName) || vDriver.includes(uName) || uName.includes(vName) || (vDriver && uName.includes(vDriver));
-                        return !isOwn;
+                      if (v.assigned_user_id && user?.id) {
+                          return v.assigned_user_id !== user.id;
+                      }
+                      if (v.type === 'user' && user?.id) {
+                          return v.id !== user.id;
+                      }
+                      const uName = (user?.full_name || '').toLowerCase();
+                      const vName = (v.name || '').toLowerCase();
+                      const vDriver = (v.driver_name || '').toLowerCase();
+                      if (!uName) return true;
+                      return !(vName.includes(uName) || vDriver.includes(uName) || uName.includes(vName) || (vDriver && uName.includes(vDriver)));
                 }).map(v => (
                     <div 
                       key={v.id} 
