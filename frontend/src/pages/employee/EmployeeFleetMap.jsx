@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Navigation, Clock, Gauge, RefreshCw, Car, MapPin, ChevronLeft, ChevronUp, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
+import { Navigation, Clock, Gauge, RefreshCw, Car, Truck, MapPin, ChevronLeft, ChevronUp, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { useTenantStore } from '../../store/tenantStore';
@@ -23,13 +23,17 @@ L.Icon.Default.mergeOptions({
 
 const POLL_INTERVAL = 30000; // 30s
 
-function createVehicleIcon(color, name, avatarUrl) {
+function createVehicleIcon(color, name, avatarUrl, vehicleType) {
   const fullAvatarUrl = avatarUrl ? (avatarUrl.startsWith('http') ? avatarUrl : `${API_BASE}${avatarUrl}`) : null;
   const themeColor = color || '#3b82f6';
   
+  const isCrane = vehicleType === 'Grue';
+  const truckSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>`;
+  const craneSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M7 21v-4"/><path d="M17 21v-4"/><path d="M12 17V3l-7 4"/><path d="M12 10l5 3"/></svg>`;
+
   const innerHtml = fullAvatarUrl 
     ? `<img src="${fullAvatarUrl}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 3px 6px rgba(0,0,0,0.3);" />`
-    : `<div style="width:36px;height:36px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 6px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h4.3c.6 0 1.1.4 1.3.9l.8 2.1c.2.5.7.9 1.3.9h6.3c.6 0 1 .4 1 1v7c0 .6-.4 1-1 1h-2"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></div>`;
+    : `<div style="width:36px;height:36px;border-radius:50%;background-color:${themeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 6px rgba(0,0,0,0.3);">${isCrane ? craneSvg : truckSvg}</div>`;
 
   return L.divIcon({
     html: innerHtml,
@@ -252,7 +256,7 @@ export default function EmployeeFleetMap() {
             />
             <ZoomControl position="topleft" />
 
-            {/* Controls overlay */}
+            {/* Controls overlay left */}
             <div className="absolute top-4 left-[52px] z-[400] flex flex-row items-start gap-2 pointer-events-none">
                 {/* Fullscreen button */}
                 <button 
@@ -273,9 +277,12 @@ export default function EmployeeFleetMap() {
                         : <Maximize2 className="w-[18px] h-[18px]" />
                     }
                 </button>
+            </div>
 
-                {/* Sand stations toggle */}
-                {isDavideChape && (
+            {/* Controls overlay right */}
+            {isDavideChape && (
+                <div className="absolute top-4 right-4 z-[400] flex flex-row items-start gap-2 pointer-events-none">
+                    {/* Sand stations toggle */}
                     <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 h-[34px] rounded-[4px] shadow-sm border-2 border-slate-200/50 dark:border-slate-700 pointer-events-auto flex items-center gap-2 w-max">
                         <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                             onClick={() => setShowSandStations(!showSandStations)}
@@ -284,8 +291,8 @@ export default function EmployeeFleetMap() {
                         </div>
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stations de Sable</span>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {userLoc && (
               <Marker position={[userLoc.lat, userLoc.lng]} icon={createUserIcon()}>
@@ -297,7 +304,7 @@ export default function EmployeeFleetMap() {
               <Marker
                 key={v.id}
                 position={[v.lat, v.lng]}
-                icon={createVehicleIcon(v.team_color, v.name, v.avatar_url)}
+                icon={createVehicleIcon(v.team_color, v.name, v.avatar_url, v.vehicle_type)}
               >
                 <Popup className="tracking-popup min-w-[200px]" closeButton={false}>
                   <div className="flex flex-col gap-3 p-1">
@@ -403,19 +410,19 @@ export default function EmployeeFleetMap() {
             {isPanelOpen && (
               <div className="overflow-y-auto overflow-x-hidden flex-1 p-2 grid grid-cols-2 gap-2 content-start">
                 {vehicles.filter(v => v.name !== user?.full_name).map(v => (
-                  <div 
-                    key={v.id} 
-                    onClick={() => handleCardClick(v)}
-                    className="flex flex-col gap-2 p-2.5 rounded-2xl border shadow-sm transition-transform cursor-pointer relative active:scale-95 dark:hover:brightness-110"
-                    style={{ 
-                      backgroundColor: v.team_color 
-                        ? (globalTheme === 'dark' ? `${v.team_color}20` : `${v.team_color}15`)
-                        : (globalTheme === 'dark' ? '#1e293b' : '#ffffff'), 
-                      borderColor: v.team_color 
-                        ? (globalTheme === 'dark' ? `${v.team_color}50` : `${v.team_color}40`)
-                        : (globalTheme === 'dark' ? '#334155' : '#f1f5f9')
-                    }}
-                  >
+                    <div 
+                      key={v.id} 
+                      onClick={() => handleCardClick(v)}
+                      className="flex flex-col gap-2 p-2.5 rounded-2xl border shadow-sm transition-transform cursor-pointer relative active:scale-95 dark:hover:brightness-110"
+                      style={{ 
+                        backgroundColor: v.team_color 
+                          ? (globalTheme === 'dark' ? `${v.team_color}35` : `${v.team_color}25`)
+                          : (globalTheme === 'dark' ? '#1e293b' : '#ffffff'), 
+                        borderColor: v.team_color 
+                          ? (globalTheme === 'dark' ? `${v.team_color}60` : `${v.team_color}60`)
+                          : (globalTheme === 'dark' ? '#334155' : '#e2e8f0')
+                      }}
+                    >
                     <div className="flex items-center gap-2 pr-7">
                       <div 
                         className="w-8 h-8 rounded-full flex-shrink-0 border shadow-sm flex items-center justify-center bg-slate-100 dark:bg-slate-800 overflow-hidden"
@@ -424,7 +431,11 @@ export default function EmployeeFleetMap() {
                         {v.avatar_url ? (
                           <img src={v.avatar_url.startsWith('http') ? v.avatar_url : `${API_BASE}${v.avatar_url}`} className="w-full h-full object-cover" />
                         ) : (
-                          <Car className="w-4 h-4 text-slate-400" />
+                          v.vehicle_type === 'Grue' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-500 dark:text-slate-400" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M7 21v-4"/><path d="M17 21v-4"/><path d="M12 17V3l-7 4"/><path d="M12 10l5 3"/></svg>
+                          ) : (
+                            <Truck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                          )
                         )}
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
