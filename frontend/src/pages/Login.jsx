@@ -101,7 +101,7 @@ export default function Login() {
                             {tenant?.name || "Pontaj Digital"}
                         </h1>
                         <p className="text-sm text-slate-500 font-medium">
-                            Système de pointage moderne pour la construction
+                            Système moderne de gestion d'entreprise
                         </p>
                     </div>
 
@@ -115,7 +115,7 @@ export default function Login() {
                                 type="text"
                                 value={employeeCode}
                                 onChange={(e) => setEmployeeCode(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl 
+                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl 
                          focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 
                          outline-none transition-all duration-200 text-slate-900 font-medium
                          placeholder:text-slate-400 placeholder:font-normal"
@@ -135,7 +135,7 @@ export default function Login() {
                                     type={showPin ? 'text' : 'password'}
                                     value={pin}
                                     onChange={(e) => setPin(e.target.value.slice(0, 4))}
-                                    className="w-full px-4 py-3 pr-12 bg-slate-50 border-2 border-slate-200 rounded-xl 
+                                    className="w-full px-4 py-3 pr-12 bg-slate-50 border-2 border-slate-200 rounded-2xl 
                              focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 
                              outline-none transition-all duration-200 text-slate-900 font-medium
                              placeholder:text-slate-400 placeholder:font-normal"
@@ -177,7 +177,7 @@ export default function Login() {
                             type="submit"
                             disabled={loading}
                             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
-                       px-6 py-3.5 rounded-xl font-semibold text-base
+                       px-6 py-3.5 rounded-2xl font-semibold text-base
                        hover:from-blue-700 hover:to-indigo-700
                        active:scale-[0.98] transition-all duration-200
                        shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40
