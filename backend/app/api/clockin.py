@@ -1054,13 +1054,14 @@ def get_live_vehicles(
         vehicle_rows = db.execute(sqlt("""
             SELECT v.id, v.imei, v.name, v.type, v.plate_number, v.last_lat, v.last_lng, v.last_seen_at, v.last_speed,
                    COALESCE(u_direct.avatar_path, u_leader.avatar_path) AS avatar_path,
-                   COALESCE(t_direct.color, recent_team.team_color) AS team_color,
-                   COALESCE(t_direct.name, recent_team.team_name, u_direct.full_name) AS driver_name
+                   COALESCE(t_direct.color, t_leader.color, recent_team.team_color) AS team_color,
+                   COALESCE(t_direct.name, t_leader.name, recent_team.team_name, u_direct.full_name) AS driver_name
             FROM saas_app.vehicles v
             LEFT JOIN saas_app.vehicle_user_assignments vua ON vua.vehicle_id = v.id AND vua.is_active = true
             LEFT JOIN saas_app.users u_direct ON u_direct.id = vua.user_id
             LEFT JOIN saas_app.team_members tm ON tm.user_id = vua.user_id AND tm.is_active = true
             LEFT JOIN saas_app.teams t_direct ON t_direct.id = tm.team_id
+            LEFT JOIN saas_app.teams t_leader ON t_leader.team_leader_id = vua.user_id
             -- Try to find if vehicle is assigned to a team (via a recent work order) and get leader's avatar and team color
             LEFT JOIN (
                 SELECT DISTINCT ON (wo.assigned_vehicle_id)
