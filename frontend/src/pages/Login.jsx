@@ -83,27 +83,28 @@ export default function Login() {
             </div>
 
             <div className="w-full max-w-md relative z-10 mt-8">
-                {/* Logo & Title */}
-                <div className="text-center mb-6 fade-in">
-                    <div className="inline-flex items-center justify-center w-32 h-32 mb-2 drop-shadow-[0_10px_25px_rgba(59,130,246,0.5)]">
-                        {tenant?.logo_url ? (
-                            <img src={tenant.logo_url} alt={tenant.name} className="w-full h-full object-contain" />
-                        ) : (
-                            <div className="w-full h-full rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-5xl font-extrabold text-white shadow-xl border-4 border-white/20">
-                                {tenant?.name?.charAt(0) || "P"}
-                            </div>
-                        )}
-                    </div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        {tenant?.name || "Pontaj Digital"}
-                    </h1>
-                    <p className="text-blue-100 font-medium">
-                        Sistem modern de pontaj pentru construcții
-                    </p>
-                </div>
 
                 {/* Login Card */}
                 <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-200/50 slide-up">
+                    {/* Logo & Title moved inside */}
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-28 h-28 mb-3 drop-shadow-sm">
+                            {tenant?.logo_url ? (
+                                <img src={tenant.logo_url} alt={tenant.name} className="w-full h-full object-contain" />
+                            ) : (
+                                <div className="w-full h-full rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-5xl font-extrabold text-white shadow-lg border-4 border-slate-50">
+                                    {tenant?.name?.charAt(0) || "P"}
+                                </div>
+                            )}
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-800 mb-1">
+                            {tenant?.name || "Pontaj Digital"}
+                        </h1>
+                        <p className="text-sm text-slate-500 font-medium">
+                            Sistem modern de pontaj pentru construcții
+                        </p>
+                    </div>
+
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Employee Code Input */}
                         <div>
@@ -212,8 +213,8 @@ export default function Login() {
                         <span className="hidden sm:inline"> Toate drepturile rezervate. | </span>
                         O soluție digitală de {t('common.solution_by')} <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
                     </p>
-                    <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-80 hover:opacity-100 transition-all transform hover:scale-105">
-                        <img src="/getapp_smart_timesheet_white.png" alt="Smart Timesheet" className="h-16 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by Smart Timesheet</span>' }} />
+                    <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
+                        <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-12 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by Smart Timesheet</span>' }} />
                     </a>
                 </div>
             </div>
