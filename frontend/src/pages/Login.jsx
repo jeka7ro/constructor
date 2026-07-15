@@ -85,10 +85,10 @@ export default function Login() {
             <div className="w-full max-w-md relative z-10 mt-8">
 
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-200/50 slide-up">
+                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 sm:p-10 border border-slate-200/50 slide-up">
                     {/* Logo & Title moved inside */}
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-28 h-28 mb-3 drop-shadow-sm">
+                        <div className="inline-flex items-center justify-center w-48 h-32 mb-3 drop-shadow-sm">
                             {tenant?.logo_url ? (
                                 <img src={tenant.logo_url} alt={tenant.name} className="w-full h-full object-contain" />
                             ) : (
