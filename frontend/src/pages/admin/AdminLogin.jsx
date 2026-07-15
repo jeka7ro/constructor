@@ -68,9 +68,9 @@ export default function AdminLogin() {
         <div 
             className="min-h-screen flex items-center justify-center p-4 relative bg-slate-900"
             style={{
-                backgroundImage: `linear-gradient(to bottom right, rgba(15, 23, 42, 0.6), rgba(30, 58, 138, 0.6), rgba(49, 46, 129, 0.75)), url('/login_bg.png')`,
+                backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.2), rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.9)), url('/davide_chape_fleet.png')`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center 20%',
+                backgroundPosition: 'center',
                 backgroundAttachment: 'fixed',
                 backgroundRepeat: 'no-repeat'
             }}
@@ -81,12 +81,12 @@ export default function AdminLogin() {
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="w-full max-w-md relative z-10 mt-8">
+            <div className="w-full max-w-md relative z-10">
                 {/* Login Card */}
-                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 sm:p-8 border border-slate-200/50 slide-up">
+                <div className="bg-gradient-to-br from-blue-100/50 via-white/40 to-yellow-100/50 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] p-6 sm:p-8 border border-white/50 slide-up relative z-10 hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.3)] transition-all duration-300">
                     {/* Logo & Title */}
                     <div className="text-center mb-6">
-                        <div className="inline-flex items-center justify-center w-48 h-32 mt-2 mb-2 drop-shadow-sm">
+                        <div className="inline-flex items-center justify-center w-56 h-16 mt-2 mb-4 drop-shadow-sm">
                             {tenant?.logo_url ? (
                                 <img src={tenant.logo_url} alt={tenant.name} className="w-full h-full object-contain" />
                             ) : (
@@ -113,10 +113,10 @@ export default function AdminLogin() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl 
-                         focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 
-                         outline-none transition-all duration-200 text-slate-900 font-medium
-                         placeholder:text-slate-400 placeholder:font-normal"
+                                className="w-full px-4 py-2.5 bg-white/50 backdrop-blur-sm border-2 border-white/60 rounded-2xl 
+                         focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-500/20 
+                         outline-none transition-all duration-200 text-slate-800 font-medium
+                         placeholder:text-slate-500 placeholder:font-normal shadow-inner"
                                 placeholder="admin@pontaj.ro"
                                 required
                                 autoFocus
@@ -133,10 +133,10 @@ export default function AdminLogin() {
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-2.5 pr-12 bg-slate-50 border-2 border-slate-200 rounded-2xl 
-                             focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 
-                             outline-none transition-all duration-200 text-slate-900 font-medium
-                             placeholder:text-slate-400 placeholder:font-normal"
+                                    className="w-full px-4 py-2.5 pr-12 bg-white/50 backdrop-blur-sm border-2 border-white/60 rounded-2xl 
+                             focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-500/20 
+                             outline-none transition-all duration-200 text-slate-800 font-medium
+                             placeholder:text-slate-500 placeholder:font-normal shadow-inner tracking-wide"
                                     placeholder="••••••••"
                                     required
                                 />
@@ -172,13 +172,11 @@ export default function AdminLogin() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
-                       px-6 py-3.5 rounded-2xl font-semibold text-base
-                       hover:from-blue-700 hover:to-indigo-700
+                            className={`w-full text-white px-6 py-3.5 rounded-2xl font-semibold text-base
                        active:scale-[0.98] transition-all duration-200
-                       shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40
                        disabled:opacity-50 disabled:cursor-not-allowed
-                       flex items-center justify-center gap-2 group"
+                       flex items-center justify-center gap-2 group ${!tenant?.primary_color ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40' : 'hover:brightness-110 shadow-lg hover:shadow-xl'}`}
+                            style={tenant?.primary_color ? { backgroundColor: tenant.primary_color, boxShadow: `0 4px 14px 0 ${tenant.primary_color}60` } : {}}
                         >
                             {loading ? (
                                 <>
@@ -195,21 +193,21 @@ export default function AdminLogin() {
                     </form>
 
                     {/* Back to Main App */}
-                    <div className="mt-6 text-center">
+                    <div className="mt-6 mb-6 text-center">
                         <a href="/" className="text-sm text-slate-600 hover:text-blue-600 transition-colors font-medium">
                             {t('admin_login.worker_access', '← Accès travailleurs')}
                         </a>
                     </div>
-                </div>
 
-                {/* Footer */}
-                <div className="mt-8 text-center flex flex-col items-center justify-center fade-in stagger-2 gap-3">
-                    <p className="text-sm text-blue-200/90 font-medium tracking-wide">
-                        Une solution de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
-                    </p>
-                    <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
-                        <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-12 w-auto object-contain mx-auto drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-white font-bold border border-white/30 px-4 py-2 rounded-lg">Powered by Smart Timesheet</span>' }} />
-                    </a>
+                    {/* Footer Inside Box */}
+                    <div className="pt-6 border-t border-slate-200/50 text-center flex flex-col items-center justify-center gap-3">
+                        <p className="text-xs text-slate-500 font-medium tracking-wide">
+                            Une solution de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-slate-700 hover:text-blue-600 font-bold transition-all underline decoration-slate-300 underline-offset-4">getapp.ro</a>
+                        </p>
+                        <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
+                            <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-8 w-auto object-contain mx-auto drop-shadow-sm" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-slate-700 font-bold text-xs border border-slate-300 px-3 py-1 rounded-md">Powered by Smart Timesheet</span>' }} />
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

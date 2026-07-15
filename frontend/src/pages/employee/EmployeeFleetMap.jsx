@@ -410,7 +410,7 @@ export default function EmployeeFleetMap() {
             >
                <div className="flex items-center gap-2">
                  <span className="text-xs font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wide">{t('live.teams', 'Équipes')}</span>
-                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-transparent dark:border-slate-700">{vehicles.filter(v => v.name !== user?.full_name).length}</span>
+                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-transparent dark:border-slate-700">{vehicles.filter(v => v.driver_name !== user?.full_name).length}</span>
                </div>
                <button className="text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                  {isPanelOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
@@ -419,18 +419,13 @@ export default function EmployeeFleetMap() {
             
             {isPanelOpen && (
               <div className="overflow-y-auto overflow-x-hidden flex-1 p-2 grid grid-cols-2 gap-2 content-start">
-                {vehicles.filter(v => v.name !== user?.full_name).map(v => (
+                {vehicles.filter(v => v.driver_name !== user?.full_name).map(v => (
                     <div 
                       key={v.id} 
                       onClick={() => handleCardClick(v)}
-                      className="flex flex-col gap-2 p-2.5 rounded-2xl border shadow-sm transition-transform cursor-pointer relative active:scale-95 dark:hover:brightness-110"
+                      className="flex flex-col gap-2 p-2.5 rounded-2xl border-2 shadow-sm transition-transform cursor-pointer relative active:scale-95 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
                       style={{ 
-                        backgroundColor: v.team_color 
-                          ? (globalTheme === 'dark' ? `${v.team_color}35` : `${v.team_color}25`)
-                          : (globalTheme === 'dark' ? '#1e293b' : '#ffffff'), 
-                        borderColor: v.team_color 
-                          ? (globalTheme === 'dark' ? `${v.team_color}60` : `${v.team_color}60`)
-                          : (globalTheme === 'dark' ? '#334155' : '#e2e8f0')
+                        borderColor: v.team_color || (globalTheme === 'dark' ? '#334155' : '#e2e8f0')
                       }}
                     >
                     <div className="flex items-center gap-2 pr-7">
