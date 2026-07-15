@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
 import { Radio, Users, Clock, Gauge, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import api from '../../lib/api';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { useTenantStore } from '../../store/tenantStore';
 
 // Fix leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -58,18 +60,63 @@ function formatLastSeen(dateStr, t) {
   return t ? t('live.ago_h', 'il y a {{count}}h', { count: Math.floor(secs / 3600) }) : `il y a ${Math.floor(secs / 3600)}h`;
 }
 
+function MapResizer({ isMapFull }) {
+  const map = useMap();
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          map.invalidateSize();
+      }, 300);
+      return () => clearTimeout(timer);
+  }, [map, isMapFull]);
+  return null;
+}
+
 export default function LiveTracking() {
   const { t } = useTranslation();
+  const tenant = useTenantStore((state) => state.tenant);
+  const isDavideChape = !tenant || (tenant?.slug || '').toLowerCase().includes('davide') || (tenant?.name || '').toLowerCase().includes('davide');
   const [vehicles, setVehicles] = useState([]);
+  const [sandStations, setSandStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [connected, setConnected] = useState(true);
+  const [isMapFull, setIsMapFull] = useState(false);
+  const [showSandStations, setShowSandStations] = useState(() => {
+      const saved = localStorage.getItem('livetracking_nisip_toggle');
+      return saved ? JSON.parse(saved) : true;
+  });
   const intervalRef = useRef(null);
+
+  useEffect(() => {
+      localStorage.setItem('livetracking_nisip_toggle', JSON.stringify(showSandStations));
+  }, [showSandStations]);
+
+  useEffect(() => {
+      const handleFullscreenChange = () => {
+          const isFull = !!document.fullscreenElement;
+          setIsMapFull(isFull);
+      };
+      
+      const handler = (e) => { if (e.key === 'Escape') setIsMapFull(false) }
+      document.addEventListener('keydown', handler);
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      
+      return () => {
+          document.removeEventListener('keydown', handler);
+          document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      }
+  }, []);
 
   const fetchLive = useCallback(async () => {
     try {
-      const res = await api.get('/admin/vehicles/live');
-      setVehicles(res.data || []);
+      const [resVehicles, resStations] = await Promise.all([
+          api.get('/admin/vehicles/live'),
+          isDavideChape ? api.get('/admin/logistics/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
+      ]);
+      setVehicles(resVehicles.data || []);
+      if (isDavideChape && resStations.data) {
+          setSandStations(resStations.data);
+      }
       setLastUpdate(new Date());
       setConnected(true);
     } catch (e) {
@@ -77,7 +124,7 @@ export default function LiveTracking() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isDavideChape]);
 
   useEffect(() => {
     fetchLive();
@@ -130,8 +177,9 @@ export default function LiveTracking() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className={`flex flex-1 overflow-hidden ${isMapFull ? 'fixed inset-0 z-[9999] bg-white' : ''}`}>
         {/* Sidebar */}
+        {!isMapFull && (
         <div className="w-72 shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
           <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100 bg-slate-50">
             {t("live.active_vehicles", "Véhicules actifs")}
@@ -191,9 +239,46 @@ export default function LiveTracking() {
             );
           })}
         </div>
+        )}
 
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" id="livetracking-map-container">
+          {/* Controls overlay */}
+          <div className="absolute top-4 left-14 z-[400] flex items-center gap-2 pointer-events-none">
+              {/* Fullscreen button */}
+              <button 
+                  onClick={() => {
+                      const elem = document.getElementById('livetracking-map-container');
+                      if (!document.fullscreenElement && elem?.requestFullscreen) {
+                          elem.requestFullscreen().catch(() => setIsMapFull(f => !f));
+                      } else if (document.fullscreenElement && document.exitFullscreen) {
+                          document.exitFullscreen();
+                      } else {
+                          setIsMapFull(f => !f);
+                      }
+                  }}
+                  title={isMapFull ? 'Ieși fullscreen (ESC)' : 'Fullscreen hartă'}
+                  className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 w-10 h-10 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 pointer-events-auto transition-all"
+              >
+                  {isMapFull 
+                      ? <Minimize2 className="w-5 h-5" /> 
+                      : <Maximize2 className="w-5 h-5" />
+                  }
+              </button>
+
+              {/* Sand stations toggle */}
+              {isDavideChape && (
+                  <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto flex items-center gap-3">
+                      <div className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                          onClick={() => setShowSandStations(!showSandStations)}
+                      >
+                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stations de Sable</span>
+                  </div>
+              )}
+          </div>
+
           {!loading && (
             <MapContainer
               center={center}
@@ -238,7 +323,28 @@ export default function LiveTracking() {
                 </Marker>
               ))}
 
+              {/* Sand Stations Markers */}
+              {isDavideChape && showSandStations && sandStations.filter(s => s.latitude && s.longitude).map((s) => (
+                  <Marker 
+                      key={`sand-${s.id}`} 
+                      position={[s.latitude, s.longitude]} 
+                      icon={L.divIcon({
+                          html: `<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
+                          className: '',
+                          iconSize: [24, 24],
+                          iconAnchor: [12, 12],
+                          popupAnchor: [0, -12]
+                      })}
+                  >
+                      <Popup>
+                          <div className="font-bold text-sm text-slate-900">{s.name}</div>
+                          <div className="text-xs text-slate-500 mt-1">{s.address}</div>
+                      </Popup>
+                  </Marker>
+              ))}
+
               {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
+              <MapResizer isMapFull={isMapFull} />
             </MapContainer>
           )}
 

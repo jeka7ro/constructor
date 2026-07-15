@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Navigation, Clock, Gauge, RefreshCw, Car, MapPin, ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
+import { Navigation, Clock, Gauge, RefreshCw, Car, MapPin, ChevronLeft, ChevronUp, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { useTenantStore } from '../../store/tenantStore';
 import useViewPreferencesStore from '../../store/viewPreferencesStore';
 import EmployeeHeader from '../../components/layout/EmployeeHeader';
 
@@ -121,17 +122,56 @@ function formatLastSeen(dateStr, t) {
   return t('live.ago_h', 'il y a {{count}}h', { count: Math.floor(secs / 3600) });
 }
 
+function MapResizer({ isMapFull }) {
+  const map = useMap();
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          map.invalidateSize();
+      }, 300);
+      return () => clearTimeout(timer);
+  }, [map, isMapFull]);
+  return null;
+}
+
 export default function EmployeeFleetMap() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const tenant = useTenantStore((state) => state.tenant);
+  const isDavideChape = !tenant || (tenant?.slug || '').toLowerCase().includes('davide') || (tenant?.name || '').toLowerCase().includes('davide');
   const globalTheme = useViewPreferencesStore(state => state.globalTheme);
   const [vehicles, setVehicles] = useState([]);
+  const [sandStations, setSandStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userLoc, setUserLoc] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isMapFull, setIsMapFull] = useState(false);
+  const [showSandStations, setShowSandStations] = useState(() => {
+      const saved = localStorage.getItem('employeemap_nisip_toggle');
+      return saved ? JSON.parse(saved) : true;
+  });
   const intervalRef = useRef(null);
   const mapRef = useRef(null);
+
+  useEffect(() => {
+      localStorage.setItem('employeemap_nisip_toggle', JSON.stringify(showSandStations));
+  }, [showSandStations]);
+
+  useEffect(() => {
+      const handleFullscreenChange = () => {
+          const isFull = !!document.fullscreenElement;
+          setIsMapFull(isFull);
+      };
+      
+      const handler = (e) => { if (e.key === 'Escape') setIsMapFull(false) }
+      document.addEventListener('keydown', handler);
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      
+      return () => {
+          document.removeEventListener('keydown', handler);
+          document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      }
+  }, []);
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -146,8 +186,14 @@ export default function EmployeeFleetMap() {
 
   const fetchLive = useCallback(async () => {
     try {
-      const res = await api.get('/admin/vehicles/live');
-      let data = res.data || [];
+      const [resVehicles, resStations] = await Promise.all([
+          api.get('/admin/vehicles/live'),
+          isDavideChape ? api.get('/worker/orders/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
+      ]);
+      let data = resVehicles.data || [];
+      if (isDavideChape && resStations.data) {
+          setSandStations(resStations.data);
+      }
       if (userLoc) {
         const roadDists = await getRoadDistances(userLoc, data);
         data = data.map(v => ({
@@ -189,14 +235,14 @@ export default function EmployeeFleetMap() {
           badge={<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>} 
         />
 
-      <div className="flex-1 relative z-0">
+      <div className={`flex flex-1 relative z-0 ${isMapFull ? 'fixed inset-0 z-[9999] bg-slate-50' : ''}`}>
         {!loading && (
           <MapContainer
             center={center}
             zoom={10}
             className="w-full h-full pb-[150px]"
             style={{ background: '#f8fafc' }}
-            zoomControl={false}
+            zoomControl={true}
             ref={mapRef}
           >
             <TileLayer
@@ -204,6 +250,42 @@ export default function EmployeeFleetMap() {
               attribution="&copy; Google Maps"
               maxZoom={20}
             />
+            <ZoomControl position="topleft" />
+
+            {/* Controls overlay */}
+            <div className="absolute top-4 left-[52px] z-[400] flex flex-row items-start gap-2 pointer-events-none">
+                {/* Fullscreen button */}
+                <button 
+                    onClick={() => {
+                        const elem = document.documentElement; // For mobile full screen, document.documentElement works best
+                        if (!document.fullscreenElement && elem?.requestFullscreen) {
+                            elem.requestFullscreen().catch(() => setIsMapFull(f => !f));
+                        } else if (document.fullscreenElement && document.exitFullscreen) {
+                            document.exitFullscreen();
+                        } else {
+                            setIsMapFull(f => !f);
+                        }
+                    }}
+                    className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-sm border-2 border-slate-200/50 dark:border-slate-700 w-[34px] h-[34px] rounded-[4px] flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 pointer-events-auto transition-colors"
+                >
+                    {isMapFull 
+                        ? <Minimize2 className="w-[18px] h-[18px]" /> 
+                        : <Maximize2 className="w-[18px] h-[18px]" />
+                    }
+                </button>
+
+                {/* Sand stations toggle */}
+                {isDavideChape && (
+                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 h-[34px] rounded-[4px] shadow-sm border-2 border-slate-200/50 dark:border-slate-700 pointer-events-auto flex items-center gap-2 w-max">
+                        <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            onClick={() => setShowSandStations(!showSandStations)}
+                        >
+                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stations de Sable</span>
+                    </div>
+                )}
+            </div>
 
             {userLoc && (
               <Marker position={[userLoc.lat, userLoc.lng]} icon={createUserIcon()}>
@@ -268,7 +350,37 @@ export default function EmployeeFleetMap() {
               </Marker>
             ))}
 
+            {/* Sand Stations Markers */}
+            {isDavideChape && showSandStations && sandStations.filter(s => s.latitude && s.longitude).map((s) => (
+                <Marker 
+                    key={`sand-${s.id}`} 
+                    position={[s.latitude, s.longitude]} 
+                    icon={L.divIcon({
+                        html: `<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
+                        className: '',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12],
+                        popupAnchor: [0, -12]
+                    })}
+                >
+                    <Popup className="tracking-popup">
+                        <div className="font-bold text-sm text-slate-900">{s.name}</div>
+                        <div className="text-xs text-slate-500 mt-1">{s.address}</div>
+                        <a 
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl py-2 px-3 flex items-center justify-center gap-2 font-bold transition-colors shadow-sm text-xs"
+                        >
+                            <Navigation className="w-3.5 h-3.5" />
+                            Naviguer
+                        </a>
+                    </Popup>
+                </Marker>
+            ))}
+
             {vehicles.length > 0 && <FitBounds vehicles={vehicles} userLoc={userLoc} />}
+            <MapResizer isMapFull={isMapFull} />
           </MapContainer>
         )}
 

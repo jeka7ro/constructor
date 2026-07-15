@@ -61,7 +61,13 @@ const POLL_INTERVAL = 15000;
 export default function MiniLiveTrackingMap() {
   const { t } = useTranslation();
   const tenant = useTenantStore(s => s.tenant);
+  const isDavideChape = !tenant || (tenant?.slug || '').toLowerCase().includes('davide') || (tenant?.name || '').toLowerCase().includes('davide');
   const [vehicles, setVehicles] = useState([]);
+  const [sandStations, setSandStations] = useState([]);
+  const [showSandStations, setShowSandStations] = useState(() => {
+      const saved = localStorage.getItem('minilivetracking_nisip_toggle');
+      return saved ? JSON.parse(saved) : true;
+  });
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
   const [isMapFull, setIsMapFull] = useState(false);
@@ -69,10 +75,20 @@ export default function MiniLiveTrackingMap() {
   const containerRef = useRef(null);
   const intervalRef = useRef(null);
 
+  useEffect(() => {
+      localStorage.setItem('minilivetracking_nisip_toggle', JSON.stringify(showSandStations));
+  }, [showSandStations]);
+
   const fetchLive = useCallback(async () => {
     try {
-      const res = await api.get('/admin/vehicles/live');
-      setVehicles(res.data || []);
+      const [resVehicles, resStations] = await Promise.all([
+          api.get('/admin/vehicles/live'),
+          isDavideChape ? api.get('/admin/logistics/sand-stations').catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
+      ]);
+      setVehicles(resVehicles.data || []);
+      if (isDavideChape && resStations.data) {
+          setSandStations(resStations.data);
+      }
       setConnected(true);
     } catch (e) {
       setConnected(false);
@@ -111,7 +127,17 @@ export default function MiniLiveTrackingMap() {
           <Radio className="w-4 h-4 text-blue-500" />
           {t('dashboard.live_tracking', 'LIVE TRACKING')}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+            {isDavideChape && (
+                <div className="flex items-center gap-2 mr-2">
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Sable</span>
+                    <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                        onClick={() => setShowSandStations(!showSandStations)}
+                    >
+                        <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
+                    </div>
+                </div>
+            )}
             <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 rounded-full">{vehicles.length} {t("live.active", "actif")}{vehicles.length !== 1 ? 's' : ''}</span>
             <button onClick={() => {
                 if (!document.fullscreenElement) {
@@ -193,6 +219,27 @@ export default function MiniLiveTrackingMap() {
                 maxZoom={20}
             />
             {vehicles.length > 0 && <FitBounds vehicles={vehicles} />}
+            
+            {/* Sand Stations Markers */}
+            {isDavideChape && showSandStations && sandStations.filter(s => s.latitude && s.longitude).map((s) => (
+                <Marker 
+                    key={`sand-${s.id}`} 
+                    position={[s.latitude, s.longitude]} 
+                    icon={L.divIcon({
+                        html: `<div style="background-color: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;">S</div>`,
+                        className: '',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12],
+                        popupAnchor: [0, -12]
+                    })}
+                >
+                    <Popup className="tracking-popup">
+                        <div className="font-bold text-sm text-slate-900">{s.name}</div>
+                        <div className="text-xs text-slate-500 mt-1">{s.address}</div>
+                    </Popup>
+                </Marker>
+            ))}
+
             {vehicles.map(v => (
                 <Marker
                 key={v.id}

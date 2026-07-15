@@ -330,7 +330,8 @@ export default function LogisticsDashboard() {
     const [isMapFull, setIsMapFull] = useState(false)
     // gpsData removed — GPS comes from route.gps_trace (TripLog snapshot) only
     const [showSandStations, setShowSandStations] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
+        const saved = localStorage.getItem('nisip_toggle')
+        return saved ? JSON.parse(saved) : true
     })
     const [focusedTeamId, setFocusedTeamId] = useState(null)
     const navigate = useNavigate()
