@@ -403,14 +403,23 @@ export default function EmployeeFleetMap() {
 
         {/* Compact Vertical List in a Single Panel */}
         {!loading && vehicles.length > 0 && (
-          <div className={`absolute bottom-4 left-4 right-4 z-[1000] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl dark:shadow-2xl border border-slate-200/60 dark:border-slate-700/80 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${isPanelOpen ? 'max-h-[35vh]' : 'max-h-12'}`}>
+          <div className={`absolute bottom-20 md:bottom-4 left-4 right-4 z-[1000] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl dark:shadow-2xl border border-slate-200/60 dark:border-slate-700/80 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${isPanelOpen ? 'max-h-[35vh]' : 'max-h-12'}`}>
             <div 
               className="bg-slate-50/50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between shrink-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors"
               onClick={() => setIsPanelOpen(!isPanelOpen)}
             >
                <div className="flex items-center gap-2">
                  <span className="text-xs font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wide">{t('live.teams', 'Équipes')}</span>
-                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-transparent dark:border-slate-700">{vehicles.filter(v => v.driver_name !== user?.full_name).length}</span>
+                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-transparent dark:border-slate-700">
+                    {vehicles.filter(v => {
+                        const uName = (user?.full_name || '').toLowerCase();
+                        const vName = (v.name || '').toLowerCase();
+                        const vDriver = (v.driver_name || '').toLowerCase();
+                        if (!uName) return true;
+                        const isOwn = vName.includes(uName) || vDriver.includes(uName) || uName.includes(vName) || (vDriver && uName.includes(vDriver));
+                        return !isOwn;
+                    }).length}
+                 </span>
                </div>
                <button className="text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                  {isPanelOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
@@ -419,7 +428,14 @@ export default function EmployeeFleetMap() {
             
             {isPanelOpen && (
               <div className="overflow-y-auto overflow-x-hidden flex-1 p-2 grid grid-cols-2 gap-2 content-start">
-                {vehicles.filter(v => v.driver_name !== user?.full_name).map(v => (
+                {vehicles.filter(v => {
+                        const uName = (user?.full_name || '').toLowerCase();
+                        const vName = (v.name || '').toLowerCase();
+                        const vDriver = (v.driver_name || '').toLowerCase();
+                        if (!uName) return true;
+                        const isOwn = vName.includes(uName) || vDriver.includes(uName) || uName.includes(vName) || (vDriver && uName.includes(vDriver));
+                        return !isOwn;
+                }).map(v => (
                     <div 
                       key={v.id} 
                       onClick={() => handleCardClick(v)}
