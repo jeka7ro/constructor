@@ -209,8 +209,6 @@ export default function Login() {
                 {/* Bottom Text */}
                 <div className="mt-8 text-center flex flex-col items-center justify-center fade-in stagger-2 gap-3">
                     <p className="text-sm text-blue-200/90 font-medium tracking-wide">
-                        © 2025 Pontaj Digital.<br className="sm:hidden" />
-                        <span className="hidden sm:inline"> Tous droits réservés. | </span>
                         Une solution de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-300 font-bold transition-all underline decoration-blue-400/50 underline-offset-4">getapp.ro</a>
                     </p>
                     <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
