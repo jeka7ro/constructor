@@ -69,9 +69,9 @@ export default function Login() {
         <div 
             className="min-h-screen flex items-center justify-center p-4 relative bg-slate-900"
             style={{
-                backgroundImage: `linear-gradient(to bottom right, rgba(15, 23, 42, 0.4), rgba(30, 58, 138, 0.5), rgba(49, 46, 129, 0.6)), url('/login_bg.png')`,
+                backgroundImage: `linear-gradient(to bottom right, rgba(15, 23, 42, 0.7), rgba(30, 58, 138, 0.8), rgba(49, 46, 129, 0.85)), url('/construction_bg.png')`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center 20%',
+                backgroundPosition: 'center',
                 backgroundAttachment: 'fixed',
                 backgroundRepeat: 'no-repeat'
             }}
