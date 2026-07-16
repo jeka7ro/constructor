@@ -22,6 +22,7 @@ export default defineConfig({
     ],
     server: {
         host: true, // Allow external devices (like iPad) to connect for HMR
+        allowedHosts: true, // Allow nip.io local testing
         port: 3000,
         proxy: {
             '/api': {

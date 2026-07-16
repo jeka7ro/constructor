@@ -369,7 +369,7 @@ function Lightbox({ url, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB: INFO
 // ─────────────────────────────────────────────────────────────────────────────
-function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver, completionPhotos = [] }) {
+function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPhotoClick, sandStations, isDriver, completionPhotos = [], prevOrderLoc }) {
     const { t } = useTranslation()
     const instPhotos = photos.filter(p => p.photo_type === 'instruction')
     const [showStation, setShowStation] = useState(false)
@@ -578,7 +578,7 @@ function TabInfo({ order, photos, documents, onAcknowledge, acknowledging, onPho
                                     longitude={finalLng}
                                     address={order.site_address}
                                     baseName={order.assigned_team_name}
-                                    routeSegments={order.route_segments}
+                                    routeSegments={prevOrderLoc ? [{ from: prevOrderLoc.name, from_lat: prevOrderLoc.lat, from_lng: prevOrderLoc.lng }] : order.route_segments}
                                     sandStations={sandStations}
                                     zoom={13}
                                 />
@@ -1369,8 +1369,15 @@ export default function WorkerOrdersPage({ isHistory = false }) {
         }
     }
 
-    const openOrder = async (order) => {
+    const [prevOrderLoc, setPrevOrderLoc] = useState(null)
+
+    const openOrder = async (order, pLat, pLng, pName) => {
         setSelected(order)
+        if (pLat && pLng) {
+            setPrevOrderLoc({ lat: pLat, lng: pLng, name: pName || 'Lucrarea Precedentă' })
+        } else {
+            setPrevOrderLoc(null)
+        }
         setActiveTab('info') // Always open info tab first
         setPhotos([])
         setDocuments([])
@@ -1600,7 +1607,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     // ─────────────────────────────────────────────────────────────────────────
     if (!selected) {
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-200">
+            <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 dark:text-slate-200">
                 {/* Header cu Profil si Logout */}
                 <div 
                     className="text-white p-4 shadow-lg sticky top-0 z-20 bg-[color:var(--mobile-bg)]"
@@ -1648,7 +1655,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                     <div className="p-4 space-y-4">
                         <MobileAgenda
                             orders={orders}
-                            onOrderClick={(wo) => openOrder(wo)}
+                            onOrderClick={(wo, pLat, pLng, pName) => openOrder(wo, pLat, pLng, pName)}
                             currentDate={currentDate}
                             setCurrentDate={setCurrentDate}
                             isHistory={isHistory}
@@ -1692,6 +1699,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                         sandStations={sandStations}
                         isDriver={isDriver}
                         completionPhotos={completionPhotos}
+                        prevOrderLoc={prevOrderLoc}
                     />
                 )}
 

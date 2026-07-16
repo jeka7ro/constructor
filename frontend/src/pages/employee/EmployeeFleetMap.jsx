@@ -242,7 +242,7 @@ export default function EmployeeFleetMap() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950 relative">
+    <div className="absolute inset-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden z-10">
         <EmployeeHeader 
           title={t('live.title_live', 'FLOTTE EN DIRECT')} 
           showBack={true} 
@@ -500,6 +500,7 @@ export default function EmployeeFleetMap() {
                   </div>
                 ))}
               </div>
+            </div>
             )}
           </div>
         )}

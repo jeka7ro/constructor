@@ -130,7 +130,7 @@ def get_my_orders(
     current_user: User = Depends(get_current_user)
 ):
     team_ids = _get_user_team_ids(db, current_user.id, current_user.organization_id)
-    is_driver = getattr(current_user, "role", None) and current_user.role.name.lower() == "sofer"
+    is_driver = (getattr(current_user, "_token_role", None) == "driver") or (getattr(current_user, "role", None) and current_user.role.name.lower() == "sofer")
     
     if not team_ids and not is_driver:
         return []

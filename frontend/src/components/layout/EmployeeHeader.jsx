@@ -4,15 +4,18 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTenantStore } from '../../store/tenantStore'
 
+import { useUIStore } from '../../store/uiStore'
+
 export default function EmployeeHeader({ title, showBack = false, badge = null, rightContent = null }) {
     const navigate = useNavigate()
     const { t } = useTranslation()
     const tenant = useTenantStore(state => state.tenant)
+    const globalTheme = useUIStore(state => state.globalTheme)
 
     return (
         <div 
-            className="shrink-0 z-20 text-white p-4 shadow-lg sticky top-0 bg-[color:var(--mobile-bg)]"
-            style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+            className={`shrink-0 z-20 text-white p-4 shadow-lg sticky top-0 transition-colors ${globalTheme === 'dark' ? 'bg-slate-900' : 'bg-[color:var(--mobile-bg)]'}`}
+            style={globalTheme === 'dark' ? {} : { '--mobile-bg': tenant?.primary_color || '#2563EB' }}
         >
             <div className="flex items-center justify-between max-w-md mx-auto">
                 <div className="flex items-center gap-3">

@@ -412,10 +412,19 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
 
     return (
         <div
-            className={`flex flex-col md:flex-row gap-3 w-full ${isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-900/95 p-4 backdrop-blur-sm' : ''}`}
+            className={`w-full ${isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-900' : 'flex flex-col md:flex-row gap-3'}`}
             style={{ height: isFullScreen ? '100vh' : height, zIndex: isFullScreen ? 9999 : 1 }}
         >
-            {isFullScreen && leftPanelContent && markerType !== 'pin' && (
+            {isFullScreen && (
+                <button
+                    onClick={() => setIsFullScreen(false)}
+                    className="absolute top-4 right-4 z-[99999] bg-slate-800 text-white px-4 py-2 rounded-full font-bold shadow-2xl border-2 border-slate-600 flex items-center gap-2"
+                >
+                    <Minimize2 className="w-5 h-5" /> Închide
+                </button>
+            )}
+
+            {!isFullScreen && leftPanelContent && markerType !== 'pin' && (
                 <div className="hidden md:flex flex-col gap-2 h-full relative w-[32%] max-w-[420px]">
                     <div className="flex-1 w-full flex flex-col gap-2 overflow-y-auto pr-1 pb-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
                         {leftPanelContent}
@@ -423,18 +432,19 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 </div>
             )}
             
-            <div className={`h-full relative rounded-xl overflow-hidden shadow-inner ${isFullScreen ? 'flex-1 border-2 border-slate-700' : 'w-full border border-slate-200 dark:border-slate-700'}`}>
+            <div className={`h-full relative overflow-hidden ${isFullScreen ? 'w-full flex-1' : 'w-full rounded-xl shadow-inner border border-slate-200 dark:border-slate-700'}`}>
                 <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
                 
                 {/* UI Controls */}
-                <div className="absolute top-2 left-2 z-[400] flex flex-row items-center gap-2">
-                    <button 
-                        onClick={() => setIsFullScreen(!isFullScreen)}
-                        className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center backdrop-blur-sm"
-                        title={isFullScreen ? "Ieși din modul ecran complet" : "Mărește harta (Ecran complet)"}
-                    >
-                        {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                    </button>
+                {!isFullScreen && (
+                    <div className="absolute top-2 left-2 z-[400] flex flex-row items-center gap-2">
+                        <button 
+                            onClick={() => setIsFullScreen(true)}
+                            className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center backdrop-blur-sm"
+                            title="Mărește harta (Ecran complet)"
+                        >
+                            <Maximize2 className="w-5 h-5" />
+                        </button>
                     {sandStations && sandStations.length > 0 && (
                         <label className="flex items-center gap-2 cursor-pointer bg-white/90 dark:bg-slate-800/90 px-2.5 py-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors pointer-events-auto backdrop-blur-sm h-full">
                             <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
@@ -450,6 +460,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         </label>
                     )}
                 </div>
+                )}
 
                 {navButtons && (
                     <div className="absolute top-2 right-2 z-[400] flex gap-2">

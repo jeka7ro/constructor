@@ -47,6 +47,8 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     admin: AdminResponse
+    worker_token: Optional[str] = None
+    worker_data: Optional[dict] = None
 
 
 from passlib.context import CryptContext
@@ -133,9 +135,24 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
         expires_delta=access_token_expires
     )
     
-    # Look up matching User record to get avatar_path
+    # Look up matching User record to get avatar_path and potentially issue a worker token
     user_record = db.query(User).filter(User.email == admin.email).first()
     avatar_path = getattr(user_record, 'avatar_path', None) if user_record else None
+
+    worker_token = None
+    worker_data = None
+    if user_record:
+        from app.auth import create_access_token as create_worker_token
+        worker_token = create_worker_token(
+            data={"sub": user_record.id, "email": user_record.email, "role": "driver"}
+        )
+        worker_data = {
+            "id": user_record.id,
+            "email": user_record.email,
+            "full_name": user_record.full_name,
+            "role": "driver",
+            "organization_id": getattr(user_record, 'organization_id', None)
+        }
 
     return {
         "access_token": access_token,
@@ -149,7 +166,9 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
             "is_super_admin": bool(admin.is_super_admin),
             "avatar_path": avatar_path,
             "created_at": admin.created_at,
-        }
+        },
+        "worker_token": worker_token,
+        "worker_data": worker_data
     }
 
 

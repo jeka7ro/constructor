@@ -101,8 +101,8 @@ export default function EmployeeLayout() {
 
             {/* Bottom Navigation Bar */}
             <nav 
-                className="fixed bottom-0 left-0 right-0 backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] z-50 rounded-t-3xl transition-colors duration-300"
-                style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
+                className={`fixed bottom-0 left-0 right-0 backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] z-50 rounded-t-3xl transition-colors duration-300 ${globalTheme === 'dark' ? 'bg-slate-900' : ''}`}
+                style={globalTheme === 'dark' ? {} : { backgroundColor: tenant?.primary_color || '#2563EB' }}
             >
 
                 {/* 1. Harta (Live Fleet) */}
@@ -137,8 +137,8 @@ export default function EmployeeLayout() {
                     <div className="relative flex justify-center w-[96px]">
                         <button
                             onClick={handleHomePress}
-                            style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
-                            className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] ${isHome ? 'scale-105' : ''}`}
+                            style={globalTheme === 'dark' ? {} : { backgroundColor: tenant?.primary_color || '#2563EB' }}
+                            className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white dark:border-slate-900 backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] ${isHome ? 'scale-105' : ''} ${globalTheme === 'dark' ? 'bg-slate-800' : ''}`}
                         >
                             {tenant?.favicon_url ? (
                                 <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />

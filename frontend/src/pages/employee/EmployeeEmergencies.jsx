@@ -47,7 +47,7 @@ export default function EmployeeEmergencies() {
     }
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-200 pb-24">
+        <div className="bg-slate-50 dark:bg-slate-900 flex-1 flex flex-col text-slate-800 dark:text-slate-200">
             <EmployeeHeader 
                 title="Urgențe" 
                 showBack={true} 

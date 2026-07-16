@@ -83,7 +83,7 @@ export default function EmployeeWorkOrdersPanel() {
     }
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 min-h-[100dvh] pb-24 text-slate-800 dark:text-slate-200">
+        <div className="bg-slate-50 dark:bg-slate-900 flex-1 flex flex-col text-slate-800 dark:text-slate-200">
             <EmployeeHeader title={t('work_orders.active_orders', 'Comenzi Active')} showBack={false} />
             <div className="p-4 space-y-4 max-w-3xl mx-auto mt-2">
             {workOrders.map(wo => {

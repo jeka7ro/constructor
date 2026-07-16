@@ -216,10 +216,12 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                 let prevWo = null;
                                                 let prevLat = null;
                                                 let prevLng = null;
+                                                let prevAddress = null;
                                                 if (index > 0) {
                                                     prevWo = dayOrders[index - 1];
                                                     prevLat = prevWo.site_latitude || prevWo.site_lat;
                                                     prevLng = prevWo.site_longitude || prevWo.site_lng;
+                                                    prevAddress = prevWo.site_address || prevWo.address || prevWo.client_name;
                                                 }
 
                                                 const color = wo.assigned_team_color || '#3b82f6';
@@ -237,7 +239,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                                 return (
                                                     <button
                                                         key={wo.id}
-                                                        onClick={() => onOrderClick(wo)}
+                                                        onClick={() => onOrderClick(wo, prevLat, prevLng, prevAddress)}
                                                         className="w-full text-left rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow active:scale-[0.99] relative text-slate-800 dark:text-slate-100"
                                                         style={bgStyle}
                                                     >

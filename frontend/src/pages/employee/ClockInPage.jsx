@@ -902,7 +902,7 @@ export default function ClockInPage() {
     }
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 min-h-screen pb-4 text-slate-800 dark:text-slate-200">
+        <div className="bg-slate-50 dark:bg-slate-900 flex-1 flex flex-col pb-4 text-slate-800 dark:text-slate-200">
             {/* Error Message Banner */}
             {errorMessage && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-sm w-[90%] animate-[slideDown_0.3s_ease-out]">

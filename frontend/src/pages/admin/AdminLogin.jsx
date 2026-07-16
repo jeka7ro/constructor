@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
+import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
 import api from '../../lib/api'
 import { Shield, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
@@ -44,7 +45,7 @@ export default function AdminLogin() {
                 tenant_id: tenant?.id || null
             })
 
-            const { access_token, admin } = response.data
+            const { access_token, admin, worker_token, worker_data } = response.data
             
             // Save or clear credentials
             if (rememberMe) {
@@ -54,7 +55,13 @@ export default function AdminLogin() {
             }
 
             setAuth(admin, access_token)
-            navigate('/admin/planning')
+            
+            if (worker_token && worker_data && window.innerWidth < 768) {
+                useAuthStore.getState().setAuth(worker_data, worker_token)
+                navigate('/')
+            } else {
+                navigate('/admin/planning')
+            }
         } catch (err) {
             setError(err.response?.data?.detail || t('admin_login.auth_error', 'Erreur d\'authentification'))
         } finally {
