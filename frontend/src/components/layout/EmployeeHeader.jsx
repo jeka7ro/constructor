@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTenantStore } from '../../store/tenantStore'
 
-import { useUIStore } from '../../store/uiStore'
+import useViewPreferencesStore from '../../store/viewPreferencesStore'
 
 export default function EmployeeHeader({ title, showBack = false, badge = null, rightContent = null }) {
     const navigate = useNavigate()
     const { t } = useTranslation()
     const tenant = useTenantStore(state => state.tenant)
-    const globalTheme = useUIStore(state => state.globalTheme)
+    const globalTheme = useViewPreferencesStore(state => state.globalTheme)
 
     return (
         <div 

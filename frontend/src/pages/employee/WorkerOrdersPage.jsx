@@ -1610,8 +1610,8 @@ export default function WorkerOrdersPage({ isHistory = false }) {
             <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 dark:text-slate-200">
                 {/* Header cu Profil si Logout */}
                 <div 
-                    className="text-white p-4 shadow-lg sticky top-0 z-20 bg-[color:var(--mobile-bg)]"
-                    style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
+                    className={`text-white p-4 shadow-lg sticky top-0 z-20 transition-colors ${globalTheme === 'dark' ? 'bg-slate-900' : 'bg-[color:var(--mobile-bg)]'}`}
+                    style={globalTheme === 'dark' ? {} : { '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     <div className="flex items-center justify-between max-w-md mx-auto">
                         <div className="flex items-center gap-3">

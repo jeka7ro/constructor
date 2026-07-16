@@ -254,7 +254,7 @@ export default function EmployeeFleetMap() {
           <MapContainer
             center={center}
             zoom={10}
-            className="w-full h-full pb-[150px]"
+            className={`w-full h-full ${!isMapFull ? 'pb-[150px]' : ''}`}
             style={{ background: '#f8fafc' }}
             zoomControl={false}
             ref={mapRef}
@@ -268,7 +268,7 @@ export default function EmployeeFleetMap() {
 
             {/* Controls overlay left */}
             <div className="absolute top-4 left-[52px] z-[400] flex flex-row items-start gap-2 pointer-events-none">
-                {/* Fullscreen button */}
+                {!isMapFull && (
                 <button 
                     onClick={() => {
                         const elem = document.documentElement; // For mobile full screen, document.documentElement works best
@@ -282,12 +282,24 @@ export default function EmployeeFleetMap() {
                     }}
                     className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-sm border-2 border-slate-200/50 dark:border-slate-700 w-[34px] h-[34px] rounded-[4px] flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 pointer-events-auto transition-colors"
                 >
-                    {isMapFull 
-                        ? <Minimize2 className="w-[18px] h-[18px]" /> 
-                        : <Maximize2 className="w-[18px] h-[18px]" />
-                    }
+                    <Maximize2 className="w-[18px] h-[18px]" />
                 </button>
+                )}
             </div>
+
+            {isMapFull && (
+                <button
+                    onClick={() => {
+                        if (document.fullscreenElement && document.exitFullscreen) {
+                            document.exitFullscreen();
+                        }
+                        setIsMapFull(false)
+                    }}
+                    className="absolute top-4 right-4 z-[99999] bg-slate-800 text-white px-4 py-2 rounded-full font-bold shadow-2xl border-2 border-slate-600 flex items-center gap-2 pointer-events-auto"
+                >
+                    <Minimize2 className="w-5 h-5" /> Închide
+                </button>
+            )}
 
             {/* Controls overlay right */}
             {isDavideChape && (
@@ -435,7 +447,7 @@ export default function EmployeeFleetMap() {
             
             {isPanelOpen && (
               <div className="flex-1 overflow-y-auto overscroll-contain pb-6">
-                <div className="flex flex-col p-2 gap-1.5">
+                <div className="grid grid-cols-2 p-2 gap-2">
                 {vehicles.filter(v => {
                       if (v.assigned_user_id && user?.id) {
                           return v.assigned_user_id !== user.id;
@@ -475,9 +487,13 @@ export default function EmployeeFleetMap() {
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex items-center gap-1 flex-wrap">
                           <span className="font-bold text-slate-800 dark:text-slate-100 text-[11px] truncate leading-tight">{v.name}</span>
-                          {v.distance != null && (
+                          {v.distance != null ? (
                             <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1 rounded-sm border border-emerald-100/50 dark:border-emerald-500/20 whitespace-nowrap">
                               {v.distance.toFixed(1)} km
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-1 rounded-sm border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                              -- km
                             </span>
                           )}
                         </div>
