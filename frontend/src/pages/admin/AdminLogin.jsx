@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAdminStore } from '../../store/adminStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTenantStore } from '../../store/tenantStore'
@@ -16,6 +16,7 @@ export default function AdminLogin() {
     const [error, setError] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
+    const [acceptedTerms, setAcceptedTerms] = useState(false)
 
     // Load saved credentials on mount
     useEffect(() => {
@@ -42,7 +43,9 @@ export default function AdminLogin() {
             const response = await api.post('/admin/login', {
                 email,
                 password,
-                tenant_id: tenant?.id || null
+                tenant_id: tenant?.id || null,
+                accepted_terms: acceptedTerms,
+                accepted_dpa: acceptedTerms
             })
 
             const { access_token, admin, worker_token, worker_data } = response.data
@@ -168,6 +171,22 @@ export default function AdminLogin() {
                             <span className="text-sm text-slate-600 font-medium">{t('admin_login.remember_me', 'Se souvenir de moi')}</span>
                         </label>
 
+                        {/* Terms & DPA */}
+                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    required
+                                    checked={acceptedTerms}
+                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                    className="mt-1 w-4.5 h-4.5 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 cursor-pointer shrink-0"
+                                />
+                                <span className="text-sm text-slate-700 leading-snug">
+                                    J'accepte les <Link to="/termes-et-conditions" target="_blank" className="text-blue-600 font-semibold hover:underline">Conditions Générales de Vente</Link>, la <Link to="/politique-de-confidentialite" target="_blank" className="text-blue-600 font-semibold hover:underline">Politique de Confidentialité</Link> et l'<Link to="/dpa" target="_blank" className="text-blue-600 font-semibold hover:underline">Accord de Traitement des Données (DPA)</Link>.
+                                </span>
+                            </label>
+                        </div>
+
                         {/* Error Message */}
                         {error && (
                             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 scale-in">
@@ -178,10 +197,10 @@ export default function AdminLogin() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || !acceptedTerms}
                             className={`w-full text-white px-6 py-3.5 rounded-2xl font-semibold text-base
-                       active:scale-[0.98] transition-all duration-200
-                       disabled:opacity-50 disabled:cursor-not-allowed
+                               active:scale-[0.98] transition-all duration-200
+                               disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center justify-center gap-2 group ${!tenant?.primary_color ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40' : 'hover:brightness-110 shadow-lg hover:shadow-xl'}`}
                             style={tenant?.primary_color ? { backgroundColor: tenant.primary_color, boxShadow: `0 4px 14px 0 ${tenant.primary_color}60` } : {}}
                         >

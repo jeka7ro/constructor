@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../store/authStore'
 import { useTenantStore } from '../store/tenantStore'
@@ -14,6 +14,7 @@ export default function Login() {
     const [error, setError] = useState('')
     const [showPin, setShowPin] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
+    const [acceptedTerms, setAcceptedTerms] = useState(false)
     const tenant = useTenantStore((state) => state.tenant)
 
     // Load saved credentials on mount
@@ -40,7 +41,8 @@ export default function Login() {
         try {
             const response = await api.post('/auth/login', {
                 employee_code: employeeCode,
-                pin: pin
+                pin: pin,
+                accepted_terms: acceptedTerms
             })
 
             const { access_token, refresh_token, user } = response.data
@@ -166,6 +168,26 @@ export default function Login() {
                             <span className="text-sm text-slate-600 font-medium">{t('auth.remember_me')}</span>
                         </label>
 
+                        {/* Terms & Privacy */}
+                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    required
+                                    checked={acceptedTerms}
+                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                    className="mt-1 w-4.5 h-4.5 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 cursor-pointer shrink-0"
+                                />
+                                <span className="text-sm text-slate-700 leading-snug">
+                                    J'accepte la <Link to="/politique-de-confidentialite" target="_blank" className="text-blue-600 font-semibold hover:underline">Politique de Confidentialité</Link>.
+                                </span>
+                            </label>
+                            <div className="mt-3 pl-7 text-xs text-slate-500 flex items-start gap-2">
+                                <span className="text-base leading-none">📍</span>
+                                <span><strong>Avis GPS :</strong> Cette application collecte vos données de localisation pendant les heures de travail pour assurer le pointage et la gestion des chantiers.</span>
+                            </div>
+                        </div>
+
                         {/* Error Message */}
                         {error && (
                             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 scale-in">
@@ -176,10 +198,10 @@ export default function Login() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || !acceptedTerms}
                             className={`w-full text-white px-6 py-3.5 rounded-2xl font-semibold text-base
-                       active:scale-[0.98] transition-all duration-200
-                       disabled:opacity-50 disabled:cursor-not-allowed
+                               active:scale-[0.98] transition-all duration-200
+                               disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center justify-center gap-2 group ${!tenant?.primary_color ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40' : 'hover:brightness-110 shadow-lg hover:shadow-xl'}`}
                             style={tenant?.primary_color ? { backgroundColor: tenant.primary_color, boxShadow: `0 4px 14px 0 ${tenant.primary_color}60` } : {}}
                         >

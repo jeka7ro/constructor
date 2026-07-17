@@ -106,6 +106,7 @@ class UserResponse(BaseModel):
     site_name: Optional[str] = None
     contract_path: Optional[str] = None
     hourly_rate: Optional[float] = None  # Tarif orar — confidential
+    accepted_terms_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -160,6 +161,7 @@ def build_user_response(user, role_name=None):
         site_name=user.site.name if getattr(user, 'site', None) else None,
         contract_path=getattr(user, 'contract_path', None),
         hourly_rate=float(user.hourly_rate) if user.hourly_rate is not None else None,
+        accepted_terms_at=getattr(user, 'accepted_terms_at', None),
     )
 
 
@@ -1433,3 +1435,57 @@ def delete_employee_document(user_id: str, doc_id: str, db: Session = Depends(ge
     db.delete(doc)
     db.commit()
     return {"status": "ok"}
+
+@router.post("/{user_id}/anonymize")
+def anonymize_employee(user_id: str, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """
+    Anonymize an employee to comply with GDPR Right to be Forgotten.
+    This replaces personal data with generic info, removes files, and deactivates the user,
+    but keeps timesheet records intact for accounting purposes.
+    """
+    user = db.query(User).filter(User.id == user_id, User.tenant_id == admin.tenant_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Destroy personal info
+    user.full_name = "Employé Anonymisé"
+    user.cnp = None
+    user.phone = None
+    user.email = None
+    user.address = None
+    user.id_card_series = None
+    user.birth_place = None
+    user.birth_date = None
+    
+    # Delete associated files if they exist
+    for attr in ['avatar_path', 'id_card_path', 'contract_path']:
+        path = getattr(user, attr)
+        if path:
+            try:
+                # Remove /api prefix if present
+                clean_path = path.replace("/api/", "")
+                if clean_path.startswith("/"):
+                    clean_path = clean_path.lstrip("/")
+                full_path = os.path.join(BASE_DIR, clean_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+            except Exception as e:
+                print(f"Failed to delete file {path} during anonymization: {e}")
+            setattr(user, attr, None)
+            
+    # Delete all employee documents
+    docs = db.query(EmployeeDocument).filter(EmployeeDocument.user_id == user_id).all()
+    for doc in docs:
+        try:
+            clean_path = doc.file_path.replace("/api/", "").lstrip("/")
+            full_path = os.path.join(BASE_DIR, clean_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+        except:
+            pass
+        db.delete(doc)
+
+    user.is_active = False
+    
+    db.commit()
+    return {"status": "success", "message": "Employé anonymisé avec succès"}

@@ -58,6 +58,9 @@ const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
+const TermsPage = lazy(() => import('./pages/public/legal/TermsPage'))
+const PrivacyPage = lazy(() => import('./pages/public/legal/PrivacyPage'))
+const DpaPage = lazy(() => import('./pages/public/legal/DpaPage'))
 const EmployeeEmergencies = lazy(() => import('./pages/employee/EmployeeEmergencies'))
 const EmployeeInventory = lazy(() => import('./pages/employee/EmployeeInventory'))
 const WorkerOrdersPage = lazy(() => import('./pages/employee/WorkerOrdersPage'))
@@ -65,6 +68,7 @@ const EmployeeFleetMap = lazy(() => import('./pages/employee/EmployeeFleetMap'))
 import EmployeeLayout from './components/layout/EmployeeLayout'
 import { DialogOverlay } from './components/ui/DialogOverlay'
 import { ToastOverlay } from './components/ui/ToastOverlay'
+import CookieBanner from './components/common/CookieBanner'
 
 // Loading fallback for lazy-loaded pages
 function PageLoader() {
@@ -275,6 +279,7 @@ function App() {
             <Router>
             <DialogOverlay />
             <ToastOverlay />
+            <CookieBanner />
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     {/* Admin Routes - MUST BE FIRST to prevent employee wildcard from catching them */}
@@ -391,6 +396,11 @@ function App() {
                             </Suspense>
                         } 
                     />
+
+                    {/* Legal Routes */}
+                    <Route path="/termes-et-conditions" element={<Suspense fallback={<PageLoader />}><TermsPage /></Suspense>} />
+                    <Route path="/politique-de-confidentialite" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
+                    <Route path="/dpa" element={<Suspense fallback={<PageLoader />}><DpaPage /></Suspense>} />
 
                     {/* Fallback - redirect based on path */}
                     <Route path="*" element={<SmartRedirect />} />

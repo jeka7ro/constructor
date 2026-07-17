@@ -12,6 +12,7 @@ router = APIRouter()
 class LoginRequest(BaseModel):
     employee_code: str
     pin: str
+    accepted_terms: bool = False
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -39,6 +40,12 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
+    
+    # Save terms acceptance timestamp if not previously saved
+    if request.accepted_terms and not user.accepted_terms_at:
+        from datetime import datetime
+        user.accepted_terms_at = datetime.utcnow()
+        db.commit()
     
     # Get role
     role = db.query(Role).filter(Role.id == user.role_id).first()

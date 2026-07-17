@@ -25,6 +25,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admin/login")
 class AdminLogin(BaseModel):
     email: EmailStr
     password: str
+    accepted_terms: bool = False
+    accepted_dpa: bool = False
 
 
 from typing import Optional
@@ -127,6 +129,18 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
     
     if not admin.is_active:
         raise HTTPException(status_code=400, detail="Inactive admin account")
+    
+    # Save terms and DPA acceptance timestamps if not previously saved
+    modified = False
+    if credentials.accepted_terms and not admin.accepted_terms_at:
+        admin.accepted_terms_at = datetime.utcnow()
+        modified = True
+    if credentials.accepted_dpa and not admin.accepted_dpa_at:
+        admin.accepted_dpa_at = datetime.utcnow()
+        modified = True
+        
+    if modified:
+        db.commit()
     
     # Create access token with super admin flag
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

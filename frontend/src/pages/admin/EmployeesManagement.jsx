@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAdminStore } from '../../store/adminStore'
 import useViewPreferencesStore from '../../store/viewPreferencesStore'
 import api from '../../lib/api'
-import { Users, Plus, Search, Edit2, Trash2, Key, UserCheck, UserX, Loader2, Mail, Phone, Calendar, X, Save, Eye, Download, Upload, CreditCard, FileSpreadsheet, ScanLine, MapPin, Filter, XCircle, FileText, FileUp, FileDown } from 'lucide-react'
+import { Users, Plus, Search, Edit2, Trash2, Key, UserCheck, UserX, Loader2, Mail, Phone, Calendar, X, Save, Eye, Download, Upload, CreditCard, FileSpreadsheet, ScanLine, MapPin, Filter, XCircle, FileText, FileUp, FileDown, UserMinus, ShieldCheck } from 'lucide-react'
 import ViewToggle from '../../components/ViewToggle'
 import Pagination from '../../components/Pagination'
 import AvatarCropModal from '../../components/AvatarCropModal'
@@ -368,6 +368,27 @@ export default function EmployeesManagement() {
         }
     }
 
+    const handleAnonymize = (userId) => {
+        const user = users.find(u => u.id === userId)
+        if (!user) return
+        showDialog({
+            title: "Anonymiser l'employé (RGPD)",
+            message: `Êtes-vous sûr de vouloir anonymiser définitivement ${user.last_name} ${user.first_name} ? Cette action détruira toutes ses données personnelles (CNP, contact, pièces d'identité) mais conservera l'historique de ses pointages pour la comptabilité. Cette action est IRRÉVERSIBLE.`,
+            type: 'danger',
+            confirmText: 'Anonymiser (Irréversible)',
+            onConfirm: async () => {
+                try {
+                    await api.post(`/admin/users/${userId}/anonymize`)
+                    fetchUsers()
+                    fetchStats()
+                    showToast("Employé anonymisé avec succès", 'success')
+                } catch (error) {
+                    showToast(error.response?.data?.detail || "Erreur lors de l'anonymisation", 'error')
+                }
+            }
+        })
+    }
+
     const handleResetPin = (userId) => {
         setPinUserId(userId)
         setNewPin('')
@@ -630,9 +651,9 @@ export default function EmployeesManagement() {
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                         </div>
                     ) : preferences.viewMode === 'list' ? (
-                        <UsersTable users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} onAssignSite={handleAssignSiteClick} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} onToggleSelectAll={handleToggleSelectAll} />
+                        <UsersTable users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onAnonymize={handleAnonymize} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} onAssignSite={handleAssignSiteClick} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} onToggleSelectAll={handleToggleSelectAll} />
                     ) : (
-                        <UsersGrid users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
+                        <UsersGrid users={users} onToggleActive={handleToggleActive} onDelete={handleDelete} onAnonymize={handleAnonymize} onEdit={handleEditUser} onResetPin={handleResetPin} onView={handleViewUser} selectedUserIds={selectedUserIds} onToggleSelect={handleToggleSelect} />
                     )}
 
                     {!loading && !detailUser && users.length === 0 && (
@@ -1261,6 +1282,12 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                             <span className="truncate max-w-[120px]">{user.site_name}</span>
                                         </div>
                                     )}
+                                    {user.accepted_terms_at && (
+                                        <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 mt-1" title={`RGPD accepté le ${new Date(user.accepted_terms_at).toLocaleString('fr-BE')}`}>
+                                            <ShieldCheck className="w-3 h-3" />
+                                            <span>RGPD ✓</span>
+                                        </div>
+                                    )}
                                 </div>
                             </td>
                             <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -1293,6 +1320,11 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
                                     <button onClick={() => onEdit(user)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-blue-600 dark:hover:text-blue-400" title={t('common.edit', 'Éditer')}>
                                         <Edit2 className="w-4 h-4" />
                                     </button>
+                                    {!user.is_active && (
+                                        <button onClick={() => onAnonymize(user.id)} className="p-1.5 hover:bg-orange-100 rounded-full transition-colors text-slate-400 hover:text-orange-600" title="Anonymiser (RGPD)">
+                                            <UserMinus className="w-4 h-4" />
+                                        </button>
+                                    )}
                                     <button onClick={() => onDelete(user.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-slate-400 hover:text-red-600 dark:hover:text-red-400" title={t('common.delete', 'Supprimer')}>
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -1306,7 +1338,7 @@ function UsersTable({ users, onToggleActive, onDelete, onEdit, onResetPin, onVie
     )
 }
 
-function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView, selectedUserIds, onToggleSelect }) {
+function UsersGrid({ users, onToggleActive, onDelete, onAnonymize, onEdit, onResetPin, onView, selectedUserIds, onToggleSelect }) {
     const { t } = useTranslation()
     const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
     return (
@@ -1365,6 +1397,12 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                                 {user.phone}
                             </div>
                         )}
+                        {user.accepted_terms_at && (
+                            <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium" title={`RGPD accepté le ${new Date(user.accepted_terms_at).toLocaleString('fr-BE')}`}>
+                                <ShieldCheck className="w-4 h-4" />
+                                <span>Consentement RGPD</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1 pt-4 border-t border-slate-100" onClick={e => e.stopPropagation()}>
@@ -1380,6 +1418,11 @@ function UsersGrid({ users, onToggleActive, onDelete, onEdit, onResetPin, onView
                         <button onClick={() => onEdit(user)} className="p-2 hover:bg-blue-100 rounded-full transition-colors" title={t('common.edit', 'Éditer')}>
                             <Edit2 className="w-4 h-4 text-blue-600" />
                         </button>
+                        {!user.is_active && (
+                            <button onClick={() => onAnonymize(user.id)} className="p-2 hover:bg-orange-100 rounded-full transition-colors" title="Anonymiser (RGPD)">
+                                <UserMinus className="w-4 h-4 text-orange-600" />
+                            </button>
+                        )}
                         <button onClick={() => onDelete(user.id)} className="p-2 hover:bg-red-100 rounded-full transition-colors" title={t('common.delete', 'Supprimer')}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
