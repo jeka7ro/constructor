@@ -74,7 +74,7 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
             scrollWheelZoom: false, // Prevents page scrolling trap
         })
 
-        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}', {
             attribution: '&copy; Google Maps',
             maxZoom: 20,
         }).addTo(mapInstanceRef.current)

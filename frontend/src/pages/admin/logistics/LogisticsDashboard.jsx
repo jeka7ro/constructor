@@ -527,7 +527,7 @@ export default function LogisticsDashboard() {
                                 >
                             <TileLayer
                                 attribution='&copy; Google Maps'
-                                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                                url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}"
                                 maxZoom={20}
                             />
                             <MapBoundsFitter data={data} activeTeams={focusedTeamId ? [focusedTeamId] : activeTeams} />

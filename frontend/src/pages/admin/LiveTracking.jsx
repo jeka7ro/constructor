@@ -288,7 +288,7 @@ export default function LiveTracking() {
               scrollWheelZoom={false}
             >
               <TileLayer
-                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}"
                 attribution="&copy; Google Maps"
                 maxZoom={20}
               />

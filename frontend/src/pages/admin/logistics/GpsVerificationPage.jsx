@@ -608,7 +608,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                                                 <div className="flex-1 relative bg-slate-100">
                                                     <MapContainer center={[displayStartPoint?.[0] || 50.85, displayStartPoint?.[1] || 4.35]} zoom={11} className="w-full h-full" scrollWheelZoom={false}>
                                                         <MapResizer isFullscreen={true} />
-                                                        <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
+                                                        <TileLayer url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                                                         <MapFitter all={displayPoints} />
                                                         {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} pathOptions={{ color: seg.color, weight: 5, opacity: 0.9 }} />)}
                                                         {displayStartPoint && (
@@ -637,7 +637,7 @@ function VehicleCard({ result, speedLimit = 90 }) {
                                             <div style={{ height: 340 }} className="w-full relative">
                                                 <MapContainer center={[displayStartPoint?.[0] || 50.85, displayStartPoint?.[1] || 4.35]} zoom={11} className="w-full h-full" scrollWheelZoom={false}>
                                                     <MapResizer isFullscreen={false} />
-                                                    <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
+                                                    <TileLayer url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                                                     <MapFitter all={displayPoints} />
                                                     {displaySegments.map((seg, i) => <Polyline key={i} positions={seg.positions} pathOptions={{ color: seg.color, weight: 4, opacity: 0.85 }} />)}
                                                     {!focusedTrip && sitePoints.map(wo => <Marker key={wo.id} position={[wo.site_lat, wo.site_lng]} icon={dotIcon(result.team_color)}><Popup><strong>{wo.client_name}</strong><br/>{wo.site_address}</Popup></Marker>)}

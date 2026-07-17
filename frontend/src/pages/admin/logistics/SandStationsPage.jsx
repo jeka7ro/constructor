@@ -241,7 +241,7 @@ export default function SandStationsPage() {
                             scrollWheelZoom={false}
                             style={{ width: '100%', height: '100%' }}
                         >
-                            <TileLayer url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
+                            <TileLayer url="https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" maxZoom={20} />
                             {stations.filter(s => s.latitude && s.longitude).map((s) => (
                                 <Marker key={s.id} position={[s.latitude, s.longitude]} icon={getSandStationIcon(s.type === 'theirs' ? 'I' : 'D')}>
                                     <Popup>

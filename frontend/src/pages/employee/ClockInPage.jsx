@@ -1048,7 +1048,7 @@ export default function ClockInPage() {
                             scrollWheelZoom={false}
                         >
                             <TileLayer
-                                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                                url="https://mt1.google.com/vt/lyrs=y&hl=fr&x={x}&y={y}&z={z}"
                                 attribution="Google Maps Satellite"
                                 maxZoom={20}
                             />

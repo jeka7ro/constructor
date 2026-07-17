@@ -20,7 +20,7 @@ const MiniMapSelector = ({ latitude, longitude, onLocationChange }) => {
         
         if (!mapInstance.current) {
             mapInstance.current = L.map(mapRef.current, { scrollWheelZoom: false }).setView([45.9432, 24.9668], 6)
-            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=fr&x={x}&y={y}&z={z}', {
                 attribution: '&copy; Google Maps',
                 maxZoom: 20
             }).addTo(mapInstance.current)
