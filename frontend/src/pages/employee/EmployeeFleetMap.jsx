@@ -302,7 +302,9 @@ export default function EmployeeFleetMap() {
 
   const handleCardClick = (v) => {
     if (mapRef.current) {
-      mapRef.current.setView([v.lat, v.lng], 15, { animate: true });
+      // Offset the center slightly South (negative lat) so the marker appears higher up on the screen
+      // This prevents the marker from being hidden under the floating card list at the bottom.
+      mapRef.current.setView([v.lat - 0.004, v.lng], 15, { animate: true });
     }
   };
 
