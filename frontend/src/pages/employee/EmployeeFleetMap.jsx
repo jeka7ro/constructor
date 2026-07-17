@@ -109,7 +109,9 @@ async function getRoadDistances(userLoc, vehicles) {
 
 function FitBounds({ vehicles, userLoc }) {
   const map = useMap();
+  const hasFitted = useRef(false);
   useEffect(() => {
+    if (hasFitted.current) return;
     if (vehicles.length === 0 && !userLoc) return;
     const points = vehicles.map(v => [v.lat, v.lng]);
     if (userLoc) points.push([userLoc.lat, userLoc.lng]);
@@ -117,6 +119,7 @@ function FitBounds({ vehicles, userLoc }) {
     if (points.length > 0) {
       const bounds = L.latLngBounds(points);
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      hasFitted.current = true;
     }
   }, [vehicles.length, userLoc]);
   return null;
@@ -145,6 +148,68 @@ function MapResizer({ isMapFull }) {
       return () => clearTimeout(timer);
   }, [map, isMapFull]);
   return null;
+}
+
+function UnifiedMapControls({ isMapFull, setIsMapFull, showSandStations, setShowSandStations, isDavideChape, t }) {
+    const map = useMap();
+
+    return (
+        <div className="absolute top-4 right-4 z-[99999] flex items-center gap-2 pointer-events-none">
+            {/* Custom Zoom Controls (Always visible, always dark to match UI request) */}
+            <div className="pointer-events-auto flex items-center bg-slate-800/95 backdrop-blur-md rounded-xl shadow-md border border-slate-700 overflow-hidden text-white font-bold h-10">
+                <button onClick={(e) => { e.stopPropagation(); map.zoomIn(); }} className="px-3 h-full hover:bg-slate-700 active:bg-slate-600 transition-colors flex items-center justify-center border-r border-slate-700">
+                    <span className="text-xl leading-none">+</span>
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); map.zoomOut(); }} className="px-3 h-full hover:bg-slate-700 active:bg-slate-600 transition-colors flex items-center justify-center">
+                    <span className="text-xl leading-none">−</span>
+                </button>
+            </div>
+
+            {/* Sand Stations Toggle */}
+            {isDavideChape && (
+                <div className="pointer-events-auto bg-slate-800/95 backdrop-blur-md px-3 h-10 rounded-xl shadow-md border border-slate-700 flex items-center gap-2 cursor-pointer hover:bg-slate-800 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setShowSandStations(!showSandStations); }}
+                >
+                    <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-600'}`}>
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-100 hidden sm:inline">Stations de Sable</span>
+                </div>
+            )}
+
+            {/* Close / Fullscreen Button */}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (isMapFull) {
+                        if (document.fullscreenElement && document.exitFullscreen) {
+                            document.exitFullscreen();
+                        }
+                        setIsMapFull(false)
+                    } else {
+                        const elem = document.documentElement;
+                        if (!document.fullscreenElement && elem?.requestFullscreen) {
+                            elem.requestFullscreen().catch(() => setIsMapFull(f => !f));
+                        } else {
+                            setIsMapFull(f => !f);
+                        }
+                    }
+                }}
+                className="pointer-events-auto bg-slate-800/95 backdrop-blur-md text-white px-4 h-10 rounded-xl shadow-md border border-slate-700 flex items-center gap-2 hover:bg-slate-700 active:bg-slate-600 transition-colors"
+            >
+                {isMapFull ? (
+                    <>
+                        <Minimize2 className="w-4 h-4" /> 
+                        <span className="font-bold text-sm whitespace-nowrap">{t('common.close', 'Fermer')}</span>
+                    </>
+                ) : (
+                    <>
+                        <Maximize2 className="w-4 h-4" /> 
+                    </>
+                )}
+            </button>
+        </div>
+    );
 }
 
 export default function EmployeeFleetMap() {
@@ -266,57 +331,14 @@ export default function EmployeeFleetMap() {
               attribution="&copy; Google Maps"
               maxZoom={20}
             />
-            <ZoomControl position="topleft" />
-
-            {/* Controls overlay left */}
-            <div className="absolute top-4 left-[52px] z-[400] flex flex-row items-start gap-2 pointer-events-none">
-                {!isMapFull && (
-                <button 
-                    onClick={() => {
-                        const elem = document.documentElement; // For mobile full screen, document.documentElement works best
-                        if (!document.fullscreenElement && elem?.requestFullscreen) {
-                            elem.requestFullscreen().catch(() => setIsMapFull(f => !f));
-                        } else if (document.fullscreenElement && document.exitFullscreen) {
-                            document.exitFullscreen();
-                        } else {
-                            setIsMapFull(f => !f);
-                        }
-                    }}
-                    className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-sm border-2 border-slate-200/50 dark:border-slate-700 w-[34px] h-[34px] rounded-[4px] flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 pointer-events-auto transition-colors"
-                >
-                    <Maximize2 className="w-[18px] h-[18px]" />
-                </button>
-                )}
-            </div>
-
-            {isMapFull && (
-                <button
-                    onClick={() => {
-                        if (document.fullscreenElement && document.exitFullscreen) {
-                            document.exitFullscreen();
-                        }
-                        setIsMapFull(false)
-                    }}
-                    className="absolute top-4 left-1/2 -translate-x-1/2 z-[99999] bg-slate-800 text-white px-4 py-2 rounded-full font-bold shadow-2xl border-2 border-slate-600 flex items-center gap-2 pointer-events-auto"
-                >
-                    <Minimize2 className="w-5 h-5" /> {t('common.close', 'Fermer')}
-                </button>
-            )}
-
-            {/* Controls overlay right */}
-            {isDavideChape && (
-                <div className="absolute top-4 right-4 z-[400] flex flex-row items-start gap-2 pointer-events-none">
-                    {/* Sand stations toggle */}
-                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 h-[34px] rounded-[4px] shadow-sm border-2 border-slate-200/50 dark:border-slate-700 pointer-events-auto flex items-center gap-2 w-max">
-                        <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                            onClick={() => setShowSandStations(!showSandStations)}
-                        >
-                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
-                        </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Stations de Sable</span>
-                    </div>
-                </div>
-            )}
+            <UnifiedMapControls 
+                isMapFull={isMapFull} 
+                setIsMapFull={setIsMapFull} 
+                showSandStations={showSandStations} 
+                setShowSandStations={setShowSandStations} 
+                isDavideChape={isDavideChape} 
+                t={t} 
+            />
 
             {userLoc && (
               <Marker position={[userLoc.lat, userLoc.lng]} icon={createUserIcon()}>
