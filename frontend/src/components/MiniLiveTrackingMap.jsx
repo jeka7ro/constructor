@@ -78,6 +78,10 @@ export default function MiniLiveTrackingMap() {
       const saved = localStorage.getItem('minilivetracking_nisip_toggle');
       return saved ? JSON.parse(saved) : true;
   });
+  const [showLegend, setShowLegend] = useState(() => {
+      const saved = localStorage.getItem('minilivetracking_legend_toggle');
+      return saved ? JSON.parse(saved) : true;
+  });
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
   const [isMapFull, setIsMapFull] = useState(false);
@@ -88,6 +92,10 @@ export default function MiniLiveTrackingMap() {
   useEffect(() => {
       localStorage.setItem('minilivetracking_nisip_toggle', JSON.stringify(showSandStations));
   }, [showSandStations]);
+
+  useEffect(() => {
+      localStorage.setItem('minilivetracking_legend_toggle', JSON.stringify(showLegend));
+  }, [showLegend]);
 
   const fetchLive = useCallback(async () => {
     try {
@@ -138,9 +146,17 @@ export default function MiniLiveTrackingMap() {
           {t('dashboard.live_tracking', 'LIVE TRACKING')}
         </h3>
         <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('logistics.legend', 'Légende')}</span>
+                <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showLegend ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                    onClick={() => setShowLegend(!showLegend)}
+                >
+                    <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showLegend ? 'translate-x-3' : 'translate-x-0'}`} />
+                </div>
+            </div>
             {isDavideChape && (
                 <div className="flex items-center gap-2 mr-2">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Sable</span>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{t('live.sand', 'Sable')}</span>
                     <div className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                         onClick={() => setShowSandStations(!showSandStations)}
                     >
@@ -172,10 +188,11 @@ export default function MiniLiveTrackingMap() {
             </div>
         )}
         {/* Floating Legend right aligned */}
+        {showLegend && (
         <div className="absolute top-4 right-4 z-[1000] w-64 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto flex flex-col gap-3 max-h-[calc(100%-2rem)] overflow-y-auto">
             <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-white flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5">
-                    <Truck className="w-3 h-3" /> {t('logistics.legend', 'Legendă')} ({vehicles.length})
+                    <Truck className="w-3 h-3" /> {t('logistics.legend', 'Légende')} ({vehicles.length})
                 </div>
             </div>
             
@@ -215,6 +232,7 @@ export default function MiniLiveTrackingMap() {
                 })}
             </div>
         </div>
+        )}
             <MapContainer ref={mapRef}
             center={center}
             zoom={8}

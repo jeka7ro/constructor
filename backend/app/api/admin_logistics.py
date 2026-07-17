@@ -492,6 +492,9 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                             "from_lat": last_lat,
                             "from_lng": last_lng
                         }
+                        # Salvează segmentul direct pe Work Order pentru a reflecta progresul real pe parcursul zilei
+                        w.route_segments = [segment]
+                        flag_modified(w, "route_segments")
                 
                     waypoints.append({
                         "type": "work",
