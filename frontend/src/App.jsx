@@ -89,7 +89,13 @@ class GlobalErrorBoundary extends React.Component {
     componentDidCatch(error, errorInfo) {
         console.error('App routing error:', error)
         // Auto-refresh if it's a chunk load error (network glitch / new deployment)
-        if (error.name === 'ChunkLoadError' || (error.message && error.message.includes('fetch dynamically imported module'))) {
+        const msg = (error.message || '').toLowerCase();
+        if (
+            error.name === 'ChunkLoadError' || 
+            msg.includes('fetch dynamically imported module') ||
+            msg.includes('mime type') ||
+            msg.includes('importing a module script failed')
+        ) {
             window.location.reload()
         }
     }
