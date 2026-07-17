@@ -949,7 +949,7 @@ def get_flespi_distances(token):
     import time, httpx, json, math
     from datetime import datetime, timezone
     global _flespi_cache
-    if time.time() - _flespi_cache["ts"] < 60:
+    if time.time() - _flespi_cache["ts"] < 300: # 5 minutes cache to prevent 429 Too Many Requests
         return _flespi_cache["distances"]
     
     day = datetime.utcnow()

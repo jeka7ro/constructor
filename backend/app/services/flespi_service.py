@@ -21,7 +21,12 @@ def poll_flespi_devices():
         return
 
     url = "https://flespi.io/gw/devices/all/messages"
-    params = {}
+    import json
+    import time
+    
+    # We only need messages since the last poll (e.g. 2 minutes ago to be safe)
+    ts_from = int(time.time()) - 120
+    params = {"data": json.dumps({"from": ts_from})}
     headers = {
         "Authorization": f"FlespiToken {FLESPI_TOKEN}",
         "Accept": "application/json"
@@ -29,8 +34,7 @@ def poll_flespi_devices():
 
     try:
         with httpx.Client(timeout=10.0) as client:
-            # Send data as a query string parameter explicitly or rely on httpx handling
-            # Actually flespi likes GET with urlencoded data
+            # Send data as a query string parameter explicitly
             response = client.get(url, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
