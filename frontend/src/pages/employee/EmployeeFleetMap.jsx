@@ -155,25 +155,25 @@ function UnifiedMapControls({ isMapFull, setIsMapFull, showSandStations, setShow
 
     return (
         <div className="absolute top-4 right-4 z-[99999] flex items-center gap-2 pointer-events-none">
-            {/* Custom Zoom Controls (Always visible, always dark to match UI request) */}
-            <div className="pointer-events-auto flex items-center bg-slate-800/95 backdrop-blur-md rounded-xl shadow-md border border-slate-700 overflow-hidden text-white font-bold h-10">
-                <button onClick={(e) => { e.stopPropagation(); map.zoomIn(); }} className="px-3 h-full hover:bg-slate-700 active:bg-slate-600 transition-colors flex items-center justify-center border-r border-slate-700">
+            {/* Custom Zoom Controls */}
+            <div className="pointer-events-auto flex items-center bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden text-slate-800 dark:text-white font-bold h-10">
+                <button onClick={(e) => { e.stopPropagation(); map.zoomIn(); }} className="px-3 h-full hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 transition-colors flex items-center justify-center border-r border-slate-200 dark:border-slate-700">
                     <span className="text-xl leading-none">+</span>
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); map.zoomOut(); }} className="px-3 h-full hover:bg-slate-700 active:bg-slate-600 transition-colors flex items-center justify-center">
+                <button onClick={(e) => { e.stopPropagation(); map.zoomOut(); }} className="px-3 h-full hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 transition-colors flex items-center justify-center">
                     <span className="text-xl leading-none">−</span>
                 </button>
             </div>
 
             {/* Sand Stations Toggle */}
             {isDavideChape && (
-                <div className="pointer-events-auto bg-slate-800/95 backdrop-blur-md px-3 h-10 rounded-xl shadow-md border border-slate-700 flex items-center gap-2 cursor-pointer hover:bg-slate-800 transition-colors"
+                <div className="pointer-events-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-3 h-10 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     onClick={(e) => { e.stopPropagation(); setShowSandStations(!showSandStations); }}
                 >
-                    <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-600'}`}>
+                    <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showSandStations ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
                         <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-4' : 'translate-x-0'}`} />
                     </div>
-                    <span className="text-sm font-bold text-slate-100 hidden sm:inline">Stations de Sable</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-100 hidden sm:inline">Stations de Sable</span>
                 </div>
             )}
 
@@ -195,7 +195,7 @@ function UnifiedMapControls({ isMapFull, setIsMapFull, showSandStations, setShow
                         }
                     }
                 }}
-                className="pointer-events-auto bg-slate-800/95 backdrop-blur-md text-white px-4 h-10 rounded-xl shadow-md border border-slate-700 flex items-center gap-2 hover:bg-slate-700 active:bg-slate-600 transition-colors"
+                className="pointer-events-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-md text-slate-800 dark:text-white px-4 h-10 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600 transition-colors"
             >
                 {isMapFull ? (
                     <>
@@ -439,9 +439,9 @@ export default function EmployeeFleetMap() {
 
         {/* Compact Vertical List in a Single Panel */}
         {!loading && vehicles.length > 0 && !isMapFull && (
-          <div className={`absolute bottom-24 md:bottom-8 left-4 right-4 z-[1000] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen ? 'max-h-[35vh]' : 'max-h-12'}`}>
+          <div className={`absolute bottom-24 md:bottom-8 left-4 right-4 z-[1000] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out overflow-hidden transform-gpu isolate ${isPanelOpen ? 'max-h-[45vh]' : 'max-h-12'}`}>
             <div 
-              className="px-4 py-3 flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10"
+              className="px-4 py-3 flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 sticky top-0 z-10"
               onClick={() => setIsPanelOpen(!isPanelOpen)}
             >
                <div className="flex items-center gap-2">
