@@ -38,10 +38,13 @@ function createVehicleIcon(color, name, avatarUrl) {
 
 function FitBounds({ vehicles }) {
   const map = useMap();
+  const hasFitted = useRef(false);
   useEffect(() => {
+    if (hasFitted.current) return;
     if (vehicles.length === 0) return;
     const bounds = L.latLngBounds(vehicles.map(v => [v.lat, v.lng]));
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+    hasFitted.current = true;
   }, [vehicles.length]);
   return null;
 }
