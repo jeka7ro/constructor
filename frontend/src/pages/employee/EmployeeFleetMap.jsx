@@ -243,11 +243,13 @@ export default function EmployeeFleetMap() {
 
   return (
     <div className="absolute inset-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden z-10">
-        <EmployeeHeader 
-          title={t('live.title_live', 'FLOTTE EN DIRECT')} 
-          showBack={true} 
-          badge={<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>} 
-        />
+        {!isMapFull && (
+          <EmployeeHeader 
+            title={t('live.title_live', 'FLOTTE EN DIRECT')} 
+            showBack={true} 
+            badge={<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>} 
+          />
+        )}
 
       <div className={`flex flex-1 relative z-0 ${isMapFull ? 'fixed inset-0 z-[9999] bg-slate-50' : ''}`}>
         {!loading && (
@@ -414,7 +416,7 @@ export default function EmployeeFleetMap() {
         )}
 
         {/* Compact Vertical List in a Single Panel */}
-        {!loading && vehicles.length > 0 && (
+        {!loading && vehicles.length > 0 && !isMapFull && (
           <div className={`absolute bottom-24 md:bottom-8 left-4 right-4 z-[1000] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out overflow-hidden ${isPanelOpen ? 'max-h-[35vh]' : 'max-h-12'}`}>
             <div 
               className="px-4 py-3 flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10"
