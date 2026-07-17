@@ -418,7 +418,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             {isFullScreen && (
                 <button
                     onClick={() => setIsFullScreen(false)}
-                    className="absolute top-4 right-4 z-[99999] bg-slate-800 text-white px-4 py-2 rounded-full font-bold shadow-2xl border-2 border-slate-600 flex items-center gap-2"
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-[99999] bg-slate-800 text-white px-4 py-2 rounded-full font-bold shadow-2xl border-2 border-slate-600 flex items-center gap-2"
                 >
                     <Minimize2 className="w-5 h-5" /> {t('common.close', 'Fermer')}
                 </button>
