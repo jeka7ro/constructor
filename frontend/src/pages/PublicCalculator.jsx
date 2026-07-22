@@ -212,7 +212,15 @@ export default function PublicCalculator() {
             }
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.detail || t('errors.generic', 'Une erreur est survenue. Veuillez réessayer.'));
+            let errMsg = t('errors.generic', 'Une erreur est survenue. Veuillez réessayer.');
+            if (err.response?.data?.detail) {
+                if (typeof err.response.data.detail === 'string') {
+                    errMsg = err.response.data.detail;
+                } else if (Array.isArray(err.response.data.detail)) {
+                    errMsg = err.response.data.detail.map(d => d.msg).join(', ');
+                }
+            }
+            setError(errMsg);
             setSubmitting(false);
         }
     };
@@ -614,7 +622,7 @@ export default function PublicCalculator() {
                                     <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.email', 'Email')}</label>
                                     <input type="email" required value={formData.client_email}
                                         onChange={e => setFormData({ ...formData, client_email: e.target.value })}
-                                        pattern="[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+                                        pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
                                         title={t('clients.email_invalid', 'Veuillez entrer une adresse email valide (ex: contact@domaine.com)')}
                                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base focus:bg-white focus:border-yellow-400 outline-none transition-all focus:invalid:border-red-400 focus:invalid:ring-red-100" />
                                 </div>
