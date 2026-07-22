@@ -8,7 +8,7 @@ import { useUIStore } from '../store/uiStore';
  * This bypasses all browser-level API key referrer restrictions.
  */
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, className }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [query, setQuery] = useState(value || '');
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -49,7 +49,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         setLoading(true);
         try {
             const res = await fetch(
-                `/api/places/autocomplete?input=${encodeURIComponent(searchQuery)}`,
+                `/api/places/autocomplete?input=${encodeURIComponent(searchQuery)}&lang=${i18n.language || 'ro'}`,
                 { signal: abortCtrl.current.signal }
             );
             const data = await res.json();
@@ -87,7 +87,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
 
         // Fetch coordinates via backend proxy
         try {
-            const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(item.place_id)}`);
+            const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(item.place_id)}&lang=${i18n.language || 'ro'}`);
             const data = await res.json();
             if (data.status === 'OK' && data.result?.geometry?.location) {
                 const lat = data.result.geometry.location.lat.toFixed(6);
@@ -119,7 +119,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 try {
-                    const res = await fetch(`/api/places/reverse?lat=${lat}&lng=${lon}`);
+                    const res = await fetch(`/api/places/reverse?lat=${lat}&lng=${lon}&lang=${i18n.language || 'ro'}`);
                     const data = await res.json();
                     if (data.status === 'OK' && data.results?.length > 0) {
                         const addr = data.results[0].formatted_address;

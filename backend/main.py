@@ -302,9 +302,9 @@ _places_cache = {}
 _places_cache_lock = threading.Lock()
 
 @app.get("/api/places/autocomplete")
-def places_autocomplete(input: str, types: str = None):
+def places_autocomplete(input: str, types: str = None, lang: str = "ro"):
     """Proxy to Google Places Autocomplete API — no browser referrer restrictions"""
-    key = f"{input.strip().lower()}_{types}"
+    key = f"{input.strip().lower()}_{types}_{lang}"
     now = _time.time()
     with _places_cache_lock:
         if key in _places_cache:
@@ -315,7 +315,7 @@ def places_autocomplete(input: str, types: str = None):
         params = {
             "input": input,
             "key": GOOGLE_MAPS_API_KEY,
-            "language": "ro",
+            "language": lang,
         }
         if types:
             params["types"] = types
@@ -333,7 +333,7 @@ def places_autocomplete(input: str, types: str = None):
         return {"status": "ERROR", "predictions": [], "error": str(e)}
 
 @app.get("/api/places/details")
-def place_details(place_id: str):
+def place_details(place_id: str, lang: str = "ro"):
     """Proxy to Google Place Details API — gets lat/lng for a place"""
     try:
         resp = _requests.get(
@@ -342,7 +342,7 @@ def place_details(place_id: str):
                 "place_id": place_id,
                 "fields": "formatted_address,geometry",
                 "key": GOOGLE_MAPS_API_KEY,
-                "language": "ro",
+                "language": lang,
             },
             timeout=5.0
         )
@@ -351,7 +351,7 @@ def place_details(place_id: str):
         return {"status": "ERROR", "error": str(e)}
 
 @app.get("/api/places/reverse")
-def place_reverse_geocode(lat: float, lng: float):
+def place_reverse_geocode(lat: float, lng: float, lang: str = "ro"):
     """Proxy to Google Geocoding API — gets address from lat/lng"""
     try:
         resp = _requests.get(
@@ -359,7 +359,7 @@ def place_reverse_geocode(lat: float, lng: float):
             params={
                 "latlng": f"{lat},{lng}",
                 "key": GOOGLE_MAPS_API_KEY,
-                "language": "ro",
+                "language": lang,
             },
             timeout=5.0
         )

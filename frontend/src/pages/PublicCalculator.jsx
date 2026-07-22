@@ -92,7 +92,15 @@ export default function PublicCalculator() {
         }
     }, [isIframe]);
 
-    useEffect(() => { fetchConfig(); }, []);
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const langParam = urlParams.get('lang');
+        if (langParam && ['fr', 'nl', 'en'].includes(langParam)) {
+            i18n.changeLanguage(langParam);
+            setFormData(p => ({ ...p, client_language: langParam }));
+        }
+        fetchConfig();
+    }, []);
 
     const fetchConfig = async () => {
         try {
@@ -157,6 +165,7 @@ export default function PublicCalculator() {
                         last_name: formData.client_last_name,
                         email: formData.client_email,
                         phone: formData.client_phone,
+                        client_language: formData.client_language || 'fr',
                         // Full context
                         company_name: formData.client_company_name,
                         client_type: formData.client_type,
@@ -170,6 +179,14 @@ export default function PublicCalculator() {
                         source_domain: window.location.hostname,
                         is_iframe: isIframe,
                         submitted_at: new Date().toISOString(),
+                        pricing_details: {
+                            base_price_sqm: config?.pricing?.base_price_sqm || 0,
+                            extra_thickness_price_per_cm: config?.pricing?.extra_thickness_price_per_cm || 0,
+                            plastic_foil_price_sqm: config?.pricing?.plastic_foil_price_sqm || 0,
+                            metal_mesh_price_sqm: config?.pricing?.metal_mesh_price_sqm || 0,
+                            estimated_total_incl_vat: calculateEstimatedPrice(),
+                            vat_rate: formData.client_type === 'juridica' ? config?.pricing?.vat_legal_entity : (formData.work_type === 'repair' ? config?.pricing?.vat_physical_repair : config?.pricing?.vat_physical_new)
+                        }
                     });
                 } catch (webhookErr) { console.error('Webhook n8n failed:', webhookErr); }
 
@@ -185,7 +202,10 @@ export default function PublicCalculator() {
                     } catch (err) { console.error('Failed to upload photos', err); }
                 }
                 if (isIframe) {
-                    navigate(`/public/proforma/${res.data.token}?iframe=true`);
+                    const lang = formData.client_language || 'fr';
+                    if (lang === 'nl') window.top.location.href = 'https://davide-chape.webflow.io/nl/confirmation-contact';
+                    else if (lang === 'en') window.top.location.href = 'https://davide-chape.webflow.io/en/confirmation-contact';
+                    else window.top.location.href = 'https://davide-chape.webflow.io/confirmation-contact';
                 } else {
                     navigate(`/public/proforma/${res.data.token}`);
                 }
@@ -458,7 +478,7 @@ export default function PublicCalculator() {
                         {/* ÉTAPE 2 — ADRESSE DU CHANTIER      */}
                         {/* ═══════════════════════════════════ */}
                         {step === 2 && (
-                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5 pb-48 sm:pb-60">
                                 <div>
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1 text-slate-900 tracking-tight">
                                         {t('calculator.site_address', 'Adresse du chantier')}
@@ -502,7 +522,7 @@ export default function PublicCalculator() {
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
                                 <div>
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1 text-slate-900 tracking-tight">
-                                        {t('calculator.desired_date_title', "Date d'intervention")}
+                                        {t('calculator.desired_date_title', "Date proposée d'intervention (à confirmer)")}
                                     </h1>
                                     <p className="text-slate-500 text-sm sm:text-base">
                                         {t('calculator.dateSub', 'Sélectionnez une date souhaitée ou passez cette étape.')}
@@ -570,6 +590,7 @@ export default function PublicCalculator() {
                                             <div className="flex gap-2">
                                                 <input type="text" required value={formData.client_company_vat}
                                                     onChange={e => setFormData({ ...formData, client_company_vat: e.target.value })}
+                                                    onBlur={handleViesSearch}
                                                     placeholder="BE0123456789"
                                                     className="flex-1 bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-base focus:bg-white focus:border-yellow-400 outline-none transition-all" />
                                                 <button type="button" onClick={handleViesSearch} disabled={isSearchingVies}
@@ -577,7 +598,7 @@ export default function PublicCalculator() {
                                                     {isSearchingVies ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                                                 </button>
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-1">{t('clients.vies_hint', 'Entrez le numéro et cliquez sur la loupe pour remplir automatiquement.')}</p>
+                                            <p className="text-xs text-slate-400 mt-1">{t('clients.vies_hint', 'Entrez le numéro pour remplir automatiquement.')}</p>
                                         </div>
                                         <div>
                                             <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.company_name', "Nom de l'entreprise")}</label>
@@ -613,7 +634,9 @@ export default function PublicCalculator() {
                                     <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.email', 'Email')}</label>
                                     <input type="email" required value={formData.client_email}
                                         onChange={e => setFormData({ ...formData, client_email: e.target.value })}
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base focus:bg-white focus:border-yellow-400 outline-none transition-all" />
+                                        pattern="[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+                                        title={t('clients.email_invalid', 'Veuillez entrer une adresse email valide (ex: contact@domaine.com)')}
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base focus:bg-white focus:border-yellow-400 outline-none transition-all focus:invalid:border-red-400 focus:invalid:ring-red-100" />
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.billing_address', 'Adresse de facturation')} <span className="normal-case font-normal text-slate-400">({t('common.optional', 'optionnel')})</span></label>

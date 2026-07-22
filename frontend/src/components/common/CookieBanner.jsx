@@ -8,6 +8,9 @@ export default function CookieBanner() {
     const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
+        const isIframe = window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
+        if (isIframe) return; // Do not show in iframe
+
         const consent = localStorage.getItem('pontaj_cookie_consent')
         if (!consent) {
             setIsVisible(true)
