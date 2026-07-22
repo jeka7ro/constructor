@@ -15,6 +15,15 @@ export default function PrivacyPage() {
                             Dans le cadre de l'utilisation de l'application SaaS par les employés, l'employeur (l'entreprise cliente) agit en qualité de <strong>Responsable de Traitement</strong> au sens du Règlement Général sur la Protection des Données (RGPD). Le fournisseur de l'application (le Prestataire) agit en qualité de <strong>Sous-traitant</strong>.
                         </p>
 
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-4 mb-2">
+                            <h3 className="font-bold text-slate-800 text-sm mb-2">Responsable de Traitement :</h3>
+                            <ul className="text-sm space-y-1 text-slate-600">
+                                <li><strong>DAVIDE CHAPE</strong></li>
+                                <li>Siège social : Gemeentehuisstraat 27 box 5, 1740 Ternat, Belgique</li>
+                                <li>Numéro d'entreprise (BCE) : 0785.292.895</li>
+                            </ul>
+                        </div>
+
                         <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">2. Données Personnelles Collectées</h2>
                         <p>
                             Les données traitées via l'application incluent :

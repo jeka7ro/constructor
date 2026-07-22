@@ -10,6 +10,16 @@ export default function DpaPage() {
                     <div className="prose prose-blue max-w-none text-slate-600">
                         <p className="font-semibold text-slate-800">Date de dernière mise à jour : {new Date().toLocaleDateString('fr-BE')}</p>
                         
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-6 mb-2">
+                            <h3 className="font-bold text-slate-800 text-sm mb-2">Sous-traitant / Prestataire SaaS :</h3>
+                            <ul className="text-sm space-y-1 text-slate-600">
+                                <li><strong>TRADE INVEST NETWORK S.R.L.</strong></li>
+                                <li>Siège social : Bucureşti sectorul 1, str. popa savu, nr.78, cod poștal 11434, Roumanie</li>
+                                <li>Numéro d'identification (CUI) : 42322117</li>
+                                <li>Registre du Commerce : J40/2825/2020</li>
+                            </ul>
+                        </div>
+
                         <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">1. Objet</h2>
                         <p>
                             Le présent Accord de Traitement des Données (ci-après le "DPA") constitue une annexe aux Conditions Générales de Vente et d'Utilisation. Il a pour objet de définir les conditions dans lesquelles le Prestataire (le Sous-traitant) s'engage à effectuer, pour le compte de l'Entreprise cliente (le Responsable de Traitement), les opérations de traitement de données à caractère personnel définies ci-après.
@@ -31,9 +41,9 @@ export default function DpaPage() {
                             <li>Prendre en compte les principes de protection des données dès la conception (Privacy by Design).</li>
                         </ul>
 
-                        <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">4. Sous-traitance Ultérieure</h2>
+                        <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">4. Sous-traitance Ultérieure et Intégrations Tierces</h2>
                         <p>
-                            Le Responsable de Traitement autorise le Sous-traitant à faire appel à des sous-traitants ultérieurs (ex. AWS, Google Cloud pour l'hébergement). Le Sous-traitant informera le Responsable de Traitement de tout changement prévu concernant l'ajout ou le remplacement de sous-traitants ultérieurs, donnant ainsi au Responsable de Traitement la possibilité d'émettre des objections.
+                            Le Responsable de Traitement autorise le Sous-traitant à faire appel à des sous-traitants ultérieurs pour l'hébergement (ex. fournisseurs cloud). De plus, l'application permet la transmission de données (telles que les factures et données clients) vers des services tiers connectés à la demande du Responsable de Traitement, comme <strong>Billtobox</strong> pour la gestion comptable. Ce transfert s'effectue sous la responsabilité exclusive du Responsable de Traitement.
                         </p>
 
                         <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">5. Mesures de Sécurité</h2>

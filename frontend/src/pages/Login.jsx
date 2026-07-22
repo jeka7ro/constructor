@@ -55,7 +55,7 @@ export default function Login() {
             setAuth(user, access_token, refresh_token)
             navigate('/')
         } catch (err) {
-            setError(err.response?.data?.detail || 'Eroare la autentificare')
+            setError(err.response?.data?.detail || t('auth.login_error', "Erreur d'authentification"))
         } finally {
             setLoading(false)
         }

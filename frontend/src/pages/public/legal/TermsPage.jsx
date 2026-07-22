@@ -10,6 +10,16 @@ export default function TermsPage() {
                     <div className="prose prose-blue max-w-none text-slate-600">
                         <p className="font-semibold text-slate-800">Date de dernière mise à jour : {new Date().toLocaleDateString('fr-BE')}</p>
                         
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-6 mb-2">
+                            <h3 className="font-bold text-slate-800 text-sm mb-2">Éditeur du Service / Prestataire :</h3>
+                            <ul className="text-sm space-y-1 text-slate-600">
+                                <li><strong>TRADE INVEST NETWORK S.R.L.</strong></li>
+                                <li>Siège social : Bucureşti sectorul 1, str. popa savu, nr.78, cod poștal 11434, Roumanie</li>
+                                <li>Numéro d'identification (CUI) : 42322117</li>
+                                <li>Registre du Commerce : J40/2825/2020</li>
+                            </ul>
+                        </div>
+
                         <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">1. Préambule et Champ d'Application</h2>
                         <p>
                             Les présentes Conditions Générales de Vente et d'Utilisation (ci-après les "CGV/CGU") régissent l'accès et l'utilisation de l'application SaaS (le "Service") éditée par le Prestataire. Elles constituent un contrat juridiquement contraignant entre le Prestataire et l'Entreprise cliente (le "Client"). En accédant au Service, le Client accepte expressément et sans réserve les présentes CGV/CGU.
