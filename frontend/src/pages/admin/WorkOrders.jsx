@@ -140,8 +140,18 @@ export default function WorkOrders() {
         setSendingId(wo.id)
         try {
             const res = await api.post(`/admin/work-orders/${wo.id}/send`)
-            setWorkOrders(prev => prev.map(w => w.id === wo.id ? res.data : w))
-            const url = `${res.data.confirm_url}?lang=${lang}`
+            const updatedWo = res.data;
+            setWorkOrders(prev => prev.map(w => w.id === wo.id ? updatedWo : w))
+            
+            // Build Webflow URL based on lang
+            let webflowUrl = 'https://davide-chape.webflow.io/confirmation-contact';
+            if (lang === 'nl') {
+                webflowUrl = 'https://davide-chape.webflow.io/nl/confirmation-contact';
+            } else if (lang === 'en') {
+                webflowUrl = 'https://davide-chape.webflow.io/en/confirmation-contact';
+            }
+            const url = `${webflowUrl}?token=${updatedWo.token}&lang=${lang}`;
+            
             setSendResult({ id: wo.id, url })
             setSendModal(null)
             
