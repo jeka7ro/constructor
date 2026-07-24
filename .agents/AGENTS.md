@@ -54,3 +54,7 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 - Dacă nu știi ceva cu siguranță (ex. care este logoul corect, cum ar trebui să se numească un anumit câmp, etc.), **ÎNTREABĂ**. 
 - Nu ai voie să decizi în locul utilizatorului. 
 - După ce întrebi, **AȘTEAPTĂ** răspunsul utilizatorului înainte de a merge mai departe.
+
+## 11. REGULĂ NOUĂ DE EXECUTARE (Cerută de utilizator)
+- Dacă în promptul (mesajul) utilizatorului există un semn de întrebare ("?"), agentul TREBUIE SĂ RĂSPUNDĂ DOAR LA ÎNTREBARE.
+- Agentul **NU ARE VOIE** să se apuce de modificat fișiere, rulat comenzi care schimbă ceva sau implementat soluții fără a prezenta un plan și a avea confirmarea/aprobarea EXPLICITĂ a utilizatorului.

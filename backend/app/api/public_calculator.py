@@ -228,10 +228,19 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
     db.commit()
     db.refresh(wo)
     
+    webflow_base = "https://davide-chape.webflow.io"
+    if wo.client_language == "nl":
+        webflow_base += "/nl"
+    elif wo.client_language == "en":
+        webflow_base += "/en"
+        
+    signature_url = f"{webflow_base}/confirmation-contact?token={wo.token}&lang={wo.client_language}"
+
     return {
         "message": "Deviz solicitat cu succes",
         "token": wo.token,
-        "work_order_id": wo.id
+        "work_order_id": wo.id,
+        "signature_url": signature_url
     }
 
 @router.get("/vies/{country}/{vat_number}")

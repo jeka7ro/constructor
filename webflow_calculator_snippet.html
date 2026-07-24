@@ -1,0 +1,26 @@
+<!-- Snippet pentru Webflow: Se adaugă în pagina cu Calculatorul Public (ex: devis-chape) -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Detectăm limba din URL-ul Webflow
+    var currentUrl = window.location.pathname;
+    var lang = 'fr'; // Limba implicită
+    if (currentUrl.indexOf('/nl/') !== -1) {
+        lang = 'nl';
+    } else if (currentUrl.indexOf('/en/') !== -1) {
+        lang = 'en';
+    }
+    
+    // 2. Găsim iframe-ul calculatorului (asigură-te că iframe-ul are id="calculator-iframe")
+    var iframe = document.getElementById("calculator-iframe");
+    
+    // 3. Setăm URL-ul cu parametrul de limbă corespunzător
+    if (iframe) {
+        // Înlocuiți 'https://app.davidechape.be' cu domeniul vostru real de unde e servit calculatorul
+        // Parametrul iframe=true ascunde meniul de navigare
+        iframe.src = "https://app.davidechape.be/public/calculator?lang=" + lang + "&iframe=true";
+    }
+});
+</script>
+
+<!-- Exemplu de iframe (dacă nu are deja unul, acesta trebuie să aibă id="calculator-iframe") -->
+<iframe id="calculator-iframe" width="100%" height="800px" frameborder="0"></iframe>
