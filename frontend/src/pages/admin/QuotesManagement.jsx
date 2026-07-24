@@ -563,12 +563,12 @@ export default function QuotesManagement() {
                 const getSourceBadge = (src) => {
                     if (src === 'calculator_public') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-600 whitespace-nowrap">
-                            <span>📊</span> Calculator
+                            Calculator
                         </span>
                     )
                     if (src === 'devis_online') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-500 whitespace-nowrap">
-                            <span>🔗</span> Devis en ligne
+                            Devis en ligne
                         </span>
                     )
                     return null
