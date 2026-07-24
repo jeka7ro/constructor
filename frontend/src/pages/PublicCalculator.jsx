@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building2, User, Loader2, CheckCircle2, HardHat, FileText, ChevronRight, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2 } from 'lucide-react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 
 const publicApi = axios.create({ baseURL: '/api/public/calculator' });
@@ -13,6 +13,7 @@ const STEP_LABELS_FR = ['Détails', 'Adresse', 'Date', 'Contact', 'Photos'];
 export default function PublicCalculator() {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [loading, setLoading] = useState(true);
     const [config, setConfig] = useState(null);
@@ -45,7 +46,8 @@ export default function PublicCalculator() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    const isIframe = window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
+    const isCalculatorRoute = location.pathname.includes('/calculator');
+    const isIframe = isCalculatorRoute || window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
 
     useEffect(() => {
         if (isIframe) {
