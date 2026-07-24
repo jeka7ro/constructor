@@ -563,12 +563,12 @@ export default function QuotesManagement() {
                 const getSourceBadge = (src) => {
                     if (src === 'calculator_public') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-600 whitespace-nowrap">
-                            Calculator
+                            {t('source.calculator', 'Calculator')}
                         </span>
                     )
                     if (src === 'devis_online') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-500 whitespace-nowrap">
-                            Devis en ligne
+                            {t('source.devis', 'Devis en ligne')}
                         </span>
                     )
                     return null
@@ -585,8 +585,10 @@ export default function QuotesManagement() {
                                 <span>{display}</span>
                             </div>
                         </div>
-                        {getStatusDot(row.status)}
-                        {getSourceBadge(row.source_system)}
+                        <div className="flex items-center gap-3 mt-1">
+                            {getStatusDot(row.status)}
+                            {getSourceBadge(row.source_system)}
+                        </div>
                     </div>
                 )
             }
@@ -599,14 +601,14 @@ export default function QuotesManagement() {
                 const addr = row.site_address;
 
                 return (
-                    <div className="flex flex-col gap-0.5 min-w-[300px]">
+                    <div className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]">
                         <div className="flex items-center gap-2 text-sm text-slate-700">
                             <User className="w-4 h-4 text-slate-400 shrink-0" />
-                            <span className="whitespace-nowrap" title={row.client_name}>{row.client_name || '-'}</span>
+                            <span className="truncate" title={row.client_name}>{row.client_name || '-'}</span>
                         </div>
                         <div className="flex items-center gap-2 pl-6 text-sm text-slate-500">
                             {addr ? (
-                                <span className="whitespace-nowrap" title={addr}>{addr}</span>
+                                <span className="truncate" title={addr}>{addr}</span>
                             ) : (
                                 <span className="italic">—</span>
                             )}
