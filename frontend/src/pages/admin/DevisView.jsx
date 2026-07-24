@@ -352,7 +352,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             <p className="font-bold text-slate-500 mb-1">{T.condTitle}</p>
                             <p>{T.condText}</p>
                         </div>
-                        <div className="mt-10 grid grid-cols-2 gap-10">
+                        <div className="mt-10 px-5 sm:px-10 print:px-0 grid grid-cols-2 gap-10">
                             <div className="flex flex-col">
                                 <div className="min-h-[2.5rem] text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
                                     {wo?.client_name || wo?.client?.company_name || wo?.client?.first_name || T.signClient}

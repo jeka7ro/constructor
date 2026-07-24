@@ -326,7 +326,26 @@ export default function PublicCalculator() {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-            {/* ── HEADER ELIMINAT CONFORM CERINȚEI ── */}
+            {/* ── HEADER ── */}
+            {!isIframe && (
+                <header className="p-3 sm:p-5 z-10 flex flex-col sm:flex-row justify-between items-center max-w-5xl w-full mx-auto bg-white/90 backdrop-blur-md rounded-b-2xl shadow-sm border-b border-slate-100 gap-3 sm:gap-0">
+                    <img
+                        src="https://cdn.prod.website-files.com/67efee5e09c6da428d8d176a/67f784844af92f795caaeedb_Davide%20Chape%20-Logo.svg"
+                        alt="Davide Chape" className="h-7 sm:h-8"
+                    />
+                    <div className="flex items-center gap-3 sm:gap-5">
+                        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg shadow-inner">
+                            {['fr', 'nl', 'en'].map(lang => (
+                                <button key={lang} onClick={() => handleLanguageChange(lang)}
+                                    className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded transition-all ${i18n.language === lang ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:bg-slate-200'}`}>
+                                    <span className="text-xs sm:text-sm">{lang === 'fr' ? '🇫🇷' : lang === 'nl' ? '🇳🇱' : '🇬🇧'}</span>
+                                    {lang.toUpperCase()}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </header>
+            )}
 
             <main className="flex-1 w-full max-w-xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center mt-6">
 
