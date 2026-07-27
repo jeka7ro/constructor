@@ -1,0 +1,33 @@
+<!-- Snippet pentru Webflow: Se adaugă în pagina "Confirmation Contact" -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Detectăm limba din URL-ul Webflow
+    var currentUrl = window.location.pathname;
+    var lang = 'fr'; // Limba implicită
+    if (currentUrl.indexOf('/nl/') !== -1) {
+        lang = 'nl';
+    } else if (currentUrl.indexOf('/en/') !== -1) {
+        lang = 'en';
+    }
+    
+    // 2. Extragem token-ul din URL-ul Webflow (trimis via Email/WhatsApp)
+    var urlParams = new URLSearchParams(window.location.search);
+    var token = urlParams.get('token');
+    
+    // 3. Găsim iframe-ul (asigură-te că iframe-ul are id="app-iframe")
+    var iframe = document.getElementById("app-iframe");
+    
+    // 4. Construim URL-ul către aplicația noastră
+    // Înlocuiți 'https://app.davidechape.be' cu domeniul vostru de producție dacă e diferit
+    if (iframe && token) {
+        // Punem &iframe=true ca să ascundem header-ul aplicației (din codul nostru existent)
+        iframe.src = "https://app.davidechape.be/confirm/" + token + "?lang=" + lang + "&iframe=true";
+    } else if (iframe) {
+        // Dacă nu avem token, putem afișa un mesaj sau lăsa iframe-ul gol
+        console.warn("Nu s-a găsit niciun token în URL.");
+    }
+});
+</script>
+
+<!-- Exemplu de iframe (dacă nu are deja unul) -->
+<iframe id="app-iframe" width="100%" height="800px" frameborder="0"></iframe>

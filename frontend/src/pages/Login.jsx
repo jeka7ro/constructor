@@ -22,10 +22,13 @@ export default function Login() {
         const saved = localStorage.getItem('pontaj_saved_login')
         if (saved) {
             try {
-                const { code, pin: savedPin } = JSON.parse(saved)
+                const { code, pin: savedPin, acceptedTerms: savedAcceptedTerms } = JSON.parse(saved)
                 setEmployeeCode(code || '')
                 setPin(savedPin || '')
                 setRememberMe(true)
+                if (savedAcceptedTerms) {
+                    setAcceptedTerms(true)
+                }
             } catch (e) { }
         }
     }, [])
@@ -48,7 +51,7 @@ export default function Login() {
             const { access_token, refresh_token, user } = response.data
             // Save or clear credentials
             if (rememberMe) {
-                localStorage.setItem('pontaj_saved_login', JSON.stringify({ code: employeeCode, pin }))
+                localStorage.setItem('pontaj_saved_login', JSON.stringify({ code: employeeCode, pin, acceptedTerms }))
             } else {
                 localStorage.removeItem('pontaj_saved_login')
             }

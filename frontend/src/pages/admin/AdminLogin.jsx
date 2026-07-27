@@ -23,10 +23,13 @@ export default function AdminLogin() {
         const saved = localStorage.getItem('pontaj_admin_saved_login')
         if (saved) {
             try {
-                const { email: savedEmail, password: savedPassword } = JSON.parse(saved)
+                const { email: savedEmail, password: savedPassword, acceptedTerms: savedAcceptedTerms } = JSON.parse(saved)
                 setEmail(savedEmail || '')
                 setPassword(savedPassword || '')
                 setRememberMe(true)
+                if (savedAcceptedTerms) {
+                    setAcceptedTerms(true)
+                }
             } catch (e) { }
         }
     }, [])
@@ -52,7 +55,7 @@ export default function AdminLogin() {
             
             // Save or clear credentials
             if (rememberMe) {
-                localStorage.setItem('pontaj_admin_saved_login', JSON.stringify({ email, password }))
+                localStorage.setItem('pontaj_admin_saved_login', JSON.stringify({ email, password, acceptedTerms }))
             } else {
                 localStorage.removeItem('pontaj_admin_saved_login')
             }

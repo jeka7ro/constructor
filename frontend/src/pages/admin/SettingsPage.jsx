@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Save, Building2, Clock, Bell, Globe, Upload, Image, X, LayoutDashboard } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Save, Building2, Clock, Bell, Globe, Upload, Image, X, LayoutDashboard, ClipboardCheck } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTranslation } from 'react-i18next'
@@ -140,6 +140,12 @@ export default function SettingsPage() {
                         onClick={() => setActiveTab('dashboard')}
                         icon={LayoutDashboard}
                         label="Dashboard"
+                    />
+                    <TabButton
+                        active={activeTab === 'terms'}
+                        onClick={() => setActiveTab('terms')}
+                        icon={ClipboardCheck}
+                        label={t('settings.terms', 'Termes & Conditions')}
                     />
                 </div>
             </div>
@@ -452,6 +458,8 @@ export default function SettingsPage() {
                     </div>
                 )}
 
+                {activeTab === 'terms' && <TermsAcceptancePanel />}
+
                 {/* Save Button */}
                 <div className="mt-8 pt-6 border-t border-slate-200">
                     <button
@@ -481,3 +489,71 @@ function TabButton({ active, onClick, icon: Icon, label }) {
         </button>
     )
 }
+
+function TermsAcceptancePanel() {
+    const { t } = useTranslation()
+    const [users, setUsers] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const res = await api.get('/admin/users/', { params: { page_size: 1000 } })
+                setUsers(res.data.users || [])
+            } catch (err) {
+                console.error("Failed to load users", err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchUsers()
+    }, [])
+
+    return (
+        <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">{t('settings.terms_acceptance_title', 'Acceptation des Conditions Générales')}</h2>
+            <p className="text-sm text-slate-500 mb-6">{t('settings.terms_acceptance_desc', 'Liste des utilisateurs et la date à laquelle ils ont accepté les conditions.')}</p>
+            
+            {loading ? (
+                <div className="text-center text-slate-500 p-8">{t('common.loading', 'Chargement...')}</div>
+            ) : (
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-700">
+                            <tr>
+                                <th className="px-4 py-3 font-semibold">{t('common.name_role', 'Nom & Rôle')}</th>
+                                <th className="px-4 py-3 font-semibold">{t('common.status', 'Statut')}</th>
+                                <th className="px-4 py-3 font-semibold">{t('common.acceptance_date', 'Date d\'acceptation')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {users.map(user => (
+                                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3">
+                                        <div className="font-medium text-slate-900">{user.full_name}</div>
+                                        <div className="text-xs text-slate-500">{user.role_name} • {user.employee_code}</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {user.accepted_terms_at ? (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                {t('common.accepted', 'Accepté')}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                {t('common.not_accepted', 'Non accepté')}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-slate-600 font-medium">
+                                        {user.accepted_terms_at ? new Date(user.accepted_terms_at).toLocaleString('fr-FR') : '-'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    )
+}
+
