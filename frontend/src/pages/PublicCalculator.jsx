@@ -442,7 +442,7 @@ export default function PublicCalculator() {
                                     </div>
                                     <div>
                                         <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.thickness', 'Épaisseur (cm)')}</label>
-                                        <input type="number" required min="6" step="0.5" placeholder="6"
+                                        <input type="number" required min="5" step="0.5" placeholder="5"
                                             value={formData.thickness} onChange={e => setFormData({ ...formData, thickness: e.target.value })}
                                             className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white focus:border-yellow-400 transition-all" />
                                     </div>
@@ -472,8 +472,8 @@ export default function PublicCalculator() {
                                         setError(t('errors.surface_required', 'La surface est obligatoire.'));
                                         return;
                                     }
-                                    if (!formData.thickness || parseFloat(formData.thickness) < 6) {
-                                        setError(t('errors.thickness_min', "L'épaisseur minimale est de 6 cm."));
+                                    if (!formData.thickness || parseFloat(formData.thickness) < 5) {
+                                        setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
                                         return;
                                     }
                                     setError(''); setStep(2);
