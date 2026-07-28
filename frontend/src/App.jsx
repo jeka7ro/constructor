@@ -452,6 +452,11 @@ function SmartRedirect() {
         return <Navigate to="/devisonline" replace />
     }
 
+    // Auto-correct the wrong link I provided to Jordi
+    if (location.startsWith('/public/calculator')) {
+        return <Navigate to="/calculator" replace />
+    }
+
     // Otherwise, show a generic 404 to avoid leaking employee interfaces
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center font-sans">
