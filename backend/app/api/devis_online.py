@@ -259,7 +259,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         "message": "Deviz solicitat cu succes",
         "token": wo.token,
         "work_order_id": wo.id,
-        "signature_url": signature_url
+        "signature_url": proforma_url
     }
 
 @router.get("/vies/{country}/{vat_number}")
