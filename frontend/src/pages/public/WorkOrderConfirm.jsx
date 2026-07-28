@@ -136,8 +136,10 @@ const LANG_DICT = {
         confirmDesc: 'Completați datele, aplicați semnătura digitală și confirmați.',
         confirmedByLabel: 'Confirmat de *',
         namePlaceholder: 'Nume și prenume / Companie',
-        digitalSignature: 'Semnătură Digitală *',
+        digitalSignature: 'Semnătură Digitală',
         signatureRequired: 'Semnătura este obligatorie',
+        acceptOffer: 'Confirm că am luat cunoștință de deviz și accept această ofertă.',
+        orAcceptWithout: 'sau acceptați fără semnătură:',
         terms: 'Am citit și sunt de acord cu toate cerințele, condițiile și prețurile estimate specificate în acest deviz.',
         termsFinal: 'J\'ai vérifié les travaux exécutés, y compris les photos jointes, et je confirme que le travail a été correctement terminé.',
         confirmBtn: 'Confirm și Semnez',
@@ -172,8 +174,10 @@ const LANG_DICT = {
         confirmDesc: 'Fill in your details, apply your digital signature, and confirm.',
         confirmedByLabel: 'Confirmed by *',
         namePlaceholder: 'Full Name / Company',
-        digitalSignature: 'Digital Signature *',
+        digitalSignature: 'Digital Signature',
         signatureRequired: 'Signature is required',
+        acceptOffer: 'I confirm that I have read the quote and I accept this offer.',
+        orAcceptWithout: 'or accept without signature:',
         terms: 'I have read and agree to all the requirements, terms, and conditions specified in this work order.',
         confirmBtn: 'Confirm and Sign',
         confirmingBtn: 'Confirming...',
@@ -207,8 +211,10 @@ const LANG_DICT = {
         confirmDesc: 'Remplissez vos coordonnées, appliquez votre signature numérique et confirmez.',
         confirmedByLabel: 'Confirmé par *',
         namePlaceholder: 'Nom et prénom / Entreprise',
-        digitalSignature: 'Signature numérique *',
+        digitalSignature: 'Signature numérique',
         signatureRequired: 'La signature est obligatoire',
+        acceptOffer: "Je confirme avoir pris connaissance du devis et j'accepte cette offre.",
+        orAcceptWithout: 'ou acceptez sans signature :',
         terms: "J'ai lu et j'accepte toutes les exigences, termes et conditions spécifiés dans ce bon de travail.",
         confirmBtn: 'Confirmer et signer',
         confirmingBtn: 'Confirmation en cours...',
@@ -244,8 +250,10 @@ const LANG_DICT = {
         confirmDesc: 'Füllen Sie Ihre Daten aus, fügen Sie Ihre digitale Unterschrift hinzu und bestätigen Sie.',
         confirmedByLabel: 'Bestätigt von *',
         namePlaceholder: 'Vollständiger Name / Firma',
-        digitalSignature: 'Digitale Unterschrift *',
+        digitalSignature: 'Digitale Unterschrift',
         signatureRequired: 'Unterschrift ist erforderlich',
+        acceptOffer: 'Ich bestätige, dass ich das Angebot gelesen habe und dieses Angebot annehme.',
+        orAcceptWithout: 'oder ohne Unterschrift akzeptieren:',
         terms: 'Ich habe alle in diesem Arbeitsauftrag festgelegten Anforderungen, Bedingungen und Fristen gelesen und stimme ihnen zu.',
         confirmBtn: 'Bestätigen und Unterschreiben',
         confirmingBtn: 'Wird bestätigt...',
@@ -279,8 +287,10 @@ const LANG_DICT = {
         confirmDesc: 'Vul uw gegevens in, plaats uw digitale handtekening en bevestig.',
         confirmedByLabel: 'Bevestigd door *',
         namePlaceholder: 'Volledige naam / Bedrijf',
-        digitalSignature: 'Digitale handtekening *',
+        digitalSignature: 'Digitale handtekening',
         signatureRequired: 'Handtekening is verplicht',
+        acceptOffer: 'Ik bevestig dat ik de offerte heb gelezen en dit aanbod accepteer.',
+        orAcceptWithout: 'of accepteer zonder handtekening:',
         terms: 'Ik heb alle vereisten, voorwaarden en termijnen vermeld in deze werkbon gelezen en ga hiermee akkoord.',
         confirmBtn: 'Bevestigen en tekenen',
         confirmingBtn: 'Bevestigen...',
@@ -313,8 +323,10 @@ const LANG_DICT = {
         confirmDesc: 'Заполните свои данные, поставьте цифровую подпись и подтвердите.',
         confirmedByLabel: 'Подтверждено (кем) *',
         namePlaceholder: 'ФИО / Компания',
-        digitalSignature: 'Цифровая подпись *',
+        digitalSignature: 'Цифровая подпись',
         signatureRequired: 'Подпись обязательна',
+        acceptOffer: 'Я подтверждаю, что ознакомился с предложением и принимаю его.',
+        orAcceptWithout: 'или примите без подписи:',
         terms: 'Я прочитал и согласен со всеми требованиями, условиями и сроками, указанными в этом заказе-наряде.',
         confirmBtn: 'Подтвердить и подписать',
         confirmingBtn: 'Подтверждение...',
@@ -404,6 +416,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const [checkedTerms, setCheckedTerms] = useState(true)
     const [confirmedByName, setConfirmedByName] = useState('')
     const [signature, setSignature] = useState(null)
+    const [acceptedOffer, setAcceptedOffer] = useState(false)
     const [mode, setMode] = useState('quote')
 
     useEffect(() => {
@@ -432,12 +445,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     }, [token])
 
     const handleConfirm = async () => {
-        if (!checkedTerms || !signature) return
+        if (!checkedTerms || (!signature && !acceptedOffer)) return
         setConfirming(true)
         try {
             const res = await api.post(`/public/work-orders/${token}/confirm`, {
                 confirmed_by_name: confirmedByName,
-                client_signature: signature,
+                client_signature: signature || 'accepted_without_signature',
                 mode: mode
             })
             setOrder(res.data)
@@ -490,7 +503,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     }
 
     const primaryColor = order?.org_primary_color || '#3b82f6'
-    const canConfirm = checkedTerms && !!signature && !confirming
+    const canConfirm = checkedTerms && (!!signature || acceptedOffer) && !confirming
 
     const formatDate = (d) => d
         ? new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -644,11 +657,18 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     <div className="flex-1 flex flex-col">
                                         <SignaturePad onChange={setSignature} disabled={confirming} t={t} />
                                     </div>
-                                    {!signature && (
-                                        <p className="text-[10px] text-red-500 font-bold mt-1.5 flex items-center gap-1 absolute -bottom-6 left-0">
+                                    {!signature && !acceptedOffer && (
+                                        <p className="text-[10px] text-amber-600 font-bold mt-1.5 flex items-center gap-1 absolute -bottom-6 left-0">
                                             <AlertCircle className="w-3 h-3" /> {t.signatureRequired}
                                         </p>
                                     )}
+                                    <div className="mt-8 pt-4 border-t border-slate-200">
+                                        <p className="text-xs font-bold text-slate-500 mb-2">{t.orAcceptWithout}</p>
+                                        <label className="flex items-start gap-3 cursor-pointer select-none bg-slate-50 border border-slate-200 rounded-xl p-3 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                                            <input type="checkbox" checked={acceptedOffer} onChange={e => setAcceptedOffer(e.target.checked)} className="mt-0.5 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0" />
+                                            <span className="text-sm font-semibold text-slate-700 leading-snug">{t.acceptOffer}</span>
+                                        </label>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col">
