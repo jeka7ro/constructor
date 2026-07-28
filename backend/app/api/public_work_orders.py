@@ -146,9 +146,12 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "org_name": org.name if org else "Smart Timesheet",
         "org_logo": org.logo_url if org else None,
         "org_primary_color": org.primary_color if org else "#3b82f6",
+        "org_timezone": org.timezone if org and org.timezone and org.timezone != "auto" else "Europe/Brussels",
         # Comanda
         "id": wo.id,
         "title": wo.title,
+        "created_at": wo.created_at.isoformat() if wo.created_at else None,
+        "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
         "notes": wo.notes,
         "start_date": str(wo.start_date) if wo.start_date else None,
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,

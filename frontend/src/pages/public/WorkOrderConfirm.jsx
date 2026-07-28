@@ -153,7 +153,8 @@ const LANG_DICT = {
         loadingOrder: 'Se încarcă comanda...',
         orderNotFound: 'Comandă negăsită',
         errorLoading: 'Nu am putut accesa comanda. Verificați conexiunea la internet.',
-        errorConfirming: 'Eroare la confirmare. Încearcă din nou.'
+        errorConfirming: 'Eroare la confirmare. Încearcă din nou.',
+        updateNotification: 'Ați primit o actualizare de la echipa Davide Chape.'
     },
     en: {
         workOrder: 'Work Order',
@@ -190,7 +191,8 @@ const LANG_DICT = {
         loadingOrder: 'Loading order...',
         orderNotFound: 'Order not found',
         errorLoading: 'Could not access the order. Check your internet connection.',
-        errorConfirming: 'Confirmation error. Try again.'
+        errorConfirming: 'Confirmation error. Try again.',
+        updateNotification: 'You have received an update from the Davide Chape team.'
     },
     fr: {
         workOrder: 'Bon de travail',
@@ -228,6 +230,7 @@ const LANG_DICT = {
         orderNotFound: 'Commande introuvable',
         errorLoading: 'Impossible d\'accéder à la commande. Vérifiez votre connexion Internet.',
         errorConfirming: 'Erreur de confirmation. Réessayez.',
+        updateNotification: 'Vous avez reçu une mise à jour de l\'équipe Davide Chape.',
         clientDocuments: 'Documents Client (Plans / Photos)',
         addDocument: 'Ajouter un Document',
         noDocuments: 'Aucun document chargé.'
@@ -444,6 +447,30 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         load()
     }, [token])
 
+    // Auto-refresh polling: check for updates every 30 seconds
+    const lastUpdatedRef = useRef(null)
+    const [updateToast, setUpdateToast] = useState(null)
+    useEffect(() => {
+        if (!order) return
+        lastUpdatedRef.current = order.updated_at || order.created_at
+        const interval = setInterval(async () => {
+            try {
+                const res = await api.get(`/public/work-orders/${token}`)
+                const newData = res.data
+                const newTimestamp = newData.updated_at || newData.created_at
+                if (lastUpdatedRef.current && newTimestamp !== lastUpdatedRef.current) {
+                    lastUpdatedRef.current = newTimestamp
+                    setOrder(newData)
+                    // Show update notification — stays until dismissed
+                    setUpdateToast(t.updateNotification)
+                }
+            } catch (e) {
+                // Silent fail on polling
+            }
+        }, 30000)
+        return () => clearInterval(interval)
+    }, [order?.id, token, t.updateNotification])
+
     const handleConfirm = async () => {
         if (!checkedTerms || (!signature && !acceptedOffer)) return
         setConfirming(true)
@@ -503,10 +530,11 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     }
 
     const primaryColor = order?.org_primary_color || '#3b82f6'
+    const orgTimezone = order?.org_timezone || 'Europe/Brussels'
     const canConfirm = checkedTerms && (!!signature || acceptedOffer) && !confirming
 
     const formatDate = (d) => d
-        ? new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })
+        ? new Date(d).toLocaleString('ro-RO', { timeZone: orgTimezone, day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : null
 
     if (loading) return (
@@ -569,13 +597,13 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             {order?.confirmed_at && mode === 'quote' && (
                                 <p className="text-emerald-600 text-[11px] ml-7">
                                     {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                    {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                    {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                 </p>
                             )}
                             {order?.final_confirmed_at && mode === 'final' && (
                                 <p className="text-emerald-600 text-[11px] ml-7">
                                     {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
-                                    {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                    {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                 </p>
                             )}
                         </div>
@@ -619,13 +647,13 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     {order?.confirmed_at && mode === 'quote' && (
                                         <span className="text-emerald-600 text-xs ml-2">
                                             {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                            {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                            {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                         </span>
                                     )}
                                     {order?.final_confirmed_at && mode === 'final' && (
                                         <span className="text-emerald-600 text-xs ml-2">
                                             {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
-                                            {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                            {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                         </span>
                                     )}
                                 </div>
@@ -722,7 +750,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                         <img src={mode === 'final' ? order?.final_client_signature : order?.client_signature} alt="Signature" className="max-h-full object-contain" />
                                     </div>
                                     <div className="text-[10px] text-slate-500 font-bold mt-2">
-                                        Date: {new Date(mode === 'final' ? order?.final_confirmed_at : order?.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                        Date: {new Date(mode === 'final' ? order?.final_confirmed_at : order?.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
                                     </div>
                                 </div>
                             )
@@ -850,6 +878,15 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                     <div className={`px-4 py-2 rounded-full shadow-lg text-[11px] font-bold uppercase tracking-wide border 
                         ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                         {toast.msg}
+                    </div>
+                </div>
+            )}
+            {updateToast && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999]" style={{ animation: 'slideDown 0.4s ease-out' }}>
+                    <div className="px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold bg-blue-600 text-white border border-blue-500 flex items-center gap-3">
+                        <span className="text-lg">📩</span>
+                        <span>{updateToast}</span>
+                        <button onClick={() => setUpdateToast(null)} className="ml-2 bg-white/20 hover:bg-white/30 rounded-full w-6 h-6 flex items-center justify-center text-xs font-black transition-colors">✓</button>
                     </div>
                 </div>
             )}
