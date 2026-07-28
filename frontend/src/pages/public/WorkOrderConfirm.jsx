@@ -559,18 +559,18 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
                 {/* Confirmed banner */}
                 {confirmed && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-                        <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto mb-3" />
-                        <h2 className="text-xl font-black text-emerald-800 mb-1">{t.confirmed}</h2>
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center max-w-sm mx-auto">
+                        <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                        <h2 className="text-lg font-black text-emerald-800 mb-1">{t.confirmed}</h2>
                         {order?.confirmed_at && mode === 'quote' && (
-                            <p className="text-emerald-600 text-sm">
+                            <p className="text-emerald-600 text-xs">
                                 {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
                                 {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
                             </p>
                         )}
                         
                         {order?.final_confirmed_at && mode === 'final' && (
-                            <p className="text-emerald-600 text-sm">
+                            <p className="text-emerald-600 text-xs">
                                 {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
                                 {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
                             </p>
