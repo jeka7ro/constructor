@@ -58,3 +58,9 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 ## 11. REGULĂ NOUĂ DE EXECUTARE (Cerută de utilizator)
 - Dacă în promptul (mesajul) utilizatorului există un semn de întrebare ("?"), agentul TREBUIE SĂ RĂSPUNDĂ DOAR LA ÎNTREBARE.
 - Agentul **NU ARE VOIE** să se apuce de modificat fișiere, rulat comenzi care schimbă ceva sau implementat soluții fără a prezenta un plan și a avea confirmarea/aprobarea EXPLICITĂ a utilizatorului.
+
+## 12. Separare Completă: Devis Online vs Jordi (Public Calculator)
+- **REGULĂ CRITICĂ**: Link-ul `davidechape.pontaj.app/devisonline` și webhook-ul/formularul public al lui Jordi (din We-R / Public Calculator) sunt entități **complet separate**.
+- Este STRICT INTERZIS să se modifice fișierele lui Jordi (ex: `public_calculator.py`) pentru a adăuga funcționalități destinate lui `devis_online`.
+- Orice dezvoltare pentru `devis_online` trebuie făcută în fișiere și rute dedicate, total izolate de `public_calculator`.
+

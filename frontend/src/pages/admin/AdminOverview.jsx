@@ -24,6 +24,7 @@ import MiniLiveTrackingMap from '../../components/MiniLiveTrackingMap'
 import AddressAutocomplete from '../../components/AddressAutocomplete'
 import SearchableSelect from '../../components/SearchableSelect'
 import { useTenantStore } from '../../store/tenantStore'
+import { useUIStore } from '../../store/uiStore'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
@@ -31,10 +32,15 @@ export default function AdminOverview() {
     const navigate = useNavigate()
     const { t, i18n } = useTranslation()
     const { tenant } = useTenantStore()
+    const { showToast } = useUIStore()
+    const knownQuotesRef = useRef(new Set())
+    const isInitialQuotesFetch = useRef(true)
     const [stats, setStats] = useState({ total_users: 0, total_sites: 0, pending: 0, total_hours_week: 0 })
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
     const [statsLoading, setStatsLoading] = useState(true)
+    const [statsLoading, setStatsLoading] = useState(true)
     const [chartLoading, setChartLoading] = useState(true)
+    const [newQuotesAlert, setNewQuotesAlert] = useState([])
 
     const DEFAULT_LAYOUT = {
         recent_work_orders: { visible: true, size: 'L' },
@@ -305,7 +311,27 @@ export default function AdminOverview() {
         try {
             const res = await api.get('/admin/work-orders?is_quote=true&slim=true')
             // Panelul arata DOAR devisele INCA netrimise — cele cu status=planning au mers deja in calendar
-            setPendingQuotes((res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning'))
+            const validQuotes = (res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning')
+            
+            let newlyFound = []
+            if (isInitialQuotesFetch.current) {
+                validQuotes.forEach(q => knownQuotesRef.current.add(String(q.id)))
+                isInitialQuotesFetch.current = false
+            } else {
+                validQuotes.forEach(q => {
+                    const qId = String(q.id)
+                    if (!knownQuotesRef.current.has(qId)) {
+                        knownQuotesRef.current.add(qId)
+                        if (q.source_system === 'we-r' || q.source_system === 'devis_online') {
+                            newlyFound.push(q)
+                        }
+                    }
+                })
+            }
+            if (newlyFound.length > 0) {
+                setNewQuotesAlert(prev => [...prev, ...newlyFound])
+            }
+            setPendingQuotes(validQuotes)
         } catch (e) { console.error('fetchPendingQuotes', e) }
     }
 
@@ -392,6 +418,7 @@ export default function AdminOverview() {
             fetchComplaints()
             fetchTeams()
             fetchClients()
+            fetchPendingQuotes()
             if (isShortTerm) fetchWorkOrdersStats()
         }, 15000)
 
@@ -1073,7 +1100,7 @@ export default function AdminOverview() {
                                                 }, 50);
 
                                                 await api.put(`/admin/work-orders/${woId}`, {
-                                                    scheduled_date: null,
+                                                    start_date: null,
                                                     start_time: null,
                                                     end_time: null,
                                                     status: 'pending',
@@ -2835,6 +2862,42 @@ export default function AdminOverview() {
                         ) : (
                             <div className="flex items-center justify-center py-20 text-slate-400"><p>{t('common.error_loading', 'Erreur de chargement des données')}</p></div>
                         )}
+                    </div>
+                </div>,
+                document.body
+            )}
+            
+            {newQuotesAlert.length > 0 && createPortal(
+                <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+                        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ClipboardList className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                            {t('overview.new_quotes_title', 'Devize Noi!')}
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">
+                            {t('overview.new_quotes_desc', 'Ai primit {{count}} devize noi. Vrei să le vezi acum?', { count: newQuotesAlert.length })}
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setNewQuotesAlert([])}
+                                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors"
+                            >
+                                {t('common.dismiss', 'Omite')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setNewQuotesAlert([])
+                                    // Scroll to the column
+                                    const col = document.getElementById('pending-quotes-column')
+                                    if(col) col.scrollIntoView({ behavior: 'smooth' })
+                                }}
+                                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                            >
+                                {t('overview.go_to_quotes', 'Mergi la ele')}
+                            </button>
+                        </div>
                     </div>
                 </div>,
                 document.body

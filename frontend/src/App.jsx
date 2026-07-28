@@ -56,6 +56,7 @@ const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
 const DevisView = lazy(() => import('./pages/admin/DevisView'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
+const DevisOnline = lazy(() => import('./pages/DevisOnline'))
 const EmployeeComplaints = lazy(() => import('./pages/employee/EmployeeComplaints'))
 const EmployeeMaterialRequests = lazy(() => import('./pages/employee/EmployeeMaterialRequests'))
 const TermsPage = lazy(() => import('./pages/public/legal/TermsPage'))
@@ -392,7 +393,7 @@ function App() {
                         path="/devisonline" 
                         element={
                             <Suspense fallback={<PageLoader />}>
-                                <PublicCalculator />
+                                <DevisOnline />
                             </Suspense>
                         } 
                     />
