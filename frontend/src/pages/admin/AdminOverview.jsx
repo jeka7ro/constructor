@@ -1042,8 +1042,40 @@ export default function AdminOverview() {
                     </div>
                     {!isCalendarFull && (
                         <div className="flex flex-col gap-4 h-[800px]">
-                            {/* Panel DEVIS — draggable pe calendar */}
-                            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0">
+                            {/* Panel DEVIS — draggable pe calendar si invers */}
+                            <div 
+                                className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0"
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    if (e.dataTransfer.types.includes("type") || e.dataTransfer.types.includes("text/plain")) {
+                                        e.dataTransfer.dropEffect = "move";
+                                    }
+                                }}
+                                onDrop={async (e) => {
+                                    e.preventDefault();
+                                    const type = e.dataTransfer.getData("type");
+                                    if (type === "workOrder") {
+                                        const woId = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("id");
+                                        if (woId) {
+                                            try {
+                                                await api.put(`/admin/work-orders/${woId}`, {
+                                                    scheduled_date: null,
+                                                    start_time: null,
+                                                    end_time: null,
+                                                    status: 'pending',
+                                                    assigned_team_id: null
+                                                });
+                                                lastMutationTime.current = Date.now();
+                                                fetchWorkOrdersStats();
+                                                fetchPendingQuotes();
+                                            } catch (err) {
+                                                console.error("Error unplanning order:", err);
+                                                alert(t('overview.error_unplanning', "Erreur lors de l'annulation de la planification."));
+                                            }
+                                        }
+                                    }
+                                }}
+                            >
                                 <div className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                                     <h3 className="font-extrabold text-white flex items-center gap-2 text-xs uppercase tracking-wide leading-tight">
                                         <ClipboardList className="w-4 h-4 text-white shrink-0" />
@@ -1075,8 +1107,34 @@ export default function AdminOverview() {
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
                                             title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
                                         >
-                                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-800/80 rounded">
-                                                <GripVertical className="w-3.5 h-3.5 text-rose-400 dark:text-rose-500" />
+                                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-slate-800/90 rounded flex gap-0.5 shadow-sm">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setQuickEditOrder(quote);
+                                                        const v = quote.volumes?.[0] || {};
+                                                        setQuickEditForm({
+                                                            title: quote.title || '',
+                                                            clientId: quote.client_id ? String(quote.client_id) : '',
+                                                            address: quote.site_address || '',
+                                                            latitude: quote.site_latitude || '',
+                                                            longitude: quote.site_longitude || '',
+                                                            surface: v.quantity || '',
+                                                            thickness: v.thickness || '',
+                                                            has_foil: !!v.has_foil,
+                                                            has_mesh: !!v.has_mesh,
+                                                            has_duramint: !!v.has_duramint,
+                                                            teamId: quote.assigned_team_id ? String(quote.assigned_team_id) : '',
+                                                        });
+                                                    }}
+                                                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                                                    title={t('common.edit', 'Éditer')}
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <div className="p-1 cursor-grab active:cursor-grabbing text-rose-400 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded">
+                                                    <GripVertical className="w-3.5 h-3.5" />
+                                                </div>
                                             </div>
                                             
                                             {/* ROW 1: Name + Date */}
