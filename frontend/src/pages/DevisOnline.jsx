@@ -100,6 +100,10 @@ export default function DevisOnline() {
         if (langParam && ['fr', 'nl', 'en'].includes(langParam)) {
             i18n.changeLanguage(langParam);
             setFormData(p => ({ ...p, client_language: langParam }));
+        } else {
+            // DevisOnline is client-facing: always default to French
+            i18n.changeLanguage('fr');
+            setFormData(p => ({ ...p, client_language: 'fr' }));
         }
         fetchConfig();
     }, []);
