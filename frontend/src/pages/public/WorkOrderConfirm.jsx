@@ -557,25 +557,109 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-                {/* Confirmed banner */}
-                {confirmed && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center max-w-sm mx-auto">
-                        <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                        <h2 className="text-lg font-black text-emerald-800 mb-1">{t.confirmed}</h2>
-                        {order?.confirmed_at && mode === 'quote' && (
-                            <p className="text-emerald-600 text-xs">
-                                {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
-                            </p>
-                        )}
-                        
-                        {order?.final_confirmed_at && mode === 'final' && (
-                            <p className="text-emerald-600 text-xs">
-                                {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
-                                {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
-                            </p>
-                        )}
+                {/* Confirmed banner + Location: side by side when confirmed */}
+                {confirmed && (order?.site_name || order?.site_address || order?.site_lat) ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* Confirmed card */}
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                                <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
+                            </div>
+                            {order?.confirmed_at && mode === 'quote' && (
+                                <p className="text-emerald-600 text-[11px] ml-7">
+                                    {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
+                                    {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                </p>
+                            )}
+                            {order?.final_confirmed_at && mode === 'final' && (
+                                <p className="text-emerald-600 text-[11px] ml-7">
+                                    {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
+                                    {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Address card */}
+                        {(() => {
+                            const getLocalizedAddress = (addr) => {
+                                if (!addr) return '';
+                                let str = addr;
+                                if (lang === 'fr') {
+                                    str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
+                                } else if (lang === 'nl') {
+                                    str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
+                                } else if (lang === 'en') {
+                                    str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
+                                }
+                                return str;
+                            };
+                            const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
+                            return (
+                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+                                    <div className="px-3 py-2 flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                        <div className="font-extrabold text-slate-900 text-[11px] uppercase tracking-wide truncate">{displayAddr}</div>
+                                    </div>
+                                    <div className="flex-1 min-h-[120px]">
+                                        <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
+                ) : (
+                    <>
+                        {/* Confirmed banner standalone */}
+                        {confirmed && (
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                                <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0" />
+                                <div>
+                                    <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
+                                    {order?.confirmed_at && mode === 'quote' && (
+                                        <span className="text-emerald-600 text-xs ml-2">
+                                            {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
+                                            {new Date(order.confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                        </span>
+                                    )}
+                                    {order?.final_confirmed_at && mode === 'final' && (
+                                        <span className="text-emerald-600 text-xs ml-2">
+                                            {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
+                                            {new Date(order.final_confirmed_at).toLocaleString(lang === 'ro' ? 'ro-RO' : 'en-GB')}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Location Map standalone */}
+                        {!hideMap && (order?.site_name || order?.site_address || order?.site_lat) && (() => {
+                            const getLocalizedAddress = (addr) => {
+                                if (!addr) return '';
+                                let str = addr;
+                                if (lang === 'fr') {
+                                    str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
+                                } else if (lang === 'nl') {
+                                    str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
+                                } else if (lang === 'en') {
+                                    str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
+                                }
+                                return str;
+                            };
+                            const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
+                            return (
+                                <div className="bg-transparent rounded-2xl border-0 overflow-hidden mb-6 flex flex-col print:hidden">
+                                    <div className="px-1 py-2 flex items-center gap-2 mb-2">
+                                        <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                                        <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">{displayAddr}</div>
+                                    </div>
+                                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full h-[220px]">
+                                        <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </>
                 )}
 
                 {/* Action Bar & Language Switcher */}
@@ -607,44 +691,6 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         ))}
                     </div>
                 </div>
-
-                {/* Location Map Container */}
-                {!hideMap && (order?.site_name || order?.site_address || order?.site_lat) && (() => {
-                    const getLocalizedAddress = (addr) => {
-                        if (!addr) return '';
-                        let str = addr;
-                        if (lang === 'fr') {
-                            str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
-                        } else if (lang === 'nl') {
-                            str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
-                        } else if (lang === 'en') {
-                            str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
-                        }
-                        return str;
-                    };
-                    const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
-                    
-                    return (
-                        <div className="bg-transparent rounded-2xl border-0 overflow-hidden mb-6 flex flex-col print:hidden">
-                            <div className="px-1 py-2 flex items-center gap-2 mb-2">
-                                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
-                                <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">
-                                    {displayAddr}
-                                </div>
-                            </div>
-                            <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full h-[220px]">
-                                <MapView
-                                    latitude={order.site_lat}
-                                    longitude={order.site_lon}
-                                    address={displayAddr}
-                                    height="100%"
-                                    zoom={15}
-                                    markerType="pin"
-                                />
-                            </div>
-                        </div>
-                    );
-                })()}
 
                 {/* Embed the PDF with integrated Signature */}
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
