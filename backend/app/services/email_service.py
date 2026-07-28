@@ -108,3 +108,84 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {e}")
         return False
+
+def send_planning_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, new_date: str):
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    if not brevo_api_key:
+        return False
+        
+    from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+
+    if client_language == "nl":
+        subject = "Mise à jour de votre intervention – Davide Chape"
+        greeting = f"Beste {client_name}"
+        intro = f"De datum van uw interventie is bijgewerkt: <strong>{new_date}</strong>."
+        body_main = "U kunt uw bijgewerkte offerte bekijken via onderstaande knop."
+        btn_text = "Mijn offerte bekijken"
+        fallback = "Als de knop niet werkt, kopieer en plak deze link:"
+        footer = "Het team van Davide Chape"
+    elif client_language == "en":
+        subject = "Update on your intervention – Davide Chape"
+        greeting = f"Dear {client_name}"
+        intro = f"The date of your intervention has been updated to: <strong>{new_date}</strong>."
+        body_main = "You can view your updated quote by clicking the button below."
+        btn_text = "View my quote"
+        fallback = "If the button does not work, copy and paste this link:"
+        footer = "The Davide Chape Team"
+    elif client_language == "ro":
+        subject = "Actualizare lucrare – Davide Chape"
+        greeting = f"Bună ziua {client_name}"
+        intro = f"Data intervenției dumneavoastră a fost actualizată: <strong>{new_date}</strong>."
+        body_main = "Puteți vedea detaliile folosind butonul de mai jos."
+        btn_text = "Vezi detaliile"
+        fallback = "Dacă butonul nu funcționează, accesați link-ul:"
+        footer = "Echipa Davide Chape"
+    else:
+        subject = "Mise à jour de votre intervention – Davide Chape"
+        greeting = f"Bonjour {client_name}"
+        intro = f"La date de votre intervention a été mise à jour : <strong>{new_date}</strong>."
+        body_main = "Vous pouvez consulter les détails en cliquant sur le bouton ci-dessous."
+        btn_text = "Voir les détails"
+        fallback = "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien :"
+        footer = "L'équipe Davide Chape"
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #2b5c8f; padding: 20px; text-align: center;">
+            <h2 style="color: #ffffff; margin: 0;">Davide Chape</h2>
+        </div>
+        <div style="padding: 30px; background-color: #ffffff;">
+            <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
+            <p style="font-size: 16px;">{intro}</p>
+            <p style="font-size: 16px;">{body_main}</p>
+            
+            <div style="text-align: center; margin: 35px 0;">
+                <a href="{signing_url}" style="background-color: #f26522; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: #2b5c8f;">{signing_url}</a></p>
+        </div>
+        <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
+            <p style="margin: 0;">{footer}</p>
+        </div>
+    </div>
+    """
+
+    payload = {
+        "sender": {"name": "Davide Chape", "email": from_email},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+
+    try:
+        httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers={"api-key": brevo_api_key, "accept": "application/json", "content-type": "application/json"},
+            timeout=10.0
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send planning email: {e}")
+        return False
