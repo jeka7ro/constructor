@@ -139,6 +139,7 @@ class WorkOrderCreate(BaseModel):
 class WorkOrderUpdate(WorkOrderCreate):
     title: Optional[str] = None
     status: Optional[str] = None
+    proforma_data: Optional[dict] = None
 
 
 def _serialize_slim(wo: WorkOrder) -> dict:
@@ -826,7 +827,7 @@ def update_work_order(
         "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
         "client_email", "client_phone", "client_language", "requirements", "materials", "volumes", "prices",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
-        "estimated_price", "status", "is_quote", "work_type"
+        "estimated_price", "status", "is_quote", "work_type", "proforma_data"
     ]
     
     update_data = payload.dict(exclude_unset=True)
@@ -972,6 +973,8 @@ def update_work_order(
     except Exception as _route_err:
         print(f"Route calc warning (non-fatal): {_route_err}")
 
+    from datetime import datetime
+    wo.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(wo)
     
@@ -1071,7 +1074,10 @@ def sync_work_order_prices(
                     
         if auto_net > 0:
             wo.estimated_price = auto_net
-            db.commit()
+        
+        from datetime import datetime
+        wo.updated_at = datetime.utcnow()
+        db.commit()
     except Exception as e:
         print("Failed to auto-recalculate estimated price after sync:", str(e))
         pass

@@ -671,8 +671,20 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             delete newPrices.fiber_large;
             delete newPrices.fiber_threshold;
             // Calcul nou estimat
-            const newCalc = computeChapeTotal(surface, thickness, calcEditForm, newPrices);
-            const res = await api.put(`/admin/work-orders/${id}`, { volumes: newVolumes, estimated_price: String(newCalc.net), prices: newPrices });
+            // Update the legacy proforma_data object so the public page sees the changes
+            const newProformaData = {
+                ...(wo.proforma_data || {}),
+                discountPct: newPrices.discount_pct,
+                // also resync items if we have them so the price update applies
+                items: undefined // clearing items forces the public page to re-render using the fallback logic which correctly uses `prices`
+            };
+            
+            const res = await api.put(`/admin/work-orders/${id}`, { 
+                volumes: newVolumes, 
+                estimated_price: String(newCalc.net), 
+                prices: newPrices,
+                proforma_data: newProformaData
+            });
             setWo(res.data);
             setCalcEditOpen(false);
             showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès !'));
