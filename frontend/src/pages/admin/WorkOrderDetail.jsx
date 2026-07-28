@@ -671,6 +671,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             delete newPrices.fiber_large;
             delete newPrices.fiber_threshold;
             // Calcul nou estimat
+            const newCalc = computeChapeTotal(surface, thickness, calcEditForm, newPrices);
+
             // Update the legacy proforma_data object so the public page sees the changes
             const newProformaData = {
                 ...(wo.proforma_data || {}),
@@ -689,6 +691,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             setCalcEditOpen(false);
             showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès !'));
         } catch (e) {
+            console.error("Save calc error:", e?.response?.data || e.message);
             showToast(t('work_order_detail.calc_edit.error', 'Erreur lors de la sauvegarde du calcul.'), 'error');
         } finally {
             setCalcEditSaving(false);
