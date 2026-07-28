@@ -38,7 +38,6 @@ export default function AdminOverview() {
     const [stats, setStats] = useState({ total_users: 0, total_sites: 0, pending: 0, total_hours_week: 0 })
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
     const [statsLoading, setStatsLoading] = useState(true)
-    const [statsLoading, setStatsLoading] = useState(true)
     const [chartLoading, setChartLoading] = useState(true)
     const [newQuotesAlert, setNewQuotesAlert] = useState([])
 
