@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime, date
 import secrets
+import os
 
 from app.database import get_db
 from app.models import Organization, Client, WorkOrder, PricingSetting
