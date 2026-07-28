@@ -47,8 +47,8 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
 
     html_content = f"""
     <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: #2b5c8f; padding: 20px; text-align: center;">
-            <h2 style="color: #ffffff; margin: 0;">Davide Chape</h2>
+        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #f26522;">
+            <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 60px;" />
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
             <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>

@@ -161,7 +161,7 @@ def get_html_template(work_order, client=None):
     <body>
         <div class="header">
             <div>
-                <div class="company-name">ISOFLEX SRL</div>
+                <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 80px; margin-bottom: 10px;" />
                 <div class="company-details">
                     Chappelles lez Herlemont<br>
                     Rue de Clair Fontaine 162<br>

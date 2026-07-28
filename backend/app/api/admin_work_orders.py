@@ -837,28 +837,6 @@ def update_work_order(
         if f in update_data:
             setattr(wo, f, update_data[f])
             
-    # Send planning updates if start_date changed
-    if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed"):
-        from app.services.email_service import send_planning_update_email
-        from app.services.whatsapp_service import send_planning_update_whatsapp
-        from fastapi import BackgroundTasks
-        
-        # We need BackgroundTasks, but since it's not injected in this route natively, we can just spawn a thread or do it synchronously.
-        # It's better to do it synchronously for now or import it from somewhere. Since BackgroundTasks is not in the signature, I'll just call them synchronously.
-        # (Alternatively, modify the route signature to accept background_tasks: BackgroundTasks, but that's harder with replace_file_content).
-        # Let's just do it directly.
-        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
-        formatted_date = wo.start_date.strftime("%d/%m/%Y")
-        if wo.client_email:
-            try:
-                send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
-            except Exception as e:
-                print(f"Failed to send planning update email: {e}")
-        if wo.client_phone:
-            try:
-                send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
-            except Exception as e:
-                print(f"Failed to send planning update whatsapp: {e}")
 
     if "use_vat" in update_data:
         pd = dict(wo.prices or {})
@@ -977,6 +955,24 @@ def update_work_order(
     wo.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(wo)
+
+    # Send planning updates if start_date changed
+    if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed"):
+        from app.services.email_service import send_planning_update_email
+        from app.services.whatsapp_service import send_planning_update_whatsapp
+        
+        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+        formatted_date = wo.start_date.strftime("%d/%m/%Y")
+        if wo.client_email:
+            try:
+                send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+            except Exception as e:
+                print(f"Failed to send planning update email: {e}")
+        if wo.client_phone:
+            try:
+                send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+            except Exception as e:
+                print(f"Failed to send planning update whatsapp: {e}")
     
     # ── Invalidare cache logistic — NUMAI dacă s-a schimbat echipa sau adresa ──
     # Nu recalculăm la fiecare update (costuri API Google!)

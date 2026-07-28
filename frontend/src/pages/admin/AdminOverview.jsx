@@ -1489,10 +1489,7 @@ export default function AdminOverview() {
                                         <SearchableSelect
                                             value={quickCreateData.teamId || ''}
                                             onChange={val => setQuickCreateData(p => ({...p, teamId: val}))}
-                                            options={[
-                                                { value: '', label: t('dashboard.quick_create.no_team', '-- Sans équipe (Brouillon) --') },
-                                                ...teams.map(t => ({ value: String(t.id), label: t.name }))
-                                            ]}
+                                            options={teams.map(t => ({ value: String(t.id), label: t.name }))}
                                             placeholder={t('dashboard.quick_create.no_team', '-- Sans équipe (Brouillon) --')}
                                             buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                             menuPosition="top"
@@ -1900,10 +1897,7 @@ export default function AdminOverview() {
                                 <SearchableSelect
                                     value={quickEditForm.teamId || ''}
                                     onChange={val => setQuickEditForm(p => ({...p, teamId: val}))}
-                                    options={[
-                                        { value: '', label: t('dashboard.quick_create.no_team', '-- Non assigné --') },
-                                        ...teams.map(t => ({ value: String(t.id), label: t.name }))
-                                    ]}
+                                    options={teams.map(t => ({ value: String(t.id), label: t.name }))}
                                     placeholder={t('dashboard.quick_create.no_team', '-- Non assigné --')}
                                     buttonClassName="rounded-xl h-11 text-sm font-semibold"
                                     menuPosition="top"

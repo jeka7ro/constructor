@@ -766,8 +766,15 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col">
-                                    <div className="w-full aspect-[3.5/1] border-2 border-emerald-200 bg-emerald-50/50 rounded-2xl flex items-center justify-center p-2">
-                                        <img src={mode === 'final' ? order?.final_client_signature : order?.client_signature} alt="Signature" className="max-h-full object-contain" />
+                                    <div className="w-full aspect-[3.5/1] border-2 border-emerald-200 bg-emerald-50/50 rounded-2xl flex flex-col items-center justify-center p-2 text-center">
+                                        {(order?.final_client_signature === 'accepted_without_signature' || order?.client_signature === 'accepted_without_signature') ? (
+                                            <>
+                                                <span className="text-emerald-700 font-bold text-sm">Accepté en ligne</span>
+                                                <span className="text-emerald-600 text-xs">(sans signature manuscrite)</span>
+                                            </>
+                                        ) : (
+                                            <img src={mode === 'final' ? order?.final_client_signature : order?.client_signature} alt="Signature" className="max-h-full object-contain" />
+                                        )}
                                     </div>
                                     <div className="text-[10px] text-slate-500 font-bold mt-2">
                                         Date: {new Date(mode === 'final' ? order?.final_confirmed_at : order?.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}

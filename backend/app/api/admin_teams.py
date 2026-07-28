@@ -70,6 +70,7 @@ def team_to_dict(team, db):
 
 
 @router.get("")
+@router.get("/")
 def list_teams(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
