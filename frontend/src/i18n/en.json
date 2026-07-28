@@ -1,10 +1,10 @@
 {
   "nav": {
-    "isoflex_history": "Historique Isoflex",
-    "pricing_settings": "Tarifs",
+    "isoflex_history": "Isoflex History",
+    "pricing_settings": "Pricing",
     "dashboard": "Dashboard",
-    "users": "Employees",
-    "sites": "Job Sites",
+    "users": "Users",
+    "sites": "Sites",
     "timesheets": "Timesheets",
     "activities": "Activities",
     "reports": "Reports",
@@ -22,18 +22,18 @@
     "cat_saas": "SaaS Platform",
     "planning": "Planning",
     "logistics": "Logistics",
-    "work_orders": "Orders",
-    "screed_analytics": "Calculations",
+    "work_orders": "Work Orders",
+    "screed_analytics": "Screed Analytics",
     "employees": "Employees",
-    "leaves": "Leaves & Absences",
+    "leaves": "Leaves",
     "accommodations": "Accommodations",
-    "calculator": "Client Calculator (Public)",
+    "calculator": "Client Calculator",
     "clients": "Clients",
     "warehouse": "Warehouse",
-    "transport": "Waybills",
+    "transport": "Transport",
     "material_requests": "Material Requests",
     "expenses": "Expenses",
-    "alerts": "Notice Board (Alerts)",
+    "alerts": "Alerts",
     "emergencies": "Emergencies",
     "complaints": "Complaints",
     "organizations": "Companies (Tenants)",
@@ -42,7 +42,8 @@
     "work_orders_full": "Work Orders",
     "inventory": "Inventory",
     "tracking": "Live Tracking",
-    "quotes": "Quotes / Devis"
+    "quotes": "Quotes",
+    "invoicing": "Invoicing"
   },
   "logistics": {
     "title": "Logistics",
@@ -598,33 +599,33 @@
     "distance": "distance"
   },
   "dashboard": {
-    "live_tracking": "SUIVI EN DIRECT",
+    "live_tracking": "LIVE TRACKING",
     "quick_create": {
       "client_mandatory": "Client *",
-      "work_type": "Type de travaux (TVA)",
-      "apply_vat": "Appliquer la TVA",
-      "work_new": "Neuf (< 10 ans)",
-      "work_repair": "Rénovation (> 10 ans)",
+      "work_type": "Work Type (VAT)",
+      "apply_vat": "Apply VAT",
+      "work_new": "New (< 10 yrs)",
+      "work_repair": "Repair (> 10 yrs)",
       "surface_mandatory": "Surface (m²) *",
-      "thickness_mandatory": "Épaisseur (cm) *",
-      "include_fiber": "Inclure Fibres",
+      "thickness_mandatory": "Thickness (cm) *",
+      "include_fiber": "Include Fibers",
       "title": "Quick Create",
       "client_optional": "Client (Optional)",
       "new_client": "New Client",
       "choose_client": "-- Choose client --",
       "work_title": "Job Title *",
-      "address_optional": "Address / Location (Optional)",
+      "address_optional": "Address (Optional)",
       "gps_auto": "Auto GPS",
-      "base_dist": "Base Distance:",
+      "base_dist": "Base Dist:",
       "choose_address": "(Choose address)",
       "calculating": "calculating...",
       "surface": "Surface (m²)",
       "thickness": "Thickness (cm)",
-      "sand_estimated": "Estimated Sand:",
+      "sand_estimated": "Estimated sand:",
       "tons": "Tons",
-      "enter_sqm": "(Enter m² and thickness)",
-      "include_foil": "Include Plastic Foil (1.2 EUR/m²)",
-      "include_mesh": "Include Metal Mesh (2.50 EUR/m²)",
+      "enter_sqm": "(Enter m² & cm)",
+      "include_foil": "Include Plastic Foil",
+      "include_mesh": "Include Metal Mesh",
       "include_duramint": "Include Duramint",
       "allocated_team": "Allocated Team",
       "no_team": "-- No team (Draft) --",
@@ -634,9 +635,9 @@
       "individual": "Individual",
       "legal_entity": "Company",
       "client_name": "Client Name *",
-      "client_name_placeholder": "Ex: John Doe / Company LLC",
-      "cnp": "SSN (Optional)",
-      "cui": "VAT (Optional)",
+      "client_name_placeholder": "Ex: John Doe",
+      "cnp": "ID Number (Optional)",
+      "cui": "VAT Number (Optional)",
       "country": "Country",
       "phone": "Phone",
       "email": "Email",
@@ -676,7 +677,10 @@
       "title": "Quick Edit",
       "client": "Client",
       "advanced_details": "Advanced Details"
-    }
+    },
+    "pending_quotes": "PENDING QUOTES",
+    "teams_on_site": "TEAMS ON SITE",
+    "empty_quotes": "No pending quotes."
   },
   "settings": {
     "title": "Settings",
@@ -1384,7 +1388,8 @@
     "confirmed": "CONFIRMÉ",
     "completed": "TERMINÉ",
     "cancelled": "ANNULÉ",
-    "isoflex": "ISOFLEX"
+    "isoflex": "ISOFLEX",
+    "planning": "In planning"
   },
   "expenses": {
     "title": "Expenses & Settlements",
@@ -1579,8 +1584,8 @@
   "quotes": {
     "geo_unsupported": "La géolocalisation n'est pas prise en charge.",
     "geo_error": "Impossible de récupérer la position.",
-    "surface_thickness": "Surface / Épaisseur",
-    "title_main": "Quotes / Devis",
+    "surface_thickness": "Surface / Thickness",
+    "title_main": "Quotes / Offers",
     "subtitle": "Manage quote requests before scheduling",
     "quick_add": "Quick Add Quote",
     "field_title": "Job Type / Title",
@@ -1605,7 +1610,12 @@
     "success_convert": "Quote successfully converted!",
     "err_convert": "Conversion error.",
     "req_title": "Title is required",
-    "err_create": "Error creating quote"
+    "err_create": "Error creating quote",
+    "page_title": "Quotes",
+    "page_subtitle": "Manage quote requests before scheduling",
+    "waiting_list": "Waiting Quotes List",
+    "client_address": "Client & Address",
+    "price": "Price (€)"
   },
   "pricing_settings": {
     "global_title": "Global Rates",
@@ -1750,13 +1760,15 @@
     "ago_sec": "il y a {{count}}s",
     "ago_min": "il y a {{count}}m",
     "ago_h": "il y a {{count}}h",
-    "active": "actif",
+    "active": "active",
     "last_seen": "Vu",
     "speed": "Vitesse",
     "stopped": "Stopped",
     "today": "today",
     "at_base": "At Base: ",
-    "at_worksite": "At Worksite: "
+    "at_worksite": "At Worksite: ",
+    "title": "LIVE GPS",
+    "legend": "Legend"
   },
   "workorders": {
     "surface_required": "La surface est requise."
@@ -1830,5 +1842,15 @@
     "Cantitate": "quantity",
     "Unitate (ex: buc, ml, kg)": "unit_ex",
     "Notă (opțional)": "note_optional"
+  },
+  "source": {
+    "robaws": "Robaws",
+    "calculator": "Calculator",
+    "devis": "Online Quote",
+    "manual": "Manually Added",
+    "we_r": "WE-R"
+  },
+  "overview": {
+    "pending_quotes": "Waiting Quotes"
   }
 }

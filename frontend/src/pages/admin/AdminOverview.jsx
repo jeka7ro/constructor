@@ -217,7 +217,7 @@ export default function AdminOverview() {
     };
 
     const [quickCreateData, setQuickCreateData] = useState(null) // { teamId, clientId, clientName, date, time }
-    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', work_type: 'new', use_vat: true, has_foil: false, has_mesh: false, has_duramint: false })
+    const [quickCreateForm, setQuickCreateForm] = useState({ title: '', address: '', latitude: '', longitude: '', surface: '', thickness: '', clientId: '', work_type: 'new', use_vat: true, has_foil: false, has_mesh: false, has_fiber: false, has_duramint: false })
     const [quickEditOrder, setQuickEditOrder] = useState(null) // wo object
     const [fullscreenOrderId, setFullscreenOrderId] = useState(null)
     const [fullscreenNewOrder, setFullscreenNewOrder] = useState(null)
@@ -709,6 +709,7 @@ export default function AdminOverview() {
                     thickness: parseFloat(quickCreateForm.thickness) || 0,
                     has_foil: !!quickCreateForm.has_foil,
                     has_mesh: !!quickCreateForm.has_mesh,
+                    has_fiber: !!quickCreateForm.has_fiber,
                     has_duramint: !!quickCreateForm.has_duramint
                 }] : [],
                 estimated_price: estimatedAmount > 0 ? String(estimatedAmount) : null,
@@ -1058,6 +1059,19 @@ export default function AdminOverview() {
                                         const woId = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("id");
                                         if (woId) {
                                             try {
+                                                // Optimistic UI updates - wrapped in setTimeout to allow onDragEnd to fire first
+                                                // Otherwise, the element is unmounted and isDragging gets stuck to true in ShortWorksCalendar
+                                                setTimeout(() => {
+                                                    setAllWorkOrders(prev => {
+                                                        const woInCalendar = prev.find(w => String(w.id) === String(woId));
+                                                        if (woInCalendar) {
+                                                            setPendingQuotes(pq => [...pq, { ...woInCalendar, status: 'pending', scheduled_date: null }]);
+                                                            return prev.filter(w => String(w.id) !== String(woId));
+                                                        }
+                                                        return prev;
+                                                    });
+                                                }, 50);
+
                                                 await api.put(`/admin/work-orders/${woId}`, {
                                                     scheduled_date: null,
                                                     start_time: null,
@@ -1079,7 +1093,7 @@ export default function AdminOverview() {
                                 <div className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                                     <h3 className="font-extrabold text-white flex items-center gap-2 text-xs uppercase tracking-wide leading-tight">
                                         <ClipboardList className="w-4 h-4 text-white shrink-0" />
-                                        <span>Devis en attente</span>
+                                        <span>{t('overview.pending_quotes', 'Devis en attente')}</span>
                                     </h3>
                                 </div>
                                 
@@ -1424,6 +1438,15 @@ export default function AdminOverview() {
                                                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                                             />
                                             {t('dashboard.quick_create.include_mesh', 'Include Plasă metalică (2,50 EUR/m²)')}
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!quickCreateForm.has_fiber}
+                                                onChange={e => setQuickCreateForm({ ...quickCreateForm, has_fiber: e.target.checked })}
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                            />
+                                            {t('dashboard.quick_create.include_fiber', 'Include Fibres')}
                                         </label>
                                         <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                                             <input 

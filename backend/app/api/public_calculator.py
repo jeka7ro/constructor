@@ -39,6 +39,9 @@ class CalculatorSubmitRequest(BaseModel):
     
     # Iframe tracking
     is_iframe: Optional[bool] = False
+    
+    # Custom source override (e.g. 'we-r' for Jordi)
+    source: Optional[str] = None
 
 @router.get("/config")
 def get_calculator_config(domain: Optional[str] = None, slug: Optional[str] = None, db: Session = Depends(get_db)):
@@ -214,9 +217,13 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         estimated_price=str(estimated_price) if estimated_price > 0 else None,
         prices=prices_dict,
         proforma_issued_at=datetime.utcnow(),
-        source_system="calculator_public" if payload.is_iframe else "devis_online"
     )
     
+    if payload.source:
+        wo.source_system = payload.source
+    else:
+        wo.source_system = "we-r" if payload.is_iframe else "devis_online"
+        
     count = db.query(WorkOrder).filter(
         WorkOrder.organization_id == wo.organization_id,
         WorkOrder.quote_number.isnot(None)

@@ -561,14 +561,24 @@ export default function QuotesManagement() {
                     )
                 }
                 const getSourceBadge = (src) => {
-                    if (src === 'calculator_public') return (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-600 whitespace-nowrap">
-                            {t('source.calculator', 'Calculator')}
+                    if (src === 'calculator_public' || src === 'we-r') return (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-500 whitespace-nowrap">
+                            {t('source.we_r', 'WE-R')}
                         </span>
                     )
                     if (src === 'devis_online') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-500 whitespace-nowrap">
                             {t('source.devis', 'Devis en ligne')}
+                        </span>
+                    )
+                    if (src === 'robaws') return (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-indigo-500 whitespace-nowrap">
+                            {t('source.robaws', 'Robaws')}
+                        </span>
+                    )
+                    if (src === 'manual') return (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">
+                            {t('source.manual', 'Adăugat manual')}
                         </span>
                     )
                     return null

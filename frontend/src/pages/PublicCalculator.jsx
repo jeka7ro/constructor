@@ -160,7 +160,8 @@ export default function PublicCalculator() {
         setSubmitting(true);
         try {
             const domain = window.location.hostname;
-            const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe });
+            const urlSource = new URLSearchParams(window.location.search).get('source');
+            const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe, source: urlSource });
             if (res.data.token) {
                 if (photos.length > 0) {
                     try {
@@ -189,6 +190,7 @@ export default function PublicCalculator() {
                         approximate_date: formData.approximate_date,
                         has_foil: formData.has_foil,
                         has_mesh: formData.has_mesh,
+                        has_duramint: formData.has_duramint,
                         source_domain: domain,
                         is_iframe: isIframe,
                         submitted_at: new Date().toISOString(),
@@ -245,7 +247,18 @@ export default function PublicCalculator() {
                 if (s >= minS && s < maxS) hiddenExtra += parseFloat(thresh.extra_charge || 0);
             });
         }
-        const total = base + extraCost + foil + mesh + hiddenExtra;
+        
+        let fiber = 0;
+        if (formData.has_duramint) {
+            const threshold = parseFloat(p.fiber_large_threshold_sqm || 200);
+            if (s <= threshold) {
+                fiber = parseFloat(p.fiber_price_sqm || 2.5) * s;
+            } else {
+                fiber = parseFloat(p.fiber_price_sqm_large || 2.0) * s;
+            }
+        }
+
+        const total = base + extraCost + foil + mesh + fiber + hiddenExtra;
         let vatRate = 21;
         if (formData.client_type === 'juridica') vatRate = p.vat_legal_entity;
         else vatRate = formData.work_type === 'repair' ? p.vat_physical_repair : p.vat_physical_new;

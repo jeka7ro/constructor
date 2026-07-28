@@ -736,6 +736,9 @@ export default function ShortWorksCalendar({
                                         }
                                     }}
                                 >
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full flex items-center justify-center shadow-md pointer-events-none" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                        <Plus className="w-5 h-5 text-white" />
+                                    </div>
                                 </div>
                             );
                         })}

@@ -152,7 +152,7 @@ function App() {
                     if (res.data.name) {
                         document.title = res.data.name;
                     }
-                    if (res.data.default_language) {
+                    if (res.data.default_language && !localStorage.getItem('language')) {
                         i18n.changeLanguage(res.data.default_language)
                     }
                     
