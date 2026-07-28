@@ -1489,7 +1489,8 @@
         "completed": "TERMINÉ",
         "cancelled": "ANNULÉ",
         "isoflex": "ISOFLEX",
-        "planning": "En planification"
+        "planning": "En planification",
+        "pending": "En attente"
     },
     "expenses": {
         "title": "Dépenses & Règlements",

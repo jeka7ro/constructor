@@ -578,7 +578,7 @@ export default function QuotesManagement() {
                     )
                     if (src === 'manual') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">
-                            {t('source.manual', 'Adăugat manual')}
+                            {t('source.manual', 'Ajouté manuellement')}
                         </span>
                     )
                     return null
