@@ -217,6 +217,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [docDrawerState, setDocDrawerState] = useState(null)
     const [syncingPrices, setSyncingPrices] = useState(false)
     const [showSyncConfirm, setShowSyncConfirm] = useState(false)
+    
+    // Modale pentru ștergere și convertire (înlocuiesc alertele native de browser)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [showConvertConfirm, setShowConvertConfirm] = useState(false)
 
     const showToast = (msg, type = 'success') => {
         if (typeof msg === 'object' && msg !== null) {
@@ -338,21 +342,25 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [isConverting, setIsConverting] = useState(false)
     const handleConvertToOrder = async () => {
         if (!wo?.start_date) {
-            alert(t('quotes.req_start_date', 'Vous devez sélectionner une date de début (depuis Éditer) avant la conversion.'))
+            showToast(t('quotes.req_start_date', 'Vous devez sélectionner une date de début (depuis Éditer) avant la conversion.'), 'error')
             return
         }
-        if (!window.confirm(t('quotes.confirm_convert', 'Êtes-vous sûr de vouloir transformer ce devis en une commande de travail ?'))) return
+        setShowConvertConfirm(true)
+    }
+
+    const executeConvertToOrder = async () => {
         setIsConverting(true)
         try {
             const res = await api.post(`/admin/work-orders/${id}/convert-to-order`, {
                 start_date: wo.start_date
             })
             setWo(res.data.work_order)
-            alert(t('quotes.success_convert', 'Le devis a été transformé avec succès !'))
+            showToast(t('quotes.success_convert', 'Le devis a été transformé avec succès !'), 'success')
         } catch (err) {
-            alert(err.response?.data?.detail || t('quotes.err_convert', 'Erreur de conversion.'))
+            showToast(err.response?.data?.detail || t('quotes.err_convert', 'Erreur de conversion.'), 'error')
         } finally {
             setIsConverting(false)
+            setShowConvertConfirm(false)
         }
     }
 
@@ -561,7 +569,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
     let chapeFlags = {}; // has_foil, has_mesh, has_fiber, has_duramint
-    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0 };
+    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0, discountPct: 0 };
 
     (wo.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
@@ -581,6 +589,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             estimCalc.fiber += c.fiber;
             estimCalc.threshold += c.threshold;
             estimCalc.discount += c.discount;
+            estimCalc.discountPct = c.discountPct;
             estimCalc.net   += c.net;
         }
     });
@@ -689,7 +698,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             });
             setWo(res.data);
             setCalcEditOpen(false);
-            showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès !'));
+            showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès. Le discount a été appliqué !'));
         } catch (e) {
             console.error("Save calc error:", e?.response?.data || e.message);
             showToast(t('work_order_detail.calc_edit.error', 'Erreur lors de la sauvegarde du calcul.'), 'error');
@@ -833,13 +842,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <Edit2 className="w-3.5 h-3.5" /> {t('common.edit', 'Modifier')}
                             </button>
                             <button 
-                                onClick={() => {
-                                    if(window.confirm(t('work_order_detail.delete_confirm', 'Êtes-vous sûr de vouloir supprimer ceci définitivement ?'))) {
-                                        api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
-                                           .then(() => navigate('/admin/quotes'))
-                                           .catch(console.error)
-                                    }
-                                }}
+                                onClick={() => setShowDeleteConfirm(true)}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors">
                                 <Trash2 className="w-3.5 h-3.5" /> {t('common.delete', 'Supprimer')}
                             </button>
@@ -2111,6 +2114,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 confirmText={t('common.confirm', 'Confirmer')}
                 cancelText={t('common.cancel', 'Annuler')}
                 type="danger"
+            />
+            
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => {
+                    api.put(`/admin/work-orders/${id}`, { status: 'cancelled' })
+                       .then(() => navigate('/admin/quotes'))
+                       .catch((err) => {
+                           console.error(err);
+                           showToast(t('common.error', 'Erreur'), 'error');
+                       })
+                }}
+                title={t('common.delete', 'Supprimer')}
+                message={t('work_order_detail.delete_confirm', 'Êtes-vous sûr de vouloir supprimer ceci définitivement ?')}
+                confirmText={t('common.delete', 'Supprimer')}
+                cancelText={t('common.cancel', 'Annuler')}
+                type="danger"
+            />
+
+            <ConfirmModal
+                isOpen={showConvertConfirm}
+                onClose={() => setShowConvertConfirm(false)}
+                onConfirm={executeConvertToOrder}
+                title={t('quotes.convert', 'Transformer')}
+                message={t('quotes.confirm_convert', 'Êtes-vous sûr de vouloir transformer ce devis en une commande de travail ?')}
+                confirmText={t('common.confirm', 'Confirmer')}
+                cancelText={t('common.cancel', 'Annuler')}
+                type="primary"
             />
         </div>
     )

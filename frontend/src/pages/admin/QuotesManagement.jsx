@@ -636,7 +636,9 @@ export default function QuotesManagement() {
                 if (row.approximate_date) {
                     try {
                         const d = new Date(row.approximate_date)
-                        if (!isNaN(d.getTime())) displayDate = d.toLocaleDateString('ro-RO')
+                        if (!isNaN(d.getTime())) {
+                            displayDate = d.toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')
+                        }
                     } catch(e) {}
                 }
                 

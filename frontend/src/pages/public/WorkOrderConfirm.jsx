@@ -154,7 +154,8 @@ const LANG_DICT = {
         orderNotFound: 'Comandă negăsită',
         errorLoading: 'Nu am putut accesa comanda. Verificați conexiunea la internet.',
         errorConfirming: 'Eroare la confirmare. Încearcă din nou.',
-        updateNotification: 'Ați primit o actualizare de la echipa Davide Chape.'
+        updateNotification: 'Ați primit o actualizare de la echipa Davide Chape.',
+        orderCancelled: 'Această comandă a fost anulată.'
     },
     en: {
         workOrder: 'Work Order',
@@ -192,7 +193,8 @@ const LANG_DICT = {
         orderNotFound: 'Order not found',
         errorLoading: 'Could not access the order. Check your internet connection.',
         errorConfirming: 'Confirmation error. Try again.',
-        updateNotification: 'You have received an update from the Davide Chape team.'
+        updateNotification: 'You have received an update from the Davide Chape team.',
+        orderCancelled: 'This order has been cancelled.'
     },
     fr: {
         workOrder: 'Bon de travail',
@@ -233,7 +235,8 @@ const LANG_DICT = {
         updateNotification: 'Vous avez reçu une mise à jour de l\'équipe Davide Chape.',
         clientDocuments: 'Documents Client (Plans / Photos)',
         addDocument: 'Ajouter un Document',
-        noDocuments: 'Aucun document chargé.'
+        noDocuments: 'Aucun document chargé.',
+        orderCancelled: 'Cette commande a été annulée.'
     },
     de: {
         workOrder: 'Arbeitsauftrag',
@@ -269,7 +272,8 @@ const LANG_DICT = {
         loadingOrder: 'Auftrag wird geladen...',
         orderNotFound: 'Auftrag nicht gefunden',
         errorLoading: 'Zugriff auf Auftrag fehlgeschlagen. Überprüfen Sie Ihre Internetverbindung.',
-        errorConfirming: 'Bestätigungsfehler. Versuchen Sie es erneut.'
+        errorConfirming: 'Bestätigungsfehler. Versuchen Sie es erneut.',
+        orderCancelled: 'Dieser Auftrag wurde storniert.'
     },
     nl: {
         workOrder: 'Werkbon',
@@ -306,7 +310,8 @@ const LANG_DICT = {
         loadingOrder: 'Bestelling laden...',
         orderNotFound: 'Bestelling niet gevonden',
         errorLoading: 'Kan de bestelling niet openen. Controleer uw internetverbinding.',
-        errorConfirming: 'Bevestigingsfout. Probeer het opnieuw.'
+        errorConfirming: 'Bevestigingsfout. Probeer het opnieuw.',
+        orderCancelled: 'Deze bestelling is geannuleerd.'
     },
     ru: {
         workOrder: 'Заказ-наряд',
@@ -342,7 +347,8 @@ const LANG_DICT = {
         loadingOrder: 'Загрузка заказа...',
         orderNotFound: 'Заказ не найден',
         errorLoading: 'Не удалось получить доступ к заказу. Проверьте подключение к интернету.',
-        errorConfirming: 'Ошибка подтверждения. Попробуйте снова.'
+        errorConfirming: 'Ошибка подтверждения. Попробуйте снова.',
+        orderCancelled: 'Этот заказ был отменен.'
     }
 }
 
@@ -427,6 +433,11 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             try {
                 const res = await api.get(`/public/work-orders/${token}`)
                 const data = res.data
+                if (data.status === 'cancelled') {
+                    setError(t.orderCancelled)
+                    setLoading(false)
+                    return
+                }
                 setOrder(data)
                 if (data.client_name) setConfirmedByName(data.client_name)
                 
@@ -457,6 +468,11 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             try {
                 const res = await api.get(`/public/work-orders/${token}`)
                 const newData = res.data
+                if (newData.status === 'cancelled') {
+                    setError(t.orderCancelled)
+                    setOrder(null)
+                    return
+                }
                 const newTimestamp = newData.updated_at || newData.created_at
                 if (lastUpdatedRef.current && newTimestamp !== lastUpdatedRef.current) {
                     lastUpdatedRef.current = newTimestamp
@@ -552,8 +568,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <AlertCircle className="w-8 h-8 text-red-500" />
                 </div>
-                <h1 className="text-xl font-black text-slate-900 mb-2">{t.orderNotFound}</h1>
-                <p className="text-slate-600">{error}</p>
+                <h1 className="text-xl font-black text-slate-900 mb-2">
+                    {error === t.orderCancelled ? error : t.orderNotFound}
+                </h1>
+                <p className="text-slate-600">
+                    {error === t.orderCancelled ? '' : error}
+                </p>
             </div>
         </div>
     )
