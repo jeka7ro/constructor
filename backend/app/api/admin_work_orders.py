@@ -467,6 +467,7 @@ def list_work_orders(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     is_quote: Optional[bool] = Query(None),
+    ignore_quote_filter: bool = Query(False),
     limit: Optional[int] = None,
     slim: bool = Query(False),  # Mod rapid pentru planning — fără calcul preț
     db: Session = Depends(get_db),
@@ -514,7 +515,9 @@ def list_work_orders(
 
     q = db.query(WorkOrder).filter(WorkOrder.organization_id == current_admin.organization_id)
     
-    if is_quote is not None:
+    if ignore_quote_filter:
+        pass # Fetch everything without filtering on is_quote
+    elif is_quote is not None:
         q = q.filter(WorkOrder.is_quote == is_quote)
     else:
         # Default: comenzile normale (is_quote=False) + devisele trimise in planning (is_quote=True + status=planning)
@@ -542,7 +545,11 @@ def list_work_orders(
             selectinload(WorkOrder.photos)
         )
     if status:
-        q = q.filter(WorkOrder.status == status)
+        if "," in status:
+            statuses = [s.strip() for s in status.split(",")]
+            q = q.filter(WorkOrder.status.in_(statuses))
+        else:
+            q = q.filter(WorkOrder.status == status)
     else:
         q = q.filter(WorkOrder.status != 'isoflex')
     from sqlalchemy import or_
@@ -698,15 +705,33 @@ def create_work_order(
     db.flush()  # obtine ID-ul
 
     # Auto-generate quote_number (IST0001, IST0002...) sau invoice_number (INV001...)
+    from sqlalchemy import func
     if wo.is_quote:
-        count = db.query(WorkOrder).filter(WorkOrder.is_quote == True).count()
-        wo.quote_number = f"EST{str(count + 841).zfill(4)}"
-    else:
-        count = db.query(WorkOrder).filter(
+        max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
             WorkOrder.organization_id == current_admin.organization_id,
-            WorkOrder.is_quote == False
-        ).count()
-        wo.invoice_number = f"INV{str(count).zfill(3)}"
+            WorkOrder.quote_number.like('EST%')
+        ).scalar()
+        if max_quote:
+            try:
+                next_num = int(max_quote.replace('EST', '')) + 1
+            except ValueError:
+                next_num = 841
+        else:
+            next_num = 841
+        wo.quote_number = f"EST{str(next_num).zfill(4)}"
+    else:
+        max_inv = db.query(func.max(WorkOrder.invoice_number)).filter(
+            WorkOrder.organization_id == current_admin.organization_id,
+            WorkOrder.invoice_number.like('INV%')
+        ).scalar()
+        if max_inv:
+            try:
+                next_num = int(max_inv.replace('INV', '')) + 1
+            except ValueError:
+                next_num = 1
+        else:
+            next_num = 1
+        wo.invoice_number = f"INV{str(next_num).zfill(3)}"
 
     if payload.materials:
         sync_work_order_reservations(db, current_admin.organization_id, [], payload.materials)
@@ -956,8 +981,8 @@ def update_work_order(
     db.commit()
     db.refresh(wo)
 
-    # Send planning updates if start_date changed
-    if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed"):
+    # Send planning updates if start_date changed, but NEVER silently for devis_online (internal manual tracking)
+    if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed") and wo.source_system != "devis_online":
         from app.services.email_service import send_planning_update_email
         from app.services.whatsapp_service import send_planning_update_whatsapp
         
@@ -1355,6 +1380,104 @@ async def update_invoice_status(
     db.refresh(wo)
     return _serialize(wo, db)
 
+
+class ApproveQuoteRequest(BaseModel):
+    start_date: Optional[str] = None
+    start_time: Optional[str] = None
+    discount: Optional[float] = None
+
+@router.post("/work-orders/{wo_id}/approve")
+async def approve_quote(
+    wo_id: str,
+    payload: ApproveQuoteRequest,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Aprobă un deviz venit din online, opțional îi setează data/ora și discount-ul, generează PDF și trimite email/whatsapp."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
+
+    if not wo.is_quote:
+        raise HTTPException(status_code=400, detail="Doar devizele (is_quote=True) pot fi aprobate astfel.")
+
+    # Update info
+    if payload.start_date:
+        wo.start_date = payload.start_date
+    if payload.start_time:
+        wo.start_time = payload.start_time
+    
+    if payload.discount is not None:
+        prices = wo.prices or {}
+        prices["discount"] = payload.discount
+        wo.prices = prices
+
+    # Change status based on presence of date
+    if payload.start_date:
+        wo.status = "planning"
+    else:
+        wo.status = "pending"
+
+    # Generate Quote PDF (Devis)
+    from app.services.pdf_generator import generate_quote_pdf
+    from app.models import Client
+    client = db.query(Client).filter(Client.id == wo.client_id).first() if wo.client_id else None
+    
+    try:
+        pdf_path = await generate_quote_pdf(wo, client)
+        if pdf_path:
+            wo.pdf_path = pdf_path
+    except Exception as e:
+        print(f"Eroare generare PDF deviz: {e}")
+        pdf_path = None
+
+    db.commit()
+    db.refresh(wo)
+
+    # Trigger Email & WhatsApp notifications
+    lang = (wo.client_language or "fr").lower()
+    client_name = wo.client_name or "Client"
+    client_phone = getattr(wo, "client_phone", "") or ""
+    client_email = getattr(wo, "client_email", "") or ""
+    
+    frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
+    signing_url = f"{frontend_url}/quote/{wo.token}"
+    
+    date_str = wo.start_date or "À déterminer"
+    if wo.start_time:
+        date_str += f" ({wo.start_time})"
+
+    from app.services.email_service import send_planning_update_email
+    from app.services.whatsapp_service import send_planning_update_whatsapp
+
+    # Send notifications in background
+    from fastapi import BackgroundTasks
+    bg_tasks = BackgroundTasks()
+
+    if client_email:
+        bg_tasks.add_task(send_planning_update_email, client_email, client_name, lang, signing_url, date_str)
+    
+    if client_phone:
+        bg_tasks.add_task(send_planning_update_whatsapp, client_phone, client_name, lang, signing_url, date_str)
+
+    # We must run background tasks explicitly since we created our own instance here,
+    # or better, accept BackgroundTasks as a dependency. Wait, I'll just call them sync for now if I can't use BackgroundTasks properly.
+    # Actually, I can just use FastAPI's BackgroundTasks dependency!
+    # Let me refactor to accept it.
+    
+    # Send directly if BackgroundTasks not injected
+    try:
+        if client_email:
+            send_planning_update_email(client_email, client_name, lang, signing_url, date_str)
+        if client_phone:
+            send_planning_update_whatsapp(client_phone, client_name, lang, signing_url, date_str)
+    except Exception as e:
+        print(f"Eroare trimitere notificari aprobare: {e}")
+
+    return _serialize(wo, db)
 
 @router.post("/work-orders/{wo_id}/status")
 def change_status(

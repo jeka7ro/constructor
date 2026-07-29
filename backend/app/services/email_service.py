@@ -132,14 +132,7 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
         btn_text = "View my quote"
         fallback = "If the button does not work, copy and paste this link:"
         footer = "The Davide Chape Team"
-    elif client_language == "ro":
-        subject = "Actualizare lucrare – Davide Chape"
-        greeting = f"Bună ziua {client_name}"
-        intro = f"Data intervenției dumneavoastră a fost actualizată: <strong>{new_date}</strong>."
-        body_main = "Puteți vedea detaliile folosind butonul de mai jos."
-        btn_text = "Vezi detaliile"
-        fallback = "Dacă butonul nu funcționează, accesați link-ul:"
-        footer = "Echipa Davide Chape"
+
     else:
         subject = "Mise à jour de votre intervention – Davide Chape"
         greeting = f"Bonjour {client_name}"
@@ -188,4 +181,54 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
         return True
     except Exception as e:
         logger.error(f"Failed to send planning email: {e}")
+        return False
+
+
+def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone: str, proforma_url: str):
+    """Trimite notificare pe e-mail catre admin cand se face un deviz nou din site."""
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    if not brevo_api_key:
+        return False
+        
+    from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+    subject = f"NOTIFICARE: Deviz Nou de la {client_name}"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; border: 1px solid #ddd; max-width: 600px; margin: 0 auto; border-radius: 8px;">
+        <h2 style="color: #f26522; margin-top: 0;">Un deviz nou a fost generat!</h2>
+        <p>Un client a folosit calculatorul public de pe site si a generat un deviz estimativ.</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Client:</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{client_name}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Telefon:</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{client_phone or '-'}</td>
+            </tr>
+        </table>
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{proforma_url}" style="background-color: #2b5c8f; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Deschide Devizul (Proforma)</a>
+        </div>
+    </div>
+    """
+    
+    payload = {
+        "sender": {"name": "SmartDevize Alerts", "email": from_email},
+        "to": [{"email": admin_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+    
+    try:
+        httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers={"api-key": brevo_api_key, "accept": "application/json", "content-type": "application/json"},
+            timeout=10.0
+        )
+        logger.info(f"Admin new quote alert sent to {admin_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send admin quote alert: {e}")
         return False
