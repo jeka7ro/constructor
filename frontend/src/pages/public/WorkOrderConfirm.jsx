@@ -615,18 +615,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-                {order?.start_date && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
-                        <Calendar className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                        <div>
-                            <span className="text-sm font-black text-blue-900">{t.plannedDate}</span>
-                            <div className="text-blue-700 font-medium text-sm">
-                                {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                {order.start_time && ` • ${t.plannedTime}: ${order.start_time}`}
-                            </div>
-                        </div>
-                    </div>
-                )}
+
                 
                 {/* Confirmed banner + Location: side by side when confirmed */}
                 {confirmed && (order?.site_name || order?.site_address || order?.site_lat) ? (
@@ -637,6 +626,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                                 <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
                             </div>
+                            {order?.start_date && (
+                                <p className="text-emerald-700 text-xs ml-7 font-bold mb-1">
+                                    {t.plannedDate}: {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                    {order.start_time && ` • ${order.start_time}`}
+                                </p>
+                            )}
                             {order?.confirmed_at && mode === 'quote' && (
                                 <p className="text-emerald-600 text-[11px] ml-7">
                                     {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
@@ -687,6 +682,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0" />
                                 <div>
                                     <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
+                                    {order?.start_date && (
+                                        <div className="text-emerald-700 text-xs mt-0.5 font-bold">
+                                            {t.plannedDate}: {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                            {order.start_time && ` • ${order.start_time}`}
+                                        </div>
+                                    )}
                                     {order?.confirmed_at && mode === 'quote' && (
                                         <span className="text-emerald-600 text-xs ml-2">
                                             {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
@@ -812,6 +813,18 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 {/* Confirm section (integrated immediately below PDF) */}
                 {!confirmed && (
                     <div className="flex flex-col gap-3 mt-2 print:hidden w-full max-w-2xl mx-auto">
+                        {order?.start_date && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm mb-2">
+                                <Calendar className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                                <div>
+                                    <span className="text-sm font-black text-blue-900">{t.plannedDate}</span>
+                                    <div className="text-blue-700 font-medium text-sm">
+                                        {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                        {order.start_time && ` • ${t.plannedTime}: ${order.start_time}`}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {error && (
                             <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>
                         )}
