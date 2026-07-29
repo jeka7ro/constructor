@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl } from 'date-fns/locale';
@@ -58,6 +59,9 @@ export default function ShortWorksCalendar({
     const [orderToDelete, setOrderToDelete] = useState(null);
     const [animatingOrder, setAnimatingOrder] = useState(null);
     const [deletedIds, setDeletedIds] = useState(new Set()); // Optimistic UI for instant deletion
+    const [pendingReschedule, setPendingReschedule] = useState(null);
+    const [planningTime, setPlanningTime] = useState('08:00');
+    const [planningNotify, setPlanningNotify] = useState(false);
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const { tenant } = useTenantStore();
@@ -692,19 +696,14 @@ export default function ShortWorksCalendar({
                                         if (type === "quote") {
                                             const quoteId = e.dataTransfer.getData("id");
                                             if (!quoteId) return;
-                                            setSyncing(true);
-                                            try {
-                                                await api.put(`/admin/work-orders/${quoteId}`, {
-                                                    start_date: targetDate,
-                                                    start_time: targetTime,
-                                                    status: 'planning'
-                                                });
-                                                if (onOrderRescheduled) onOrderRescheduled(quoteId, targetDate, targetTime);
-                                            } catch (err) {
-                                                console.error('Erreur drop devis:', err);
-                                            } finally {
-                                                setSyncing(false);
-                                            }
+                                            setPlanningTime(targetTime);
+                                            setPlanningNotify(false);
+                                            setPendingReschedule({
+                                                id: quoteId,
+                                                start_date: targetDate,
+                                                start_time: targetTime,
+                                                status: 'planning'
+                                            });
                                             return;
                                         }
 
@@ -714,26 +713,14 @@ export default function ShortWorksCalendar({
                                         const wo = workOrders.find(o => o.id === woId);
                                         if (wo && wo.start_date?.startsWith(targetDate) && wo.start_time === targetTime) return;
 
-                                        setSyncing(true);
-                                        try {
-                                            // Fix: dacă WO-ul e în 'draft', îl promovăm la 'planning' în DB
-                                            // (UI-ul face asta optimistic, dar API-ul trebuia să salveze statusul)
-                                            const updatePayload = {
-                                                start_date: targetDate,
-                                                start_time: targetTime,
-                                                ...(wo?.status === 'draft' ? { status: 'planning' } : {})
-                                            };
-                                            await api.put(`/admin/work-orders/${woId}`, updatePayload);
-                                            if (onOrderRescheduled) {
-                                                onOrderRescheduled(woId, targetDate, targetTime);
-                                            } else {
-                                                window.location.reload();
-                                            }
-                                        } catch (error) {
-                                            console.error("Eroare la mutare comanda:", error);
-                                        } finally {
-                                            setSyncing(false);
-                                        }
+                                        setPlanningTime(targetTime);
+                                        setPlanningNotify(false);
+                                        setPendingReschedule({
+                                            id: woId,
+                                            start_date: targetDate,
+                                            start_time: targetTime,
+                                            status: wo?.status === 'draft' ? 'planning' : undefined
+                                        });
                                     }}
                                 >
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full flex items-center justify-center shadow-md pointer-events-none" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
@@ -810,6 +797,7 @@ export default function ShortWorksCalendar({
                                             ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
                                             ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
+                                            ${wo.status === 'planning' && wo.client_notified === false ? 'ring-2 ring-red-500 ring-offset-1 dark:ring-offset-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : ''}
                                             ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}`}
                                         style={{
                                             top: `${(wo.rowStart - 1) * 70 + 2}px`,
@@ -1108,6 +1096,90 @@ export default function ShortWorksCalendar({
             </div>
                 </div>
             </div>
+            {/* Planning Modal */}
+            {pendingReschedule && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-5">
+                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+                                <CalendarIcon className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('planning.modal_title', 'Détails de Planification')}</h3>
+                            
+                            <div className="space-y-4 my-6">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">{t('planning.arrival_time', 'Heure d\'arrivée (estimée)')}</label>
+                                    <input 
+                                        type="time" 
+                                        value={planningTime}
+                                        onChange={e => setPlanningTime(e.target.value)}
+                                        className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div 
+                                    onClick={() => setPlanningNotify(!planningNotify)}
+                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${
+                                        planningNotify 
+                                            ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50' 
+                                            : 'bg-slate-50 border-transparent hover:border-slate-200 dark:bg-slate-800/50 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <div className="flex h-5 items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={planningNotify}
+                                            readOnly
+                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className={`text-sm font-semibold leading-5 ${planningNotify ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-white'}`}>{t('planning.send_notification', 'Envoyer une notification au client')}</span>
+                                        <span className={`text-xs ${planningNotify ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>{t('planning.notification_desc', 'Email et WhatsApp avec les détails du rendez-vous')}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setPendingReschedule(null)}
+                                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors"
+                                >
+                                    {t('planning.cancel_btn', 'Annuler')}
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        const { id, start_date, status } = pendingReschedule;
+                                        setSyncing(true);
+                                        setPendingReschedule(null); // Close modal
+                                        try {
+                                            const updatePayload = {
+                                                start_date,
+                                                start_time: planningTime,
+                                                send_notification: planningNotify,
+                                                ...(status ? { status } : {})
+                                            };
+                                            await api.put(`/admin/work-orders/${id}`, updatePayload);
+                                            if (onOrderRescheduled) {
+                                                onOrderRescheduled(id, start_date, planningTime);
+                                            } else {
+                                                window.location.reload();
+                                            }
+                                        } catch (error) {
+                                            console.error("Eroare la mutare/planificare comanda:", error);
+                                        } finally {
+                                            setSyncing(false);
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {t('planning.save_btn', 'Enregistrer')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {/* Delete Confirmation Popup */}
             {orderToDelete && (

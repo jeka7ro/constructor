@@ -837,6 +837,26 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     )}
                     {wo.status !== 'completed' && (
                         <>
+                            {wo.status === 'planning' && wo.client_email && (
+                                <button
+                                    onClick={async () => {
+                                        if (confirm(t('planning.confirm_send_notification', 'Êtes-vous sûr de vouloir envoyer (ou renvoyer) l\'email de notification au client ?'))) {
+                                            try {
+                                                await api.put(`/admin/work-orders/${id}`, { send_notification: true });
+                                                showToast(t('planning.notification_sent', 'Notification envoyée avec succès !'), 'success');
+                                            } catch (e) {
+                                                console.error(e);
+                                                showToast(t('planning.notification_error', 'Erreur lors de l\'envoi de la notification.'), 'error');
+                                            }
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-bold hover:bg-emerald-100 transition-colors shrink-0"
+                                    title={t('planning.send_notification_btn', 'Envoyer / Renvoyer la notification de planification')}
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                    {t('planning.send_email_btn', 'Envoyer Notification')}
+                                </button>
+                            )}
                             <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 <Edit2 className="w-3.5 h-3.5" /> {t('common.edit', 'Modifier')}
@@ -1157,6 +1177,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'À la date')}</span>
                                                                 <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
                                                             </div>
+                                                            {wo.start_date && (
+                                                                <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2 mt-2">
+                                                                    <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.accepted_date', 'Date d\'intervention acceptée')}</span>
+                                                                    <span className="font-semibold text-blue-600">
+                                                                        {new Date(wo.start_date).toLocaleDateString('ro-RO')} {wo.start_time && ` • ${wo.start_time}`}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                             {hasSig && (
                                                                 <div className="mt-2 flex justify-end">
                                                                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 px-2 py-1 inline-flex items-center justify-center">

@@ -172,14 +172,16 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
     }
 
     try:
-        httpx.post(
+        r = httpx.post(
             "https://api.brevo.com/v3/smtp/email",
             json=payload,
             headers={"api-key": brevo_api_key, "accept": "application/json", "content-type": "application/json"},
             timeout=10.0
         )
+        r.raise_for_status()
         return True
     except Exception as e:
+        print(f"Email trimis esuat (update): {e}")
         logger.error(f"Failed to send planning email: {e}")
         return False
 
@@ -221,12 +223,13 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
     }
     
     try:
-        httpx.post(
+        r = httpx.post(
             "https://api.brevo.com/v3/smtp/email",
             json=payload,
             headers={"api-key": brevo_api_key, "accept": "application/json", "content-type": "application/json"},
             timeout=10.0
         )
+        r.raise_for_status()
         logger.info(f"Admin new quote alert sent to {admin_email}")
         return True
     except Exception as e:

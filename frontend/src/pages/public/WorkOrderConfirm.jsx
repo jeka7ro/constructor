@@ -131,6 +131,8 @@ const LANG_DICT = {
         materials: 'Materiale',
         notes: 'Observații',
         approxDate: 'Dată (Aproximativă)',
+        plannedDate: 'Data Programată',
+        plannedTime: 'Ora',
         confirmOrder: 'Confirmare Deviz',
         confirmOrderFinal: 'Confirmare Lucrare Finalizată',
         confirmDesc: 'Completați datele, aplicați semnătura digitală și confirmați.',
@@ -172,6 +174,8 @@ const LANG_DICT = {
         materials: 'Materials',
         notes: 'Notes',
         approxDate: 'Date (Approx.)',
+        plannedDate: 'Planned Date',
+        plannedTime: 'Time',
         confirmOrder: 'Order Confirmation',
         confirmDesc: 'Fill in your details, apply your digital signature, and confirm.',
         confirmedByLabel: 'Confirmed by *',
@@ -211,6 +215,8 @@ const LANG_DICT = {
         materials: 'Matériaux',
         notes: 'Remarques',
         approxDate: 'Date (Approximative)',
+        plannedDate: 'Date de l\'intervention',
+        plannedTime: 'Heure',
         confirmOrder: 'Confirmation de commande',
         confirmDesc: 'Remplissez vos coordonnées, appliquez votre signature numérique et confirmez.',
         confirmedByLabel: 'Confirmé par *',
@@ -252,6 +258,8 @@ const LANG_DICT = {
         volumes: 'Geschätzte Mengen',
         materials: 'Materialien',
         notes: 'Notizen',
+        plannedDate: 'Geplantes Datum',
+        plannedTime: 'Uhrzeit',
         confirmOrder: 'Auftragsbestätigung',
         confirmDesc: 'Füllen Sie Ihre Daten aus, fügen Sie Ihre digitale Unterschrift hinzu und bestätigen Sie.',
         confirmedByLabel: 'Bestätigt von *',
@@ -290,6 +298,8 @@ const LANG_DICT = {
         materials: 'Materialen',
         notes: 'Opmerkingen',
         approxDate: 'Datum (Geschat)',
+        plannedDate: 'Geplande Datum',
+        plannedTime: 'Tijd',
         confirmOrder: 'Orderbevestiging',
         confirmDesc: 'Vul uw gegevens in, plaats uw digitale handtekening en bevestig.',
         confirmedByLabel: 'Bevestigd door *',
@@ -605,6 +615,19 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+                {order?.start_date && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
+                        <Calendar className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                        <div>
+                            <span className="text-sm font-black text-blue-900">{t.plannedDate}</span>
+                            <div className="text-blue-700 font-medium text-sm">
+                                {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                {order.start_time && ` • ${t.plannedTime}: ${order.start_time}`}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
                 {/* Confirmed banner + Location: side by side when confirmed */}
                 {confirmed && (order?.site_name || order?.site_address || order?.site_lat) ? (
                     <div className="grid grid-cols-2 gap-3">
@@ -743,6 +766,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 {/* Embed the PDF with integrated Signature */}
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
                     <DevisView 
+                        key={order?.updated_at || order?.id || 'devis'}
                         embeddedToken={token}
                         lang={lang}
                         signatureElement={

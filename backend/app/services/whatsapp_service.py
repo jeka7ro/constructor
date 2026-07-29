@@ -73,3 +73,31 @@ def send_planning_update_whatsapp(phone_number: str, client_name: str, client_la
     except Exception as e:
         logger.error(f"Failed to send planning update WhatsApp to {formatted_phone}: {e}")
         return False
+
+
+def send_admin_new_quote_whatsapp(admin_phone: str, client_name: str, client_phone: str, proforma_url: str):
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    
+    if not instance_id or not api_token or not admin_phone:
+        return False
+
+    url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+    formatted_phone = admin_phone.replace("+", "").replace(" ", "").replace("-", "")
+
+    body_text = f"🚨 *Deviz Nou Generat!*\n\nClient: {client_name}\nTelefon: {client_phone or '-'}\n\nAccesează devizul aici:\n{proforma_url}"
+    
+    payload = {
+        "token": api_token,
+        "to": formatted_phone,
+        "body": body_text
+    }
+
+    try:
+        response = httpx.post(url, data=payload, timeout=10.0)
+        response.raise_for_status()
+        logger.info(f"Admin new quote WhatsApp sent to {formatted_phone}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send admin WhatsApp alert to {formatted_phone}: {e}")
+        return False

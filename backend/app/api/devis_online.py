@@ -225,11 +225,22 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     else:
         wo.source_system = "devis_online"
         
-    count = db.query(WorkOrder).filter(
+    from sqlalchemy import func
+    max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
         WorkOrder.organization_id == wo.organization_id,
-        WorkOrder.quote_number.isnot(None)
-    ).count()
-    wo.quote_number = f"EST{str(count + 841).zfill(4)}"
+        WorkOrder.quote_number.like('EST%')
+    ).scalar()
+    
+    if max_quote:
+        try:
+            num_part = max_quote.replace('EST', '')
+            next_num = int(num_part) + 1
+        except ValueError:
+            next_num = 841
+    else:
+        next_num = 841
+        
+    wo.quote_number = f"EST{str(next_num).zfill(4)}"
     wo.proforma_path = f"/proforma/{wo.id}" # We set the internal path for consistency
     
     db.add(wo)
@@ -238,22 +249,30 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     
     proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
 
-    from app.services.email_service import send_quote_email
-    from app.services.whatsapp_service import send_whatsapp_message
-    from app.services.pdf_generator import generate_invoice_pdf
+    from app.services.email_service import send_quote_email, send_admin_new_quote_alert
+    from app.services.whatsapp_service import send_whatsapp_message, send_admin_new_quote_whatsapp
     
-    # Generate PDF for email attachment
-    async def send_email_with_pdf():
-        pdf_path = await generate_invoice_pdf(wo, client)
-        full_pdf_path = None
-        if pdf_path:
-            full_pdf_path = os.path.join(os.getcwd(), pdf_path.lstrip("/"))
-        send_quote_email(client.email, client.name, wo.client_language, proforma_url, full_pdf_path)
+    # Trimitem doar e-mailul cu link-ul către proformă, fără niciun PDF atașat
+    def send_email_without_pdf():
+        send_quote_email(client.email, client.name, wo.client_language, proforma_url, None)
 
     if client.email:
-        background_tasks.add_task(send_email_with_pdf)
+        background_tasks.add_task(send_email_without_pdf)
     if client.phone:
         background_tasks.add_task(send_whatsapp_message, client.phone, client.name, wo.client_language, proforma_url)
+
+    # Notificari pentru Admin
+    def send_alerts_to_admins():
+        from app.models import Admin
+        admins = db.query(Admin).filter(Admin.organization_id == wo.organization_id).all()
+        for admin in admins:
+            if admin.email:
+                send_admin_new_quote_alert(admin.email, client.name, client.phone, proforma_url)
+            if admin.phone:
+                send_admin_new_quote_whatsapp(admin.phone, client.name, client.phone, proforma_url)
+                
+    background_tasks.add_task(send_alerts_to_admins)
+
 
     return {
         "message": "Deviz solicitat cu succes",

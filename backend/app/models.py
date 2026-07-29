@@ -1024,6 +1024,7 @@ class WorkOrder(Base):
     client_email    = Column(String(255), nullable=True)    # Email la care se trimite link-ul
     client_phone    = Column(String(50), nullable=True)
     client_language = Column(String(10), default="ro", nullable=False)
+    client_notified = Column(Boolean, default=False, nullable=False, server_default='0')
 
     # ── Conținut comandă (JSON arrays) ───────────────────────────────────────
     # requirements: [{"description": "...", "category": "...", "qty": "..."}]

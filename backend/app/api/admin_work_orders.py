@@ -140,6 +140,7 @@ class WorkOrderUpdate(WorkOrderCreate):
     title: Optional[str] = None
     status: Optional[str] = None
     proforma_data: Optional[dict] = None
+    send_notification: bool = False
 
 
 def _serialize_slim(wo: WorkOrder) -> dict:
@@ -981,13 +982,18 @@ def update_work_order(
     db.commit()
     db.refresh(wo)
 
-    # Send planning updates if start_date changed, but NEVER silently for devis_online (internal manual tracking)
-    if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed") and wo.source_system != "devis_online":
+    # Handle manual explicit notifications from frontend modal
+    if getattr(payload, 'send_notification', False):
+        wo.client_notified = True
+        db.commit()
         from app.services.email_service import send_planning_update_email
         from app.services.whatsapp_service import send_planning_update_whatsapp
         
         proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
-        formatted_date = wo.start_date.strftime("%d/%m/%Y")
+        formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
+        if wo.start_time:
+            formatted_date += f" ({wo.start_time})"
+
         if wo.client_email:
             try:
                 send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
@@ -998,6 +1004,26 @@ def update_work_order(
                 send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
             except Exception as e:
                 print(f"Failed to send planning update whatsapp: {e}")
+    else:
+        # Backward compatibility for old automatic emails (when not using the new modal)
+        if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed") and wo.source_system != "devis_online":
+            from app.services.email_service import send_planning_update_email
+            from app.services.whatsapp_service import send_planning_update_whatsapp
+            
+            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+            formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
+            if wo.start_time:
+                formatted_date += f" ({wo.start_time})"
+            if wo.client_email:
+                try:
+                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+                except Exception as e:
+                    print(f"Failed to send planning update email: {e}")
+            if wo.client_phone:
+                try:
+                    send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+                except Exception as e:
+                    print(f"Failed to send planning update whatsapp: {e}")
     
     # ── Invalidare cache logistic — NUMAI dacă s-a schimbat echipa sau adresa ──
     # Nu recalculăm la fiecare update (costuri API Google!)

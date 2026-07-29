@@ -1120,7 +1120,10 @@ export default function AdminOverview() {
                                                     setAllWorkOrders(prev => {
                                                         const woInCalendar = prev.find(w => String(w.id) === String(woId));
                                                         if (woInCalendar) {
-                                                            setPendingQuotes(pq => [...pq, { ...woInCalendar, status: 'pending', scheduled_date: null }]);
+                                                            setPendingQuotes(pq => {
+                                                                if (pq.some(q => String(q.id) === String(woId))) return pq;
+                                                                return [...pq, { ...woInCalendar, status: 'pending', scheduled_date: null }];
+                                                            });
                                                             return prev.filter(w => String(w.id) !== String(woId));
                                                         }
                                                         return prev;
