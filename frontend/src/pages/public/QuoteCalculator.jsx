@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Building2, User, Loader2, CheckCircle2, HardHat, FileText, ChevronRight, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import AddressAutocomplete from '../components/AddressAutocomplete';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
 
 const publicApi = axios.create({ baseURL: '/api/public/calculator' });
 
