@@ -242,12 +242,60 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         webflow_base += "/en"
         
     signature_url = f"{webflow_base}/confirmation-contact?token={wo.token}&lang={wo.client_language}"
+    pdf_url = f"https://davidechape.pontaj.app/api/proforma/download/{wo.id}"
+    
+    # 5. Fire webhook to Jordi's Make/n8n
+    def fire_webhook():
+        import requests
+        webhook_url = "https://n8n-uk6n.onrender.com/webhook/davide-chape-form"
+        webhook_payload = {
+            "first_name": payload.client_first_name or payload.client_name,
+            "last_name": payload.client_last_name or "",
+            "email": payload.client_email,
+            "phone": payload.client_phone,
+            "client_language": payload.client_language,
+            "company_name": payload.client_company_name or "",
+            "client_type": payload.client_type,
+            "surface": payload.surface,
+            "thickness": payload.thickness,
+            "work_type": payload.work_type,
+            "site_address": payload.site_address,
+            "approximate_date": payload.approximate_date,
+            "has_foil": payload.has_foil,
+            "has_mesh": payload.has_mesh,
+            "source_domain": payload.domain or "davidechape.pontaj.app",
+            "is_iframe": payload.is_iframe,
+            "submitted_at": datetime.utcnow().isoformat(),
+            "pricing_details": {
+                "base_price_sqm": prices_dict.get("base", 0),
+                "extra_thickness_price_per_cm": prices_dict.get("extra_thickness_price_per_cm", 0),
+                "plastic_foil_price_sqm": prices_dict.get("foil", 0),
+                "metal_mesh_price_sqm": prices_dict.get("mesh", 0),
+                "estimated_total_incl_vat": estimated_price * (1 + (prices_dict.get("vat_type", 21) / 100)),
+                "vat_rate": prices_dict.get("vat_type", 21)
+            },
+            "signature_url": signature_url,
+            "pdf_url": pdf_url
+        }
+        try:
+            requests.post(webhook_url, json=webhook_payload, timeout=5)
+        except Exception as e:
+            print(f"Error firing webhook to Jordi n8n: {e}")
+
+    # Fire asynchronously if running in FastAPI, or just call it directly since it's fast. 
+    # Actually, let's use FastAPI BackgroundTasks for proper async.
+    # Wait, public_calculator endpoint doesn't have BackgroundTasks parameter right now.
+    # Let's add it or just fire it synchronously with a short timeout.
+    # A short timeout is fine, but it's better to fire it inside a Thread.
+    import threading
+    threading.Thread(target=fire_webhook).start()
 
     return {
         "message": "Deviz solicitat cu succes",
         "token": wo.token,
         "work_order_id": wo.id,
-        "signature_url": signature_url
+        "signature_url": signature_url,
+        "pdf_url": pdf_url
     }
 
 @router.get("/vies/{country}/{vat_number}")
