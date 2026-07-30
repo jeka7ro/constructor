@@ -1427,7 +1427,7 @@
     },
     "clients": {
         "vies_error": "L'entreprise n'a pas été trouvée. Vérifiez le code TVA.",
-        "billing_address": "Adresse de facturation (optionnel)",
+        "billing_address": "Billing Address",
         "title": "Clients",
         "subtitle": "Manage the companies you work for",
         "search_placeholder": "Search client...",
@@ -1472,7 +1472,9 @@
         "gps_error": "GPS detection error: ",
         "type_physical": "Individual",
         "type_legal": "Company",
-        "client_details": "Your contact details"
+        "client_details": "Your contact details",
+        "vies_hint": "Enter the number to autofill.",
+        "cui": "VAT Number"
     },
     "tracking": {
         "title": "Live Tracking",

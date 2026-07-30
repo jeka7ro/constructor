@@ -1530,7 +1530,7 @@
     },
     "clients": {
         "vies_error": "L'entreprise n'a pas été trouvée. Vérifiez le code TVA.",
-        "billing_address": "Adresse de facturation (optionnel)",
+        "billing_address": "Adresse de facturation",
         "title": "Clients",
         "subtitle": "Gérez les entreprises pour lesquelles vous travaillez",
         "search_placeholder": "Rechercher un client...",
@@ -1549,7 +1549,7 @@
         "modal_add_title": "Ajouter un Nouveau Client",
         "legal_entity": "Personne Morale",
         "individual": "Personne Physique",
-        "company_name": "Nom de l'Entreprise",
+        "company_name": "Nom de l'entreprise",
         "country": "Pays",
         "reg_com": "N° Enregistrement",
         "add_bank_details": "Ajouter les coordonnées bancaires (Banque, IBAN, SWIFT)",
@@ -1575,7 +1575,9 @@
         "gps_error": "Erreur de détection GPS: ",
         "type_physical": "Particulier",
         "type_legal": "Entreprise",
-        "client_details": "Vos coordonnées"
+        "client_details": "Vos coordonnées",
+        "vies_hint": "Entrez le numéro pour remplir automatiquement.",
+        "cui": "Numéro de TVA"
     },
     "gps": {
         "start_date": "Date de début",
