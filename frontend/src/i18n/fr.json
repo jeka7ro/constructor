@@ -1577,7 +1577,8 @@
         "type_legal": "Entreprise",
         "client_details": "Vos coordonnées",
         "vies_hint": "Entrez le numéro pour remplir automatiquement.",
-        "cui": "Numéro de TVA"
+        "cui": "Numéro de TVA",
+        "vies_not_found": "L'entreprise n'a pas été trouvée. Vérifiez le code TVA."
     },
     "gps": {
         "start_date": "Date de début",

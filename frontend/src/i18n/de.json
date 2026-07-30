@@ -1433,7 +1433,8 @@
         "type_legal": "Unternehmen",
         "client_details": "Ihre Kontaktdaten",
         "vies_hint": "Geben Sie die Nummer zum automatischen Ausfüllen ein.",
-        "cui": "MwSt.-Nummer"
+        "cui": "MwSt.-Nummer",
+        "vies_not_found": "Unternehmen nicht gefunden. Überprüfen Sie die MwSt.-Nummer."
     },
     "countries": {
         "ro": "Romania",

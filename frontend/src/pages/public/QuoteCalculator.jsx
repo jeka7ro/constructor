@@ -595,10 +595,13 @@ export default function QuoteCalculator() {
                                             <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">{t('clients.cui', 'Numéro de TVA')}</label>
                                             <div className="flex gap-2">
                                                 <input type="text" required value={formData.client_company_vat}
-                                                    onChange={e => setFormData({ ...formData, client_company_vat: e.target.value })}
+                                                    onChange={e => {
+                                                        setFormData({ ...formData, client_company_vat: e.target.value });
+                                                        if (errorField === 'client_company_vat') { setErrorField(''); setError(''); }
+                                                    }}
                                                     onBlur={handleViesSearch}
                                                     placeholder="BE0123456789"
-                                                    className="flex-1 bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-base focus:bg-white focus:border-yellow-400 outline-none transition-all" />
+                                                    className={`flex-1 bg-white border-2 rounded-xl px-3 py-2.5 text-base focus:bg-white outline-none transition-all ${errorField === 'client_company_vat' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-yellow-400'}`} />
                                                 <button type="button" onClick={handleViesSearch} disabled={isSearchingVies}
                                                     className="bg-slate-800 text-white w-14 rounded-xl font-bold hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center">
                                                     {isSearchingVies ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}

@@ -1474,7 +1474,8 @@
         "type_legal": "Company",
         "client_details": "Your contact details",
         "vies_hint": "Enter the number to autofill.",
-        "cui": "VAT Number"
+        "cui": "VAT Number",
+        "vies_not_found": "Company not found. Check the VAT number."
     },
     "tracking": {
         "title": "Live Tracking",
