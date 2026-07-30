@@ -45,6 +45,7 @@ export default function PublicCalculator() {
     const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [errorField, setErrorField] = useState('');
 
     const isCalculatorRoute = location.pathname.includes('/calculator');
     const isIframe = isCalculatorRoute || window !== window.top || new URLSearchParams(window.location.search).get('iframe') === 'true';
@@ -448,22 +449,22 @@ export default function PublicCalculator() {
                                 {/* Surface & Épaisseur */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${error === t('errors.surface_required', 'La surface est obligatoire.') ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
+                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === 'surface' ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
                                         <input type="number" required min="1" placeholder="120"
                                             value={formData.surface} onChange={e => {
                                                 setFormData({ ...formData, surface: e.target.value });
-                                                if (error === t('errors.surface_required', 'La surface est obligatoire.')) setError('');
+                                                if (errorField === 'surface') { setErrorField(''); setError(''); }
                                             }}
-                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${error === t('errors.surface_required', 'La surface est obligatoire.') ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
+                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${errorField === 'surface' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
                                     </div>
                                     <div>
-                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${error === t('errors.thickness_min', "L'épaisseur minimale est de 5 cm.") ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === 'thickness' ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
                                         <input type="number" required min="5" step="0.5" placeholder="5"
                                             value={formData.thickness} onChange={e => {
                                                 setFormData({ ...formData, thickness: e.target.value });
-                                                if (error === t('errors.thickness_min', "L'épaisseur minimale est de 5 cm.")) setError('');
+                                                if (errorField === 'thickness') { setErrorField(''); setError(''); }
                                             }}
-                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${error === t('errors.thickness_min', "L'épaisseur minimale est de 5 cm.") ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
+                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${errorField === 'thickness' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
                                     </div>
                                 </div>
 
@@ -495,10 +496,12 @@ export default function PublicCalculator() {
 
                                 <button type="button" onClick={() => {
                                     if (!formData.surface || parseFloat(formData.surface) <= 0) {
+                                        setErrorField('surface');
                                         setError(t('errors.surface_required', 'La surface est obligatoire.'));
                                         return;
                                     }
                                     if (!formData.thickness || parseFloat(formData.thickness) < 5) {
+                                        setErrorField('thickness');
                                         setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
                                         return;
                                     }
@@ -539,7 +542,8 @@ export default function PublicCalculator() {
                                     </button>
                                     <button type="button" onClick={() => {
                                         if (!formData.site_address) {
-                                            setError(t('errors.address_required', "L'adresse du chantier est obligatoire."));
+                                            setErrorField('site_address');
+                                        setError(t('errors.address_required', "L'adresse du chantier est obligatoire."));
                                             return;
                                         }
                                         setError(''); setStep(3);
