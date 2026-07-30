@@ -1778,7 +1778,8 @@
         "legend": "Legend"
     },
     "workorders": {
-        "surface_required": "The surface is required."
+        "surface_required": "The surface is required.",
+        "site_address": "Full site address"
     },
     "transport": {
         "total_km": "KM Totaux",

@@ -1727,7 +1727,8 @@
         "title": "LIVE-GPS"
     },
     "workorders": {
-        "surface_required": "Die Fläche ist erforderlich."
+        "surface_required": "Die Fläche ist erforderlich.",
+        "site_address": "Vollständige Baustellenadresse"
     },
     "transport": {
         "total_km": "KM Totaux",

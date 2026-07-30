@@ -1942,7 +1942,8 @@
         "title": "GPS EN DIRECT"
     },
     "workorders": {
-        "surface_required": "La surface est obligatoire."
+        "surface_required": "La surface est obligatoire.",
+        "site_address": "Adresse complète du chantier"
     },
     "transport": {
         "total_km": "KM Totaux",

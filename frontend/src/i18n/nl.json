@@ -1697,7 +1697,8 @@
         "title": "LIVE-GPS"
     },
     "workorders": {
-        "surface_required": "De oppervlakte is verplicht."
+        "surface_required": "De oppervlakte is verplicht.",
+        "site_address": "Volledig werfadres"
     },
     "transport": {
         "total_km": "KM Totaux",
