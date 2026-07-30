@@ -144,10 +144,12 @@ export default function QuoteCalculator() {
                     client_address: res.data.address || p.client_address
                 }));
             } else {
+                setErrorField('client_company_vat');
                 setError(t('clients.vies_not_found', 'Entreprise non trouvée. Vérifiez le numéro de TVA.'));
             }
         } catch (err) {
             console.error('VIES Error:', err);
+            setErrorField('client_company_vat');
             setError(t('clients.vies_error', 'Erreur lors de la recherche de l\'entreprise.'));
         } finally {
             setIsSearchingVies(false);
