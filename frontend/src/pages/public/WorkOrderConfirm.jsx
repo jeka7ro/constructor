@@ -812,37 +812,26 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
                 {/* Confirm section (integrated immediately below PDF) */}
                 {!confirmed && (
-                    <div className="flex flex-col gap-3 mt-2 print:hidden w-full max-w-2xl mx-auto">
-                        {order?.start_date && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm mb-2">
-                                <Calendar className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                                <div>
-                                    <span className="text-sm font-black text-blue-900">{t.plannedDate}</span>
-                                    <div className="text-blue-700 font-medium text-sm">
-                                        {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                        {order.start_time && ` • ${t.plannedTime}: ${order.start_time}`}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {error && (
-                            <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={handleConfirm}
-                            disabled={!canConfirm}
-                            className={`w-full h-14 rounded-2xl text-white font-black text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${
-                                canConfirm ? 'hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]' : 'opacity-40 cursor-not-allowed'
-                            }`}
-                            style={{ backgroundColor: primaryColor }}
-                        >
-                            {confirming
-                                ? <><Loader2 className="w-5 h-5 animate-spin" /> {t.confirmingBtn}</>
-                                : <><CheckCircle2 className="w-5 h-5" /> {t.confirmBtn}</>
-                            }
-                        </button>
+                    <div className="flex flex-col mt-2 print:hidden w-full max-w-2xl mx-auto">
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-4">
+                            {error && (
+                                <p className="text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleConfirm}
+                                disabled={!canConfirm}
+                                className={`w-full h-14 rounded-xl text-white font-black text-lg shadow-md transition-all flex items-center justify-center gap-2 ${
+                                    canConfirm ? 'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]' : 'opacity-40 cursor-not-allowed'
+                                }`}
+                                style={{ backgroundColor: primaryColor }}
+                            >
+                                {confirming
+                                    ? <><Loader2 className="w-5 h-5 animate-spin" /> {t.confirmingBtn}</>
+                                    : <><CheckCircle2 className="w-5 h-5" /> {t.confirmBtn}</>
+                                }
+                            </button>
+                        </div>
                     </div>
                 )}
 

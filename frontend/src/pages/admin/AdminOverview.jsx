@@ -311,7 +311,7 @@ export default function AdminOverview() {
 
     const fetchPendingQuotes = async () => {
         try {
-            const res = await api.get('/admin/work-orders?status=draft,pending&is_quote=true&slim=true')
+            const res = await api.get('/admin/work-orders?status=draft,pending,confirmed&is_quote=true&slim=true')
             // Panelul arata DOAR devisele INCA netrimise — cele cu status=planning au mers deja in calendar
             const validQuotes = (res.data || []).filter(q => q.status !== 'cancelled' && q.status !== 'planning')
             
@@ -785,6 +785,9 @@ export default function AdminOverview() {
                 site_longitude: quickEditForm.longitude,
                 assigned_team_id: quickEditForm.teamId || null,
                 client_id: quickEditForm.clientId || null,
+                start_date: quickEditForm.date || undefined,
+                deadline_date: quickEditForm.date || undefined,
+                start_time: quickEditForm.time || undefined,
                 volumes: (quickEditForm.surface || quickEditForm.thickness) ? [{
                     label: 'Chape',
                     quantity: surface,
@@ -1069,6 +1072,8 @@ export default function AdminOverview() {
                                     has_mesh: !!v.has_mesh,
                                     has_duramint: !!v.has_duramint,
                                     teamId: wo.assigned_team_id ? String(wo.assigned_team_id) : '',
+                                    date: (wo.start_date || wo.deadline_date || '').split('T')[0] || '',
+                                    time: (wo.start_time || '').substring(0, 5) || '08:00',
                                 });
                             }}
                             onTeamDropOnEmpty={(date, time, teamId) => {
@@ -1197,6 +1202,8 @@ export default function AdminOverview() {
                                                             has_mesh: !!v.has_mesh,
                                                             has_duramint: !!v.has_duramint,
                                                             teamId: quote.assigned_team_id ? String(quote.assigned_team_id) : '',
+                                                            date: (quote.start_date || quote.deadline_date || '').split('T')[0] || '',
+                                                            time: (quote.start_time || '').substring(0, 5) || '08:00',
                                                         });
                                                     }}
                                                     className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
@@ -1470,16 +1477,16 @@ export default function AdminOverview() {
                                             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness_mandatory', 'Épaisseur (cm) *')}</label>
                                             <input 
                                                 type="number"
-                                                min="4"
+                                                min="5"
                                                 step="any"
                                                 value={quickCreateForm.thickness}
                                                 onChange={e => setQuickCreateForm({ ...quickCreateForm, thickness: e.target.value })}
-                                                placeholder="Min 4 cm"
-                                                className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 4 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
+                                                placeholder={t('dashboard.quick_create.min_5_cm', 'Min 5 cm')}
+                                                className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 5 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
                                             />
-                                            {quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 4 && (
+                                            {quickCreateForm.thickness !== '' && parseFloat(quickCreateForm.thickness) < 5 && (
                                                 <div className="text-[10px] font-bold text-red-500 mt-1">
-                                                    L'épaisseur minimum est de 4 cm.
+                                                    {t('dashboard.quick_create.min_thickness_5', 'L\'épaisseur minimum est de 5 cm.')}
                                                 </div>
                                             )}
                                         </div>
@@ -1871,6 +1878,26 @@ export default function AdminOverview() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.date', 'Dată')}</label>
+                                    <input 
+                                        type="date"
+                                        value={quickEditForm.date}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, date: e.target.value })}
+                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.time', 'Ora')}</label>
+                                    <input 
+                                        type="time"
+                                        value={quickEditForm.time}
+                                        onChange={e => setQuickEditForm({ ...quickEditForm, time: e.target.value })}
+                                        className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
                                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.surface', 'Surface (m²)')}</label>
                                     <input 
                                         type="number"
@@ -1885,16 +1912,16 @@ export default function AdminOverview() {
                                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('dashboard.quick_create.thickness', 'Épaisseur (cm)')}</label>
                                     <input 
                                         type="number"
-                                        min="4"
+                                        min="5"
                                         step="any"
                                         value={quickEditForm.thickness}
                                         onChange={e => setQuickEditForm({ ...quickEditForm, thickness: e.target.value })}
-                                        placeholder="Min 4 cm"
-                                        className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 4 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
+                                        placeholder={t('dashboard.quick_create.min_5_cm', 'Min 5 cm')}
+                                        className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border ${quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 5 ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500`}
                                     />
-                                    {quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 4 && (
+                                    {quickEditForm.thickness !== '' && parseFloat(quickEditForm.thickness) < 5 && (
                                         <div className="text-[10px] font-bold text-red-500 mt-1">
-                                            L'épaisseur minimum est de 4 cm.
+                                            {t('dashboard.quick_create.min_thickness_5', 'L\'épaisseur minimum est de 5 cm.')}
                                         </div>
                                     )}
                                 </div>

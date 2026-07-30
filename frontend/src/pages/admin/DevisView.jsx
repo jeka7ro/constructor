@@ -314,29 +314,29 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         <div className="flex justify-end mt-6 px-5 sm:px-10 print:px-0">
                             <div className="w-72 space-y-1 text-sm">
                                 {discountAmount > 0 && (
-                                    <div className="flex justify-between py-1 px-4 font-bold text-emerald-600">
+                                    <div className="flex justify-between gap-2 py-1 px-4 font-bold text-emerald-600">
                                         <span>Remise (Discount) ({discountPct}%)</span>
-                                        <span>- {discountAmount.toFixed(2)} €</span>
+                                        <span className="whitespace-nowrap">- {discountAmount.toFixed(2)} €</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between py-1 px-4 text-slate-600 font-bold">
+                                <div className="flex justify-between gap-2 py-1 px-4 text-slate-600 font-bold">
                                     <span>Total Net (HTVA)</span>
-                                    <span>{netAfterDiscount.toFixed(2)} €</span>
+                                    <span className="whitespace-nowrap">{netAfterDiscount.toFixed(2)} €</span>
                                 </div>
                                 {vatEnabled ? (
-                                    <div className="flex justify-between py-1 px-4 text-slate-600 font-bold">
+                                    <div className="flex justify-between gap-2 py-1 px-4 text-slate-600 font-bold">
                                         <span>TVA ({vatRate}%)</span>
-                                        <span>{vatAmount.toFixed(2)} €</span>
+                                        <span className="whitespace-nowrap">{vatAmount.toFixed(2)} €</span>
                                     </div>
                                 ) : (
-                                    <div className="flex justify-between py-1 px-4 text-slate-400 text-xs italic">
+                                    <div className="flex justify-between gap-2 py-1 px-4 text-slate-400 text-xs italic">
                                         <span>TVA non appliquée</span>
-                                        <span>0.00 €</span>
+                                        <span className="whitespace-nowrap">0.00 €</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
+                                <div className="flex justify-between gap-2 py-3 px-4 rounded-xl mt-2 font-black text-white text-base" style={{ backgroundColor: primaryColor }}>
                                     <span>{T.totalLabel} (TVAC)</span>
-                                    <span>{totalGross.toFixed(2)} €</span>
+                                    <span className="whitespace-nowrap">{totalGross.toFixed(2)} €</span>
                                 </div>
                             </div>
                         </div>

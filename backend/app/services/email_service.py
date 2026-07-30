@@ -186,6 +186,90 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
         return False
 
 
+def send_quote_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, discount_pct: float = 0):
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    if not brevo_api_key:
+        return False
+        
+    from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+
+    if client_language == "nl":
+        subject = "Update van uw offerte – Davide Chape"
+        greeting = f"Beste {client_name}"
+        if discount_pct > 0:
+            intro = f"Er is een update voor uw offerte. Een extra korting van {discount_pct}% is toegepast."
+        else:
+            intro = "Er is een update voor uw offerte."
+        body_main = "U kunt uw bijgewerkte offerte bekijken via onderstaande knop."
+        btn_text = "Mijn offerte bekijken"
+        fallback = "Als de knop niet werkt, kopieer en plak deze link:"
+        footer = "Het team van Davide Chape"
+    elif client_language == "en":
+        subject = "Quote Update – Davide Chape"
+        greeting = f"Dear {client_name}"
+        if discount_pct > 0:
+            intro = f"There has been an update to your quote. An additional discount of {discount_pct}% has been applied."
+        else:
+            intro = "There has been an update to your quote."
+        body_main = "You can view your updated quote by clicking the button below."
+        btn_text = "View my quote"
+        fallback = "If the button does not work, copy and paste this link:"
+        footer = "The Davide Chape Team"
+    else:
+        subject = "Mise à jour de votre devis – Davide Chape"
+        greeting = f"Bonjour {client_name}"
+        if discount_pct > 0:
+            intro = f"Il y a eu une mise à jour de votre devis. Une remise supplémentaire de {discount_pct}% a été appliquée."
+        else:
+            intro = "Il y a eu une mise à jour de votre devis."
+        body_main = "Vous pouvez consulter votre devis mis à jour en cliquant sur le bouton ci-dessous."
+        btn_text = "Voir mon devis"
+        fallback = "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien :"
+        footer = "L'équipe Davide Chape"
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #f26522;">
+            <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 60px;" />
+        </div>
+        <div style="padding: 30px; background-color: #ffffff;">
+            <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
+            <p style="font-size: 16px;">{intro}</p>
+            <p style="font-size: 16px;">{body_main}</p>
+            
+            <div style="text-align: center; margin: 35px 0;">
+                <a href="{signing_url}" style="background-color: #f26522; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: #2b5c8f;">{signing_url}</a></p>
+        </div>
+        <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
+            <p style="margin: 0;">{footer}</p>
+        </div>
+    </div>
+    """
+
+    payload = {
+        "sender": {"name": "Davide Chape", "email": from_email},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+
+    try:
+        r = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers={"api-key": brevo_api_key, "accept": "application/json", "content-type": "application/json"},
+            timeout=10.0
+        )
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send quote update email: {e}")
+        return False
+
+
 def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone: str, proforma_url: str):
     """Trimite notificare pe e-mail catre admin cand se face un deviz nou din site."""
     brevo_api_key = os.getenv("BREVO_API_KEY")

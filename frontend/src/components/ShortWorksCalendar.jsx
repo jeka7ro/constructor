@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -60,8 +60,10 @@ export default function ShortWorksCalendar({
     const [animatingOrder, setAnimatingOrder] = useState(null);
     const [deletedIds, setDeletedIds] = useState(new Set()); // Optimistic UI for instant deletion
     const [pendingReschedule, setPendingReschedule] = useState(null);
+    const [heldOrder, setHeldOrder] = useState(null); // the work order stored in the holding area
     const [planningTime, setPlanningTime] = useState('08:00');
     const [planningNotify, setPlanningNotify] = useState(false);
+    const [isSelectingForHolding, setIsSelectingForHolding] = useState(false);
     const containerRef = useRef(null);
     const { openDialog } = useUIStore();
     const { tenant } = useTenantStore();
@@ -72,6 +74,17 @@ export default function ShortWorksCalendar({
     const handleComplete = async (wo, e) => {
         e.stopPropagation();
         if (completing) return;
+
+        const woDate = new Date(wo.start_date || wo.deadline_date);
+        woDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (woDate > today) {
+            toast.error(t('planning.cannot_complete_future', 'Vous ne pouvez pas terminer un travail dans le futur.'));
+            return;
+        }
+
         setCompleting(wo.id);
         try {
             await api.put(`/admin/work-orders/${wo.id}`, { status: 'completed' });
@@ -86,6 +99,17 @@ export default function ShortWorksCalendar({
     };
     const handleCompleteDay = async (day, e) => {
         e.stopPropagation();
+        
+        const dayObj = new Date(day);
+        dayObj.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (dayObj > today) {
+            toast.error(t('planning.cannot_complete_future_day', 'Vous ne pouvez pas terminer des travaux dans le futur.'));
+            return;
+        }
+
         const dayStr = format(day, 'yyyy-MM-dd');
         const dayOrders = weeklyOrders.filter(wo => {
             const ds = (wo.start_date || wo.deadline_date || '').split('T')[0];
@@ -137,6 +161,41 @@ export default function ShortWorksCalendar({
             else window.location.reload();
         } catch (err) {
             console.error('Eroare revenire status zi:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleDropHeldOrder = async (date, timeStr) => {
+        if (!heldOrder) return;
+        
+        // --- PREVENT DROPPING IN THE PAST ---
+        const dropDateObj = new Date(date);
+        dropDateObj.setHours(0, 0, 0, 0);
+        const todayObj = new Date();
+        todayObj.setHours(0, 0, 0, 0);
+        if (dropDateObj < todayObj) {
+            toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail dans le passé.'));
+            return;
+        }
+
+        const dateStr = format(date, 'yyyy-MM-dd');
+        setSyncing(true);
+        try {
+            const payload = {
+                start_date: dateStr,
+                deadline_date: dateStr,
+                start_time: timeStr || '08:00',
+                status: 'confirmed'
+            };
+            await api.put(`/admin/work-orders/${heldOrder.id}`, payload);
+            const droppedId = heldOrder.id;
+            setHeldOrder(null);
+            setIsSelectingForHolding(false);
+            if (onOrderRescheduled) onOrderRescheduled(droppedId, dateStr, timeStr || '08:00');
+            else window.location.reload();
+        } catch (error) {
+            console.error('Error dropping held order:', error);
         } finally {
             setSyncing(false);
         }
@@ -424,6 +483,67 @@ export default function ShortWorksCalendar({
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* Holding Area (Moved to the right as requested) */}
+                        <div 
+                            className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3' : 'w-10'} h-10 rounded-xl border-2 border-dashed ${isSelectingForHolding ? 'border-yellow-400 bg-yellow-400/20 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/10'} transition-all cursor-pointer relative`}
+                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const draggedWoId = e.dataTransfer.getData("text/plain");
+                                if (draggedWoId) {
+                                    const draggedWo = workOrders.find(o => String(o.id) === draggedWoId);
+                                    if (draggedWo) setHeldOrder(draggedWo);
+                                }
+                            }}
+                            draggable={!!heldOrder}
+                            onDragStart={(e) => {
+                                if (heldOrder) {
+                                    e.dataTransfer.setData("text/plain", String(heldOrder.id));
+                                    e.dataTransfer.setData("type", "workOrder");
+                                }
+                            }}
+                            onDragEnd={(e) => {
+                                if (e.dataTransfer.dropEffect !== "none") {
+                                    setTimeout(() => setHeldOrder(null), 500);
+                                }
+                            }}
+                            onClick={() => {
+                                if (heldOrder) {
+                                    // Do nothing on container click if already holding. Let the X button clear it.
+                                } else {
+                                    setIsSelectingForHolding(!isSelectingForHolding);
+                                }
+                            }}
+                            title={heldOrder ? t('planning.holding_area_active', 'Alege o zi/oră din calendar pentru a muta lucrarea') : t('planning.holding_area', 'Apasă pentru a selecta o lucrare, sau trage o lucrare aici')}
+                        >
+                            {isSelectingForHolding && !heldOrder && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                            )}
+                            {heldOrder ? (
+                                <div className="flex items-center gap-2 text-white text-xs font-bold pl-1 pr-2">
+                                    <Clock className="w-4 h-4 text-yellow-300" />
+                                    <div className="flex flex-col text-left">
+                                        <span className="truncate max-w-[120px]">{heldOrder.client_name || heldOrder.id.slice(0, 8)}</span>
+                                        <span className="text-[9px] font-medium text-white/70">
+                                            {heldOrder.start_date?.split('T')[0]} {heldOrder.start_time}
+                                        </span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setHeldOrder(null);
+                                            setIsSelectingForHolding(false);
+                                        }}
+                                        className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+                                        title={t('planning.holding_area_clear', 'Anulează')}
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <Plus className="w-5 h-5 text-white/80" />
+                            )}
+                        </div>
                         {toggleCalendarFullscreen && (
                             <button 
                                 onClick={toggleCalendarFullscreen} 
@@ -583,8 +703,8 @@ export default function ShortWorksCalendar({
                 <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
                     <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
                     {Array.from({ length: END_HOUR - dynamicStartHour }).map((_, i) => (
-                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[10px] text-slate-400 font-bold pt-1">
-                            #{i + 1}
+                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+                            {`${(i + dynamicStartHour).toString().padStart(2, '0')}:00`}
                         </div>
                     ))}
                 </div>
@@ -655,6 +775,10 @@ export default function ShortWorksCalendar({
                                     className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
                                     onClick={() => {
                                         if (Date.now() - lastSwipeTime.current < 400) return; // Prevent accidental click after scroll
+                                        if (heldOrder) {
+                                            handleDropHeldOrder(weekDays[dayIndex], `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`);
+                                            return;
+                                        }
                                         if (!isDragging) {
                                             const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
                                             const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
@@ -675,6 +799,19 @@ export default function ShortWorksCalendar({
                                         const type = e.dataTransfer.getData("type");
                                         const targetDate = format(weekDays[dayIndex], "yyyy-MM-dd");
                                         const targetTime = `${(hourIndex + dynamicStartHour).toString().padStart(2, '0')}:00`;
+                                        
+                                        // --- PREVENT DROPPING IN THE PAST FOR WORK ORDERS ---
+                                        if (type === "workOrder" || type === "quote") {
+                                            const dropDateObj = new Date(weekDays[dayIndex]);
+                                            dropDateObj.setHours(0, 0, 0, 0);
+                                            const todayObj = new Date();
+                                            todayObj.setHours(0, 0, 0, 0);
+                                            
+                                            if (dropDateObj < todayObj) {
+                                                toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail dans le passé.'));
+                                                return;
+                                            }
+                                        }
 
                                         if (type === "team") {
                                             const teamId = e.dataTransfer.getData("id");
@@ -773,12 +910,23 @@ export default function ShortWorksCalendar({
                                 const widthValue = `calc(${(colFr / totalFr) * 100}% - 8px)`;
                                 const isThisDragged = draggedOrder === wo.id;
                                 const isCompleted = wo.status === 'completed';
+                                
+                                // --- PREVENT DRAGGING PAST ORDERS ---
+                                const woDateObj = new Date(wo.start_date || wo.deadline_date);
+                                woDateObj.setHours(0, 0, 0, 0);
+                                const todayObj = new Date();
+                                todayObj.setHours(0, 0, 0, 0);
+                                const isPast = woDateObj < todayObj;
 
                                 return (
                                     <div 
                                         key={wo.id}
-                                        draggable={true}
+                                        draggable={!isPast}
                                         onDragStart={(e) => {
+                                            if (isPast) {
+                                                e.preventDefault();
+                                                return;
+                                            }
                                             e.stopPropagation();
                                             e.dataTransfer.setData("text/plain", String(wo.id));
                                             e.dataTransfer.setData("type", "workOrder");
@@ -792,13 +940,15 @@ export default function ShortWorksCalendar({
                                             setIsDragging(false);
                                             setDraggedOrder(null);
                                         }}
-                                        className={`group absolute p-1.5 overflow-hidden rounded-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-move mx-1 
+                                        className={`group absolute p-1.5 overflow-hidden rounded-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all ${isPast ? '' : 'cursor-move'} mx-1 
                                             ${!wo.assigned_team_id ? 'bg-white dark:bg-slate-900 border-2 border-red-500 border-l-[6px] border-l-red-500' : 'border-l-4'}
                                             ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
                                             ${isDragging && !isThisDragged ? 'pointer-events-none' : ''}
                                             ${wo.status === 'planning' && wo.client_notified === false ? 'ring-2 ring-red-500 ring-offset-1 dark:ring-offset-slate-900 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : ''}
-                                            ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}`}
+                                            ${animatingOrder === wo.id ? 'ring-4 ring-green-500 bg-green-100 dark:bg-green-900/50 scale-[1.02] z-[60]' : ''}
+                                            ${isSelectingForHolding && !isPast ? 'ring-2 ring-yellow-400 animate-pulse cursor-pointer' : ''}
+                                            ${heldOrder?.id === wo.id ? 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/50' : ''}`}
                                         style={{
                                             top: `${(wo.rowStart - 1) * 70 + 2}px`,
                                             height: '64px',
@@ -815,6 +965,15 @@ export default function ShortWorksCalendar({
                                         }}
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (isSelectingForHolding) {
+                                                if (isPast) {
+                                                    toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail depuis le passé.'));
+                                                    return;
+                                                }
+                                                setHeldOrder(wo);
+                                                setIsSelectingForHolding(false);
+                                                return;
+                                            }
                                             if (!isDragging) {
                                                 if (onOrderClick) onOrderClick(wo);
                                                 else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
@@ -949,7 +1108,7 @@ export default function ShortWorksCalendar({
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
                                             <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                         </div>
-                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none lg:pointer-events-auto lg:cursor-pointer lg:hover:text-blue-600 lg:dark:hover:text-blue-400"
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none xl:pointer-events-auto xl:cursor-pointer xl:hover:text-blue-600 xl:dark:hover:text-blue-400"
                                              onClick={(e) => {
                                                  e.stopPropagation();
                                                  const addr = wo.site_address || wo.site_name;
@@ -1026,6 +1185,16 @@ export default function ShortWorksCalendar({
                             const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
                             const isCompleted = wo.status === 'completed';
                             
+                            // Calculate if it's in the past
+                            let isPast = false;
+                            if (parsedDate) {
+                                const dropDateObj = new Date(parsedDate);
+                                dropDateObj.setHours(0, 0, 0, 0);
+                                const todayObj = new Date();
+                                todayObj.setHours(0, 0, 0, 0);
+                                isPast = dropDateObj < todayObj;
+                            }
+                            
                             if (deletedIds.has(wo.id)) return null;
                             
                             return (
@@ -1038,9 +1207,18 @@ export default function ShortWorksCalendar({
                                         </div>
                                     )}
                                     <div 
-                                        className={`relative p-3 rounded-xl border shadow-sm flex flex-col gap-2 cursor-pointer active:scale-[0.98] transition-transform ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}
+                                        className={`relative p-3 rounded-xl border shadow-sm flex flex-col gap-2 transition-transform ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'} ${isPast ? 'cursor-default opacity-80' : 'cursor-pointer active:scale-[0.98]'}`}
                                         style={!isCompleted ? { borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` } : { borderLeft: `4px solid #22c55e` }}
                                         onClick={() => {
+                                            if (isSelectingForHolding) {
+                                                if (isPast) {
+                                                    toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail depuis le passé.'));
+                                                    return;
+                                                }
+                                                setHeldOrder(wo);
+                                                setIsSelectingForHolding(false);
+                                                return;
+                                            }
                                             if (onOrderClick) onOrderClick(wo);
                                             else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
                                         }}
@@ -1078,7 +1256,7 @@ export default function ShortWorksCalendar({
                                         </div>
                                         <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                            <span className="truncate">{formatAddressCityFirst((wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Fără locație'))}</span>
+                                            <span className="truncate">{formatAddressCityFirst((wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Aucune adresse'))}</span>
                                         </div>
                                         <div className="mt-1 flex items-center gap-1.5">
                                             {getDistanceTextForOrder(wo) && (
@@ -1107,14 +1285,25 @@ export default function ShortWorksCalendar({
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-2">{t('planning.modal_title', 'Détails de Planification')}</h3>
                             
                             <div className="space-y-4 my-6">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">{t('planning.arrival_time', 'Heure d\'arrivée (estimée)')}</label>
-                                    <input 
-                                        type="time" 
-                                        value={planningTime}
-                                        onChange={e => setPlanningTime(e.target.value)}
-                                        className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('planning.arrival_date', 'Date d\'arrivée')}</label>
+                                        <input 
+                                            type="date" 
+                                            value={pendingReschedule.start_date || ''}
+                                            onChange={e => setPendingReschedule({...pendingReschedule, start_date: e.target.value})}
+                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('planning.arrival_time', 'Heure (estimée)')}</label>
+                                        <input 
+                                            type="time" 
+                                            value={planningTime}
+                                            onChange={e => setPlanningTime(e.target.value)}
+                                            className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
                                 </div>
                                 <div 
                                     onClick={() => setPlanningNotify(!planningNotify)}

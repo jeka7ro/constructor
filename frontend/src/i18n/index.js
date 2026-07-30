@@ -7,7 +7,6 @@ import en from './en.json'
 import de from './de.json'
 import fr from './fr.json'
 import nl from './nl.json'
-import ru from './ru.json'
 
 i18n
     .use(LanguageDetector)
@@ -18,8 +17,7 @@ i18n
             en: { translation: en },
             de: { translation: de },
             fr: { translation: fr },
-            nl: { translation: nl },
-            ru: { translation: ru },
+            nl: { translation: nl }
         },
         lng: localStorage.getItem('language') || 'ro',
         fallbackLng: 'ro',

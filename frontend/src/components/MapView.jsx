@@ -263,7 +263,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                             directionsRenderer.setDirections(result);
                             const route = result.routes[0];
                             const distanceKm = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
-                            if (onRouteCalculated) onRouteCalculated(distanceKm);
+                            if (onRouteCalculated) onRouteCalculated(distanceKm * 2);
                         } else {
                             console.error('Google Directions error:', status);
                             // Fallback direct line only if Directions also fails

@@ -521,11 +521,11 @@ def list_work_orders(
     elif is_quote is not None:
         q = q.filter(WorkOrder.is_quote == is_quote)
     else:
-        # Default: comenzile normale (is_quote=False) + devisele trimise in planning (is_quote=True + status=planning)
+        # Default: comenzile normale (is_quote=False) + devisele trimise in planning (is_quote=True + status != draft)
         from sqlalchemy import or_
         q = q.filter(or_(
             WorkOrder.is_quote == False,
-            (WorkOrder.is_quote == True) & (WorkOrder.status == 'planning')
+            (WorkOrder.is_quote == True) & (WorkOrder.status.in_(['planning', 'confirmed', 'in_progress', 'completed']))
         ))
 
     if slim:
@@ -859,9 +859,16 @@ def update_work_order(
     update_data = payload.dict(exclude_unset=True)
     print("DEBUG update_data:", update_data)
     old_start_date = wo.start_date
+    old_prices = wo.prices or {}
+    old_discount = float(old_prices.get("discount_pct", 0))
+
     for f in fields:
         if f in update_data:
             setattr(wo, f, update_data[f])
+            
+    new_prices = wo.prices or {}
+    new_discount = float(new_prices.get("discount_pct", 0))
+    discount_changed = new_discount != old_discount
             
 
     if "use_vat" in update_data:
@@ -1005,6 +1012,15 @@ def update_work_order(
             except Exception as e:
                 print(f"Failed to send planning update whatsapp: {e}")
     else:
+        # Check if discount was modified from admin modal
+        if discount_changed and wo.client_email:
+            from app.services.email_service import send_quote_update_email
+            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+            try:
+                send_quote_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, discount_pct=new_discount)
+            except Exception as e:
+                print(f"Failed to send quote update email: {e}")
+
         # Backward compatibility for old automatic emails (when not using the new modal)
         if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed") and wo.source_system != "devis_online":
             from app.services.email_service import send_planning_update_email

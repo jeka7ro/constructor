@@ -185,9 +185,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const translateDynamicLabel = (text) => {
         if (!text) return '—';
         let res = text;
-        if (/^[sșş]ap[aăâ]$/i.test(res)) return 'Chape';
-        if (/[sșş]ap[aăâ]/i.test(res)) res = res.replace(/[sșş]ap[aăâ]/ig, 'Chape');
-        if (/manoper[aă]/i.test(res)) res = res.replace(/manoper[aă]/ig, "Main-d'œuvre");
+        if (/^[sșş]ap[aăâ]$/i.test(res)) return t('materials.chape', 'Chape');
+        if (/[sșş]ap[aăâ]/i.test(res)) res = res.replace(/[sșş]ap[aăâ]/ig, t('materials.chape_inline', 'Chape'));
+        if (/manoper[aă]/i.test(res)) res = res.replace(/manoper[aă]/ig, t('materials.workmanship', "Main-d'œuvre"));
         return res;
     };
     const [loading, setLoading] = useState(true)
@@ -369,16 +369,15 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (wo.route_distance_km && Math.abs(wo.route_distance_km - km) < 0.1) return;
         try {
             const updatedSegments = [...(wo.route_segments || [])];
-            // Distribute the calculated distance proportionally across all segments
             const oldTotal = updatedSegments.reduce((sum, s) => sum + (s.km || 0), 0);
             if (oldTotal > 0 && updatedSegments.length > 0) {
                 updatedSegments.forEach(seg => {
-                    seg.km = parseFloat(((seg.km / oldTotal) * km * 2).toFixed(1));
+                    seg.km = parseFloat(((seg.km / oldTotal) * km).toFixed(1));
                 });
             } else if (updatedSegments.length === 2) {
                 // Simple A→B→A: split equally
-                updatedSegments[0].km = parseFloat(km.toFixed(1));
-                updatedSegments[1].km = parseFloat(km.toFixed(1));
+                updatedSegments[0].km = parseFloat((km / 2).toFixed(1));
+                updatedSegments[1].km = parseFloat((km / 2).toFixed(1));
             } else if (updatedSegments.length > 0) {
                 updatedSegments[0].km = parseFloat(km.toFixed(1));
             }
@@ -877,7 +876,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', 'Épaisseur')}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', 'moyenne')} color="rose" />
-                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       value={wo.route_distance_km ? `${(wo.route_distance_km * 2).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
+                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       value={wo.route_distance_km ? `${(wo.route_distance_km).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
@@ -1070,9 +1069,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="font-mono text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.status', 'Statut')}</p>
-                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-700 uppercase tracking-wider">
-                                                        {cfg?.label || wo.status}
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('planning.planned', 'Planifié')}</p>
+                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${wo.start_date ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                        {wo.start_date ? t('planning.yes', 'Oui') : t('planning.no', 'Non')}
                                                     </span>
                                                 </div>
                                                 <div>
@@ -1088,7 +1087,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
+                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4 pb-4 border-b border-slate-50 dark:border-slate-700/50 mt-4">
+                                                <div>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.date', 'Date Devis')}</p>
+                                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                        <span>{wo.created_at ? new Date(wo.created_at).toLocaleDateString('ro-RO') : '—'}</span>
+                                                    </div>
+                                                </div>
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('quotes.approx_date', 'Date Approx.')}</p>
                                                     <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -1096,25 +1102,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                         <span>{wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString('ro-RO') : '—'}</span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0">{t('work_order_detail.general_details.team_leader', 'Chef Équipe (Confirmation)')}</p>
-                                                {wo.team_leader_confirmed_at ? (
-                                                    <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex flex-col sm:text-right">
-                                                        <span>{t('work_order_detail.status.acknowledged_on', 'A pris connaissance le')} {new Date(wo.team_leader_confirmed_at).toLocaleString('ro-RO')}</span>
-                                                        {wo.team_leader_confirmation_note && (
-                                                            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 italic">{t('work_order_detail.status.note', 'Note :')} {wo.team_leader_confirmation_note}</span>
-                                                        )}
+                                                <div>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.status.confirmed_by_team', 'Confirmé Équipe')}</p>
+                                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                        <span>{wo.start_date ? `${new Date(wo.start_date).toLocaleDateString('ro-RO')}${wo.start_time ? ` ${wo.start_time}` : ''}` : '—'}</span>
                                                     </div>
-                                                ) : wo.team_leader_accepted_at ? (
-                                                    <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 sm:text-right">
-                                                        <span>{t('work_order_detail.status.opened_on', 'A ouvert la commande le')} {new Date(wo.team_leader_accepted_at).toLocaleString('ro-RO')}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-sm font-semibold text-amber-600 dark:text-amber-500 sm:text-right">
-                                                        <span>{t('work_order_detail.status.not_acknowledged', "N'a pas encore pris connaissance")}</span>
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                 <div>
@@ -1130,6 +1124,40 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
+                                            <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50 space-y-2">
+                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
+                                                {wo.confirmed_at ? (
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
+                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmé par')}</span>
+                                                                <span className="font-semibold text-emerald-600">{wo.confirmed_by_name}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2 mt-2">
+                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'À la date')}</span>
+                                                                <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
+                                                            </div>
+                                                            {wo.start_date && (
+                                                                <div className="flex items-center justify-between text-xs pt-2">
+                                                                    <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.accepted_date', 'Date d\'intervention acceptée')}</span>
+                                                                    <span className="font-semibold text-blue-600">
+                                                                        {new Date(wo.start_date).toLocaleDateString('ro-RO')} {wo.start_time && ` • ${wo.start_time}`}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {hasSig && (
+                                                            <div className="flex-shrink-0 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 p-2 flex items-center justify-center">
+                                                                <img src={wo.client_signature} alt="Semnătură" className="h-12 object-contain" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                                                        <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Non confirmée par le client.')}</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                             {(!wo.external_id && ((wo.site_latitude && wo.site_longitude) || wo.site_address)) && (
                                                 <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50">
                                                     <StreetViewPhotos lat={wo.site_latitude} lng={wo.site_longitude} address={wo.site_address} />
@@ -1139,73 +1167,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 </div>
                 <div className="flex flex-col gap-5">
 
-                    <Section icon={CheckCircle2} title={t('work_order_detail.status_confirmations.title', 'Confirmations Statut')} contentClassName="!p-3">
-                                            <div className="flex flex-col xl:flex-row gap-3">
-                                                <div className="flex-1 space-y-2">
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Chef Équipe')}</p>
-                                                    {wo.team_leader_confirmed_at ? (
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmé')}</span>
-                                                            </div>
-                                                            <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
-                                                            <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
-                                                            <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'En attente de confirmation')}</span>
-                                                        </div>
-                                                    )}
-                                                    {wo.team_leader_confirmation_note && (
-                                                        <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
-                                                            <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Note')}</p>
-                                                            <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="w-px bg-slate-100 dark:bg-slate-700 hidden xl:block"></div>
-                                                <div className="flex-1 border-t xl:border-t-0 border-slate-100 dark:border-slate-700 pt-4 xl:pt-0 space-y-2">
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
-                                                    {wo.confirmed_at ? (
-                                                        <>
-                                                            <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmé par')}</span>
-                                                                <span className="font-semibold text-emerald-600">{wo.confirmed_by_name}</span>
-                                                            </div>
-                                                            <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'À la date')}</span>
-                                                                <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
-                                                            </div>
-                                                            {wo.start_date && (
-                                                                <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2 mt-2">
-                                                                    <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.accepted_date', 'Date d\'intervention acceptée')}</span>
-                                                                    <span className="font-semibold text-blue-600">
-                                                                        {new Date(wo.start_date).toLocaleDateString('ro-RO')} {wo.start_time && ` • ${wo.start_time}`}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            {hasSig && (
-                                                                <div className="mt-2 flex justify-end">
-                                                                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 px-2 py-1 inline-flex items-center justify-center">
-                                                                        <img src={wo.client_signature} alt="Semnătură" className="h-8 object-contain" />
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <div className="flex items-center justify-center py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                                            <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Non confirmée par le client.')}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </Section>
                     {(() => {
                         const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0 || wo.actual_surface_m2 || wo.actual_sand_quantity;
-                        const sectionTitle = hasConsumed 
-                            ? t('work_order_detail.materials_volumes.title', "Quantités & Matériaux (Estimés vs Consommés)")
-                            : t('work_order_detail.materials_volumes.title_no_consumed', "Quantités & Matériaux (Estimés)");
+                        const sectionTitle = t('work_order_detail.team_leader_details.title', 'Équipe Davide (Confirmations & Quantités)');
                         
                         let selectedMats = [];
                         if (wo.volumes && wo.volumes.length > 0) {
@@ -1221,6 +1185,29 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         
                         return (
                             <Section className="flex-1" icon={Wrench} title={sectionTitle} contentClassName="!p-3">
+                                            <div className="mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                                                <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.team_leader_short', 'Chef Équipe')}</p>
+                                                {wo.team_leader_confirmed_at ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
+                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">{t('work_order_detail.status.confirmed', 'Confirmé')}</span>
+                                                        </div>
+                                                        <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold pl-5">{fmtFull(wo.team_leader_confirmed_at)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5">
+                                                        <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0" />
+                                                        <span className="text-xs font-semibold text-slate-400">{t('work_order_detail.status.awaiting_confirmation', 'En attente de confirmation')}</span>
+                                                    </div>
+                                                )}
+                                                {wo.team_leader_confirmation_note && (
+                                                    <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-xl mt-2">
+                                                        <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider mb-1">{t('common.note', 'Note')}</p>
+                                                        <p className="text-xs text-slate-700 dark:text-slate-300">{wo.team_leader_confirmation_note}</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                             <div className="flex flex-col gap-3">
                                                 <div className="flex-1">
                                                     <div className="flex items-center flex-wrap gap-2">
@@ -1440,62 +1427,62 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                         <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)} EUR</b></span>
+                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)}&nbsp;EUR</b></span>
                                     </div>
                                     {autoExtra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {autoFoil > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {autoMesh > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {autoFiber > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
                                             <span className="text-right tabular-nums">
-                                                {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)} EUR</b>
+                                                {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)}&nbsp;EUR</b>
                                             </span>
                                         </div>
                                     )}
                                     {estimCalc.threshold > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
                                             <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
-                                            <span className="text-right tabular-nums">+ <b>{estimCalc.threshold.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">+ <b>{estimCalc.threshold.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {estimCalc.discount > 0 && (
                                         <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
                                             <span className="font-medium">{t('work_order_detail.invoicing.discount', 'Remise (Discount)')} ({estimCalc.discountPct}%)</span>
-                                            <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {/* TVA Auto-calculated */}
                                     <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
                                         <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
                                             <span>{t('work_order_detail.invoicing.net_htva', 'Total Net (HTVA)')}</span>
-                                            <span className="tabular-nums">{autoNet.toFixed(2)} EUR</span>
+                                            <span className="tabular-nums">{autoNet.toFixed(2)}&nbsp;EUR</span>
                                         </div>
                                         
                                         {vatEnabled ? (
                                             <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium mt-1">
                                                 <span>TVA ({vatType}%)</span>
-                                                <span className="tabular-nums">{autoVat.toFixed(2)} EUR</span>
+                                                <span className="tabular-nums">{autoVat.toFixed(2)}&nbsp;EUR</span>
                                             </div>
                                         ) : (
                                             <div className="flex justify-between text-slate-500 dark:text-slate-500 font-medium mt-1">
                                                 <span>{t('quotes.tva_disabled', 'TVA non appliquée')}</span>
-                                                <span className="tabular-nums">0.00 EUR</span>
+                                                <span className="tabular-nums">0.00&nbsp;EUR</span>
                                             </div>
                                         )}
                                     </div>
@@ -1503,7 +1490,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-3"></div>
                                     <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white">
                                         <span>{t('work_order_detail.invoicing.gross', 'TOTAL À PAYER:')}</span>
-                                        <span className="tabular-nums">{totalGross.toFixed(2)} EUR</span>
+                                        <span className="tabular-nums">{totalGross.toFixed(2)}&nbsp;EUR</span>
                                     </div>
                                 </div>
                             </div>
@@ -1549,50 +1536,50 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                         <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)} EUR</b></span>
+                                        <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
                                     </div>
                                     {realCalc.extra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({realCalc.extraThick} cm)</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {realCalc.extraThick} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{realCalc.extra.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {realCalc.extraThick} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{realCalc.extra.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.foil > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.mesh > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.fiber > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.fiber', 'Fibres / Duramint')}</span>
                                             <span className="text-right tabular-nums">
-                                                {realSurface} m² × {(wo.prices?.fiber_large !== undefined ? (realSurface > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)} EUR</b>
+                                                {realSurface} m² × {(wo.prices?.fiber_large !== undefined ? (realSurface > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{realCalc.fiber.toFixed(2)}&nbsp;EUR</b>
                                             </span>
                                         </div>
                                     )}
                                     {realCalc.threshold > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
                                             <span className="font-medium">{t('work_order_detail.invoicing.threshold', 'Forfait')}</span>
-                                            <span className="text-right tabular-nums">+ <b>{realCalc.threshold.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">+ <b>{realCalc.threshold.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.discount > 0 && (
                                         <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
                                             <span className="font-medium">{t('work_order_detail.invoicing.discount', 'Remise (Discount)')} ({realCalc.discountPct}%)</span>
-                                            <span className="text-right tabular-nums">- <b>{realCalc.discount.toFixed(2)} EUR</b></span>
+                                            <span className="text-right tabular-nums">- <b>{realCalc.discount.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-3" />
                                     <div className="flex justify-between text-base font-black text-slate-900 dark:text-white">
                                         <span>{t('work_order_detail.invoicing.gross', 'TOTAL RÉEL:')}</span>
-                                        <span className="tabular-nums">{(realCalc.net + realCalc.net * vatRate).toFixed(2)} EUR</span>
+                                        <span className="tabular-nums">{(realCalc.net + realCalc.net * vatRate).toFixed(2)}&nbsp;EUR</span>
                                     </div>
                                     {bigDiff && (
                                         <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700">
