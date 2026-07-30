@@ -448,10 +448,13 @@ export default function PublicCalculator() {
                                 {/* Surface & Épaisseur */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.surface', 'Surface (m²)')}</label>
+                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${error === t('errors.surface_required', 'La surface est obligatoire.') ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.surface', 'Surface (m²)')}</label>
                                         <input type="number" required min="1" placeholder="120"
-                                            value={formData.surface} onChange={e => setFormData({ ...formData, surface: e.target.value })}
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white focus:border-yellow-400 transition-all" />
+                                            value={formData.surface} onChange={e => {
+                                                setFormData({ ...formData, surface: e.target.value });
+                                                if (error === t('errors.surface_required', 'La surface est obligatoire.')) setError('');
+                                            }}
+                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${error === t('errors.surface_required', 'La surface est obligatoire.') ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
                                     </div>
                                     <div>
                                         <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${error === t('errors.thickness_min', "L'épaisseur minimale est de 5 cm.") ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
