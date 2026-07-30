@@ -464,8 +464,11 @@ export default function DevisOnline() {
                                     <div>
                                         <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.thickness', 'Épaisseur (cm)')}</label>
                                         <input type="number" required min="5" step="0.5" placeholder="5"
-                                            value={formData.thickness} onChange={e => setFormData({ ...formData, thickness: e.target.value })}
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white focus:border-yellow-400 transition-all" />
+                                            value={formData.thickness} onChange={e => {
+                                                setFormData({ ...formData, thickness: e.target.value });
+                                                if (errorField === 'thickness') { setErrorField(''); setError(''); }
+                                            }}
+                                            className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${errorField === 'thickness' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
                                     </div>
                                 </div>
 
