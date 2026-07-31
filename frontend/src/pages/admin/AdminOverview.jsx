@@ -35,11 +35,14 @@ export default function AdminOverview() {
     const { showToast } = useUIStore()
     const knownQuotesRef = useRef(new Set())
     const isInitialQuotesFetch = useRef(true)
+    const knownReschedulesRef = useRef(new Set())
+    const isInitialReschedulesFetch = useRef(true)
     const [stats, setStats] = useState({ total_users: 0, total_sites: 0, pending: 0, total_hours_week: 0 })
     const [chartData, setChartData] = useState({ daily: [], hourly: [], activities: [], sites: [] })
     const [statsLoading, setStatsLoading] = useState(true)
     const [chartLoading, setChartLoading] = useState(true)
     const [newQuotesAlert, setNewQuotesAlert] = useState([])
+    const [rescheduleAlerts, setRescheduleAlerts] = useState([])
 
     const DEFAULT_LAYOUT = {
         recent_work_orders: { visible: true, size: 'L' },
@@ -466,7 +469,26 @@ export default function AdminOverview() {
             const active = Array.isArray(all) ? all.filter(w => w.status === 'in_progress' || w.status === 'sent' || w.status === 'confirmed').length : 0
             const draft = Array.isArray(all) ? all.filter(w => w.status === 'draft').length : 0
             setWorkOrdersStats({ total, active, draft })
+            
             if (Array.isArray(all)) {
+                let newlyFoundReschedules = []
+                if (isInitialReschedulesFetch.current) {
+                    all.forEach(w => {
+                        if (w.reschedule_requested) knownReschedulesRef.current.add(String(w.id))
+                    })
+                    isInitialReschedulesFetch.current = false
+                } else {
+                    all.forEach(w => {
+                        if (w.reschedule_requested && !knownReschedulesRef.current.has(String(w.id))) {
+                            knownReschedulesRef.current.add(String(w.id))
+                            newlyFoundReschedules.push(w)
+                        }
+                    })
+                }
+                if (newlyFoundReschedules.length > 0) {
+                    setRescheduleAlerts(prev => [...prev, ...newlyFoundReschedules])
+                }
+
                 setAllWorkOrders(all)
                 // Recentele = primele 50 din aceeasi lista (sortate desc)
                 setRecentWorkOrders(all.slice(0, 50))
@@ -996,7 +1018,7 @@ export default function AdminOverview() {
 
 
     return (
-        <div className="p-3 lg:p-4 bg-slate-50 dark:bg-slate-950 min-h-screen">
+        <div className="p-3 lg:p-4 pt-0 lg:pt-0 bg-slate-50 dark:bg-slate-950 min-h-screen">
             {/* Subtle loading bar at very top */}
             {(statsLoading || workersLoading) && (
                 <div className="fixed top-0 left-0 right-0 z-[999] h-1 bg-blue-100 overflow-hidden">
@@ -1121,6 +1143,7 @@ export default function AdminOverview() {
                                         const woId = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("id");
                                         if (woId) {
                                             try {
+                                                knownQuotesRef.current.add(String(woId));
                                                 setTimeout(() => {
                                                     setAllWorkOrders(prev => {
                                                         const woInCalendar = prev.find(w => String(w.id) === String(woId));
@@ -1224,15 +1247,27 @@ export default function AdminOverview() {
                                                         <CheckCircle className="w-3.5 h-3.5" />
                                                     </button>
                                                 )}
-                                                <div className="p-1 cursor-grab active:cursor-grabbing text-rose-400 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded">
+                                                <div className="p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">
                                                     <GripVertical className="w-3.5 h-3.5" />
                                                 </div>
                                             </div>
                                             
                                             {/* ROW 1: Name + Date */}
                                             <div className="flex justify-between items-center pr-4">
-                                                <div className="font-bold text-[11px] text-rose-900 dark:text-rose-100 truncate flex-1">
-                                                    {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                                <div className="font-bold text-[11px] truncate flex-1">
+                                                    {(quote.source_system === 'calculator_public' || quote.source_system === 'we-r') ? (
+                                                        <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full inline-block truncate max-w-full" title="WE-R">
+                                                            {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                                        </span>
+                                                    ) : quote.source_system === 'devis_online' ? (
+                                                        <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full inline-block truncate max-w-full" title="Devis en ligne">
+                                                            {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-rose-900 dark:text-rose-100 truncate">
+                                                            {quote.client_name || t('common.unknown_client', 'Client Inconnu')}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {quote.approximate_date && (
                                                     <div className="bg-rose-100 dark:bg-rose-900/40 px-1 py-0.5 rounded text-[8px] font-bold text-rose-700 dark:text-rose-300 shrink-0 ml-1">
@@ -1252,11 +1287,29 @@ export default function AdminOverview() {
                                                 {quote.volumes?.[0]?.quantity && (
                                                     <span className="text-slate-500 shrink-0">· {quote.volumes[0].quantity}m²x{quote.volumes[0].thickness || '?'}</span>
                                                 )}
-                                                {(quote.route_distance_km || quote.route_distance_km === 0) && (
-                                                    <span className="font-bold shrink-0">
-                                                        · {parseFloat(quote.route_distance_km).toFixed(0)}km
-                                                    </span>
-                                                )}
+                                                {(() => {
+                                                    let dist = 0;
+                                                    let hasDist = false;
+                                                    if (quote.route_segments && quote.route_segments.length > 0) {
+                                                        dist = quote.route_segments.reduce((sum, seg) => sum + (seg.km || 0), 0) * 2;
+                                                        hasDist = true;
+                                                    } else if (quote.route_distance_km !== null && quote.route_distance_km !== undefined) {
+                                                        dist = parseFloat(quote.route_distance_km) * 2;
+                                                        hasDist = true;
+                                                    }
+                                                    if (!hasDist) return null;
+                                                    if (isNaN(dist)) dist = 0;
+                                                    
+                                                    return dist > 0 ? (
+                                                        <span className="font-bold shrink-0">
+                                                            · {dist.toFixed(0)}km
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-bold shrink-0 text-red-600">
+                                                            · 0km
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     ))}
@@ -3031,13 +3084,46 @@ export default function AdminOverview() {
                             <button
                                 onClick={() => {
                                     setNewQuotesAlert([])
-                                    // Scroll to the column
-                                    const col = document.getElementById('pending-quotes-column')
-                                    if(col) col.scrollIntoView({ behavior: 'smooth' })
+                                    navigate('/admin/quotes')
                                 }}
                                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
                             >
                                 {t('overview.go_to_quotes', 'Mergi la ele')}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {rescheduleAlerts.length > 0 && createPortal(
+                <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+                        <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                            Clientul cere reprogramare!
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">
+                            Clientul a solicitat o altă dată pentru lucrare.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setRescheduleAlerts(prev => prev.slice(1))}
+                                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors"
+                            >
+                                {t('common.dismiss', 'Omite')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const woId = rescheduleAlerts[0].id
+                                    setRescheduleAlerts(prev => prev.slice(1))
+                                    navigate(`/admin/work-orders/${woId}`)
+                                }}
+                                className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors"
+                            >
+                                Du-mă la comandă
                             </button>
                         </div>
                     </div>

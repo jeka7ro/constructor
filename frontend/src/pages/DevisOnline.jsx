@@ -284,7 +284,9 @@ export default function DevisOnline() {
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const offset = firstDay === 0 ? 6 : firstDay - 1;
         const days = [];
-        const weekdays = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
+        const weekdays = i18n.language === 'nl' ? ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'] :
+                         i18n.language === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] :
+                         ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
         const header = weekdays.map(wd => (
             <div key={wd} className="text-center text-xs font-bold text-slate-400 py-1">{wd}</div>
         ));

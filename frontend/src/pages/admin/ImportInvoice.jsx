@@ -108,7 +108,7 @@ export default function ImportInvoice() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen space-y-6">
+        <div className="p-4 md:p-8 w-full min-h-screen space-y-6">
             <header>
                 <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">

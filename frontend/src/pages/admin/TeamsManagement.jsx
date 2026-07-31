@@ -224,7 +224,7 @@ export default function TeamsManagement() {
     const filteredTeams = teams.filter(t => !globalSearch || t.name.toLowerCase().includes(globalSearch.toLowerCase()) || (t.team_leader_name && t.team_leader_name.toLowerCase().includes(globalSearch.toLowerCase())))
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 w-full">
             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">

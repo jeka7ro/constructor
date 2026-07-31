@@ -183,7 +183,7 @@ export default function AccommodationsManagement() {
     if (detailAcc) {
         return (
             <>
-                <div className="p-4 md:p-8 max-w-7xl mx-auto">
+                <div className="p-4 md:p-8 w-full">
                     <button onClick={() => setDetailAcc(null)} className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors w-fit">
                         <ChevronLeft className="w-5 h-5" />
                         <span className="font-semibold">{t('accommodations.back_to_list', 'Retour aux hébergements')}</span>
@@ -398,7 +398,7 @@ export default function AccommodationsManagement() {
     // ─── LIST VIEW ─────────────────────────────────────────────────────────────
     return (
         <>
-            <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            <div className="p-4 md:p-8 w-full">
 
 
                 <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">

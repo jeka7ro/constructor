@@ -274,7 +274,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             </div>
                         </div>
                         <div className="mt-6 h-0.5 rounded-full" style={{ backgroundColor: primaryColor + '50' }} />
-                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6">
                             <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{T.client}</div>
                                 <div className="font-bold text-slate-800 break-words">{wo.client_name || '—'}</div>

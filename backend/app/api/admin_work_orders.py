@@ -184,6 +184,7 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "proforma_data": None,
         "prices": wo.prices or {},
         "route_distance_km": wo.route_distance_km,
+        "route_segments": wo.route_segments,
         "route_sand_kg": wo.route_sand_kg,
         "access_notes": wo.access_notes,
         "min_photos_required": wo.min_photos_required,
@@ -376,6 +377,12 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
         "prices": wo_prices,
         "confirmed_at": wo.confirmed_at.isoformat() if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
+        "date_confirmed_at": wo.date_confirmed_at.isoformat() if getattr(wo, 'date_confirmed_at', None) else None,
+        "date_confirmed_ip": getattr(wo, 'date_confirmed_ip', None),
+        "reschedule_requested": getattr(wo, 'reschedule_requested', False),
+        "reschedule_requested_date": str(wo.reschedule_requested_date) if getattr(wo, 'reschedule_requested_date', None) else None,
+        "reschedule_reason": getattr(wo, 'reschedule_reason', None),
+        "date_history": wo.date_history,
         "client_signature": wo.client_signature,
         "pdf_path": wo.pdf_path,
         "final_invoice_path": wo.final_invoice_path,
@@ -553,6 +560,7 @@ def list_work_orders(
             q = q.filter(WorkOrder.status == status)
     else:
         q = q.filter(WorkOrder.status != 'isoflex')
+        q = q.filter(WorkOrder.status != 'deleted')
     from sqlalchemy import or_
     from datetime import datetime
     if start_date:
@@ -866,6 +874,23 @@ def update_work_order(
         if f in update_data:
             setattr(wo, f, update_data[f])
             
+    if "start_date" in update_data and str(update_data["start_date"]) != str(old_start_date):
+        wo.reschedule_requested = False
+        wo.reschedule_requested_date = None
+        wo.date_confirmed_at = None
+        
+        hist = list(wo.date_history) if wo.date_history else []
+        hist.append({
+            "action": "changed_by_admin",
+            "old_date": str(old_start_date) if old_start_date else None,
+            "new_date": str(update_data["start_date"]),
+            "timestamp": datetime.utcnow().isoformat(),
+            "admin_name": current_admin.name
+        })
+        wo.date_history = hist
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(wo, "date_history")
+        
     new_prices = wo.prices or {}
     new_discount = float(new_prices.get("discount_pct", 0))
     discount_changed = new_discount != old_discount
@@ -986,6 +1011,10 @@ def update_work_order(
 
     from datetime import datetime
     wo.updated_at = datetime.utcnow()
+    
+    if str(old_start_date) != str(wo.start_date):
+        wo.date_confirmed_at = None
+        
     db.commit()
     db.refresh(wo)
 
@@ -1021,25 +1050,8 @@ def update_work_order(
             except Exception as e:
                 print(f"Failed to send quote update email: {e}")
 
-        # Backward compatibility for old automatic emails (when not using the new modal)
-        if old_start_date != wo.start_date and wo.start_date and wo.status in ("planning", "confirmed") and wo.source_system != "devis_online":
-            from app.services.email_service import send_planning_update_email
-            from app.services.whatsapp_service import send_planning_update_whatsapp
-            
-            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
-            formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
-            if wo.start_time:
-                formatted_date += f" ({wo.start_time})"
-            if wo.client_email:
-                try:
-                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
-                except Exception as e:
-                    print(f"Failed to send planning update email: {e}")
-            if wo.client_phone:
-                try:
-                    send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
-                except Exception as e:
-                    print(f"Failed to send planning update whatsapp: {e}")
+        # Removed backward compatibility for old automatic emails
+        # to ensure the admin has full control via the frontend explicit `send_notification` payload flag.
     
     # ── Invalidare cache logistic — NUMAI dacă s-a schimbat echipa sau adresa ──
     # Nu recalculăm la fiecare update (costuri API Google!)
@@ -1167,7 +1179,31 @@ def delete_work_order(
     if wo.status == "draft":
         sync_work_order_reservations(db, current_admin.organization_id, wo.materials or [], [])
         
-    db.delete(wo)
+    wo.status = "deleted"
+    db.commit()
+    return {"ok": True}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RESTORE (Arhiva)
+# ──────────────────────────────────────────────────────────────────────────────
+@router.post("/work-orders/{wo_id}/restore")
+def restore_work_order(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
+        
+    if wo.status != "deleted":
+        raise HTTPException(status_code=400, detail="Comanda nu este în arhivă.")
+        
+    wo.status = "draft"
     db.commit()
     return {"ok": True}
 
@@ -1814,6 +1850,7 @@ def _sync_robaws_cache(org_id: str, db: Session):
     import requests as _req
     import re
     from app.models import RobawsWorkOrderCache
+    from datetime import datetime
 
     # Șterge cache-ul vechi
     db.query(RobawsWorkOrderCache).filter(
@@ -1902,7 +1939,7 @@ def _sync_robaws_cache(org_id: str, db: Session):
                     "ext_id": ext_id,
                     "robaws_nr": str(item.get("number") or item.get("id")),
                     "title": item.get("title", ""),
-                    "date": item.get("date"),
+                    "date": datetime.fromisoformat(item.get("date")) if item.get("date") else None,
                     "client_name": client_name,
                     "address": ", ".join(addr_parts),
                     "status": item.get("status", ""),
@@ -2067,3 +2104,300 @@ def send_to_billtobox_endpoint(
         wo.billtobox_error = message
         db.commit()
         raise HTTPException(status_code=500, detail=f"Eroare la trimiterea către Billtobox: {message}")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Chat Messages (Admin ↔ Client)
+# ──────────────────────────────────────────────────────────────────────────────
+
+from app.models import WorkOrderMessage
+
+@router.get("/work-orders/{wo_id}/messages")
+def get_work_order_messages(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    messages = db.query(WorkOrderMessage).filter(WorkOrderMessage.work_order_id == wo_id).order_by(WorkOrderMessage.created_at.asc()).all()
+    
+    # Mark client messages as read
+    unread_client_msgs = [m for m in messages if m.sender == 'client' and not m.is_read_by_admin]
+    if unread_client_msgs:
+        for m in unread_client_msgs:
+            m.is_read_by_admin = True
+        db.commit()
+        
+    # Build initial context messages
+    initial_messages = []
+    
+    req_text = ""
+    if wo.requirements:
+        reqs = [r.get('description', '') for r in wo.requirements if isinstance(r, dict) and r.get('description')]
+        req_text = "\n".join(reqs)
+        
+    if req_text:
+        initial_messages.append({
+            "id": "initial-req",
+            "sender": "client",
+            "message": f"Detalii lucrare:\n{req_text}",
+            "created_at": wo.created_at.isoformat()
+        })
+    elif wo.notes:
+        initial_messages.append({
+            "id": "initial-req",
+            "sender": "client",
+            "message": f"Note inițiale:\n{wo.notes}",
+            "created_at": wo.created_at.isoformat()
+        })
+        
+    if wo.reschedule_requested and wo.reschedule_reason:
+        initial_messages.append({
+            "id": "reschedule-req",
+            "sender": "client",
+            "message": f"Cerere de reprogramare:\n{wo.reschedule_reason}",
+            "created_at": wo.updated_at.isoformat()
+        })
+    
+    db_messages = [
+        {
+            "id": m.id,
+            "sender": m.sender,
+            "message": m.message,
+            "created_at": m.created_at.isoformat() + "Z"
+        } for m in messages
+    ]
+    
+    return initial_messages + db_messages
+
+class MessageCreate(BaseModel):
+    message: str
+
+@router.post("/work-orders/{wo_id}/messages")
+def post_work_order_message(
+    wo_id: str,
+    payload: MessageCreate,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    if getattr(wo, 'is_chat_closed', False):
+        raise HTTPException(status_code=403, detail="Chat is closed")
+        
+    msg = WorkOrderMessage(
+        work_order_id=wo.id,
+        sender="admin",
+        message=payload.message,
+        is_read_by_admin=True
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": msg.id,
+        "sender": msg.sender,
+        "message": msg.message,
+        "created_at": msg.created_at.isoformat() + "Z"
+    }
+
+@router.delete("/work-orders/{wo_id}/messages/{msg_id}")
+def delete_work_order_message(
+    wo_id: str,
+    msg_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    db.delete(msg)
+    db.commit()
+    return {"message": "Mesajul a fost șters cu succes."}
+
+@router.post("/work-orders/{wo_id}/messages/{msg_id}/unread")
+def mark_message_unread(
+    wo_id: str,
+    msg_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    msg.is_read_by_admin = False
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.get("/chat-notifications/unread")
+def get_unread_chat_notifications(
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Returns unread client messages for the global header notification bell."""
+    # We need to join with WorkOrder to ensure they belong to the admin's organization
+    unread_messages = (
+        db.query(WorkOrderMessage, WorkOrder)
+        .join(WorkOrder, WorkOrderMessage.work_order_id == WorkOrder.id)
+        .filter(WorkOrder.organization_id == current_admin.organization_id)
+        .filter(WorkOrderMessage.sender == 'client')
+        .filter(WorkOrderMessage.is_read_by_admin == False)
+        .order_by(WorkOrderMessage.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    
+    count = db.query(WorkOrderMessage).join(WorkOrder).filter(
+        WorkOrder.organization_id == current_admin.organization_id,
+        WorkOrderMessage.sender == 'client',
+        WorkOrderMessage.is_read_by_admin == False
+    ).count()
+
+    results = []
+    for msg, wo in unread_messages:
+        results.append({
+            "id": msg.id,
+            "work_order_id": msg.work_order_id,
+            "work_order_title": wo.title or f"CMD-{wo.id[:4]}",
+            "client_name": wo.client_name,
+            "message": msg.message,
+            "created_at": msg.created_at.isoformat() + "Z"
+        })
+        
+    return {"unread_count": count, "messages": results}
+
+@router.post("/chat-notifications/mark-read")
+def mark_all_chat_notifications_read(
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    # Update all unread messages for this admin's organization
+    unread_msgs = (
+        db.query(WorkOrderMessage)
+        .join(WorkOrder, WorkOrderMessage.work_order_id == WorkOrder.id)
+        .filter(WorkOrder.organization_id == current_admin.organization_id)
+        .filter(WorkOrderMessage.sender == 'client')
+        .filter(WorkOrderMessage.is_read_by_admin == False)
+        .all()
+    )
+    
+    for m in unread_msgs:
+        m.is_read_by_admin = True
+        
+    db.commit()
+    return {"ok": True}
+
+from sqlalchemy import func
+
+@router.get("/quotes/unread-count")
+def get_unread_quotes_count(
+    since: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    query = db.query(WorkOrder).filter(
+        WorkOrder.organization_id == current_admin.organization_id,
+        WorkOrder.is_quote == True,
+        WorkOrder.status == "draft"
+    )
+    if since:
+        try:
+            from datetime import datetime
+            since_str = since.replace('Z', '+00:00')
+            since_dt = datetime.fromisoformat(since_str)
+            since_dt = since_dt.replace(tzinfo=None)
+            query = query.filter(WorkOrder.created_at > since_dt)
+        except Exception as e:
+            print(f"Error parsing since: {e}")
+            
+    count = query.count()
+    return {"unread_count": count}
+
+@router.get("/chats")
+def get_all_chats(
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Returns a list of all work orders that have at least one message, grouped for the chat page."""
+    # Find all work orders with messages
+    subquery = db.query(WorkOrderMessage.work_order_id, func.max(WorkOrderMessage.created_at).label("last_msg_time")).group_by(WorkOrderMessage.work_order_id).subquery()
+    
+    chats = (
+        db.query(WorkOrder, subquery.c.last_msg_time)
+        .join(subquery, WorkOrder.id == subquery.c.work_order_id)
+        .filter(WorkOrder.organization_id == current_admin.organization_id)
+        .order_by(subquery.c.last_msg_time.desc())
+        .all()
+    )
+    
+    results = []
+    for wo, last_msg_time in chats:
+        # get unread count
+        unread = db.query(WorkOrderMessage).filter(
+            WorkOrderMessage.work_order_id == wo.id,
+            WorkOrderMessage.sender == 'client',
+            WorkOrderMessage.is_read_by_admin == False
+        ).count()
+        
+        # get last message text
+        last_msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.work_order_id == wo.id).order_by(WorkOrderMessage.created_at.desc()).first()
+        
+        results.append({
+            "work_order_id": wo.id,
+            "title": wo.title or f"CMD-{wo.id[:4]}",
+            "client_name": wo.client_name,
+            "status": wo.status,
+            "is_quote": wo.is_quote,
+            "quote_number": getattr(wo, 'quote_number', None),
+            "invoice_number": getattr(wo, 'invoice_number', None),
+            "is_chat_closed": getattr(wo, 'is_chat_closed', False),
+            "unread_count": unread,
+            "last_message": last_msg.message if last_msg else "",
+            "last_message_time": last_msg_time.isoformat() + "Z" if last_msg_time else wo.created_at.isoformat() + "Z"
+        })
+        
+    return results
+
+@router.post("/work-orders/{wo_id}/chat/close")
+def close_work_order_chat(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    wo.is_chat_closed = True
+    db.commit()
+    return {"message": "Chat closed successfully"}
+
+@router.post("/work-orders/{wo_id}/chat/open")
+def open_work_order_chat(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    wo.is_chat_closed = False
+    db.commit()
+    return {"message": "Chat opened successfully"}

@@ -1,5 +1,6 @@
 import React from 'react'
 import { AlertCircle, X, Check } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 export default function ConfirmModal({ 
     isOpen, 
@@ -15,7 +16,7 @@ export default function ConfirmModal({
 
     const isDanger = type === 'danger';
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div 
                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200"
@@ -51,6 +52,7 @@ export default function ConfirmModal({
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

@@ -36,8 +36,18 @@ def get_pricing_settings(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
+    org_id = current_admin.organization_id
+    if not org_id and current_admin.is_super_admin:
+        from app.models import Organization
+        first_org = db.query(Organization).first()
+        if first_org:
+            org_id = first_org.id
+
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization assigned to admin")
+
     query = db.query(PricingSetting).filter(
-        PricingSetting.organization_id == current_admin.organization_id
+        PricingSetting.organization_id == org_id
     )
     
     if client_id:
@@ -57,7 +67,7 @@ def get_pricing_settings(
     if not setting:
         setting = PricingSetting(
             id=str(uuid.uuid4()),
-            organization_id=current_admin.organization_id,
+            organization_id=org_id,
             client_id=None,
             surface_thresholds=[],
             vat_legal_entity=0.0,
@@ -91,15 +101,25 @@ def update_pricing_settings(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
+    org_id = current_admin.organization_id
+    if not org_id and current_admin.is_super_admin:
+        from app.models import Organization
+        first_org = db.query(Organization).first()
+        if first_org:
+            org_id = first_org.id
+
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization assigned to admin")
+
     setting = db.query(PricingSetting).filter(
-        PricingSetting.organization_id == current_admin.organization_id,
+        PricingSetting.organization_id == org_id,
         PricingSetting.client_id == payload.client_id if payload.client_id else PricingSetting.client_id.is_(None)
     ).first()
     
     if not setting:
         setting = PricingSetting(
             id=str(uuid.uuid4()),
-            organization_id=current_admin.organization_id,
+            organization_id=org_id,
             client_id=payload.client_id
         )
         db.add(setting)
@@ -131,16 +151,26 @@ def update_pricing_settings(
     return {"status": "success"}
 
 @router.delete("/pricing-settings")
-def reset_client_pricing(
+def delete_custom_pricing(
     client_id: str,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
+    org_id = current_admin.organization_id
+    if not org_id and current_admin.is_super_admin:
+        from app.models import Organization
+        first_org = db.query(Organization).first()
+        if first_org:
+            org_id = first_org.id
+
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization assigned to admin")
+
     if not client_id:
         raise HTTPException(status_code=400, detail="client_id is required")
         
     db.query(PricingSetting).filter(
-        PricingSetting.organization_id == current_admin.organization_id,
+        PricingSetting.organization_id == org_id,
         PricingSetting.client_id == client_id
     ).delete()
     
@@ -152,8 +182,18 @@ def get_custom_clients(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
+    org_id = current_admin.organization_id
+    if not org_id and current_admin.is_super_admin:
+        from app.models import Organization
+        first_org = db.query(Organization).first()
+        if first_org:
+            org_id = first_org.id
+
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization assigned to admin")
+
     settings = db.query(PricingSetting.client_id).filter(
-        PricingSetting.organization_id == current_admin.organization_id,
+        PricingSetting.organization_id == org_id,
         PricingSetting.client_id.isnot(None)
     ).all()
     

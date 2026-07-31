@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip } from 'lucide-react'
+import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2 } from 'lucide-react'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import DevisView from '../admin/DevisView'
@@ -130,8 +130,9 @@ const LANG_DICT = {
         volumes: 'Volume Estimate',
         materials: 'Materiale',
         notes: 'Observații',
-        approxDate: 'Dată (Aproximativă)',
-        plannedDate: 'Data Programată',
+        approxDate: 'Dată (Aprox.)',
+        plannedDate: 'Data Planificată',
+        proposedDate: 'Data Propusă',
         plannedTime: 'Ora',
         confirmOrder: 'Confirmare Deviz',
         confirmOrderFinal: 'Confirmare Lucrare Finalizată',
@@ -140,12 +141,14 @@ const LANG_DICT = {
         namePlaceholder: 'Nume și prenume / Companie',
         digitalSignature: 'Semnătură Digitală',
         signatureRequired: 'Semnătura este obligatorie',
-        acceptOffer: 'Confirm că am luat cunoștință de deviz și accept această ofertă.',
+        acceptOffer: 'Confirm că am luat cunoștință de deviz, de data programată și accept această ofertă.',
         orAcceptWithout: 'sau acceptați fără semnătură:',
-        terms: 'Am citit și sunt de acord cu toate cerințele, condițiile și prețurile estimate specificate în acest deviz.',
+        terms: 'Am citit și sunt de acord cu toate cerințele, condițiile, prețurile estimate și data programată specificate în acest deviz.',
         termsFinal: 'J\'ai vérifié les travaux exécutés, y compris les photos jointes, et je confirme que le travail a été correctement terminé.',
-        confirmBtn: 'Confirm și Semnez',
+        confirmBtn: 'Confirmă și Semnează',
         confirmingBtn: 'Se confirmă...',
+        confirmDateBtn: 'Confirmă Data',
+        dateConfirmedMsg: 'Dată Confirmată',
         estimatedPrice: 'Preț Estimativ',
         finalInvoice: 'Factură Finală (PDF)',
         downloadPdf: 'Descarcă PDF',
@@ -156,8 +159,15 @@ const LANG_DICT = {
         orderNotFound: 'Comandă negăsită',
         errorLoading: 'Nu am putut accesa comanda. Verificați conexiunea la internet.',
         errorConfirming: 'Eroare la confirmare. Încearcă din nou.',
-        updateNotification: 'Ați primit o actualizare de la echipa Davide Chape.',
-        orderCancelled: 'Această comandă a fost anulată.'
+        updateNotification: 'Actualizare importantă! Data de intervenție sau devizul a fost modificat. Vă rugăm să verificați noile informații.',
+        orderCancelled: 'Această comandă a fost anulată.',
+        rescheduleTitle: 'Solicită altă dată',
+        rescheduleDesc: 'Scrie-ne mai jos data pe care o preferi și motivul. Te vom contacta în cel mai scurt timp pentru a stabili o nouă programare.',
+        reschedulePlaceholder: 'Ex: Aș prefera pe 15 august, după ora 10:00...',
+        rescheduleSubmit: 'Trimite Solicitarea',
+        rescheduleSuccess: 'Solicitarea a fost trimisă cu succes!',
+        reschedulePending: 'Ați solicitat reprogramarea. Echipa noastră vă va contacta.',
+        contactChatToReschedule: 'Dacă doriți să modificați această dată, vă rugăm să ne contactați prin chat.'
     },
     en: {
         workOrder: 'Work Order',
@@ -182,11 +192,14 @@ const LANG_DICT = {
         namePlaceholder: 'Full Name / Company',
         digitalSignature: 'Digital Signature',
         signatureRequired: 'Signature is required',
-        acceptOffer: 'I confirm that I have read the quote and I accept this offer.',
+        acceptOffer: 'I confirm that I have read the quote and the scheduled date, and I accept this offer.',
+        termsFinal: 'I have verified the executed work, including the attached photos, and I confirm that the work has been properly completed.',
         orAcceptWithout: 'or accept without signature:',
-        terms: 'I have read and agree to all the requirements, terms, and conditions specified in this work order.',
+        terms: 'I have read and agree to all the requirements, terms, conditions, and the scheduled date specified in this work order.',
         confirmBtn: 'Confirm and Sign',
         confirmingBtn: 'Confirming...',
+        confirmDateBtn: 'Confirm Date',
+        dateConfirmedMsg: 'Date Confirmed',
         estimatedPrice: 'Estimated Price',
         finalInvoice: 'Final Invoice (PDF)',
         downloadPdf: 'Download PDF',
@@ -197,8 +210,18 @@ const LANG_DICT = {
         orderNotFound: 'Order not found',
         errorLoading: 'Could not access the order. Check your internet connection.',
         errorConfirming: 'Confirmation error. Try again.',
-        updateNotification: 'You have received an update from the Davide Chape team.',
-        orderCancelled: 'This order has been cancelled.'
+        updateNotification: 'Important update! The intervention date or estimated price has been modified. Please review the new information.',
+        clientDocuments: 'Client Documents (Plans / Photos)',
+        addDocument: 'Add Document',
+        noDocuments: 'No documents uploaded.',
+        orderCancelled: 'This order has been cancelled.',
+        rescheduleTitle: 'Request another date',
+        rescheduleDesc: 'Write your preferred date and reason below. We will contact you shortly to set a new appointment.',
+        reschedulePlaceholder: 'E.g.: I would prefer August 15th, after 10:00...',
+        rescheduleSubmit: 'Send Request',
+        rescheduleSuccess: 'Request sent successfully!',
+        reschedulePending: 'You requested a reschedule. Our team will contact you.',
+        contactChatToReschedule: 'If you wish to modify this date, please contact us via chat.'
     },
     fr: {
         workOrder: 'Bon de travail',
@@ -216,6 +239,7 @@ const LANG_DICT = {
         notes: 'Remarques',
         approxDate: 'Date (Approximative)',
         plannedDate: 'Date de l\'intervention',
+        proposedDate: 'Date proposée',
         plannedTime: 'Heure',
         confirmOrder: 'Confirmation de commande',
         confirmDesc: 'Remplissez vos coordonnées, appliquez votre signature numérique et confirmez.',
@@ -223,11 +247,14 @@ const LANG_DICT = {
         namePlaceholder: 'Nom et prénom / Entreprise',
         digitalSignature: 'Signature numérique',
         signatureRequired: 'La signature est obligatoire',
-        acceptOffer: "Je confirme avoir pris connaissance du devis et j'accepte cette offre.",
+        acceptOffer: "Je confirme avoir pris connaissance du devis, de la date d'intervention et j'accepte cette offre.",
         orAcceptWithout: 'ou acceptez sans signature :',
-        terms: "J'ai lu et j'accepte toutes les exigences, termes et conditions spécifiés dans ce bon de travail.",
+        terms: "J'ai lu et j'accepte toutes les exigences, termes, conditions et la date d'intervention spécifiés dans ce bon de travail.",
+        termsFinal: "J'ai vérifié les travaux exécutés, y compris les photos jointes, et je confirme que le travail a été correctement terminé.",
         confirmBtn: 'Confirmer et signer',
         confirmingBtn: 'Confirmation en cours...',
+        confirmDateBtn: 'Confirmer la date',
+        dateConfirmedMsg: 'Date confirmée',
         estimatedPrice: 'Prix estimé',
         finalInvoice: 'Facture finale (PDF)',
         downloadPdf: 'Télécharger le PDF',
@@ -238,11 +265,18 @@ const LANG_DICT = {
         orderNotFound: 'Commande introuvable',
         errorLoading: 'Impossible d\'accéder à la commande. Vérifiez votre connexion Internet.',
         errorConfirming: 'Erreur de confirmation. Réessayez.',
-        updateNotification: 'Vous avez reçu une mise à jour de l\'équipe Davide Chape.',
+        updateNotification: 'Mise à jour importante ! La date d\'intervention ou le devis a été modifié. Veuillez vérifier les nouvelles informations.',
         clientDocuments: 'Documents Client (Plans / Photos)',
         addDocument: 'Ajouter un Document',
         noDocuments: 'Aucun document chargé.',
-        orderCancelled: 'Cette commande a été annulée.'
+        orderCancelled: 'Cette commande a été annulée.',
+        rescheduleTitle: 'Demander une autre date',
+        rescheduleDesc: 'Indiquez ci-dessous la date souhaitée et la raison. Nous vous contacterons rapidement pour convenir d\'un nouveau rendez-vous.',
+        reschedulePlaceholder: 'Ex : Je préférerais le 15 août, après 10h00...',
+        rescheduleSubmit: 'Envoyer la demande',
+        rescheduleSuccess: 'Demande envoyée avec succès !',
+        reschedulePending: 'Vous avez demandé une autre date. Notre équipe vous contactera.',
+        contactChatToReschedule: 'Si vous souhaitez modifier cette date, veuillez nous contacter via le chat.'
     },
     de: {
         workOrder: 'Arbeitsauftrag',
@@ -253,35 +287,47 @@ const LANG_DICT = {
         start: 'Start',
         deadline: 'Frist',
         client: 'Kunde',
-        location: 'Standort',
+        location: 'Ort',
         requirements: 'Anforderungen',
-        volumes: 'Geschätzte Mengen',
+        volumes: 'Geschätzte Volumen',
         materials: 'Materialien',
         notes: 'Notizen',
+        approxDate: 'Datum (Ungefähr)',
         plannedDate: 'Geplantes Datum',
-        plannedTime: 'Uhrzeit',
+        plannedTime: 'Zeit',
         confirmOrder: 'Auftragsbestätigung',
-        confirmDesc: 'Füllen Sie Ihre Daten aus, fügen Sie Ihre digitale Unterschrift hinzu und bestätigen Sie.',
+        confirmDesc: 'Geben Sie Ihre Daten ein, fügen Sie Ihre digitale Unterschrift hinzu und bestätigen Sie.',
         confirmedByLabel: 'Bestätigt von *',
-        namePlaceholder: 'Vollständiger Name / Firma',
+        namePlaceholder: 'Vor- und Nachname / Firma',
         digitalSignature: 'Digitale Unterschrift',
         signatureRequired: 'Unterschrift ist erforderlich',
-        acceptOffer: 'Ich bestätige, dass ich das Angebot gelesen habe und dieses Angebot annehme.',
+        acceptOffer: 'Ich bestätige, dass ich das Angebot gelesen habe und nehme dieses Angebot an.',
         orAcceptWithout: 'oder ohne Unterschrift akzeptieren:',
-        terms: 'Ich habe alle in diesem Arbeitsauftrag festgelegten Anforderungen, Bedingungen und Fristen gelesen und stimme ihnen zu.',
+        terms: 'Ich habe alle in diesem Arbeitsauftrag festgelegten Anforderungen, Bedingungen und Konditionen gelesen und stimme ihnen zu.',
+        termsFinal: 'Ich habe die ausgeführten Arbeiten einschließlich der beigefügten Fotos überprüft und bestätige, dass die Arbeit ordnungsgemäß abgeschlossen wurde.',
         confirmBtn: 'Bestätigen und Unterschreiben',
-        confirmingBtn: 'Wird bestätigt...',
+        confirmingBtn: 'Bestätige...',
+        confirmDateBtn: 'Datum bestätigen',
+        dateConfirmedMsg: 'Datum bestätigt',
         estimatedPrice: 'Geschätzter Preis',
-        finalInvoice: 'Schlussrechnung (PDF)',
-        downloadPdf: 'PDF herunterladen',
-        completionPhotos: 'Fertigstellungsfotos',
-        signHere: 'Hier mit Maus oder Finger unterschreiben',
+        finalInvoice: 'Endrechnung (PDF)',
+        downloadPdf: 'PDF Herunterladen',
+        completionPhotos: 'Abschlussfotos',
+        signHere: 'Unterschreiben Sie hier mit der Maus oder dem Finger',
         clearSignature: 'Unterschrift löschen',
-        loadingOrder: 'Auftrag wird geladen...',
+        loadingOrder: 'Lade Auftrag...',
         orderNotFound: 'Auftrag nicht gefunden',
-        errorLoading: 'Zugriff auf Auftrag fehlgeschlagen. Überprüfen Sie Ihre Internetverbindung.',
+        errorLoading: 'Konnte nicht auf den Auftrag zugreifen. Überprüfen Sie Ihre Internetverbindung.',
         errorConfirming: 'Bestätigungsfehler. Versuchen Sie es erneut.',
-        orderCancelled: 'Dieser Auftrag wurde storniert.'
+        updateNotification: 'Wichtiges Update! Das Eingriffsdatum oder das Angebot wurde geändert. Bitte überprüfen Sie die neuen Informationen.',
+        orderCancelled: 'Dieser Auftrag wurde storniert.',
+        rescheduleTitle: 'Anderes Datum anfragen',
+        rescheduleDesc: 'Schreiben Sie unten Ihr bevorzugtes Datum und den Grund. Wir werden Sie kontaktieren.',
+        reschedulePlaceholder: 'Bsp.: Ich bevorzuge den 15. August, nach 10:00...',
+        rescheduleSubmit: 'Anfrage senden',
+        rescheduleSuccess: 'Anfrage erfolgreich gesendet!',
+        reschedulePending: 'Sie haben ein anderes Datum angefragt. Unser Team wird Sie kontaktieren.',
+        contactChatToReschedule: 'Wenn Sie dieses Datum ändern möchten, kontaktieren Sie uns bitte über den Chat.'
     },
     nl: {
         workOrder: 'Werkbon',
@@ -297,20 +343,24 @@ const LANG_DICT = {
         volumes: 'Geschatte volumes',
         materials: 'Materialen',
         notes: 'Opmerkingen',
-        approxDate: 'Datum (Geschat)',
-        plannedDate: 'Geplande Datum',
+        approxDate: 'Datum (Ongeveer)',
+        plannedDate: 'Geplande datum',
+        proposedDate: 'Voorgestelde datum',
         plannedTime: 'Tijd',
         confirmOrder: 'Orderbevestiging',
         confirmDesc: 'Vul uw gegevens in, plaats uw digitale handtekening en bevestig.',
         confirmedByLabel: 'Bevestigd door *',
-        namePlaceholder: 'Volledige naam / Bedrijf',
+        namePlaceholder: 'Voor- en achternaam / Bedrijf',
         digitalSignature: 'Digitale handtekening',
         signatureRequired: 'Handtekening is verplicht',
-        acceptOffer: 'Ik bevestig dat ik de offerte heb gelezen en dit aanbod accepteer.',
+        acceptOffer: 'Ik bevestig dat ik kennis heb genomen van de offerte en de geplande datum, en ik accepteer dit aanbod.',
         orAcceptWithout: 'of accepteer zonder handtekening:',
-        terms: 'Ik heb alle vereisten, voorwaarden en termijnen vermeld in deze werkbon gelezen en ga hiermee akkoord.',
-        confirmBtn: 'Bevestigen en tekenen',
-        confirmingBtn: 'Bevestigen...',
+        terms: 'Ik heb alle vereisten, voorwaarden en de geplande datum gespecificeerd in deze werkbon gelezen en ga hiermee akkoord.',
+        termsFinal: 'Ik heb de uitgevoerde werkzaamheden, inclusief de bijgevoegde foto\'s, gecontroleerd en ik bevestig dat het werk naar behoren is voltooid.',
+        confirmBtn: 'Bevestigen en ondertekenen',
+        confirmingBtn: 'Bezig met bevestigen...',
+        confirmDateBtn: 'Datum bevestigen',
+        dateConfirmedMsg: 'Datum bevestigd',
         estimatedPrice: 'Geschatte prijs',
         finalInvoice: 'Eindfactuur (PDF)',
         downloadPdf: 'PDF downloaden',
@@ -321,7 +371,15 @@ const LANG_DICT = {
         orderNotFound: 'Bestelling niet gevonden',
         errorLoading: 'Kan de bestelling niet openen. Controleer uw internetverbinding.',
         errorConfirming: 'Bevestigingsfout. Probeer het opnieuw.',
-        orderCancelled: 'Deze bestelling is geannuleerd.'
+        orderCancelled: 'Deze bestelling is geannuleerd.',
+        rescheduleTitle: 'Vraag een andere datum aan',
+        rescheduleDesc: 'Schrijf hieronder uw voorkeursdatum en reden. Wij nemen zo snel mogelijk contact met u op.',
+        reschedulePlaceholder: 'Bijv.: Ik geef de voorkeur aan 15 augustus, na 10:00...',
+        rescheduleSubmit: 'Verzoek verzenden',
+        rescheduleSuccess: 'Verzoek succesvol verzonden!',
+        reschedulePending: 'U heeft om een andere datum gevraagd. Ons team neemt contact met u op.',
+        updateNotification: 'Belangrijke update! De interventiedatum of de offerte is gewijzigd. Controleer de nieuwe informatie.',
+        contactChatToReschedule: 'Als u deze datum wilt wijzigen, neem dan contact met ons op via de chat.'
     },
     ru: {
         workOrder: 'Заказ-наряд',
@@ -394,6 +452,40 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const [lang, setLang] = useState(urlLang || 'fr')
     const t = LANG_DICT[lang] || LANG_DICT['fr']
     
+    const MODAL_T = {
+        fr: {
+            title: 'Confirmation de la date',
+            desc: `Confirmez-vous cette date ou souhaitez-vous demander une autre date ?`,
+            requestBtn: 'Demander une autre date',
+            confirmBtn: 'Confirmer la date'
+        },
+        ro: {
+            title: 'Confirmare Dată',
+            desc: `Confirmați această dată sau doriți să solicitați altă dată?`,
+            requestBtn: 'Solicită altă dată',
+            confirmBtn: 'Confirmă data'
+        },
+        de: {
+            title: 'Bestätigung des Datums',
+            desc: `Bestätigen Sie dieses Datum oder möchten Sie ein anderes Datum anfragen?`,
+            requestBtn: 'Anderes Datum anfragen',
+            confirmBtn: 'Datum bestätigen'
+        },
+        nl: {
+            title: 'Datum bevestigen',
+            desc: `Bevestigt u deze datum of wilt u een andere datum aanvragen?`,
+            requestBtn: 'Andere datum aanvragen',
+            confirmBtn: 'Datum bevestigen'
+        },
+        en: {
+            title: 'Date Confirmation',
+            desc: `Do you confirm this date or wish to request another date?`,
+            requestBtn: 'Request another date',
+            confirmBtn: 'Confirm date'
+        }
+    };
+    const mT = MODAL_T[lang] || MODAL_T.fr;
+    
     const isIframe = searchParams.get('iframe') === 'true';
 
     useEffect(() => {
@@ -432,11 +524,55 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const [error, setError] = useState(null)
     const [confirmed, setConfirmed] = useState(false)
     const [confirming, setConfirming] = useState(false)
+    const [showDateModal, setShowDateModal] = useState(false)
     const [checkedTerms, setCheckedTerms] = useState(true)
     const [confirmedByName, setConfirmedByName] = useState('')
     const [signature, setSignature] = useState(null)
     const [acceptedOffer, setAcceptedOffer] = useState(false)
     const [mode, setMode] = useState('quote')
+    const [dateConfirmed, setDateConfirmed] = useState(false)
+    const [confirmingDate, setConfirmingDate] = useState(false)
+    const [lightboxImages, setLightboxImages] = useState([])
+    const [lightboxIndex, setLightboxIndex] = useState(null)
+    const [showRescheduleForm, setShowRescheduleForm] = useState(false)
+    const [rescheduleReason, setRescheduleReason] = useState('')
+    const [rescheduleDate, setRescheduleDate] = useState('')
+    const [submittingReschedule, setSubmittingReschedule] = useState(false)
+    const docInputRef = useRef(null)
+    const [isUploadingDoc, setIsUploadingDoc] = useState(false)
+    const [toast, setToast] = useState(null)
+
+    // Chat Client-Admin
+    const [messages, setMessages] = useState([])
+    const [chatMessage, setChatMessage] = useState("")
+    const [sendingMessage, setSendingMessage] = useState(false)
+    const [lastReadTime, setLastReadTime] = useState(() => localStorage.getItem(`chat_last_read_${token}`) || null)
+    const chatContainerRef = useRef(null)
+    const scrollToBottom = () => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }
+    useEffect(() => {
+        // Prevent auto-scrolling on initial empty render
+        if (messages.length > 0) {
+            scrollToBottom()
+        }
+    }, [messages])
+
+    // Keydown for lightbox
+    useEffect(() => {
+        if (lightboxIndex === null) return
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setLightboxIndex(null)
+            if (e.key === 'ArrowLeft') setLightboxIndex(prev => prev > 0 ? prev - 1 : prev)
+            if (e.key === 'ArrowRight' && lightboxImages.length > 0) {
+                setLightboxIndex(prev => prev < lightboxImages.length - 1 ? prev + 1 : prev)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [lightboxIndex, lightboxImages])
 
     useEffect(() => {
         const load = async () => {
@@ -459,6 +595,16 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 } else {
                     if (data.confirmed_at) setConfirmed(true)
                 }
+                if (data.date_confirmed_at) {
+                    setDateConfirmed(true)
+                }
+                
+                try {
+                    const msgRes = await api.get(`/public/work-orders/${token}/messages`)
+                    setMessages(msgRes.data || [])
+                } catch (e) {
+                    console.error("Error loading messages", e)
+                }
             } catch (err) {
                 setError(err.response?.data?.detail || t.errorLoading)
             } finally {
@@ -466,11 +612,13 @@ export default function WorkOrderConfirm({ hideMap = false }) {
             }
         }
         load()
-    }, [token])
+    }, [token, t.errorLoading, t.orderCancelled])
 
     // Auto-refresh polling: check for updates every 30 seconds
     const lastUpdatedRef = useRef(null)
     const [updateToast, setUpdateToast] = useState(null)
+    const [needsDateConfirmation, setNeedsDateConfirmation] = useState(false)
+
     useEffect(() => {
         if (!order) return
         lastUpdatedRef.current = order.updated_at || order.created_at
@@ -487,15 +635,65 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 if (lastUpdatedRef.current && newTimestamp !== lastUpdatedRef.current) {
                     lastUpdatedRef.current = newTimestamp
                     setOrder(newData)
-                    // Show update notification — stays until dismissed
-                    setUpdateToast(t.updateNotification)
+                    
+                    const isFinal = newData.status === 'completed' || newData.final_confirmed_at;
+                    setMode(isFinal ? 'final' : 'quote');
+                    if (isFinal) {
+                        setConfirmed(!!newData.final_confirmed_at)
+                    } else {
+                        setConfirmed(!!newData.confirmed_at)
+                    }
+                    setDateConfirmed(!!newData.date_confirmed_at)
+                    
+                    if (newData.start_date !== order.start_date && !newData.date_confirmed_at) {
+                        setNeedsDateConfirmation(newData.start_date)
+                    } else {
+                        // Show update notification — stays until dismissed
+                        setUpdateToast(t.updateNotification)
+                    }
                 }
+                
+                try {
+                    const msgRes = await api.get(`/public/work-orders/${token}/messages`)
+                    setMessages(prev => {
+                        if (msgRes.data && msgRes.data.length > prev.length) return msgRes.data;
+                        return prev;
+                    })
+                } catch (e) {}
             } catch (e) {
                 // Silent fail on polling
             }
-        }, 30000)
+        }, 15000)
         return () => clearInterval(interval)
     }, [order?.id, token, t.updateNotification])
+
+    const handleSendMessage = async () => {
+        if (!chatMessage.trim()) return;
+        setSendingMessage(true);
+        try {
+            const res = await api.post(`/public/work-orders/${token}/messages`, {
+                message: chatMessage
+            });
+            setMessages(prev => [...prev, res.data]);
+            setChatMessage("");
+            const now = new Date().toISOString();
+            localStorage.setItem(`chat_last_read_${token}`, now);
+            setLastReadTime(now);
+        } catch (err) {
+            console.error("Error sending message", err);
+        } finally {
+            setSendingMessage(false);
+        }
+    };
+
+    const handleDeleteMessage = async (msgId) => {
+        try {
+            await api.delete(`/public/work-orders/${token}/messages/${msgId}`);
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+        } catch (err) {
+            console.error("Error deleting message", err);
+        }
+    };
 
     const handleConfirm = async () => {
         if (!checkedTerms || (!signature && !acceptedOffer)) return
@@ -515,9 +713,42 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         }
     }
 
-    const docInputRef = useRef(null)
-    const [isUploadingDoc, setIsUploadingDoc] = useState(false)
-    const [toast, setToast] = useState(null)
+    const handleConfirmDate = async () => {
+        setConfirmingDate(true)
+        try {
+            const res = await api.post(`/public/work-orders/${token}/confirm`, {
+                mode: 'date'
+            })
+            setOrder(res.data)
+            setDateConfirmed(true)
+        } catch (err) {
+            setError(err.response?.data?.detail || t.errorConfirming)
+        } finally {
+            setConfirmingDate(false)
+        }
+    }
+
+    const handleReschedule = async () => {
+        if (!rescheduleDate) {
+            showToast(lang === 'ro' ? 'Vă rugăm să alegeți o dată!' : lang === 'fr' ? 'Veuillez choisir une date !' : lang === 'nl' ? 'Kies een datum!' : 'Please choose a date!', 'error')
+            return
+        }
+        setSubmittingReschedule(true)
+        try {
+            const res = await api.post(`/public/work-orders/${token}/reschedule`, {
+                requested_date: rescheduleDate,
+                reason: rescheduleReason
+            })
+            setOrder(res.data)
+            setShowDateModal(false)
+            showToast(t.rescheduleSuccess, 'success')
+        } catch (err) {
+            setError(err.response?.data?.detail || t.errorConfirming)
+        } finally {
+            setSubmittingReschedule(false)
+        }
+    }
+
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type })
         setTimeout(() => setToast(null), 4000)
@@ -555,13 +786,22 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         }
     }
 
+    const handleOpenChat = () => {
+        const now = new Date().toISOString();
+        localStorage.setItem(`chat_last_read_${token}`, now);
+        setLastReadTime(now);
+        
+        const chatEl = document.getElementById('chat-section');
+        if (chatEl) {
+            chatEl.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    const unreadClientCount = messages.filter(m => m.sender === 'admin' && (!lastReadTime || new Date(m.created_at) > new Date(lastReadTime))).length;
+
     const primaryColor = order?.org_primary_color || '#3b82f6'
     const orgTimezone = order?.org_timezone || 'Europe/Brussels'
     const canConfirm = checkedTerms && (!!signature || acceptedOffer) && !confirming
-
-    const formatDate = (d) => d
-        ? new Date(d).toLocaleString('ro-RO', { timeZone: orgTimezone, day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-        : null
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -607,162 +847,180 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             <p className="text-xs text-slate-500 font-medium">{t.workOrder}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <ClipboardList className="w-5 h-5 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-600">{t.workOrder}</span>
+                    <div className="flex items-center gap-4">
+                        {/* Language Selector */}
+                        <div className="hidden sm:flex gap-1 bg-slate-100 p-1 rounded-lg">
+                            {[
+                                { code: 'fr', label: 'FR' },
+                                { code: 'nl', label: 'NL' },
+                                { code: 'en', label: 'EN' }
+                            ].map(l => (
+                                <button
+                                    key={l.code}
+                                    onClick={() => {
+                                        setLang(l.code);
+                                        setSearchParams({ lang: l.code }, { replace: true });
+                                    }}
+                                    className={`px-3 py-1 rounded-md text-[10px] font-black transition-colors flex items-center ${lang === l.code ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    {l.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* PDF Download */}
+                        <button 
+                            onClick={() => window.print()}
+                            className="hidden sm:flex items-center justify-center w-8 h-8 bg-slate-100 text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                            title={t.downloadPdf || 'PDF'}
+                        >
+                            <FileText className="w-4 h-4" />
+                        </button>
+                        
+                        {/* Top Notification Icon */}
+                        <button 
+                            onClick={handleOpenChat}
+                            className="relative flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                        >
+                            <MessageSquare className="w-5 h-5" />
+                            {unreadClientCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                                    {unreadClientCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
 
-                
-                {/* Confirmed banner + Location: side by side when confirmed */}
-                {confirmed && (order?.site_name || order?.site_address || order?.site_lat) ? (
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Confirmed card */}
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex flex-col justify-center">
-                            <div className="flex items-center gap-2 mb-1">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                                <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
+                {/* Grid Layout: Left = Confirmed & Date Cards, Right = Map */}
+                <div className={`grid gap-4 mb-6 ${(!hideMap && (order?.site_name || order?.site_address || order?.site_lat)) ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-2xl mx-auto'}`}>
+                    {/* Left Column: Single Container for Confirmations */}
+                    <div className="flex flex-col h-full">
+                        {/* Spacer matching map title to perfectly align the green box with the map */}
+                        {(!hideMap && (order?.site_name || order?.site_address || order?.site_lat)) && (
+                            <div className="px-1 py-2 mb-2 opacity-0 select-none pointer-events-none hidden lg:flex items-center gap-2">
+                                <MapPin className="w-4 h-4 shrink-0" />
+                                <div className="font-extrabold text-sm uppercase tracking-wide">Spacer</div>
                             </div>
-                            {order?.start_date && (
-                                <p className="text-emerald-700 text-xs ml-7 font-bold mb-1">
-                                    {t.plannedDate}: {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                    {order.start_time && ` • ${order.start_time}`}
-                                </p>
-                            )}
-                            {order?.confirmed_at && mode === 'quote' && (
-                                <p className="text-emerald-600 text-[11px] ml-7">
-                                    {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                    {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                </p>
-                            )}
-                            {order?.final_confirmed_at && mode === 'final' && (
-                                <p className="text-emerald-600 text-[11px] ml-7">
-                                    {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
-                                    {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Address card */}
-                        {(() => {
-                            const getLocalizedAddress = (addr) => {
-                                if (!addr) return '';
-                                let str = addr;
-                                if (lang === 'fr') {
-                                    str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
-                                } else if (lang === 'nl') {
-                                    str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
-                                } else if (lang === 'en') {
-                                    str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
-                                }
-                                return str;
-                            };
-                            const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
-                            return (
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col">
-                                    <div className="px-3 py-2 flex items-center gap-2">
-                                        <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                        <div className="font-extrabold text-slate-900 text-[11px] uppercase tracking-wide truncate">{displayAddr}</div>
-                                    </div>
-                                    <div className="flex-1 min-h-[120px]">
-                                        <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                    </div>
-                ) : (
-                    <>
-                        {/* Confirmed banner standalone */}
+                        )}
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex flex-col justify-center flex-1">
+                        
+                        {/* 1. Order Confirmation Section */}
                         {confirmed && (
-                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center gap-3">
-                                <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0" />
-                                <div>
+                            <div className="mb-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                                     <span className="text-sm font-black text-emerald-800">{t.confirmed}</span>
-                                    {order?.start_date && (
-                                        <div className="text-emerald-700 text-xs mt-0.5 font-bold">
-                                            {t.plannedDate}: {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                            {order.start_time && ` • ${order.start_time}`}
-                                        </div>
-                                    )}
-                                    {order?.confirmed_at && mode === 'quote' && (
-                                        <span className="text-emerald-600 text-xs ml-2">
-                                            {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
-                                            {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                        </span>
-                                    )}
-                                    {order?.final_confirmed_at && mode === 'final' && (
-                                        <span className="text-emerald-600 text-xs ml-2">
-                                            {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
-                                            {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
-                                        </span>
-                                    )}
                                 </div>
+                                {order?.confirmed_at && mode === 'quote' && (
+                                    <p className="text-emerald-600 text-[11px] ml-7">
+                                        {t.confirmedBy} <strong>{order.confirmed_by_name}</strong> {t.onDate}{' '}
+                                        {new Date(order.confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                    </p>
+                                )}
+                                {order?.final_confirmed_at && mode === 'final' && (
+                                    <p className="text-emerald-600 text-[11px] ml-7">
+                                        {t.confirmedBy} <strong>{order.final_confirmed_by_name}</strong> {t.onDate}{' '}
+                                        {new Date(order.final_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                    </p>
+                                )}
                             </div>
                         )}
 
-                        {/* Location Map standalone */}
-                        {!hideMap && (order?.site_name || order?.site_address || order?.site_lat) && (() => {
-                            const getLocalizedAddress = (addr) => {
-                                if (!addr) return '';
-                                let str = addr;
-                                if (lang === 'fr') {
-                                    str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
-                                } else if (lang === 'nl') {
-                                    str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
-                                } else if (lang === 'en') {
-                                    str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
-                                }
-                                return str;
-                            };
-                            const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
-                            return (
-                                <div className="bg-transparent rounded-2xl border-0 overflow-hidden mb-6 flex flex-col print:hidden">
-                                    <div className="px-1 py-2 flex items-center gap-2 mb-2">
-                                        <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
-                                        <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">{displayAddr}</div>
-                                    </div>
-                                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full h-[220px]">
-                                        <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                    </>
-                )}
+                        {/* Divider */}
+                        {confirmed && order?.start_date && mode === 'quote' && (
+                            <hr className="border-emerald-200 my-2" />
+                        )}
 
-                {/* Action Bar & Language Switcher */}
-                <div className="flex justify-between items-center mb-4 print:hidden">
-                    <button 
-                        onClick={() => window.print()}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg shadow hover:bg-slate-700 transition-colors"
-                    >
-                        <FileText className="w-3.5 h-3.5" />
-                        {t.downloadPdf || 'PDF'}
-                    </button>
-                    
-                    <div className="flex gap-1.5">
-                        {[
-                            { code: 'fr', label: '🇫🇷 FR' },
-                            { code: 'nl', label: '🇳🇱 NL' },
-                            { code: 'en', label: '🇬🇧 EN' }
-                        ].map(l => (
-                            <button
-                                key={l.code}
-                                onClick={() => {
-                                    setLang(l.code);
-                                    setSearchParams({ lang: l.code }, { replace: true });
-                                }}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-colors flex items-center gap-1 ${lang === l.code ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-                            >
-                                {l.label}
-                            </button>
-                        ))}
+                        {/* 2. Date Section */}
+                        {order?.start_date && mode === 'quote' && (
+                            <div className="mt-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Calendar className={`w-5 h-5 flex-shrink-0 ${
+                                        order.reschedule_requested ? 'text-amber-500' :
+                                        dateConfirmed ? 'text-emerald-500' : 
+                                        'text-blue-500'
+                                    }`} />
+                                    <span className={`text-sm font-black ${
+                                        order.reschedule_requested ? 'text-amber-800' :
+                                        dateConfirmed ? 'text-emerald-800' : 
+                                        'text-blue-800'
+                                    }`}>
+                                        {order.reschedule_requested ? t.reschedulePending : dateConfirmed ? t.dateConfirmedMsg : t.proposedDate}
+                                    </span>
+                                </div>
+                                <p className={`${
+                                    order.reschedule_requested ? 'text-amber-700' :
+                                    dateConfirmed ? 'text-emerald-700' : 
+                                    'text-blue-700'
+                                } text-xs ml-7 font-bold mb-1`}>
+                                    {new Date(order.start_date).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                    {order.start_time && ` • ${order.start_time}`}
+                                </p>
+                                {!dateConfirmed && !order.reschedule_requested && (
+                                    <div className="mt-2 ml-7 flex flex-col sm:flex-row gap-2">
+                                        <button
+                                            onClick={handleConfirmDate}
+                                            disabled={confirmingDate}
+                                            className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {confirmingDate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                            {confirmingDate ? t.confirmingBtn : t.confirmDateBtn}
+                                        </button>
+                                    </div>
+                                )}
+                                <p className="text-slate-500 text-[11px] ml-7 mt-2 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors" onClick={handleOpenChat}>
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    {t.contactChatToReschedule}
+                                </p>
+                                {dateConfirmed && order?.date_confirmed_at && !order.reschedule_requested && (
+                                    <p className="text-emerald-600 text-[11px] ml-7 mt-1 flex items-center gap-1">
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        {t.onDate} {new Date(order.date_confirmed_at).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
+                    </div>
+
+                    {/* Right Column: Location Map */}
+                    {!hideMap && (order?.site_name || order?.site_address || order?.site_lat) && (
+                        <div className="h-full flex">
+                            {(() => {
+                                const getLocalizedAddress = (addr) => {
+                                    if (!addr) return '';
+                                    let str = addr;
+                                    if (lang === 'fr') {
+                                        str = str.replace(/\bBelgia\b/gi, 'Belgique').replace(/\bRomania\b|\bRomânia\b/gi, 'Roumanie').replace(/\bOlanda\b/gi, 'Pays-Bas');
+                                    } else if (lang === 'nl') {
+                                        str = str.replace(/\bBelgia\b/gi, 'België').replace(/\bRomania\b|\bRomânia\b/gi, 'Roemenië').replace(/\bOlanda\b/gi, 'Nederland');
+                                    } else if (lang === 'en') {
+                                        str = str.replace(/\bBelgia\b/gi, 'Belgium').replace(/\bRomania\b|\bRomânia\b/gi, 'Romania').replace(/\bOlanda\b/gi, 'Netherlands');
+                                    }
+                                    return str;
+                                };
+                                const displayAddr = getLocalizedAddress(order.site_address || order.site_name);
+                                return (
+                                    <div className="bg-transparent rounded-2xl border-0 overflow-hidden w-full flex flex-col print:hidden">
+                                        <div className="px-1 py-2 flex items-center gap-2 mb-2">
+                                            <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                                            <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">{displayAddr}</div>
+                                        </div>
+                                        <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full flex-1 min-h-[220px]">
+                                            <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
                 </div>
+
+                {/* Action Bar & Language Switcher Removed (moved to header) */}
 
                 {/* Embed the PDF with integrated Signature */}
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6 w-full relative print:hidden">
@@ -906,13 +1164,80 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         </h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {order.completion_photos.map((p, i) => (
-                                <a key={i} href={p.photo_url} target="_blank" rel="noopener noreferrer" className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                <button 
+                                    key={i} 
+                                    onClick={(e) => { 
+                                        e.preventDefault(); 
+                                        setLightboxImages(order.completion_photos);
+                                        setLightboxIndex(i); 
+                                    }}
+                                    className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer block w-full"
+                                >
                                     <img src={p.photo_url} alt="Lucrare" className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                                </a>
+                                </button>
                             ))}
                         </div>
                     </div>
                 )}
+
+                {/* Chat Section */}
+                <div id="chat-section" className="mt-6 print:hidden w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                            <MessageSquare className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <h3 className="font-black text-slate-800 uppercase text-sm tracking-wider">
+                            {lang === 'ro' ? 'Comunicare' : lang === 'fr' ? 'Communication' : 'Communication'}
+                        </h3>
+                    </div>
+                    <div ref={chatContainerRef} className="h-64 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                        {messages.length === 0 ? (
+                            <div className="text-center text-slate-400 py-10 text-sm font-semibold">
+                                {lang === 'ro' ? 'Niciun mesaj încă. Începeți conversația!' : lang === 'fr' ? 'Aucun message pour le moment. Commencez la conversation !' : 'No messages yet.'}
+                            </div>
+                        ) : (
+                            messages.map(msg => (
+                                <div key={msg.id} className={`flex ${msg.sender === 'client' ? 'justify-end' : 'justify-start'} group relative`}>
+                                    <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'client' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
+                                        <p className="text-sm">{msg.message}</p>
+                                        <div className="flex items-center justify-between mt-1 gap-4">
+                                            <span className={`text-[9px] font-bold uppercase ${msg.sender === 'client' ? 'text-blue-200' : 'text-slate-400'}`}>
+                                                {new Date(msg.created_at).toLocaleString('ro-RO')}
+                                            </span>
+                                            {msg.sender === 'client' && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
+                                                <button 
+                                                    onClick={() => handleDeleteMessage(msg.id)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
+                                                    title={lang === 'ro' ? 'Șterge mesaj' : 'Supprimer'}
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                        {/* Scroll ref removed, using container scrollTop instead */}
+                    </div>
+                    <div className="p-4 bg-white border-t border-slate-100 flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={chatMessage}
+                            onChange={e => setChatMessage(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                            placeholder={lang === 'ro' ? 'Scrie un mesaj...' : lang === 'fr' ? 'Écrivez un message...' : 'Write a message...'}
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <button
+                            onClick={handleSendMessage}
+                            disabled={sendingMessage || !chatMessage.trim()}
+                            className="w-11 h-11 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
 
                 <div className="flex justify-center pb-8 mt-4">
                     <a href="https://www.getapp.ro" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors group">
@@ -934,12 +1259,166 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                     </div>
                 </div>
             )}
+
+            {/* Floating Chat Icon */}
+            <button 
+                onClick={handleOpenChat}
+                className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center z-[9998] transition-transform hover:scale-110 active:scale-95"
+            >
+                <MessageSquare className="w-6 h-6" />
+                {unreadClientCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                        {unreadClientCount}
+                    </span>
+                )}
+            </button>
             {updateToast && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999]" style={{ animation: 'slideDown 0.4s ease-out' }}>
-                    <div className="px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold bg-blue-600 text-white border border-blue-500 flex items-center gap-3">
-                        <span className="text-lg">📩</span>
-                        <span>{updateToast}</span>
-                        <button onClick={() => setUpdateToast(null)} className="ml-2 bg-white/20 hover:bg-white/30 rounded-full w-6 h-6 flex items-center justify-center text-xs font-black transition-colors">✓</button>
+                <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center" style={{ animation: 'slideDown 0.3s ease-out' }}>
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">📩</span>
+                        </div>
+                        <h3 className="font-black text-lg text-slate-800 mb-2">
+                            {lang === 'ro' ? 'Actualizare Importantă' : lang === 'fr' ? 'Mise à jour importante' : lang === 'nl' ? 'Belangrijke Update' : 'Important Update'}
+                        </h3>
+                        <p className="text-slate-600 text-sm mb-6">
+                            {updateToast}
+                        </p>
+                        <button 
+                            onClick={() => { setUpdateToast(null); window.location.reload(); }} 
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm"
+                        >
+                            {lang === 'ro' ? 'Am înțeles (Reîmprospătare)' : lang === 'fr' ? 'Compris (Actualiser)' : lang === 'nl' ? 'Begrepen (Vernieuwen)' : 'Understood (Refresh)'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {needsDateConfirmation && (
+                <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center" style={{ animation: 'slideDown 0.3s ease-out' }}>
+                        <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Calendar className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-black text-lg text-slate-800 mb-2">
+                            {lang === 'ro' ? 'Dată Nouă Propusă' : lang === 'fr' ? 'Nouvelle date proposée' : lang === 'nl' ? 'Nieuwe Voorgestelde Datum' : 'New Proposed Date'}
+                        </h3>
+                        <p className="text-slate-600 text-sm mb-6">
+                            {lang === 'ro' ? 'Noua dată propusă este: ' : lang === 'fr' ? 'La nouvelle date proposée est: ' : lang === 'nl' ? 'De nieuwe voorgestelde datum is: ' : 'The new proposed date is: '}
+                            <br/><strong className="text-emerald-700 text-lg">{new Date(needsDateConfirmation).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}</strong>
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            <button 
+                                onClick={() => { setNeedsDateConfirmation(false); handleConfirmDate(); }} 
+                                disabled={confirmingDate}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                            >
+                                {confirmingDate ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                {lang === 'ro' ? 'Sunt de acord (Confirmă)' : lang === 'fr' ? 'Je suis d\'accord (Confirmer)' : lang === 'nl' ? 'Ik ga akkoord (Bevestigen)' : 'I agree (Confirm)'}
+                            </button>
+                            <button 
+                                onClick={() => { setNeedsDateConfirmation(false); setShowDateModal(true); }} 
+                                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors shadow-sm"
+                            >
+                                {lang === 'ro' ? 'Propune o altă dată' : lang === 'fr' ? 'Proposer une autre date' : lang === 'nl' ? 'Stel een andere datum voor' : 'Propose another date'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Lightbox */}
+            {lightboxIndex !== null && order?.completion_photos && (
+                <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center">
+                    <button 
+                        onClick={() => setLightboxIndex(null)}
+                        className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors z-[10001]"
+                    >
+                        <X className="w-8 h-8" />
+                    </button>
+                    
+                    {lightboxIndex > 0 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => prev - 1) }}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors z-[10001]"
+                        >
+                            <ChevronLeft className="w-8 h-8" />
+                        </button>
+                    )}
+                    
+                    <img 
+                        src={order.completion_photos[lightboxIndex]?.photo_url} 
+                        alt="Lightbox" 
+                        className="max-w-full max-h-full object-contain p-4"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    
+                    {lightboxIndex < order.completion_photos.length - 1 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => prev + 1) }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors z-[10001]"
+                        >
+                            <ChevronRight className="w-8 h-8" />
+                        </button>
+                    )}
+                </div>
+            )}
+            
+            {/* Modal Confirmare Data */}
+            {showDateModal && (
+                <div className="fixed inset-0 z-[10000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+                        <button onClick={() => {setShowDateModal(false); setShowRescheduleForm(false); setRescheduleReason(''); setRescheduleDate('');}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                            <X className="w-5 h-5" />
+                        </button>
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Calendar className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-center font-black text-lg text-slate-800 mb-2">
+                            {t.rescheduleTitle}
+                        </h3>
+                        <p className="text-center text-slate-500 text-sm mb-4">
+                            {t.rescheduleDesc}
+                        </p>
+                        <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                                {lang === 'ro' ? 'Data dorită *' : lang === 'fr' ? 'Date souhaitée *' : lang === 'nl' ? 'Gewenste datum *' : 'Desired date *'}
+                            </label>
+                            <input 
+                                type="date"
+                                value={rescheduleDate}
+                                onChange={(e) => setRescheduleDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                                {lang === 'ro' ? 'Motiv / Observații (opțional)' : lang === 'fr' ? 'Raison / Remarques (facultatif)' : lang === 'nl' ? 'Reden / Opmerkingen (optioneel)' : 'Reason / Notes (optional)'}
+                            </label>
+                            <textarea
+                                value={rescheduleReason}
+                                onChange={(e) => setRescheduleReason(e.target.value)}
+                                placeholder={t.reschedulePlaceholder}
+                                className="w-full border border-slate-300 rounded-xl p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => { setShowDateModal(false); setShowRescheduleForm(false); }}
+                                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                            >
+                                {lang === 'ro' ? 'Anulează' : lang === 'fr' ? 'Annuler' : 'Cancel'}
+                            </button>
+                            <button
+                                onClick={handleReschedule}
+                                disabled={!rescheduleDate || submittingReschedule}
+                                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2"
+                            >
+                                {submittingReschedule ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                {t.rescheduleSubmit}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

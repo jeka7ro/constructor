@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
     ClipboardList, Plus, Send, Eye, Pencil, Trash2,
@@ -10,6 +11,8 @@ import {
 import api from '../../lib/api'
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
+import ConfirmModal from '../../components/ConfirmModal'
+import { useUIStore } from '../../store/uiStore'
 
 const STATUS_CONFIG = {
     draft:       { labelKey: 'status.draft', fallback: 'Nouveau',       color: 'bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', dot: 'bg-slate-400' },
@@ -23,6 +26,7 @@ const STATUS_CONFIG = {
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
 
 export default function WorkOrders() {
+    const showToast = useUIStore(s => s.showToast)
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [workOrders, setWorkOrders] = useState([])
@@ -40,6 +44,7 @@ export default function WorkOrders() {
     const [sessionsModal, setSessionsModal] = useState(null)  // { woId, title, data }
     const [sessionsLoading, setSessionsLoading] = useState(false)
     const [matModal, setMatModal] = useState(null)            // { woId, title, rows }
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: 'danger', title: '', message: '', confirmText: '', action: null })
     const [matSaving, setMatSaving] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
     const [deleteModal, setDeleteModal] = useState(null)      // { wo: object }
@@ -96,11 +101,17 @@ export default function WorkOrders() {
         }
     }
 
+    const [viewMode, setViewMode] = useState('active') // 'active' | 'archived'
+
     const fetchOrders = async () => {
         setLoading(true)
         try {
             let params = []
-            if (filterStatus) params.push(`status=${filterStatus}`)
+            if (viewMode === 'archived') {
+                params.push(`status=deleted`)
+            } else if (filterStatus) {
+                params.push(`status=${filterStatus}`)
+            }
             if (filterPeriod !== 'all') {
                 const dates = getPeriodDates(filterPeriod)
                 if (dates.start_date) params.push(`start_date=${dates.start_date}`)
@@ -116,7 +127,7 @@ export default function WorkOrders() {
 
     useEffect(() => { 
         fetchOrders() 
-    }, [filterStatus, filterPeriod])
+    }, [filterStatus, filterPeriod, viewMode])
 
     useEffect(() => {
         const fetchTeams = async () => {
@@ -208,6 +219,37 @@ export default function WorkOrders() {
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
     const renderActions = (wo) => {
+        if (wo.status === 'deleted') {
+            return (
+                <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-[130px] max-w-[180px]">
+                    <button
+                        title={t('work_orders.btn_restore', 'Restaurer')}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmModal({
+                                isOpen: true,
+                                type: 'success',
+                                title: t('quotes.btn_restore', 'Restaurează devizul'),
+                                message: t('quotes.confirm_restore', 'Ești sigur că vrei să restaurezi acest deviz?'),
+                                confirmText: t('quotes.btn_restore_short', 'Restaurează'),
+                                action: async () => {
+                                    try {
+                                        await api.post(`/admin/work-orders/${wo.id}/restore`);
+                                        showToast(t('quotes.restore_success', 'Devizul a fost restaurat cu succes!'), "success");
+                                        fetchOrders();
+                                    } catch(err) {
+                                        showToast(t('quotes.restore_error', 'Eroare la restaurare: ') + (err.response?.data?.detail || err.message), "error");
+                                    }
+                                }
+                            });
+                        }}
+                        className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors font-bold text-xs"
+                    >
+                        {t('work_orders.btn_restore', 'Restaurer')}
+                    </button>
+                </div>
+            )
+        }
         const link = getLink(wo)
         return (
             <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-[130px] max-w-[180px]">
@@ -274,13 +316,7 @@ export default function WorkOrders() {
                         <Package className="w-4 h-4" />
                     </button>
                 )}
-                <button
-                    onClick={() => navigate(`/admin/work-orders/${wo.id}/edit`)}
-                    title={t('common.edit', 'Modifier')}
-                    className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
-                >
-                    <Pencil className="w-4 h-4" />
-                </button>
+
                 <button
                     onClick={() => setDeleteModal({ wo })}
                     disabled={deletingId === wo.id}
@@ -452,7 +488,7 @@ export default function WorkOrders() {
     ]
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="p-4 md:p-8 w-full space-y-6">
             {/* Header Actions */}
             <div className="flex flex-col sm:flex-row justify-end items-center gap-4 w-full">
                 <div className="flex flex-wrap items-center gap-3">
@@ -532,10 +568,34 @@ export default function WorkOrders() {
 
             {/* Table */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-blue-600 dark:bg-slate-800">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-blue-600 dark:bg-slate-800">
                     <h2 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
                         <ClipboardList className="w-4 h-4 text-white" /> {t('work_orders.table_title', 'Tableau des Commandes de Travail')}
                     </h2>
+                    
+                    <div className="flex bg-blue-700/50 p-1 rounded-xl w-full sm:w-auto">
+                        <button
+                            onClick={() => setViewMode('active')}
+                            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                                viewMode === 'active' 
+                                ? 'bg-white text-blue-800 shadow-sm' 
+                                : 'text-blue-100 hover:text-white'
+                            }`}
+                        >
+                            {t('quotes.active_tab', 'Actifs')}
+                        </button>
+                        <button
+                            onClick={() => setViewMode('archived')}
+                            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                                viewMode === 'archived' 
+                                ? 'bg-white text-blue-800 shadow-sm' 
+                                : 'text-blue-100 hover:text-white'
+                            }`}
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            {t('quotes.archived_tab', 'Corbeille')}
+                        </button>
+                    </div>
                 </div>
                 <DataTable
                     columns={columns}
@@ -602,8 +662,8 @@ export default function WorkOrders() {
             </div>
 
             {/* Delete Modal */}
-            {deleteModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !deletingId && setDeleteModal(null)}>
+            {deleteModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => !deletingId && setDeleteModal(null)}>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-6">
                             <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
@@ -632,12 +692,13 @@ export default function WorkOrders() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Materials Consumed Modal */}
-            {matModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setMatModal(null)}>
+            {matModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setMatModal(null)}>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
@@ -730,12 +791,13 @@ export default function WorkOrders() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Sessions Modal — Ore lucrate pe comandă */}
-            {sessionsModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSessionsModal(null)}>
+            {sessionsModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setSessionsModal(null)}>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
@@ -796,8 +858,9 @@ export default function WorkOrders() {
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-                                    )}
+                                        </div>,
+                document.body
+            )}
                                 </>
                             )}
                         </div>
@@ -806,8 +869,8 @@ export default function WorkOrders() {
             )}
 
             {/* Signature Modal */}
-            {sigModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSigModal(null)}>
+            {sigModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setSigModal(null)}>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                             <div>
@@ -828,11 +891,12 @@ export default function WorkOrders() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {/* Send Modal */}
-            {sendModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSendModal(null)}>
+            {sendModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setSendModal(null)}>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                             <div>
@@ -865,8 +929,19 @@ export default function WorkOrders() {
                             )})}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.action}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                type={confirmModal.type}
+            />
         </div>
     )
 }

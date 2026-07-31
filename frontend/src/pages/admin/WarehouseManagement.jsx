@@ -599,7 +599,7 @@ export default function WarehouseManagement() {
     return (
         <>
             {historyItem ? (
-                <div className="p-4 md:p-8 max-w-7xl mx-auto">
+                <div className="p-4 md:p-8 w-full">
                 {/* Back Button */}
                 <button 
                     onClick={() => setHistoryItem(null)}
@@ -926,7 +926,7 @@ export default function WarehouseManagement() {
                 </div>
             </div>
             ) : (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 w-full">
             {/* ── Returnări în așteptare ─────────────────────────────────────── */}
             {pendingReturns.length > 0 && (
                 <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-3xl overflow-hidden">

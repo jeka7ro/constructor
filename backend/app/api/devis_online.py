@@ -195,7 +195,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     wo = WorkOrder(
         organization_id=org.id,
         token=secrets.token_urlsafe(32),
-        title=f"Cerere Deviz - {client_name}",
+        title=f"Demande de devis - {client_name}",
         is_quote=True,
         status="draft",
         work_type=payload.work_type,

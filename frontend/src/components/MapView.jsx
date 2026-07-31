@@ -70,6 +70,46 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         try { return JSON.parse(localStorage.getItem('nisip_toggle') || 'false') } catch { return false }
     });
 
+    const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+    
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            setIsDark(document.documentElement.classList.contains('dark'));
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
+
+    const darkMapStyles = [
+        { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+        { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+        { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+        { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+        { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+        { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+        { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+        { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+        { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+        { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
+    ];
+
+    useEffect(() => {
+        if (mapInstance.current) {
+            mapInstance.current.setOptions({ styles: isDark ? darkMapStyles : [] });
+        }
+        if (detailMapInstance.current) {
+            detailMapInstance.current.setOptions({ styles: isDark ? darkMapStyles : [] });
+        }
+    }, [isDark]);
+
     const toggleSandStations = (val) => {
         setShowSandStations(val);
         localStorage.setItem('nisip_toggle', JSON.stringify(val));
@@ -108,11 +148,13 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 zoom: z,
                 disableDefaultUI: true,
                 zoomControl: true,
-                gestureHandling: 'cooperative'
+                gestureHandling: 'cooperative',
+                styles: isDark ? darkMapStyles : []
             });
         } else {
             mapInstance.current.setCenter(center);
             mapInstance.current.setZoom(z);
+            mapInstance.current.setOptions({ styles: isDark ? darkMapStyles : [] });
         }
 
         // Detail Map
@@ -123,11 +165,13 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     zoom: 17,
                     disableDefaultUI: true,
                     zoomControl: false,
-                    gestureHandling: 'cooperative'
+                    gestureHandling: 'cooperative',
+                    styles: isDark ? darkMapStyles : []
                 });
             } else {
                 detailMapInstance.current.setCenter(center);
                 detailMapInstance.current.setZoom(17);
+                detailMapInstance.current.setOptions({ styles: isDark ? darkMapStyles : [] });
             }
         }
 
@@ -330,7 +374,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                             center: defaultCenter,
                             zoom: 7,
                             disableDefaultUI: true,
-                            zoomControl: true
+                            zoomControl: true,
+                            styles: isDark ? darkMapStyles : []
                         });
                     }
                 }
@@ -349,7 +394,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     center: defaultCenter,
                     zoom: 7,
                     disableDefaultUI: true,
-                    zoomControl: true
+                    zoomControl: true,
+                    styles: isDark ? darkMapStyles : []
                 });
             }
         }
@@ -488,3 +534,4 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
 };
 
 export default MapView;
+

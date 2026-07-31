@@ -54,6 +54,7 @@ const InvoiceDetails = lazy(() => import('./pages/admin/InvoiceDetails'))
 const QuotesManagement = lazy(() => import('./pages/admin/QuotesManagement'))
 const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
 const DevisView = lazy(() => import('./pages/admin/DevisView'))
+const AdminChats = lazy(() => import('./pages/admin/AdminChats'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
 const DevisOnline = lazy(() => import('./pages/DevisOnline'))
@@ -265,10 +266,10 @@ function App() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800 mb-3">Compania nu există</h1>
-                    <p className="text-slate-600 mb-6">Link-ul pe care l-ai accesat este invalid sau compania a fost ștearsă din sistem.</p>
+                    <h1 className="text-2xl font-bold text-slate-800 mb-3">L'entreprise n'existe pas / Bedrijf bestaat niet</h1>
+                    <p className="text-slate-600 mb-6">Le lien que vous avez visité n'est pas valide ou l'entreprise a été supprimée du système. / De link die u hebt bezocht is ongeldig of het bedrijf is uit het systeem verwijderd.</p>
                     <a href="http://localhost:5678" className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md shadow-blue-500/20">
-                        Înapoi la Pagina Principală
+                        Retour à la page d'accueil / Terug naar startpagina
                     </a>
                 </div>
             </div>
@@ -320,6 +321,7 @@ function App() {
                                 <Route path="alerts" element={<AlertsManagement />} />
                         <Route path="notifications" element={<NotificationsPage />} />
                         <Route path="work-orders" element={<WorkOrders />} />
+                        <Route path="chats" element={<AdminChats />} />
                         <Route path="isoflex-history" element={<IsoflexHistory />} />
                         <Route path="work-orders/new" element={<WorkOrderForm />} />
                         <Route path="work-orders/:id" element={<WorkOrderDetail />} />

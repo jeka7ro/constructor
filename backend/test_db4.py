@@ -2,10 +2,10 @@ from app.database import SessionLocal
 from app.models import WorkOrder
 
 db = SessionLocal()
-wos = db.query(WorkOrder).filter(WorkOrder.external_id == "1975").all()
-for wo in wos:
-    print(f"ID: {wo.id} | Ext: {wo.external_id} | Title: {wo.title}")
-    print("Materials:", wo.materials)
-    print("Volumes:", wo.volumes)
-    print("---")
-db.close()
+wo = db.query(WorkOrder).filter(WorkOrder.token == "0wEqF-6hHi9zPgAKWM3uMbzmV3jvETPUWXMFvAHJ3ww").first()
+if wo:
+    print(f"ID: {wo.id}")
+    print(f"start_date: {wo.start_date}")
+    print(f"date_confirmed_at: {wo.date_confirmed_at}")
+    print(f"confirmed_at: {wo.confirmed_at}")
+    print(f"status: {wo.status}")

@@ -1042,10 +1042,20 @@ class WorkOrder(Base):
     # draft | sent | confirmed | in_progress | completed | cancelled
     status          = Column(String(50), default="draft", nullable=False, index=True)
 
+    # ── Chat ──────────────────────────────────────────────────────────────────
+    is_chat_closed  = Column(Boolean, default=False, nullable=False, server_default='0')
+
     # ── Confirmare client ─────────────────────────────────────────────────────
     confirmed_at        = Column(DateTime, nullable=True)
     confirmed_by_name   = Column(String(255), nullable=True)
     confirmed_ip        = Column(String(45), nullable=True)
+    
+    date_confirmed_at   = Column(DateTime, nullable=True)
+    date_confirmed_ip   = Column(String(50), nullable=True)
+    date_history        = Column(JSON, default=list, nullable=True)
+    reschedule_requested = Column(Boolean, default=False, nullable=False, server_default='0')
+    reschedule_reason    = Column(Text, nullable=True)
+    reschedule_requested_date = Column(Date, nullable=True)
     client_signature    = Column(Text, nullable=True)   # Base64 PNG semnătură client (pentru DEVIZ)
     
     # ── Confirmare Finală Lucrare ───────────────────────────────────────────────
@@ -1140,6 +1150,20 @@ class WorkOrder(Base):
     team_leader_acceptor = relationship("User", foreign_keys=[team_leader_accepted_by_id])
     team_leader_confirmer = relationship("User", foreign_keys=[team_leader_confirmed_by_id])
 
+
+# ── WorkOrder Messages (Chat Admin-Client) ──────────────────────────────────
+class WorkOrderMessage(Base):
+    """Chat messages between Admin and Client regarding a work order (e.g. rescheduling)"""
+    __tablename__ = "work_order_messages"
+
+    id              = Column(String(36), primary_key=True, default=generate_uuid)
+    work_order_id   = Column(String(36), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=False)
+    sender          = Column(String(20), nullable=False) # 'admin' | 'client'
+    message         = Column(Text, nullable=False)
+    is_read_by_admin= Column(Boolean, default=False)
+    created_at      = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    work_order = relationship("WorkOrder")
 
 # ── WorkOrder Acknowledgement ────────────────────────────────────────────────
 class WorkOrderAcknowledgement(Base):

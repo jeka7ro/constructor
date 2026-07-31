@@ -1,11 +1,12 @@
-import sys
-import os
-sys.path.append(os.getcwd())
 from app.database import SessionLocal
-from app.models import Team
+from app.models import WorkOrder
+
 db = SessionLocal()
-org_id = "84b73e6b-8e3c-45f6-b133-9e19d41a1bf2"
-teams = db.query(Team).filter(Team.organization_id == org_id).all()
-print(f"Found {len(teams)} teams for Davide Chape org")
-for t in teams:
-    print(f"Team: {t.name}, Color: {t.color}")
+wos = db.query(WorkOrder).filter(WorkOrder.quote_number != None).order_by(WorkOrder.created_at.desc()).limit(3).all()
+for wo in wos:
+    print(f"ID: {wo.id}")
+    print(f"start_date: {wo.start_date}")
+    print(f"date_confirmed_at: {wo.date_confirmed_at}")
+    print(f"confirmed_at: {wo.confirmed_at}")
+    print(f"status: {wo.status}")
+    print("---")

@@ -6,7 +6,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff
 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -221,6 +221,23 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     // Modale pentru ștergere și convertire (înlocuiesc alertele native de browser)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [showConvertConfirm, setShowConvertConfirm] = useState(false)
+    
+    // Chat Admin-Client
+    const [messages, setMessages] = useState([])
+    const [chatModalOpen, setChatModalOpen] = useState(false)
+    const [chatMessage, setChatMessage] = useState("")
+    const [sendingMessage, setSendingMessage] = useState(false)
+    const [historyModalOpen, setHistoryModalOpen] = useState(false)
+    
+    const messagesEndRef = useRef(null)
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+    useEffect(() => {
+        if (chatModalOpen) {
+            setTimeout(scrollToBottom, 100)
+        }
+    }, [messages, chatModalOpen])
 
     const showToast = (msg, type = 'success') => {
         if (typeof msg === 'object' && msg !== null) {
@@ -400,10 +417,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const load = useCallback(async () => {
         setLoading(true)
         try {
-            const [woRes, sessRes, photosRes] = await Promise.allSettled([
+            const [woRes, sessRes, photosRes, msgRes] = await Promise.allSettled([
                 api.get(`/admin/work-orders/${id}`),
                 api.get(`/admin/work-orders/${id}/sessions`),
                 api.get(`/admin/work-orders/${id}/photos`),
+                api.get(`/admin/work-orders/${id}/messages`),
             ])
             if (woRes.status === 'fulfilled') {
                 const data = woRes.value.data
@@ -428,6 +446,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 const p = photosRes.value.data
                 setPhotos(Array.isArray(p) ? p : (p?.photos || []))
             }
+            if (msgRes.status === 'fulfilled') {
+                setMessages(msgRes.value.data || [])
+            }
         } catch {} finally {
             setLoading(false)
         }
@@ -435,6 +456,44 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
 
     useEffect(() => { load() }, [load])
+
+    const handleSendMessage = async () => {
+        if (!chatMessage.trim()) return;
+        setSendingMessage(true);
+        try {
+            const res = await api.post(`/admin/work-orders/${id}/messages`, {
+                message: chatMessage
+            });
+            setMessages(prev => [...prev, res.data]);
+            setChatMessage("");
+        } catch (err) {
+            showToast("Eroare la trimiterea mesajului.", "error");
+        } finally {
+            setSendingMessage(false);
+        }
+    };
+
+    const handleDeleteMessage = async (msgId) => {
+        try {
+            await api.delete(`/admin/work-orders/${id}/messages/${msgId}`);
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+            showToast("Mesajul a fost șters.", "success");
+        } catch (err) {
+            showToast("Eroare la ștergerea mesajului.", "error");
+        }
+    };
+
+    const handleMarkUnread = async (msgId) => {
+        try {
+            await api.post(`/admin/work-orders/${id}/messages/${msgId}/unread`);
+            showToast(t('admin.message_marked_unread', 'Mesaj marcat ca necitit'), "success");
+            setChatModalOpen(false);
+            window.dispatchEvent(new CustomEvent('refresh-notifications'));
+        } catch (err) {
+            showToast(t('admin.error_marking_unread', 'Eroare la marcarea mesajului'), "error");
+        }
+    };
+
 
     // ESC key — close lightbox
     useEffect(() => {
@@ -495,8 +554,21 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let matValue = '—';
     let matSub = t('work_order_detail.kpi.no_material', 'aucun matériau');
 
-    // REGULĂ STRICTĂ: Nu se calculează pe frontend. Se citește valoarea din DB.
+    // REGULĂ STRICTĂ: Se preferă valoarea din DB, dar dacă lipsește (ex. la comenzi noi), se calculează estimativ pe frontend.
     let autoSandKg = parseFloat(wo.route_sand_kg) || 0;
+    if (autoSandKg === 0) {
+        if (wo.volumes && wo.volumes.length > 0) {
+            wo.volumes.forEach(vol => {
+                const surface = parseFloat(vol.quantity) || 0;
+                const thickness = parseFloat(vol.thickness) || 0;
+                autoSandKg += (surface * thickness * 16);
+            });
+        } else {
+            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+            const fallbackThick = parseFloat(wo.thickness) || 0;
+            autoSandKg = fallbackSurface * fallbackThick * 16;
+        }
+    }
 
         if (activeMats.length === 1) {
             const m = activeMats[0];
@@ -780,7 +852,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const hasSig = wo.client_signature && (wo.status === 'confirmed' || wo.status === 'completed')
 
     const pageContent = (
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 pb-10">
+        <div className="p-4 sm:p-6 max-w-7xl ml-0 space-y-5 pb-10">
 
             {/* ── Header ──────────────────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -834,18 +906,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             {t('quotes.copy_link', 'Copier le lien client')}
                         </button>
                     )}
-                    {wo.status !== 'completed' && (
+                    {/* wo.status !== 'completed' && (
                         <>
                             {wo.status === 'planning' && wo.client_email && (
                                 <button
                                     onClick={async () => {
-                                        if (confirm(t('planning.confirm_send_notification', 'Êtes-vous sûr de vouloir envoyer (ou renvoyer) l\'email de notification au client ?'))) {
+                                        if (confirm(t('planning.confirm_send_notification', 'Êtes-vous sûr de vouloir envoyer (ou renvoyer) l\\'email de notification au client ?'))) {
                                             try {
                                                 await api.put(`/admin/work-orders/${id}`, { send_notification: true });
                                                 showToast(t('planning.notification_sent', 'Notification envoyée avec succès !'), 'success');
                                             } catch (e) {
                                                 console.error(e);
-                                                showToast(t('planning.notification_error', 'Erreur lors de l\'envoi de la notification.'), 'error');
+                                                showToast(t('planning.notification_error', 'Erreur lors de l\\'envoi de la notification.'), 'error');
                                             }
                                         }
                                     }}
@@ -856,6 +928,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {t('planning.send_email_btn', 'Envoyer Notification')}
                                 </button>
                             )}
+                            <button
+                                onClick={() => setChatModalOpen(true)}
+                                className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-sm font-bold hover:bg-blue-100 transition-colors shrink-0"
+                                title="Chat cu clientul"
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                                {messages.length > 0 ? (
+                                    <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{messages.length}</span>
+                                ) : null}
+                                Chat
+                            </button>
                             <button onClick={() => navigate(`/admin/work-orders/${id}/edit`)}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 <Edit2 className="w-3.5 h-3.5" /> {t('common.edit', 'Modifier')}
@@ -866,7 +949,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <Trash2 className="w-3.5 h-3.5" /> {t('common.delete', 'Supprimer')}
                             </button>
                         </>
-                    )}
+                    ) */}
                 </div>
             </div>
 
@@ -990,8 +1073,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Étapes)')}</span>
-                                            <span className="text-sm font-black text-slate-900 dark:text-white">{(wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0).toFixed(1)} km</span>
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
+                                            <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0) * 2).toFixed(1)} km</span>
                                         </div>
                                     </>
                                 ) : (
@@ -1066,7 +1149,18 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Commande')}</p>
-                                                    <p className="font-mono text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-sm font-black tracking-widest">{wo.id?.slice(0, 8).toUpperCase()}</p>
+                                                        {wo.source_system === 'we-r' || wo.source_system === 'calculator_public' ? (
+                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">{t('source.we_r', 'WE-R')}</span>
+                                                        ) : wo.source_system === 'devis_online' ? (
+                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">{t('source.devis', 'Devis en ligne')}</span>
+                                                        ) : wo.source_system === 'robaws' ? (
+                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-indigo-500 bg-indigo-500/10 px-1.5 py-0.5 rounded">{t('source.robaws', 'Robaws')}</span>
+                                                        ) : (
+                                                            <span className="text-[8px] font-bold uppercase tracking-wide text-slate-500 bg-slate-500/10 px-1.5 py-0.5 rounded">{t('source.manual', 'Ajouté manuellement')}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('planning.planned', 'Planifié')}</p>
@@ -1126,24 +1220,81 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             </div>
                                             <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700/50 space-y-2">
                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-2">{t('work_order_detail.general_details.client_beneficiary', 'Client / Bénéficiaire')}</p>
-                                                {wo.confirmed_at ? (
+                                                {(wo.confirmed_at || wo.date_confirmed_at) ? (
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                         <div className="flex-1">
-                                                            <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
-                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmé par')}</span>
-                                                                <span className="font-semibold text-emerald-600">{wo.confirmed_by_name}</span>
-                                                            </div>
-                                                            <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2 mt-2">
-                                                                <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'À la date')}</span>
-                                                                <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
-                                                            </div>
+                                                            {wo.reschedule_requested && (
+                                                                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                                                        <span className="font-bold text-amber-800 uppercase text-[10px]">Clientul a solicitat reprogramarea</span>
+                                                                    </div>
+                                                                    {wo.reschedule_requested_date && (
+                                                                        <div className="text-xs font-bold text-amber-900 mb-1">
+                                                                            Data dorită: {new Date(wo.reschedule_requested_date).toLocaleDateString('ro-RO')}
+                                                                        </div>
+                                                                    )}
+                                                                    {wo.reschedule_reason && (
+                                                                        <p className="text-xs text-amber-700 font-semibold italic mb-2">"{wo.reschedule_reason}"</p>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => setChatModalOpen(true)}
+                                                                        className="mt-2 flex items-center justify-center gap-2 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold uppercase transition-colors"
+                                                                    >
+                                                                        <MessageSquare className="w-4 h-4" />
+                                                                        Răspunde clientului
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                            {wo.confirmed_at && (
+                                                                <>
+                                                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2">
+                                                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.confirmed_by', 'Confirmat de')}</span>
+                                                                        <span className="font-semibold text-emerald-600">{wo.confirmed_by_name}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-700/50 pb-2 mt-2">
+                                                                        <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.at_date', 'La')}</span>
+                                                                        <span className="font-semibold text-emerald-600">{fmtFull(wo.confirmed_at)}</span>
+                                                                    </div>
+                                                                </>
+                                                            )}
                                                             {wo.start_date && (
                                                                 <div className="flex items-center justify-between text-xs pt-2">
-                                                                    <span className="font-bold text-slate-500 uppercase">{t('work_order_detail.status.accepted_date', 'Date d\'intervention acceptée')}</span>
-                                                                    <span className="font-semibold text-blue-600">
+                                                                    <span className={`font-bold uppercase ${wo.date_confirmed_at ? 'text-slate-500' : 'text-red-500'}`}>{t('work_order_detail.status.accepted_date', 'Data Intervenției (Propusă/Acceptată)')}</span>
+                                                                    <span className={`font-semibold ${wo.date_confirmed_at ? 'text-blue-600' : 'text-red-600 animate-pulse'}`}>
                                                                         {new Date(wo.start_date).toLocaleDateString('ro-RO')} {wo.start_time && ` • ${wo.start_time}`}
                                                                     </span>
                                                                 </div>
+                                                            )}
+                                                            {wo.date_confirmed_at ? (
+                                                                <div className="flex items-center justify-between text-xs border-t border-emerald-100 bg-emerald-50/50 p-2 mt-2 rounded-lg">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-bold text-emerald-700 uppercase text-[10px]">{t('work_order_detail.status.date_confirmed_at', 'Confirmé par le client')}</span>
+                                                                        <span className="font-bold text-emerald-600">{wo.client_name}</span>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end gap-1">
+                                                                        <span className="font-bold text-emerald-700">{fmtFull(wo.date_confirmed_at)}</span>
+                                                                        {wo.date_history && wo.date_history.length > 0 && (
+                                                                            <button 
+                                                                                onClick={() => setHistoryModalOpen(true)}
+                                                                                className="text-[10px] text-emerald-600 hover:text-emerald-800 underline uppercase"
+                                                                            >
+                                                                                {t('work_order_detail.btn_history', 'Historique')}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                wo.date_history && wo.date_history.length > 0 && (
+                                                                    <div className="flex items-center justify-end text-xs p-2 mt-2">
+                                                                        <button 
+                                                                            onClick={() => setHistoryModalOpen(true)}
+                                                                            className="text-[10px] text-slate-500 hover:text-slate-800 underline uppercase"
+                                                                        >
+                                                                            {t('work_order_detail.btn_history', 'Historique')}
+                                                                        </button>
+                                                                    </div>
+                                                                )
                                                             )}
                                                         </div>
                                                         {hasSig && (
@@ -1154,7 +1305,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center justify-center py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                                                        <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Non confirmée par le client.')}</p>
+                                                        <p className="text-xs text-slate-400 font-medium">{t('work_order_detail.status.not_confirmed_by_client', 'Neconfirmat de client.')}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -2159,6 +2310,122 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 cancelText={t('common.cancel', 'Annuler')}
                 type="primary"
             />
+            
+            {/* Chat Modal */}
+            {chatModalOpen && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col h-[80vh] overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10 shrink-0">
+                            <div className="flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-blue-600" />
+                                <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">{t('admin.client_communication', 'Comunicare cu clientul')}</h3>
+                            </div>
+                            <button onClick={() => setChatModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50">
+                            {messages.length === 0 ? (
+                                <div className="text-center text-slate-400 py-10 text-sm font-semibold">{t('admin.no_messages_yet', 'Niciun mesaj încă. Începeți conversația!')}</div>
+                            ) : (
+                                messages.map(msg => (
+                                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'} group relative`}>
+                                        <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'admin' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none'}`}>
+                                            <p className="text-sm">{msg.message}</p>
+                                            <div className="flex items-center justify-between mt-1 gap-4">
+                                                <span className={`text-[9px] font-bold uppercase ${msg.sender === 'admin' ? 'text-blue-200' : 'text-slate-400'}`}>
+                                                    {new Date(msg.created_at).toLocaleString('ro-RO')}
+                                                </span>
+                                                {msg.sender === 'admin' && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
+                                                    <button 
+                                                        onClick={() => handleDeleteMessage(msg.id)}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
+                                                        title={t('admin.delete_message', 'Șterge mesaj')}
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                                {msg.sender === 'client' && (
+                                                    <button 
+                                                        onClick={() => handleMarkUnread(msg.id)}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-blue-600"
+                                                        title={t('admin.mark_unread', 'Marchează ca necitit')}
+                                                    >
+                                                        <EyeOff className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shrink-0 flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={chatMessage}
+                                onChange={e => setChatMessage(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                                placeholder={t('admin.type_message', 'Scrie un mesaj...')}
+                                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white placeholder:text-slate-400"
+                            />
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={sendingMessage || !chatMessage.trim()}
+                                className="w-11 h-11 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {historyModalOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setHistoryModalOpen(false)}></div>
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 flex flex-col overflow-hidden max-h-[85vh]">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                            <h3 className="font-bold text-slate-800">{t('work_order_detail.history.title', 'Historique des dates')}</h3>
+                            <button onClick={() => setHistoryModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 relative">
+                            <div className="absolute left-6 top-8 bottom-4 w-0.5 bg-slate-200"></div>
+                            {wo?.date_history && wo.date_history.map((hist, idx) => {
+                                const isLast = idx === wo.date_history.length - 1;
+                                const isConfirmed = hist.action === 'confirmed_by_client';
+                                return (
+                                    <div key={idx} className={`relative flex gap-4 ${!isLast ? 'opacity-70' : ''}`}>
+                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center relative z-10 mt-1 shrink-0 ${isConfirmed ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-slate-600'}`}>
+                                            {isConfirmed ? <CheckCircle2 className="w-3 h-3" /> : <CalendarDays className="w-3 h-3" />}
+                                        </div>
+                                        <div className={`flex-1 p-3 rounded-xl border ${isLast && isConfirmed ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-slate-200'}`}>
+                                            <p className={`text-xs font-bold uppercase mb-1 ${isConfirmed ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                                {isConfirmed 
+                                                    ? t('work_order_detail.history.action_confirmed', 'Confirmé par client')
+                                                    : t('work_order_detail.history.action_changed', 'Modifié par Admin')}
+                                            </p>
+                                            <p className="text-sm font-medium text-slate-700">
+                                                {isConfirmed ? (
+                                                    <span>{hist.client_name}</span>
+                                                ) : (
+                                                    <span>{t('work_order_detail.history.new_date', 'Nouvelle date:')} {hist.new_date ? new Date(hist.new_date).toLocaleDateString('ro-RO') : t('general.none', 'N/A')}</span>
+                                                )}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 mt-2">{fmtFull(hist.timestamp)}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     )
     if (isEmbedded) {

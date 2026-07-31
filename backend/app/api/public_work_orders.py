@@ -9,10 +9,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import Optional, List, List
+from typing import Optional, List
 
 from app.database import get_db
-from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember, Team, WorkOrderDocument
+from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember, Team, WorkOrderDocument, WorkOrderMessage
 from app.storage import get_file_url, upload_file, get_content_type
 from app.api.auth import get_current_user
 import requests as _req
@@ -177,6 +177,8 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "confirmed_at": wo.confirmed_at.isoformat() + "Z" if wo.confirmed_at else None,
         "confirmed_by_name": wo.confirmed_by_name,
         "client_signature": wo.client_signature,
+        "date_confirmed_at": wo.date_confirmed_at.isoformat() + "Z" if wo.date_confirmed_at else None,
+        "reschedule_requested": getattr(wo, "reschedule_requested", False),
         "final_confirmed_at": wo.final_confirmed_at.isoformat() + "Z" if wo.final_confirmed_at else None,
         "final_confirmed_by_name": wo.final_confirmed_by_name,
         "final_client_signature": wo.final_client_signature,
@@ -247,7 +249,32 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
 class ConfirmPayload(BaseModel):
     confirmed_by_name: Optional[str] = None
     client_signature: Optional[str] = None   # Base64 PNG din canvas
-    mode: Optional[str] = "quote" # "quote" sau "final"
+    mode: Optional[str] = 'quote'            # 'quote', 'final', sau 'date'
+
+class ReschedulePayload(BaseModel):
+    requested_date: Optional[str] = None
+    reason: Optional[str] = None
+
+@router.post("/public/work-orders/{token}/reschedule")
+def request_reschedule(token: str, payload: ReschedulePayload, request: Request, db: Session = Depends(get_db)):
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită.")
+        
+    wo.reschedule_requested = True
+    wo.reschedule_reason = payload.reason
+    if payload.requested_date:
+        from datetime import datetime
+        try:
+            wo.reschedule_requested_date = datetime.strptime(payload.requested_date, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+            
+    db.commit()
+    db.refresh(wo)
+    
+    org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
+    return _public_serialize(wo, org)
 
 @router.post("/public/work-orders/{token}/confirm")
 def confirm_work_order(
@@ -277,6 +304,29 @@ def confirm_work_order(
         wo.final_confirmed_ip = client_ip
         if payload.client_signature:
             wo.final_client_signature = payload.client_signature
+    elif payload.mode == "date":
+        if wo.date_confirmed_at:
+            raise HTTPException(status_code=400, detail="Data a fost deja confirmată.")
+        wo.date_confirmed_at = datetime.utcnow()
+        wo.date_confirmed_ip = client_ip
+        
+        hist = list(wo.date_history) if wo.date_history else []
+        hist.append({
+            "action": "confirmed_by_client",
+            "timestamp": datetime.utcnow().isoformat(),
+            "client_name": payload.confirmed_by_name or wo.client_name,
+            "ip": client_ip
+        })
+        wo.date_history = hist
+        
+        # Trimitem și un mesaj automat în chat pentru a notifica adminul
+        sys_msg = WorkOrderMessage(
+            work_order_id=wo.id,
+            sender="client",
+            message=f"✅ Data intervenției ({wo.start_date.strftime('%d.%m.%Y') if wo.start_date else ''}) a fost confirmată de client.",
+            is_read_by_admin=False
+        )
+        db.add(sys_msg)
     else:
         # Mod "quote"
         if wo.status == "cancelled":
@@ -355,3 +405,114 @@ async def upload_public_documents(
     db.commit()
     return {"message": f"{len(uploaded_docs)} documente incarcate cu succes.", "documents": uploaded_docs}
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Chat Messages (Admin ↔ Client) Public Access
+# ──────────────────────────────────────────────────────────────────────────────
+
+from app.models import WorkOrderMessage
+
+@router.get("/public/work-orders/{token}/messages")
+def get_public_work_order_messages(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    messages = db.query(WorkOrderMessage).filter(WorkOrderMessage.work_order_id == wo.id).order_by(WorkOrderMessage.created_at.asc()).all()
+    
+    # Build initial context messages
+    initial_messages = []
+    
+    req_text = ""
+    if wo.requirements:
+        reqs = [r.get('description', '') for r in wo.requirements if isinstance(r, dict) and r.get('description')]
+        req_text = "\n".join(reqs)
+        
+    if req_text:
+        initial_messages.append({
+            "id": "initial-req",
+            "sender": "client",
+            "message": f"Detalii lucrare:\n{req_text}",
+            "created_at": wo.created_at.isoformat()
+        })
+    elif wo.notes:
+        initial_messages.append({
+            "id": "initial-req",
+            "sender": "client",
+            "message": f"Note inițiale:\n{wo.notes}",
+            "created_at": wo.created_at.isoformat()
+        })
+        
+    if wo.reschedule_requested and wo.reschedule_reason:
+        initial_messages.append({
+            "id": "reschedule-req",
+            "sender": "client",
+            "message": f"Cerere de reprogramare:\n{wo.reschedule_reason}",
+            "created_at": wo.updated_at.isoformat()
+        })
+    
+    db_messages = [
+        {
+            "id": m.id,
+            "sender": m.sender,
+            "message": m.message,
+            "created_at": m.created_at.isoformat() + "Z"
+        } for m in messages
+    ]
+    
+    return initial_messages + db_messages
+
+class PublicMessageCreate(BaseModel):
+    message: str
+
+@router.post("/public/work-orders/{token}/messages")
+def post_public_work_order_message(
+    token: str,
+    payload: PublicMessageCreate,
+    db: Session = Depends(get_db)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    if getattr(wo, 'is_chat_closed', False):
+        raise HTTPException(status_code=403, detail="Chat is closed")
+        
+    msg = WorkOrderMessage(
+        work_order_id=wo.id,
+        sender="client",
+        message=payload.message
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": msg.id,
+        "sender": msg.sender,
+        "message": msg.message,
+        "created_at": msg.created_at.isoformat() + "Z"
+    }
+
+@router.delete("/public/work-orders/{token}/messages/{msg_id}")
+def delete_public_work_order_message(
+    token: str,
+    msg_id: str,
+    db: Session = Depends(get_db)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo.id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    if msg.sender != 'client':
+        raise HTTPException(status_code=403, detail="Cannot delete admin messages")
+        
+    db.delete(msg)
+    db.commit()
+    return {"message": "Mesajul a fost șters cu succes."}

@@ -703,7 +703,7 @@ export default function TransportManagement() {
   const setFilter = (k, v) => setFilters(f => ({ ...f, [k]: v }));
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 w-full space-y-6">
       {/* Leaflet CSS */}
       {!document.getElementById('leaflet-css') && (() => {
         const link = document.createElement('link');

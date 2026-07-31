@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
 import { ro, enUS, nl } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -285,7 +285,7 @@ export default function ShortWorksCalendar({
     const [bases, setBases] = useState([]);
     const getDistanceTextForOrder = (wo) => {
         // REGULĂ STRICTĂ: Totul se citește din baza de date
-        if (!wo.route_distance_km && wo.route_distance_km !== 0) return null;
+        if (!wo.route_distance_km || wo.route_distance_km === 0) return null;
         
         const dist = Math.round(wo.route_distance_km);
         const orderIndex = teamDailyOrderIndices[wo.id] || 0;
@@ -514,7 +514,7 @@ export default function ShortWorksCalendar({
                                     setIsSelectingForHolding(!isSelectingForHolding);
                                 }
                             }}
-                            title={heldOrder ? t('planning.holding_area_active', 'Alege o zi/oră din calendar pentru a muta lucrarea') : t('planning.holding_area', 'Apasă pentru a selecta o lucrare, sau trage o lucrare aici')}
+                            title={heldOrder ? t('planning.holding_area_active', 'Choisissez une date/heure dans le calendrier pour déplacer la commande') : t('planning.holding_area', 'Cliquez pour sélectionner une commande à déplacer vers une autre semaine, ou glissez-la ici')}
                         >
                             {isSelectingForHolding && !heldOrder && (
                                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
@@ -541,7 +541,7 @@ export default function ShortWorksCalendar({
                                     </button>
                                 </div>
                             ) : (
-                                <Plus className="w-5 h-5 text-white/80" />
+                                <Move className="w-5 h-5 text-white/80" />
                             )}
                         </div>
                         {toggleCalendarFullscreen && (
@@ -1371,8 +1371,8 @@ export default function ShortWorksCalendar({
             )}
 
             {/* Delete Confirmation Popup */}
-            {orderToDelete && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+            {orderToDelete && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-5">
                             <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
@@ -1415,7 +1415,8 @@ export default function ShortWorksCalendar({
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

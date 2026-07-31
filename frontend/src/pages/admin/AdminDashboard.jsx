@@ -5,9 +5,10 @@ import { useTenantStore } from '../../store/tenantStore'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
+import HeaderNotifications from '../../components/HeaderNotifications'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -187,6 +188,7 @@ export default function AdminDashboard() {
                 { path: '/admin/logistica', icon: Truck, label: t('nav.logistics', 'Logistique') },
                 { path: '/admin/invoicing', icon: FileText, label: t('nav.invoicing', 'Facturation') },
                 { path: '/admin/work-orders', icon: ClipboardList, label: t('nav.work_orders', 'Commandes') },
+                { path: '/admin/chats', icon: MessageSquare, label: t('nav.chats', 'Messages Clients') },
                 { path: '/admin/isoflex-history', icon: History, label: t('nav.isoflex_history', 'Historique Isoflex') },
                 { path: '/admin/screed-analytics', icon: Activity, label: t('nav.screed_analytics', 'Tableau de calcul') },
                 { path: '/admin/timesheets', icon: Clock, label: t('nav.timesheets', 'Pointages') },
@@ -275,6 +277,7 @@ export default function AdminDashboard() {
         if (['/admin/expenses', '/admin/import-factura'].includes(path)) return tenantFeatures.includes('expenses')
         if (path === '/admin/reports') return tenantFeatures.includes('reports')
         if (path === '/admin/invoicing') return tenantFeatures.includes('invoicing')
+        if (path === '/admin/pricing-settings') return isScreeds && !(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin)
         return true
     }
 
@@ -386,8 +389,8 @@ export default function AdminDashboard() {
             
                 {/* Header Bar */}
                 <header 
-                    className={`h-16 md:h-16 bg-[color:var(--tenant-bg)] px-6 flex items-center justify-between z-40 text-white shadow-sm transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0`}
-                    style={{ '--tenant-bg': tenant?.primary_color || '#2563EB' }}
+                    className={`h-16 md:h-16 px-6 flex items-center justify-between z-40 text-white shadow-sm transition-colors md:mx-4 md:mt-3 md:mb-3 md:rounded-[24px] shrink-0 ${darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-[color:var(--tenant-bg)]'}`}
+                    style={!darkMode ? { '--tenant-bg': tenant?.primary_color || '#2563EB' } : {}}
                 >
                     <div className="flex items-center gap-4">
                          <button 
@@ -422,6 +425,11 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-5">
+                        {/* Date & Time */}
+                        <div className="hidden md:flex text-xs font-semibold text-white/90 bg-white/10 px-3 py-1.5 rounded-full border border-white/20 mr-1 shadow-sm">
+                            {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
+                        </div>
+
                         {/* Right side items: Language, Theme, Notifications */}
                         <div className="flex items-center gap-2">
                            <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
@@ -446,14 +454,9 @@ export default function AdminDashboard() {
                                            </span>
                                        )}
                                    </button>
-                                   <button className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" onClick={() => navigate('/admin/notifications')}>
-                                       <Bell className="w-4 h-4" />
-                                       {unreadCount > 0 && (
-                                           <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-                                       )}
-                                   </button>
                                </>
                            )}
+                           <HeaderNotifications />
                         </div>
                         
                         <div className="w-[1px] h-8 bg-white/20 hidden sm:block"></div>
@@ -536,12 +539,17 @@ export default function AdminDashboard() {
                                     <NavLink
                                         key={item.path}
                                         to={item.path}
-                                        className={({ isActive }) =>
-                                            `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${isActive
+                                        className={({ isActive }) => {
+                                            let finalIsActive = isActive;
+                                            if (location.pathname.startsWith('/admin/work-orders') && location.state?.from === '/admin/quotes') {
+                                                if (item.path === '/admin/quotes') finalIsActive = true;
+                                                if (item.path === '/admin/work-orders') finalIsActive = false;
+                                            }
+                                            return `flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 ${finalIsActive
                                                 ? (darkMode ? 'bg-[color:var(--tenant-bg)] text-white font-semibold shadow-md shadow-black/20' : 'bg-white text-[color:var(--tenant-bg)] font-bold shadow-md')
                                                 : (darkMode ? 'text-slate-400 font-medium hover:bg-white/10 hover:text-white' : 'text-blue-100 font-medium hover:bg-white/10 hover:text-white')
                                             }`
-                                        }
+                                        }}
                                         title={!sidebarOpen ? item.label : undefined}
                                     >
                                         <item.icon className="w-5 h-5 shrink-0" />
@@ -597,17 +605,6 @@ export default function AdminDashboard() {
             {/* Main Content Area */}
                 {/* Main View Outlet */}
                 <main className={`flex-1 overflow-auto relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                    {/* Page Title & Date inside main area - ONLY FOR PLANNING */}
-                    {location.pathname === '/admin/planning' && pageTitle && (
-                        <div className="px-4 pt-3 md:px-5 md:pt-4 pb-0 flex items-end justify-between shrink-0">
-                            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight leading-none">
-                                {pageTitle}
-                            </h1>
-                            <p className="text-[11px] md:text-xs text-slate-500 font-medium leading-none mb-[2px]">
-                                {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
-                            </p>
-                        </div>
-                    )}
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}
@@ -621,7 +618,7 @@ export default function AdminDashboard() {
                                 to   { opacity: 1; }
                             }
                         `}</style>
-                        <div className="p-4 md:p-5 md:pt-3 pb-24">
+                        <div className="p-4 md:p-4 md:pt-0 pb-24">
                             <Outlet />
                         </div>
                     </div>

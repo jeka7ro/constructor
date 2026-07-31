@@ -126,7 +126,7 @@ export default function ExpensesManagement() {
     const totalAmount = (Array.isArray(expenses) ? expenses : []).reduce((acc, curr) => acc + (curr.amount || 0), 0)
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 w-full">
             {/* Header Actions */}
             <div className="flex flex-col xl:flex-row items-start xl:items-center justify-end gap-4 mb-6 w-full">
                 <div className="flex items-center gap-3">

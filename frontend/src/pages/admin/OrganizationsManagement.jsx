@@ -297,7 +297,7 @@ export default function OrganizationsManagement() {
     ]
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="p-4 md:p-8 w-full space-y-6">
             {/* Header Actions */}
             <div className="flex flex-col sm:flex-row justify-end items-center gap-4">
                 <div className="flex items-center gap-3 w-full sm:w-auto">

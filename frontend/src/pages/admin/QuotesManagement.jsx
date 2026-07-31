@@ -230,10 +230,10 @@ export default function QuotesManagement() {
     const [planningForm, setPlanningForm] = useState({ date: '', time: '07:00', teamId: '' })
     const [isSendingPlanning, setIsSendingPlanning] = useState(false)
     
-    // Bulk Delete State
     const [selectedIds, setSelectedIds] = useState([])
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
     const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+    const [viewMode, setViewMode] = useState('active') // 'active' | 'archived'
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
@@ -357,7 +357,7 @@ export default function QuotesManagement() {
             fetchQuotes()
         }, 30000)
         return () => clearInterval(interval)
-    }, [])
+    }, [viewMode])
 
     const fetchTeams = async () => {
         try {
@@ -370,8 +370,22 @@ export default function QuotesManagement() {
     const fetchQuotes = async () => {
         setLoading(true)
         try {
-            const res = await api.get('/admin/work-orders?is_quote=true')
-            setQuotes(res.data.filter(q => q.status !== 'cancelled'))
+            const endpoint = viewMode === 'archived'
+                ? '/admin/work-orders?is_quote=true&status=deleted'
+                : '/admin/work-orders?is_quote=true';
+            const res = await api.get(endpoint)
+            const activeQuotes = res.data.filter(q => q.status !== 'cancelled');
+            setQuotes(activeQuotes)
+            
+            // Fix unread count by using the latest quote's created_at
+            if (activeQuotes.length > 0) {
+                const maxDate = new Date(Math.max(...activeQuotes.map(q => new Date(q.created_at).getTime())));
+                maxDate.setSeconds(maxDate.getSeconds() + 2); // add 2 seconds safety buffer
+                localStorage.setItem('lastQuotesViewAt', maxDate.toISOString());
+            } else {
+                localStorage.setItem('lastQuotesViewAt', new Date().toISOString());
+            }
+            window.dispatchEvent(new Event('quotesViewed'));
         } catch (e) {
             console.error('Failed to load quotes', e)
         } finally {
@@ -612,9 +626,21 @@ export default function QuotesManagement() {
 
                 return (
                     <div className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]">
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                            <User className="w-4 h-4 text-slate-400 shrink-0" />
-                            <span className="truncate" title={row.client_name}>{row.client_name || '-'}</span>
+                        <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                            {row.source_system === 'calculator_public' || row.source_system === 'we-r' ? (
+                                <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full" title="WE-R">
+                                    {row.client_name || '-'}
+                                </span>
+                            ) : row.source_system === 'devis_online' ? (
+                                <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full" title="Devis en ligne">
+                                    {row.client_name || '-'}
+                                </span>
+                            ) : (
+                                <>
+                                    <User className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span className="truncate" title={row.client_name}>{row.client_name || '-'}</span>
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 pl-6 text-sm text-slate-500">
                             {addr ? (
@@ -677,102 +703,102 @@ export default function QuotesManagement() {
                 <EditablePrice row={row} onUpdate={fetchQuotes} />
             )
         },
-
         {
             key: 'actions',
             label: '',
             render: (row) => (
                 <div className="flex justify-end gap-2 items-center">
-                    {row.token && (
-                        <button 
-                            title={t('quotes.copy_link', 'Copier le lien client')}
+                    {row.status === 'deleted' ? (
+                        <button
+                            title={t('quotes.btn_restore', 'Restaurer le devis')}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
-                                showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'), 'success');
-                            }}
-                            className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
-                        >
-                            <Link className="w-4 h-4" />
-                        </button>
-                    )}
-
-                    <button 
-                        title="Voir Devis PDF"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/admin/quotes/${row.id}/pdf`)
-                        }}
-                        className="p-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-xl transition-colors"
-                    >
-                        <FileText className="w-4 h-4" />
-                    </button>
-                    <button 
-                        title="Planifier — choisir date/heure/équipe"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            const todayStr = new Date().toISOString().split('T')[0]
-                            setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' })
-                            setPlanningModal(row)
-                        }}
-                        className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors"
-                    >
-                        <CalendarDays className="w-4 h-4" />
-                    </button>
-                    <button 
-                        title={t('quotes.btn_edit', 'Modifier')}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingId(row.id)
-                            setShowQuickAdd(true)
-                            setForm({
-                                client_id: row.client_id ?? '',
-                                approximate_date: row.approximate_date ? row.approximate_date.split('T')[0] : '',
-                                address: row.site_address ?? '',
-                                latitude: row.site_latitude ?? '',
-                                longitude: row.site_longitude ?? '',
-                                notes: row.notes ?? '',
-                                estimated_price: row.estimated_price ?? '',
-                                vat_enabled: row.vat_enabled || false,
-                                vat_type: row.vat_type || '21',
-                                volumes: row.volumes?.length > 0 ? row.volumes : [{ label: '', quantity: '', unit: 'm²', thickness: '', price: '', has_foil: false, has_mesh: false, has_fiber: false }],
-                                prices: row.prices || { base: 12.5, extra: 1.25, foil: 1.2, mesh: 2.5, fiber: 2.0 }
-                            })
-                            setQuickAddStep(1)
-                            // Scroll to top
-                            window.scrollTo({ top: 0, behavior: 'smooth' })
-                        }}
-                        className="p-2 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-xl transition-colors"
-                    >
-                        <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                        title="Supprimer le devis"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setConfirmModal({
-                                isOpen: true,
-                                title: 'Supprimer le devis',
-                                message: 'Êtes-vous sûr de vouloir supprimer définitivement ce devis ? Cette action est irréversible.',
-                                confirmText: 'Supprimer le devis',
-                                type: 'danger',
-                                action: async () => {
-                                    try {
-                                        await api.delete(`/admin/work-orders/${row.id}`);
-                                        if (typeof fetchQuotes === 'function') fetchQuotes();
-                                        else window.location.reload();
-                                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                                    } catch (err) {
-                                        console.error(err);
-                                        showToast(t('quotes.err_delete', 'Erreur lors de la suppression du devis.'), 'error');
+                                setConfirmModal({
+                                    isOpen: true,
+                                    type: 'success',
+                                    title: t('quotes.btn_restore', 'Restaurează devizul'),
+                                    message: t('quotes.confirm_restore', 'Ești sigur că vrei să restaurezi acest deviz?'),
+                                    confirmText: t('quotes.btn_restore_short', 'Restaurează'),
+                                    action: async () => {
+                                        try {
+                                            await api.post(`/admin/work-orders/${row.id}/restore`);
+                                            showToast(t('quotes.restore_success', 'Devizul a fost restaurat!'), "success");
+                                            fetchQuotes();
+                                        } catch(e) {
+                                            showToast(t('quotes.restore_error', 'Eroare la restaurare'), "error");
+                                        }
                                     }
-                                }
-                            });
-                        }}
-                        className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                                });
+                            }}
+                            className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors font-bold text-xs px-3"
+                        >
+                            {t('quotes.btn_restore_short', 'Restaurer')}
+                        </button>
+                    ) : (
+                        <>
+                            {row.token && (
+                                <button 
+                                    title={t('quotes.copy_link', 'Copier le lien client')}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
+                                        showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'), 'success');
+                                    }}
+                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
+                                >
+                                    <Link className="w-4 h-4" />
+                                </button>
+                            )}
+
+                            <button 
+                                title="Voir Devis PDF"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/admin/quotes/${row.id}/pdf`)
+                                }}
+                                className="p-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-xl transition-colors"
+                            >
+                                <FileText className="w-4 h-4" />
+                            </button>
+                            <button 
+                                title="Planifier — choisir date/heure/équipe"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const todayStr = new Date().toISOString().split('T')[0]
+                                    setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' })
+                                    setPlanningModal(row)
+                                }}
+                                className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors"
+                            >
+                                <CalendarDays className="w-4 h-4" />
+                            </button>
+                            <button
+                                title="Supprimer le devis"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmModal({
+                                        isOpen: true,
+                                        type: 'danger',
+                                        title: 'Supprimer le devis',
+                                        message: `Êtes-vous sûr de vouloir supprimer le devis pour "${row.client_name}"?`,
+                                        confirmText: 'Oui, supprimer',
+                                        action: async () => {
+                                            try {
+                                                await api.delete(`/admin/work-orders/${row.id}`)
+                                                fetchQuotes()
+                                                showToast('Devis supprimé avec succès', 'success')
+                                            } catch (e) {
+                                                showToast('Erreur lors de la suppression', 'error')
+                                            }
+                                        }
+                                    })
+                                }}
+                                className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </>
+                    )}
                 </div>
             )
         }
@@ -865,7 +891,7 @@ export default function QuotesManagement() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-64px)]">
+        <div className="p-4 md:p-8 w-full flex flex-col min-h-[calc(100vh-64px)]">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">{t('quotes.title_main', 'Devis / Oferte')}</h2>
@@ -1199,7 +1225,29 @@ export default function QuotesManagement() {
             <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[300px]">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                     <div className="flex items-center gap-3">
-                        <h2 className="font-bold text-slate-700">{t('quotes.list_title', 'Liste des Devis en Attente')}</h2>
+                        <div className="flex bg-slate-200/50 p-1 rounded-xl">
+                            <button
+                                onClick={() => setViewMode('active')}
+                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                                    viewMode === 'active' 
+                                    ? 'bg-white text-slate-800 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                {t('quotes.active_tab', 'Actifs')}
+                            </button>
+                            <button
+                                onClick={() => setViewMode('archived')}
+                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                                    viewMode === 'archived' 
+                                    ? 'bg-white text-slate-800 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                {t('quotes.archived_tab', 'Corbeille')}
+                            </button>
+                        </div>
                         <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-full">
                             {quotes.length} {t('quotes.total', 'total')}
                         </span>

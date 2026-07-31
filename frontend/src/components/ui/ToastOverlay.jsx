@@ -1,8 +1,19 @@
 import { useUIStore } from '../../store/uiStore'
+import { useTenantStore } from '../../store/tenantStore'
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react'
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
+const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const base = API_BASE.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    return `${base}${path}`;
+}
 
 export function ToastOverlay() {
     const { toast, showToast } = useUIStore()
+    const { tenant } = useTenantStore()
 
     if (!toast) return null
 
@@ -22,19 +33,26 @@ export function ToastOverlay() {
     }
 
     const config = typeConfig[toast.type] || typeConfig.info
+    const iconUrl = tenant?.favicon_url ? getImageUrl(tenant.favicon_url) : (tenant?.logo_url ? getImageUrl(tenant.logo_url) : null)
 
     return (
-        <div className="fixed top-6 right-6 z-[999999] animate-in slide-in-from-top-5 fade-in duration-300">
-            <div className={`flex items-start gap-3 p-4 rounded-xl border shadow-lg max-w-sm w-full ${config.bg}`}>
-                <div className="shrink-0 mt-0.5">{config.icon}</div>
-                <div className="flex-1 text-sm font-medium pr-2 whitespace-pre-wrap break-words">
+        <div className="fixed top-6 right-0 left-0 sm:left-auto sm:right-6 mx-4 sm:mx-0 z-[999999] flex justify-center sm:justify-end animate-in slide-in-from-top-5 fade-in duration-300">
+            <div className={`flex items-center gap-3.5 p-3.5 rounded-[2rem] border shadow-2xl shadow-blue-900/10 max-w-sm w-full ${config.bg}`}>
+                <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm overflow-hidden">
+                    {iconUrl ? (
+                        <img src={iconUrl} alt="Favicon" className="w-6 h-6 object-contain drop-shadow-sm" />
+                    ) : (
+                        config.icon
+                    )}
+                </div>
+                <div className="flex-1 text-[13px] font-bold pr-2 whitespace-pre-wrap break-words leading-tight">
                     {typeof toast.message === 'string' ? toast.message : JSON.stringify(toast.message)}
                 </div>
                 <button 
                     onClick={() => useUIStore.setState({ toast: null })}
-                    className="shrink-0 -mr-1 -mt-1 p-1 hover:bg-black/5 rounded-lg transition-colors opacity-60 hover:opacity-100"
+                    className="shrink-0 -mr-1 p-2 bg-white/50 hover:bg-white rounded-full transition-colors"
                 >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4 opacity-70" />
                 </button>
             </div>
         </div>

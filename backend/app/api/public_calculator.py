@@ -194,7 +194,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
     wo = WorkOrder(
         organization_id=org.id,
         token=secrets.token_urlsafe(32),
-        title=f"Cerere Deviz - {client_name}",
+        title=f"Demande de devis - {client_name}",
         is_quote=True,
         status="draft",
         work_type=payload.work_type,
@@ -222,7 +222,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
     if payload.source:
         wo.source_system = payload.source
     else:
-        wo.source_system = "we-r" if payload.is_iframe else "devis_online"
+        wo.source_system = "we-r"
         
     count = db.query(WorkOrder).filter(
         WorkOrder.organization_id == wo.organization_id,
