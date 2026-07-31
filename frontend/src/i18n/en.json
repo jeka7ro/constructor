@@ -2339,6 +2339,8 @@
     "add_new_client": "Add New Client",
     "list_title": "Waiting Quotes List",
     "total": "total",
+    "active_tab": "Active Quotes",
+    "archived_tab": "Archived",
     "search": "Search quotes...",
     "empty": "No quotes waiting.",
     "title": "Job / Title",

@@ -2430,6 +2430,8 @@
     "add_new_client": "Ajouter un nouveau client",
     "list_title": "Liste des devis en attente",
     "total": "total",
+    "active_tab": "Actifs",
+    "archived_tab": "Corbeille",
     "search": "Chercher devis...",
     "empty": "Aucun devis en attente.",
     "title": "Travail / Titre",
