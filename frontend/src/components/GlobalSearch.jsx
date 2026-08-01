@@ -76,8 +76,12 @@ const GlobalSearch = ({ isOpen, onClose }) => {
     // Get results based on Fuse or empty array
     let filteredResults = [];
     if (searchQuery.trim() !== '' && fuse) {
-        // Fuse returns an array of { item, score }
-        filteredResults = fuse.search(searchQuery).map(result => result.item);
+        // Fuse returns an array of { item, score }. We filter out bad matches (score > 0.5).
+        // 0.0 is perfect match, 1.0 is no match. 0.48 is typical for a 1-letter typo (e.g. isofex -> isoflex)
+        filteredResults = fuse.search(searchQuery)
+            .filter(result => result.score < 0.5)
+            .map(result => result.item)
+            .slice(0, 50); // limit to 50 results to prevent UI lag
     }
 
     const getIcon = (type) => {
