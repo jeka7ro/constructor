@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, text, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 from app.config import settings
 
 if settings.DATABASE_URL.startswith("sqlite"):
@@ -11,10 +12,7 @@ if settings.DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(
         settings.DATABASE_URL,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
-        pool_recycle=300,  # recycle connections every 5 min
+        poolclass=NullPool,
         connect_args={
             "keepalives": 1,
             "keepalives_idle": 30,

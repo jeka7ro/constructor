@@ -601,6 +601,19 @@ def sync_work_orders_robaws(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Eroare sincronizare: {str(e)}")
 
+def _calculate_sand_kg_from_volumes(volumes: list) -> float:
+    sand_kg = 0.0
+    if isinstance(volumes, list):
+        for v in volumes:
+            if isinstance(v, dict):
+                try:
+                    surf = float(v.get("quantity") or 0)
+                    thick = float(v.get("thickness") or 0)
+                    sand_kg += (surf * thick * 16)
+                except (ValueError, TypeError):
+                    pass
+    return sand_kg
+
 @router.post("/work-orders")
 def create_work_order(
     payload: WorkOrderCreate,
@@ -710,6 +723,10 @@ def create_work_order(
     prices_dict = getattr(payload, 'prices', {}) or {}
     prices_dict["useVat"] = getattr(payload, 'use_vat', True)
     wo.prices = prices_dict
+    
+    # Calculeaza nisipul in caz ca avem volume la creare
+    wo.route_sand_kg = _calculate_sand_kg_from_volumes(wo.volumes)
+    
     db.add(wo)
     db.flush()  # obtine ID-ul
 
@@ -873,6 +890,10 @@ def update_work_order(
     for f in fields:
         if f in update_data:
             setattr(wo, f, update_data[f])
+            
+    # Daca se modifica volumele, recalculam necesarul de nisip pe backend o singura data
+    if "volumes" in update_data:
+        wo.route_sand_kg = _calculate_sand_kg_from_volumes(update_data["volumes"])
             
     if "start_date" in update_data and str(update_data["start_date"]) != str(old_start_date):
         wo.reschedule_requested = False

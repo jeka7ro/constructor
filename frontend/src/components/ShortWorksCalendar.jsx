@@ -11,9 +11,23 @@ import api from '../lib/api';
 import WeatherWidget from './WeatherWidget';
 
 const calculateOrderSand = (wo) => {
-    // REGULĂ STRICTĂ: Totul se calculează la creare și se citește direct din baza de date.
-    // wo.route_sand_kg este deja salvat în DB. Nu facem recalculări pe frontend.
-    return (parseFloat(wo.route_sand_kg) || 0) / 1000;
+    let autoSandKg = parseFloat(wo.route_sand_kg) || 0;
+    
+    if (autoSandKg === 0) {
+        if (wo.volumes && wo.volumes.length > 0) {
+            wo.volumes.forEach(vol => {
+                const surface = parseFloat(vol.quantity) || 0;
+                const thickness = parseFloat(vol.thickness) || 0;
+                autoSandKg += (surface * thickness * 16);
+            });
+        } else {
+            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+            const fallbackThick = parseFloat(wo.thickness) || 0;
+            autoSandKg = fallbackSurface * fallbackThick * 16;
+        }
+    }
+    
+    return autoSandKg / 1000;
 };
 
 export const formatAddressCityFirst = (address) => {
