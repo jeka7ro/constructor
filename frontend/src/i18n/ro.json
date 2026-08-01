@@ -3137,6 +3137,9 @@
     "arrival_time": "Ora (estimată)",
     "send_notification": "Trimite notificare clientului",
     "notification_desc": "Email și WhatsApp cu detaliile programării",
+    "holiday_warning": "Atenție: Zi Liberă",
+    "next_holiday": "Următoarea Sărbătoare",
+    "next_holiday_full": "Următoarea Sărbătoare",
     "modal_title": "Detalii Planificare",
     "cancel_btn": "Anulează",
     "save_btn": "Salvează",
@@ -3158,6 +3161,18 @@
   },
   "iframe": "iframe",
   "form": "form",
+  "holidays": {
+    "nieuwjaar": "Anul Nou",
+    "paasmaandag": "Lunea Paștelui",
+    "fetedutravail": "Ziua Muncii",
+    "ascension": "Înălțarea",
+    "lundidepentecote": "Lunea Rusaliilor",
+    "fetenationale": "Ziua Națională",
+    "lassomption": "Adormirea Maicii Domnului",
+    "toussaint": "Toți Sfinții",
+    "armistice": "Armistițiu",
+    "noel": "Crăciun"
+  },
   "2d": "2d",
   "invalid_email": "Veuillez entrer une adresse e-mail valide.",
   "date": "date",
@@ -3228,5 +3243,10 @@
   "purpose_category": "purpose_category",
   "purpose_notes": "purpose_notes",
   "start_address": "start_address",
-  "de-DE": "de-DE"
+  "de-DE": "de-DE",
+  "search": {
+    "placeholder": "Caută... (Cmd+K)",
+    "no_results": "Niciun rezultat găsit pentru",
+    "help_text": "Caută după nume client, număr deviz, adresă șantier, etc."
+  }
 }

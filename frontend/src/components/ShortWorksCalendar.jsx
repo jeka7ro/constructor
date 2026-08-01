@@ -2,13 +2,61 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek } from 'date-fns';
-import { ro, enUS, nl } from 'date-fns/locale';
+import { ro, enUS, nl, fr, de } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../store/uiStore';
 import { useTenantStore } from '../store/tenantStore';
 import api from '../lib/api';
 import WeatherWidget from './WeatherWidget';
+
+const PUBLIC_HOLIDAYS_BE = [
+    { date: '2025-01-01', name: 'Nieuwjaar' },
+    { date: '2025-04-21', name: 'Paasmaandag' },
+    { date: '2025-05-01', name: 'Fête du Travail' },
+    { date: '2025-05-29', name: 'Ascension' },
+    { date: '2025-06-09', name: 'Lundi de Pentecôte' },
+    { date: '2025-07-21', name: 'Fête Nationale' },
+    { date: '2025-08-15', name: 'L\'Assomption' },
+    { date: '2025-11-01', name: 'Toussaint' },
+    { date: '2025-11-11', name: 'Armistice' },
+    { date: '2025-12-25', name: 'Noël' },
+    { date: '2026-01-01', name: 'Nieuwjaar' },
+    { date: '2026-04-06', name: 'Paasmaandag' },
+    { date: '2026-05-01', name: 'Fête du Travail' },
+    { date: '2026-05-14', name: 'Ascension' },
+    { date: '2026-05-25', name: 'Lundi de Pentecôte' },
+    { date: '2026-07-21', name: 'Fête Nationale' },
+    { date: '2026-08-15', name: 'L\'Assomption' },
+    { date: '2026-11-01', name: 'Toussaint' },
+    { date: '2026-11-11', name: 'Armistice' },
+    { date: '2026-12-25', name: 'Noël' },
+    { date: '2027-01-01', name: 'Nieuwjaar' },
+    { date: '2027-03-29', name: 'Paasmaandag' },
+    { date: '2027-05-01', name: 'Fête du Travail' },
+    { date: '2027-05-06', name: 'Ascension' },
+    { date: '2027-05-17', name: 'Lundi de Pentecôte' },
+    { date: '2027-07-21', name: 'Fête Nationale' },
+    { date: '2027-08-15', name: 'L\'Assomption' },
+    { date: '2027-11-01', name: 'Toussaint' },
+    { date: '2027-11-11', name: 'Armistice' },
+    { date: '2027-12-25', name: 'Noël' }
+];
+
+const getUpcomingHolidays = (count = 4) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcoming = [];
+    for (const holiday of PUBLIC_HOLIDAYS_BE) {
+        const hDate = new Date(holiday.date);
+        hDate.setHours(0, 0, 0, 0);
+        if (hDate > today) {
+            upcoming.push(holiday);
+            if (upcoming.length === count) break;
+        }
+    }
+    return upcoming;
+};
 
 const calculateOrderSand = (wo) => {
     let autoSandKg = parseFloat(wo.route_sand_kg) || 0;
@@ -219,6 +267,8 @@ export default function ShortWorksCalendar({
     const getLocale = () => {
         if (i18n.language?.startsWith('ro')) return ro;
         if (i18n.language?.startsWith('nl')) return nl;
+        if (i18n.language?.startsWith('fr')) return fr;
+        if (i18n.language?.startsWith('de')) return de;
         return enUS;
     };
     const dateLocale = getLocale();
@@ -497,6 +547,52 @@ export default function ShortWorksCalendar({
                         </h2>
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* Next Holiday Box */}
+                        {(() => {
+                            const upcomingHolidays = getUpcomingHolidays(4);
+                            if (upcomingHolidays.length > 0) {
+                                const nextH = upcomingHolidays[0];
+                                const tooltipHolidays = upcomingHolidays.slice(1);
+                                
+                                return (
+                                    <div 
+                                        className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors" 
+                                        onClick={() => setCurrentDate(new Date(nextH.date))}
+                                    >
+                                        <div className="bg-white/20 rounded p-1">
+                                            <CalendarIcon className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div className="flex flex-col text-left leading-tight">
+                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{t('planning.next_holiday_full', 'Férié')}</span>
+                                            <span className="text-xs font-bold">{t(`holidays.${nextH.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, nextH.name)} ({format(new Date(nextH.date), 'dd MMM', { locale: dateLocale })})</span>
+                                        </div>
+
+                                        {/* Custom Beautiful Tooltip */}
+                                        {tooltipHolidays.length > 0 && (
+                                            <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-none">
+                                                <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
+                                                    {t('planning.next_holiday_full', 'Următoarele Sărbători')}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {tooltipHolidays.map((h, index) => (
+                                                        <div key={index} className="flex justify-between items-center">
+                                                            <span className="font-medium text-slate-100">
+                                                                {index + 2}. {t(`holidays.${h.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, h.name)}
+                                                            </span>
+                                                            <span className="text-xs text-slate-400">
+                                                                {format(new Date(h.date), 'dd MMM yyyy', { locale: dateLocale })}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
                         {/* Holding Area (Moved to the right as requested) */}
                         <div 
                             className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3' : 'w-10'} h-10 rounded-xl border-2 border-dashed ${isSelectingForHolding ? 'border-yellow-400 bg-yellow-400/20 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/10'} transition-all cursor-pointer relative`}
@@ -733,24 +829,31 @@ export default function ShortWorksCalendar({
                             const dayStr = format(day, 'yyyy-MM-dd');
                             const dailySand = sandPerDay[dayStr] || 0;
                             const sandDisplay = dailySand > 0 ? `${dailySand.toFixed(1)}T` : '';
+                            const holidayInfo = PUBLIC_HOLIDAYS_BE.find(h => h.date === dayStr);
 
                             return (
                                 <div
                                     key={i}
-                                    className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}
+                                    className={`h-14 flex flex-col items-center justify-center border-r border-slate-200 dark:border-slate-800 relative ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : (holidayInfo ? 'bg-red-50/50 dark:bg-red-900/10' : '')}`}
                                     onMouseEnter={() => setHoveredDay(i)}
                                     onMouseLeave={() => setHoveredDay(null)}
                                     onDoubleClick={(e) => handleUnCompleteDay(day, e)}
+                                    title={holidayInfo ? holidayInfo.name : ''}
                                 >
-                                    <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>
+                                    <span className={`text-[11px] uppercase font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-500' : 'text-slate-500')}`}>
                                         {format(day, 'EEE', { locale: dateLocale })}
                                     </span>
-                                    <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                                    <span className={`text-sm font-black leading-none mt-0.5 ${isToday ? 'text-blue-600 dark:text-blue-400' : (holidayInfo ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-slate-200')}`}>
                                         {format(day, 'd')}
                                     </span>
-                                    {dailySand > 0 && (
+                                    {dailySand > 0 && !holidayInfo && (
                                         <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mt-0.5" title={t('admin_overview.total_sand_day', 'Total nisip estimat pentru această zi')}>
                                             {sandDisplay}
+                                        </span>
+                                    )}
+                                    {holidayInfo && (
+                                        <span className="text-[9px] font-bold text-red-500 uppercase tracking-tight mt-0.5 max-w-[90%] truncate">
+                                            {t(`holidays.${holidayInfo.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, holidayInfo.name)}
                                         </span>
                                     )}
                                     {hoveredDay === i && (() => {
@@ -783,10 +886,13 @@ export default function ShortWorksCalendar({
                         {Array.from({ length: (END_HOUR - dynamicStartHour) * 7 }).map((_, i) => {
                             const dayIndex = i % 7;
                             const hourIndex = Math.floor(i / 7);
+                            const cellDayStr = format(weekDays[dayIndex], 'yyyy-MM-dd');
+                            const isHoliday = PUBLIC_HOLIDAYS_BE.some(h => h.date === cellDayStr);
+                            
                             return (
                                 <div 
                                     key={i} 
-                                    className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
+                                    className={`group relative flex items-center justify-center border-r border-b border-slate-200 dark:border-slate-800/60 transition-colors cursor-pointer ${isHoliday ? 'bg-red-50 dark:bg-red-900/20' : ''} hover:bg-slate-100/50 dark:hover:bg-slate-800/50 ${isDragging ? 'hover:bg-blue-100/50 dark:hover:bg-blue-900/30' : ''}`}
                                     onClick={() => {
                                         if (Date.now() - lastSwipeTime.current < 400) return; // Prevent accidental click after scroll
                                         if (heldOrder) {
@@ -1319,6 +1425,25 @@ export default function ShortWorksCalendar({
                                         />
                                     </div>
                                 </div>
+                                {(() => {
+                                    const holiday = PUBLIC_HOLIDAYS_BE.find(h => h.date === pendingReschedule.start_date);
+                                    if (holiday) {
+                                        return (
+                                            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl mt-4">
+                                                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-semibold text-red-900 dark:text-red-200">
+                                                        {t('planning.holiday_warning', 'Attention: Jour Férié')}
+                                                    </span>
+                                                    <span className="text-xs text-red-700 dark:text-red-300">
+                                                        {t(`holidays.${holiday.name.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, holiday.name)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                                 <div 
                                     onClick={() => setPlanningNotify(!planningNotify)}
                                     className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${

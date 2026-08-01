@@ -2781,6 +2781,9 @@
     "arrival_time": "Uhrzeit (geschätzt)",
     "send_notification": "Benachrichtigung an den Kunden senden",
     "notification_desc": "E-Mail und WhatsApp mit Termindetails",
+    "holiday_warning": "Achtung: Feiertag",
+    "next_holiday": "Nächster Feiertag",
+    "next_holiday_full": "Nächster Feiertag",
     "modal_title": "Planungsdetails",
     "cancel_btn": "Abbrechen",
     "save_btn": "Speichern",
@@ -3157,5 +3160,22 @@
   "purpose_category": "purpose_category",
   "purpose_notes": "purpose_notes",
   "start_address": "start_address",
-  "de-DE": "de-DE"
+  "de-DE": "de-DE",
+  "holidays": {
+    "nieuwjaar": "Neujahr",
+    "paasmaandag": "Ostermontag",
+    "fetedutravail": "Tag der Arbeit",
+    "ascension": "Christi Himmelfahrt",
+    "lundidepentecote": "Pfingstmontag",
+    "fetenationale": "Nationalfeiertag",
+    "lassomption": "Mariä Himmelfahrt",
+    "toussaint": "Allerheiligen",
+    "armistice": "Waffenstillstand",
+    "noel": "Weihnachten"
+  },
+  "search": {
+    "placeholder": "Suchen... (Cmd+K)",
+    "no_results": "Keine Ergebnisse gefunden für",
+    "help_text": "Suchen Sie nach Kundenname, Angebotsnummer, Baustellenadresse usw."
+  }
 }

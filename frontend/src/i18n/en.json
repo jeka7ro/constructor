@@ -2845,6 +2845,9 @@
     "arrival_time": "Time (estimated)",
     "send_notification": "Send notification to client",
     "notification_desc": "Email and WhatsApp with appointment details",
+    "holiday_warning": "Warning: Public Holiday",
+    "next_holiday": "Next Holiday",
+    "next_holiday_full": "Next Holiday",
     "modal_title": "Planning Details",
     "cancel_btn": "Cancel",
     "save_btn": "Save",
@@ -3182,5 +3185,22 @@
   "purpose_category": "purpose_category",
   "purpose_notes": "purpose_notes",
   "start_address": "start_address",
-  "de-DE": "de-DE"
+  "de-DE": "de-DE",
+  "holidays": {
+    "nieuwjaar": "New Year",
+    "paasmaandag": "Easter Monday",
+    "fetedutravail": "Labor Day",
+    "ascension": "Ascension",
+    "lundidepentecote": "Whit Monday",
+    "fetenationale": "National Holiday",
+    "lassomption": "Assumption",
+    "toussaint": "All Saints",
+    "armistice": "Armistice",
+    "noel": "Christmas"
+  },
+  "search": {
+    "placeholder": "Search... (Cmd+K)",
+    "no_results": "No results found for",
+    "help_text": "Search by client name, estimate number, site address, etc."
+  }
 }

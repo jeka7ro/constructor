@@ -2909,6 +2909,9 @@
     "arrival_time": "Heure (estimée)",
     "send_notification": "Envoyer une notification au client",
     "notification_desc": "Email et WhatsApp avec les détails du rendez-vous",
+    "holiday_warning": "Attention: Jour Férié",
+    "next_holiday": "Prochain Férié",
+    "next_holiday_full": "Prochain Férié",
     "modal_title": "Détails de Planification",
     "cancel_btn": "Annuler",
     "save_btn": "Enregistrer",
@@ -3246,5 +3249,22 @@
   "purpose_category": "purpose_category",
   "purpose_notes": "purpose_notes",
   "start_address": "start_address",
-  "de-DE": "de-DE"
+  "de-DE": "de-DE",
+  "holidays": {
+    "nieuwjaar": "Nouvel An",
+    "paasmaandag": "Lundi de Pâques",
+    "fetedutravail": "Fête du Travail",
+    "ascension": "Ascension",
+    "lundidepentecote": "Lundi de Pentecôte",
+    "fetenationale": "Fête Nationale",
+    "lassomption": "L'Assomption",
+    "toussaint": "Toussaint",
+    "armistice": "Armistice",
+    "noel": "Noël"
+  },
+  "search": {
+    "placeholder": "Rechercher... (Cmd+K)",
+    "no_results": "Aucun résultat trouvé pour",
+    "help_text": "Recherchez par nom de client, numéro de devis, adresse du chantier, etc."
+  }
 }

@@ -2731,6 +2731,9 @@
     "arrival_time": "Tijd (geschat)",
     "send_notification": "Stuur melding naar klant",
     "notification_desc": "E-mail en WhatsApp met afspraakgegevens",
+    "holiday_warning": "Let op: Feestdag",
+    "next_holiday": "Volgende Feestdag",
+    "next_holiday_full": "Volgende Feestdag",
     "modal_title": "Planningsdetails",
     "cancel_btn": "Annuleren",
     "save_btn": "Opslaan",
@@ -3154,5 +3157,22 @@
   "purpose_category": "purpose_category",
   "purpose_notes": "purpose_notes",
   "start_address": "start_address",
-  "de-DE": "de-DE"
+  "de-DE": "de-DE",
+  "holidays": {
+    "nieuwjaar": "Nieuwjaar",
+    "paasmaandag": "Paasmaandag",
+    "fetedutravail": "Dag van de Arbeid",
+    "ascension": "O.L.H. Hemelvaart",
+    "lundidepentecote": "Pinkstermaandag",
+    "fetenationale": "Nationale Feestdag",
+    "lassomption": "O.L.V. Hemelvaart",
+    "toussaint": "Allerheiligen",
+    "armistice": "Wapenstilstand",
+    "noel": "Kerstmis"
+  },
+  "search": {
+    "placeholder": "Zoeken... (Cmd+K)",
+    "no_results": "Geen resultaten gevonden voor",
+    "help_text": "Zoeken op klantnaam, offertenummer, werfadres, enz."
+  }
 }

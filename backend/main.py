@@ -407,8 +407,11 @@ app.include_router(calendar_sync.router, prefix="/api")
 app.include_router(public_work_orders.router, prefix="/api")
 app.include_router(worker_orders.router, prefix="/api")
 app.include_router(admin_logistics.router, prefix="/api")
+from app.api import admin_search
+
 app.include_router(public_calculator.router)
 app.include_router(devis_online.router)
+app.include_router(admin_search.router, prefix="/api")
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body

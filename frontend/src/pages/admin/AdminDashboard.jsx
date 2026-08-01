@@ -6,9 +6,10 @@ import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import LanguageSelector from '../../components/LanguageSelector'
 import HeaderNotifications from '../../components/HeaderNotifications'
+import GlobalSearch from '../../components/GlobalSearch'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -33,6 +34,20 @@ export default function AdminDashboard() {
         return () => clearInterval(timer)
     }, [])
     const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true)
+    const [showGlobalSearch, setShowGlobalSearch] = useState(false)
+
+    // Setup Cmd+K / Ctrl+K listener
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowGlobalSearch(true);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     const [showNotifications, setShowNotifications] = useState(false)
     const [notifications, setNotifications] = useState([])
     const [notifCount, setNotifCount] = useState(0)
@@ -425,15 +440,33 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-5">
-                        {/* Date & Time */}
-                        <div className="hidden md:flex text-xs font-semibold text-white/90 bg-white/10 px-3 py-1.5 rounded-full border border-white/20 mr-1 shadow-sm">
-                            {now.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • {now.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : i18n.language === 'fr' ? 'fr-FR' : 'ro-RO')}
+                        <div className="hidden md:block text-sm font-medium text-white/90 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+                            {(() => {
+                                const langMap = {
+                                    'fr': 'fr-FR',
+                                    'nl': 'nl-NL',
+                                    'ro': 'ro-RO',
+                                    'en': 'en-US',
+                                    'de': 'de-DE'
+                                };
+                                const locale = langMap[i18n.language] || 'fr-FR';
+                                return `${now.toLocaleDateString(locale, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • ${now.toLocaleTimeString(locale)}`;
+                            })()}
                         </div>
 
                         {/* Right side items: Language, Theme, Notifications */}
                         <div className="flex items-center gap-2">
                            <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
                            <div className="w-[1px] h-5 bg-white/20 mx-1 hidden sm:block"></div>
+                           
+                           <button
+                               onClick={() => setShowGlobalSearch(true)}
+                               title={t('admin.search', 'Rechercher (Cmd+K)')}
+                               className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
+                           >
+                               <Search className="w-4 h-4 text-white" />
+                           </button>
+
                            <button
                                onClick={() => setDarkMode(!darkMode)}
                                title={darkMode ? t('admin.light_mode', 'Mode Clair') : t('admin.dark_mode', 'Mode Sombre')}
@@ -715,6 +748,11 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+            
+            <GlobalSearch 
+                isOpen={showGlobalSearch} 
+                onClose={() => setShowGlobalSearch(false)} 
+            />
         </div>
     )
 }
