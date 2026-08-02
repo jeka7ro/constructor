@@ -461,7 +461,7 @@ export default function AdminDashboard() {
                            
                            <button
                                onClick={() => setShowGlobalSearch(true)}
-                               title={t('admin.search', 'Rechercher (Cmd+K)')}
+                               title={t('search.placeholder', 'Rechercher (Cmd+K)')}
                                className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
                            >
                                <Search className="w-4 h-4 text-white" />
