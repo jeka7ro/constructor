@@ -227,6 +227,33 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
         return False
         
     from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+    primary_color = "#f26522"
+    
+    try:
+        from app.database import SessionLocal
+        from app.models import Organization, WorkOrder
+        db = SessionLocal()
+        
+        if not org_id and wo_id:
+            wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+            if wo:
+                org_id = wo.organization_id
+        
+        if org_id:
+            org = db.query(Organization).filter(Organization.id == org_id).first()
+            if org and org.primary_color:
+                primary_color = org.primary_color
+        elif not org_id:
+            org = db.query(Organization).first()
+            if org and org.primary_color:
+                primary_color = org.primary_color
+    except Exception as e:
+        logger.error(f"Error fetching tenant primary_color: {e}")
+    finally:
+        try:
+            db.close()
+        except:
+            pass
 
     if client_language == "nl":
         subject = "Update van uw offerte – Davide Chape"
@@ -264,7 +291,7 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
 
     html_content = f"""
     <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #f26522;">
+        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid {primary_color};">
             <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 60px;" />
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
@@ -273,7 +300,7 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
             <p style="font-size: 16px;">{body_main}</p>
             
             <div style="text-align: center; margin: 35px 0;">
-                <a href="{signing_url}" style="background-color: #f26522; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+                <a href="{signing_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
             <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: #2b5c8f;">{signing_url}</a></p>

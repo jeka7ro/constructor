@@ -1,6 +1,6 @@
 // v2 - with delete button
 import { useState, useEffect } from 'react'
-import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip } from 'lucide-react'
+import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import DataTable from '../../components/DataTable'
@@ -786,6 +786,17 @@ export default function QuotesManagement() {
                                     <Link className="w-4 h-4" />
                                 </button>
                             )}
+
+                            <button 
+                                title={t('quotes.view_details', 'Voir les détails')}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes' } });
+                                }}
+                                className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                            >
+                                <Eye className="w-4 h-4" />
+                            </button>
 
                             <button 
                                 title="Voir Devis PDF"

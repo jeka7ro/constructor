@@ -1114,7 +1114,7 @@ def update_work_order(
 
     # Handle manual explicit notifications from frontend modal
     if getattr(payload, 'send_notification', False):
-        if wo.source_system == "devis_online":
+        if getattr(wo, 'token', None):
             wo.client_notified = True
             db.commit()
             from app.services.email_service import send_planning_update_email
@@ -1136,11 +1136,11 @@ def update_work_order(
                 except Exception as e:
                     print(f"Failed to send planning update whatsapp: {e}")
         else:
-            print(f"Skipped planning notification for WO {wo.id} because source is {wo.source_system}")
+            print(f"Skipped planning notification for WO {wo.id} because it lacks a token")
     else:
         # Check if discount was modified from admin modal
         if discount_changed and wo.client_email:
-            if wo.source_system == "devis_online":
+            if getattr(wo, 'token', None):
                 from app.services.email_service import send_quote_update_email
                 proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
                 try:
@@ -1160,18 +1160,15 @@ def update_work_order(
                     auto_msg = WorkOrderMessage(
                         work_order_id=wo.id,
                         sender="admin",
-                        admin_id=current_admin.id if current_admin else None,
                         message=chat_text,
-                        is_read_by_client=False,
-                        is_read_by_admin=True,
-                        message_type="text"
+                        is_read_by_admin=True
                     )
                     db.add(auto_msg)
                     db.flush()
                 except Exception as e:
                     print(f"Failed to send quote update email or chat: {e}")
             else:
-                print(f"Skipped discount notification for WO {wo.id} because source is {wo.source_system}")
+                print(f"Skipped discount notification for WO {wo.id} because it lacks a token")
 
         # Removed backward compatibility for old automatic emails
         # to ensure the admin has full control via the frontend explicit `send_notification` payload flag.
