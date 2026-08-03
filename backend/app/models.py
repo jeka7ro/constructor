@@ -1161,6 +1161,9 @@ class WorkOrderMessage(Base):
     sender          = Column(String(20), nullable=False) # 'admin' | 'client'
     message         = Column(Text, nullable=False)
     is_read_by_admin= Column(Boolean, default=False)
+    is_hidden       = Column(Boolean, default=False)
+    translations    = Column(JSON, default={})
+    reactions       = Column(JSON, default={})
     created_at      = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     work_order = relationship("WorkOrder")

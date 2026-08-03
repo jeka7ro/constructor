@@ -333,12 +333,34 @@ export default function QuotesManagement() {
                 try {
                     const res = await api.get('/admin/pricing-settings');
                     setPricingSettings(res.data);
+                    const pSet = res.data;
+                    setForm(prev => ({
+                        ...prev,
+                        prices: {
+                            base: prev.prices?.base !== 12.5 ? prev.prices.base : pSet.base_price_sqm,
+                            extra: prev.prices?.extra !== 1.25 ? prev.prices.extra : pSet.extra_thickness_price_per_cm,
+                            foil: prev.prices?.foil !== 1.2 ? prev.prices.foil : pSet.plastic_foil_price_sqm,
+                            mesh: prev.prices?.mesh !== 2.5 ? prev.prices.mesh : pSet.metal_mesh_price_sqm,
+                            fiber: prev.prices?.fiber !== 2.0 ? prev.prices.fiber : pSet.fiber_price_sqm
+                        }
+                    }));
                 } catch (e) {}
                 return;
             }
             try {
                 const res = await api.get(`/admin/pricing-settings?client_id=${form.client_id}`);
                 setPricingSettings(res.data);
+                const pSet = res.data;
+                setForm(prev => ({
+                    ...prev,
+                    prices: {
+                        base: prev.prices?.base !== 12.5 ? prev.prices.base : pSet.base_price_sqm,
+                        extra: prev.prices?.extra !== 1.25 ? prev.prices.extra : pSet.extra_thickness_price_per_cm,
+                        foil: prev.prices?.foil !== 1.2 ? prev.prices.foil : pSet.plastic_foil_price_sqm,
+                        mesh: prev.prices?.mesh !== 2.5 ? prev.prices.mesh : pSet.metal_mesh_price_sqm,
+                        fiber: prev.prices?.fiber !== 2.0 ? prev.prices.fiber : pSet.fiber_price_sqm
+                    }
+                }));
             } catch (error) {
                 console.error("Failed to fetch client pricing settings", error);
             }

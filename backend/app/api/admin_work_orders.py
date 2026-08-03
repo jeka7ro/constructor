@@ -7,14 +7,17 @@ import secrets
 import os
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, and_, desc, func
+import re
+from deep_translator import GoogleTranslator
 
 from app.database import get_db
-from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction, PricingSetting
+from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, WorkOrderMessage, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction, PricingSetting
 from app.api.admin_auth import get_current_admin
 from app.services.billtobox import send_invoice_to_billtobox
 from app.services.pdf_generator import generate_invoice_pdf
@@ -253,9 +256,9 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
         return wo.cached_snapshot
     # ─────────────────────────────────────────────────────────────────────────────
 
-    # Incarca surface_thresholds live din pricing settings (nu sunt stocate pe WO)
+    # Incarca pricing live din setari
     wo_prices = dict(wo.prices or {})
-    if db is not None and 'surface_thresholds' not in wo_prices:
+    if db is not None:
         pricing = db.query(PricingSetting).filter(
             PricingSetting.organization_id == wo.organization_id,
             PricingSetting.client_id == (wo.client_id if wo.client_id else None)
@@ -265,12 +268,27 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
                 PricingSetting.organization_id == wo.organization_id,
                 PricingSetting.client_id == None
             ).first()
+            
         if pricing:
-            if pricing.surface_thresholds:
+            # Daca comanda NU este facturata si nu are pret fix (e adaugata manual, nu online)
+            # folosim tarifele 'live' curente. (Comenzile online au deja 'base' salvat la creare).
+            if not wo.is_invoiced:
+                if 'base' not in wo_prices and pricing.base_price_sqm is not None: wo_prices['base'] = float(pricing.base_price_sqm)
+                if 'extra' not in wo_prices and pricing.extra_thickness_price_per_cm is not None: wo_prices['extra'] = float(pricing.extra_thickness_price_per_cm)
+                if 'foil' not in wo_prices and pricing.plastic_foil_price_sqm is not None: wo_prices['foil'] = float(pricing.plastic_foil_price_sqm)
+                if 'mesh' not in wo_prices and pricing.metal_mesh_price_sqm is not None: wo_prices['mesh'] = float(pricing.metal_mesh_price_sqm)
+                if 'fiber' not in wo_prices and pricing.fiber_price_sqm is not None: wo_prices['fiber'] = float(pricing.fiber_price_sqm)
+                if 'standard_thickness' not in wo_prices and pricing.standard_thickness_cm is not None: wo_prices['standard_thickness'] = float(pricing.standard_thickness_cm)
+            
+            # Adaugam restul setarilor (TVA, praguri) daca lipsesc
+            if 'surface_thresholds' not in wo_prices and pricing.surface_thresholds:
                 wo_prices['surface_thresholds'] = pricing.surface_thresholds
-            wo_prices['vat_legal_entity'] = pricing.vat_legal_entity
-            wo_prices['vat_physical_new'] = pricing.vat_physical_new
-            wo_prices['vat_physical_repair'] = pricing.vat_physical_repair
+            if 'vat_legal_entity' not in wo_prices:
+                wo_prices['vat_legal_entity'] = pricing.vat_legal_entity
+            if 'vat_physical_new' not in wo_prices:
+                wo_prices['vat_physical_new'] = pricing.vat_physical_new
+            if 'vat_physical_repair' not in wo_prices:
+                wo_prices['vat_physical_repair'] = pricing.vat_physical_repair
     site_name = None
     client_display = wo.client_name
     
@@ -579,10 +597,16 @@ def list_work_orders(
     else:
         # Default: comenzile normale (is_quote=False) + devisele trimise in planning (is_quote=True + status != draft)
         from sqlalchemy import or_
-        q = q.filter(or_(
-            WorkOrder.is_quote == False,
-            (WorkOrder.is_quote == True) & (WorkOrder.status.in_(['planning', 'confirmed', 'in_progress', 'completed']))
-        ))
+        if status == 'deleted':
+            q = q.filter(or_(
+                WorkOrder.is_quote == False,
+                WorkOrder.is_quote == True  # Allow all deleted items in the WorkOrders archive if status='deleted'
+            ))
+        else:
+            q = q.filter(or_(
+                WorkOrder.is_quote == False,
+                (WorkOrder.is_quote == True) & (WorkOrder.status.in_(['planning', 'confirmed', 'in_progress', 'completed']))
+            ))
 
     if slim or invoice_mode:
         # Mod rapid: nu incarca documente/poze (expensive selectinload)
@@ -2247,7 +2271,11 @@ def get_work_order_messages(
             "id": m.id,
             "sender": m.sender,
             "message": m.message,
-            "created_at": m.created_at.isoformat() + "Z"
+            "created_at": m.created_at.isoformat() + "Z",
+            "translations": m.translations,
+            "reactions": m.reactions,
+            "is_hidden": m.is_hidden,
+            "is_read_by_admin": m.is_read_by_admin
         } for m in messages
     ]
     
@@ -2255,6 +2283,24 @@ def get_work_order_messages(
 
 class MessageCreate(BaseModel):
     message: str
+    target_lang: Optional[str] = None
+    translations: Optional[dict] = None
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str
+
+@router.post("/translate")
+def translate_text(
+    payload: TranslateRequest,
+    current_admin: Admin = Depends(get_current_admin)
+):
+    try:
+        from deep_translator import GoogleTranslator
+        translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.text)
+        return {"translatedText": translated}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/work-orders/{wo_id}/messages")
 def post_work_order_message(
@@ -2270,11 +2316,21 @@ def post_work_order_message(
     if getattr(wo, 'is_chat_closed', False):
         raise HTTPException(status_code=403, detail="Chat is closed")
         
+    translations = payload.translations or {}
+    if payload.target_lang and not translations:
+        try:
+            from deep_translator import GoogleTranslator
+            translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.message)
+            translations[payload.target_lang] = translated
+        except Exception as e:
+            print(f"Translation failed: {e}")
+            
     msg = WorkOrderMessage(
         work_order_id=wo.id,
         sender="admin",
         message=payload.message,
-        is_read_by_admin=True
+        is_read_by_admin=True,
+        translations=translations
     )
     db.add(msg)
     db.commit()
@@ -2284,7 +2340,115 @@ def post_work_order_message(
         "id": msg.id,
         "sender": msg.sender,
         "message": msg.message,
+        "created_at": msg.created_at.isoformat() + "Z",
+        "translations": msg.translations,
+        "reactions": msg.reactions
+    }
+
+class ReactionToggle(BaseModel):
+    emoji: str
+
+@router.post("/work-orders/{wo_id}/messages/{msg_id}/react")
+def toggle_work_order_message_reaction(
+    wo_id: str,
+    msg_id: str,
+    payload: ReactionToggle,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    reactions = msg.reactions or {}
+    emoji = payload.emoji
+    
+    # Check if they are toggling off their current reaction
+    was_toggling_off = False
+    if emoji in reactions and "admin" in reactions[emoji]:
+        was_toggling_off = True
+        
+    # Remove 'admin' from ALL emojis (max 1 reaction per user)
+    for e in list(reactions.keys()):
+        if "admin" in reactions[e]:
+            reactions[e].remove("admin")
+            if not reactions[e]:
+                del reactions[e]
+                
+    # If they weren't toggling off, add the new reaction
+    if not was_toggling_off:
+        if emoji not in reactions:
+            reactions[emoji] = []
+        reactions[emoji].append("admin")
+    msg.reactions = reactions
+    # Tell SQLAlchemy the JSON column changed
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(msg, "reactions")
+    
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": msg.id,
+        "reactions": msg.reactions
+    }
+
+@router.put("/work-orders/{wo_id}/messages/{msg_id}")
+def put_work_order_message(
+    wo_id: str,
+    msg_id: str,
+    payload: MessageCreate,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    # Only allow editing admin messages (or any message depending on requirement, but usually admin)
+    if msg.sender != "admin":
+        raise HTTPException(status_code=403, detail="Cannot edit client messages")
+
+    msg.message = payload.message
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": msg.id,
+        "sender": msg.sender,
+        "message": msg.message,
         "created_at": msg.created_at.isoformat() + "Z"
+    }
+
+@router.put("/work-orders/{wo_id}/messages/{msg_id}/toggle-visibility")
+def toggle_work_order_message_visibility(
+    wo_id: str,
+    msg_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id, WorkOrder.organization_id == current_admin.organization_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    msg.is_hidden = not getattr(msg, 'is_hidden', False)
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": msg.id,
+        "sender": msg.sender,
+        "message": msg.message,
+        "created_at": msg.created_at.isoformat() + "Z",
+        "is_hidden": msg.is_hidden
     }
 
 @router.delete("/work-orders/{wo_id}/messages/{msg_id}")

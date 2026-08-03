@@ -5,9 +5,7 @@ from app.models import WorkOrder
 db = SessionLocal()
 wo = db.query(WorkOrder).filter(WorkOrder.token == "KDrm5Q7ib9ngQbj5p_ROkxMsMvtqspjSgKm-aiTbUTY").first()
 if wo:
-    db.delete(wo)
-    db.commit()
-    print("Comanda a fost stearsa definitiv din baza de date Supabase!")
+    print(f"FOUND: ID={wo.id}, Status={wo.status}, Client={wo.client_name}")
 else:
-    print("Nu a fost gasita comanda.")
+    print("NOT FOUND")
 db.close()

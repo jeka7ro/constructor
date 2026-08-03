@@ -228,6 +228,8 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [chatMessage, setChatMessage] = useState("")
     const [sendingMessage, setSendingMessage] = useState(false)
     const [historyModalOpen, setHistoryModalOpen] = useState(false)
+    const [editingMessageId, setEditingMessageId] = useState(null)
+    const [editMessageText, setEditMessageText] = useState("")
     
     const messagesEndRef = useRef(null)
     const scrollToBottom = () => {
@@ -480,6 +482,20 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             showToast("Mesajul a fost șters.", "success");
         } catch (err) {
             showToast("Eroare la ștergerea mesajului.", "error");
+        }
+    };
+
+    const handleEditMessage = async (msgId) => {
+        if (!editMessageText.trim()) return;
+        try {
+            const res = await api.put(`/admin/work-orders/${id}/messages/${msgId}`, {
+                message: editMessageText
+            });
+            setMessages(prev => prev.map(m => m.id === msgId ? res.data : m));
+            setEditingMessageId(null);
+            showToast("Mesajul a fost actualizat.", "success");
+        } catch (err) {
+            showToast("Eroare la actualizarea mesajului.", "error");
         }
     };
 
@@ -1145,7 +1161,23 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch mb-5">
                 <div className="flex flex-col gap-5">
 
-                    <Section className="flex-1" icon={FileText} title={t('work_order_detail.general_details.title', 'Détails Généraux')} contentClassName="!p-3">
+                    <Section 
+                        className="flex-1" 
+                        icon={FileText} 
+                        title={t('work_order_detail.general_details.title', 'Détails Généraux')} 
+                        contentClassName="!p-3"
+                        headerRight={
+                            <button 
+                                onClick={() => setChatModalOpen(true)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${messages.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 ring-2 ring-blue-500/20' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                                title={t('admin.open_client_chat', 'Ouvrir la communication avec le client')}
+                            >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">{t('admin.chat', 'Chat')}</span>
+                                {messages.length > 0 && <span className="bg-white/20 px-1.5 rounded-full">{messages.length}</span>}
+                            </button>
+                        }
+                    >
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.id', 'ID Commande')}</p>
@@ -2329,21 +2361,48 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="text-center text-slate-400 py-10 text-sm font-semibold">{t('admin.no_messages_yet', 'Niciun mesaj încă. Începeți conversația!')}</div>
                             ) : (
                                 messages.map(msg => (
-                                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'} group relative`}>
-                                        <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'admin' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none'}`}>
-                                            <p className="text-sm">{msg.message}</p>
+                                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : msg.sender === 'system' ? 'justify-center' : 'justify-start'} group relative`}>
+                                        <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'admin' ? 'bg-blue-600 text-white rounded-br-none' : msg.sender === 'system' ? 'w-full bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs italic text-center border border-slate-200 dark:border-slate-700' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none'}`}>
+                                            {editingMessageId === msg.id ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <textarea 
+                                                        value={editMessageText}
+                                                        onChange={(e) => setEditMessageText(e.target.value)}
+                                                        className="w-full text-sm text-slate-900 bg-white rounded p-1.5 border-none outline-none focus:ring-2 focus:ring-blue-400"
+                                                        rows={2}
+                                                    />
+                                                    <div className="flex justify-end gap-2 mt-1">
+                                                        <button onClick={() => setEditingMessageId(null)} className="text-[10px] uppercase font-bold text-blue-200 hover:text-white transition-colors">{t('common.cancel', 'Anulează')}</button>
+                                                        <button onClick={() => handleEditMessage(msg.id)} className="text-[10px] uppercase font-bold bg-white text-blue-600 px-2 py-0.5 rounded hover:bg-blue-50 transition-colors">{t('common.save', 'Salvează')}</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm">{msg.message}</p>
+                                            )}
                                             <div className="flex items-center justify-between mt-1 gap-4">
                                                 <span className={`text-[9px] font-bold uppercase ${msg.sender === 'admin' ? 'text-blue-200' : 'text-slate-400'}`}>
-                                                    {new Date(msg.created_at).toLocaleString('ro-RO')}
+                                                    {msg.sender !== 'system' && new Date(msg.created_at).toLocaleString('ro-RO')}
                                                 </span>
                                                 {msg.sender === 'admin' && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
-                                                    <button 
-                                                        onClick={() => handleDeleteMessage(msg.id)}
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
-                                                        title={t('admin.delete_message', 'Șterge mesaj')}
-                                                    >
-                                                        <Trash2 className="w-3 h-3" />
-                                                    </button>
+                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setEditingMessageId(msg.id);
+                                                                setEditMessageText(msg.message);
+                                                            }}
+                                                            className="p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
+                                                            title={t('admin.edit_message', 'Editează mesaj')}
+                                                        >
+                                                            <Edit2 className="w-3 h-3" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteMessage(msg.id)}
+                                                            className="p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
+                                                            title={t('admin.delete_message', 'Șterge mesaj')}
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                                 {msg.sender === 'client' && (
                                                     <button 

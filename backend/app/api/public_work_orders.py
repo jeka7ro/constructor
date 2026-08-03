@@ -9,7 +9,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+from deep_translator import GoogleTranslator
 
 from app.database import get_db
 from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember, Team, WorkOrderDocument, WorkOrderMessage
@@ -154,6 +155,7 @@ def _public_serialize(wo: WorkOrder, org: Organization) -> dict:
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
         "notes": wo.notes,
         "start_date": str(wo.start_date) if wo.start_date else None,
+        "start_time": wo.start_time,
         "deadline_date": str(wo.deadline_date) if wo.deadline_date else None,
         "approximate_date": str(wo.approximate_date) if wo.approximate_date else None,
         "site_name": site_name,
@@ -217,7 +219,7 @@ def get_public_work_order(token: str, db: Session = Depends(get_db)):
     Utilizat de pagina de confirmare a clientului.
     """
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
-    if not wo:
+    if not wo or wo.status == 'deleted':
         raise HTTPException(status_code=404, detail="Comanda nu a fost găsită sau link-ul este invalid.")
     # Permitem vizualizarea și pentru draft (Deviz)
     
@@ -233,7 +235,7 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
     Returnează datele necesare pentru previzualizarea proformei pe baza tokenului.
     """
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
-    if not wo:
+    if not wo or wo.status == 'deleted':
         raise HTTPException(status_code=404, detail="Proforma nu a fost găsită sau link-ul este invalid.")
     
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
@@ -322,8 +324,8 @@ def confirm_work_order(
         # Trimitem și un mesaj automat în chat pentru a notifica adminul
         sys_msg = WorkOrderMessage(
             work_order_id=wo.id,
-            sender="client",
-            message=f"✅ Data intervenției ({wo.start_date.strftime('%d.%m.%Y') if wo.start_date else ''}) a fost confirmată de client.",
+            sender="system",
+            message=f"✅ La date d'intervention ({wo.start_date.strftime('%d.%m.%Y') if wo.start_date else ''}) a été confirmée par le client.",
             is_read_by_admin=False
         )
         db.add(sys_msg)
@@ -417,7 +419,7 @@ def get_public_work_order_messages(
     db: Session = Depends(get_db)
 ):
     wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
-    if not wo:
+    if not wo or wo.status == 'deleted':
         raise HTTPException(status_code=404, detail="Work Order not found")
         
     messages = db.query(WorkOrderMessage).filter(WorkOrderMessage.work_order_id == wo.id).order_by(WorkOrderMessage.created_at.asc()).all()
@@ -458,8 +460,10 @@ def get_public_work_order_messages(
             "id": m.id,
             "sender": m.sender,
             "message": m.message,
-            "created_at": m.created_at.isoformat() + "Z"
-        } for m in messages
+            "created_at": m.created_at.isoformat() + "Z",
+            "translations": m.translations,
+            "reactions": m.reactions
+        } for m in messages if m.sender != "system" and not getattr(m, 'is_hidden', False)
     ]
     
     return initial_messages + db_messages
@@ -480,10 +484,19 @@ def post_public_work_order_message(
     if getattr(wo, 'is_chat_closed', False):
         raise HTTPException(status_code=403, detail="Chat is closed")
         
+    translations = {}
+    try:
+        # Auto-translate client message to Romanian for the admin
+        translated = GoogleTranslator(source='auto', target='ro').translate(payload.message)
+        translations['ro'] = translated
+    except Exception as e:
+        print(f"Translation failed: {e}")
+
     msg = WorkOrderMessage(
         work_order_id=wo.id,
         sender="client",
-        message=payload.message
+        message=payload.message,
+        translations=translations
     )
     db.add(msg)
     db.commit()
@@ -493,7 +506,59 @@ def post_public_work_order_message(
         "id": msg.id,
         "sender": msg.sender,
         "message": msg.message,
-        "created_at": msg.created_at.isoformat() + "Z"
+        "created_at": msg.created_at.isoformat() + "Z",
+        "translations": msg.translations,
+        "reactions": msg.reactions
+    }
+
+class ReactionToggle(BaseModel):
+    emoji: str
+
+@router.post("/public/work-orders/{token}/messages/{msg_id}/react")
+def toggle_public_work_order_message_reaction(
+    token: str,
+    msg_id: str,
+    payload: ReactionToggle,
+    db: Session = Depends(get_db)
+):
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    msg = db.query(WorkOrderMessage).filter(WorkOrderMessage.id == msg_id, WorkOrderMessage.work_order_id == wo.id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    reactions = msg.reactions or {}
+    emoji = payload.emoji
+    
+    # Check if they are toggling off their current reaction
+    was_toggling_off = False
+    if emoji in reactions and "client" in reactions[emoji]:
+        was_toggling_off = True
+        
+    # Remove 'client' from ALL emojis (max 1 reaction per user)
+    for e in list(reactions.keys()):
+        if "client" in reactions[e]:
+            reactions[e].remove("client")
+            if not reactions[e]:
+                del reactions[e]
+                
+    # If they weren't toggling off, add the new reaction
+    if not was_toggling_off:
+        if emoji not in reactions:
+            reactions[emoji] = []
+        reactions[emoji].append("client")
+    msg.reactions = reactions
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(msg, "reactions")
+    
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": msg.id,
+        "reactions": msg.reactions
     }
 
 @router.delete("/public/work-orders/{token}/messages/{msg_id}")

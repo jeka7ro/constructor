@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2 } from 'lucide-react'
+import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile } from 'lucide-react'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import DevisView from '../admin/DevisView'
@@ -544,6 +544,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
     // Chat Client-Admin
     const [messages, setMessages] = useState([])
+    const [showEmojiPickerFor, setShowEmojiPickerFor] = useState(null)
     const [chatMessage, setChatMessage] = useState("")
     const [sendingMessage, setSendingMessage] = useState(false)
     const [lastReadTime, setLastReadTime] = useState(() => localStorage.getItem(`chat_last_read_${token}`) || null)
@@ -695,6 +696,16 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         }
     };
 
+    const handleToggleReaction = async (msgId, emoji) => {
+        try {
+            const res = await api.post(`/public/work-orders/${token}/messages/${msgId}/react`, { emoji })
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: res.data.reactions } : m))
+            setShowEmojiPickerFor(null)
+        } catch (err) {
+            console.error("Error reacting to message", err);
+        }
+    }
+
     const handleConfirm = async () => {
         if (!checkedTerms || (!signature && !acceptedOffer)) return
         setConfirming(true)
@@ -794,6 +805,14 @@ export default function WorkOrderConfirm({ hideMap = false }) {
         const chatEl = document.getElementById('chat-section');
         if (chatEl) {
             chatEl.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    const markChatAsRead = () => {
+        if (unreadClientCount > 0) {
+            const now = new Date().toISOString();
+            localStorage.setItem(`chat_last_read_${token}`, now);
+            setLastReadTime(now);
         }
     }
 
@@ -1181,7 +1200,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 )}
 
                 {/* Chat Section */}
-                <div id="chat-section" className="mt-6 print:hidden w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                <div id="chat-section" onMouseEnter={markChatAsRead} onTouchStart={markChatAsRead} className="mt-6 print:hidden w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
                     <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
                         <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                             <MessageSquare className="w-4 h-4 text-blue-600" />
@@ -1196,15 +1215,24 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 {lang === 'ro' ? 'Niciun mesaj încă. Începeți conversația!' : lang === 'fr' ? 'Aucun message pour le moment. Commencez la conversation !' : 'No messages yet.'}
                             </div>
                         ) : (
-                            messages.map(msg => (
-                                <div key={msg.id} className={`flex ${msg.sender === 'client' ? 'justify-end' : 'justify-start'} group relative`}>
-                                    <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'client' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
-                                        <p className="text-sm">{msg.message}</p>
+                            messages.map(msg => {
+                                const isOwn = msg.sender === 'client';
+                                // Determine the message content to show based on language mapping
+                                let displayMessage = msg.message;
+                                if (!isOwn && msg.translations && msg.translations[lang]) {
+                                    // Only replace the message text completely if it's not our own message and we have a translation for the selected UI language
+                                    displayMessage = msg.translations[lang];
+                                }
+                                
+                                return (
+                                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative`}>
+                                    <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${isOwn ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
+                                        <p className="text-sm whitespace-pre-wrap">{displayMessage}</p>
                                         <div className="flex items-center justify-between mt-1 gap-4">
-                                            <span className={`text-[9px] font-bold uppercase ${msg.sender === 'client' ? 'text-blue-200' : 'text-slate-400'}`}>
+                                            <span className={`text-[9px] font-bold uppercase ${isOwn ? 'text-blue-200' : 'text-slate-400'}`}>
                                                 {new Date(msg.created_at).toLocaleString('ro-RO')}
                                             </span>
-                                            {msg.sender === 'client' && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
+                                            {isOwn && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
                                                 <button 
                                                     onClick={() => handleDeleteMessage(msg.id)}
                                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
@@ -1214,9 +1242,49 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                                 </button>
                                             )}
                                         </div>
+                                        
+                                        {/* Render Emojis */}
+                                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                                            <div className={`absolute -bottom-3 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white border border-slate-200 rounded-full shadow-sm px-1.5 py-0.5 text-xs z-10 text-slate-800`}>
+                                                {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                                    <button 
+                                                        key={emoji} 
+                                                        onClick={() => handleToggleReaction(msg.id, emoji)}
+                                                        className={`hover:bg-slate-100 rounded-full px-1 ${users.includes('client') ? 'bg-blue-50' : ''}`}
+                                                    >
+                                                        {emoji} <span className="text-[10px] text-slate-500">{users.length > 1 ? users.length : ''}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Reaction Picker Popover */}
+                                        {showEmojiPickerFor === msg.id && (
+                                            <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white rounded-lg shadow-lg border border-slate-200 p-1 z-20 text-slate-800`}>
+                                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
+                                                    <button 
+                                                        key={em} 
+                                                        onClick={() => handleToggleReaction(msg.id, em)}
+                                                        className="hover:bg-slate-100 rounded p-1 text-base transition-transform hover:scale-110"
+                                                    >
+                                                        {em}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Hover actions outside bubble */}
+                                    <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                        <button
+                                            onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
+                                            className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100"
+                                        >
+                                            <Smile className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
-                            ))
+                            )})
                         )}
                         {/* Scroll ref removed, using container scrollTop instead */}
                     </div>

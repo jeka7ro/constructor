@@ -2,16 +2,24 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-    MessageSquare, Send, Trash2, Search, ArrowLeft, CheckCircle2, XCircle, Clock, FileText, ClipboardList, EyeOff
+    MessageSquare, Send, Trash2, Search, ArrowLeft, CheckCircle2, XCircle, Clock, FileText, ClipboardList, EyeOff, Edit2, Eye, Mail, Smile, Globe, X
 } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
+import { useTenantStore } from '../../store/tenantStore'
+
+const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${api.defaults.baseURL.replace('/api', '')}${url.startsWith('/') ? url : '/' + url}`;
+};
 
 export default function AdminChats() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
     const showToast = useUIStore(s => s.showToast)
+    const tenant = useTenantStore(s => s.tenant)
     
     const [chats, setChats] = useState([])
     const [loading, setLoading] = useState(true)
@@ -23,6 +31,10 @@ export default function AdminChats() {
     const [messages, setMessages] = useState([])
     const [chatMessage, setChatMessage] = useState('')
     const [loadingMessages, setLoadingMessages] = useState(false)
+    const [editingMessageId, setEditingMessageId] = useState(null)
+    const [editMessageText, setEditMessageText] = useState('')
+    const [targetLang, setTargetLang] = useState('nl') // Default auto-translate to Dutch
+    const [showEmojiPickerFor, setShowEmojiPickerFor] = useState(null)
     const messagesEndRef = useRef(null)
 
     // Load list of chats
@@ -32,7 +44,7 @@ export default function AdminChats() {
             setChats(res.data)
         } catch (err) {
             console.error(err)
-            showToast({ message: t('admin.error_loading_chats', 'Eroare la încărcarea conversațiilor'), type: "error" })
+            showToast(t('admin.error_loading_chats', 'Erreur lors du chargement des conversations'), "error")
         } finally {
             setLoading(false)
         }
@@ -67,7 +79,7 @@ export default function AdminChats() {
                 loadChats()
             } catch (err) {
                 console.error(err)
-                showToast({ message: t('admin.error_loading_messages', 'Eroare la încărcarea mesajelor'), type: "error" })
+                showToast(t('admin.error_loading_messages', 'Erreur lors du chargement des messages'), "error")
             } finally {
                 setLoadingMessages(false)
             }
@@ -99,18 +111,50 @@ export default function AdminChats() {
         }
     }, [messages])
 
+    const [previewTranslation, setPreviewTranslation] = useState('')
+    const [isTranslating, setIsTranslating] = useState(false)
+
+    const handleTranslatePreview = async () => {
+        if (!chatMessage.trim() || targetLang === 'none') return;
+        setIsTranslating(true);
+        try {
+            const res = await api.post('/admin/translate', {
+                text: chatMessage,
+                target_lang: targetLang
+            });
+            setPreviewTranslation(res.data.translatedText);
+        } catch (e) {
+            console.error("Translation error", e);
+        } finally {
+            setIsTranslating(false);
+        }
+    }
+
     const handleSendMessage = async (e) => {
         e.preventDefault()
         if (!chatMessage.trim()) return
+        
+        if (activeWo.is_chat_closed) {
+            showToast(t('admin.chat_is_closed_cannot_send', 'Cette conversation est fermée. Vous ne pouvez plus envoyer de messages.'), "error")
+            return
+        }
 
         try {
-            const res = await api.post(`/admin/work-orders/${activeWoId}/messages`, {
-                message: chatMessage
-            })
+            const payload = {
+                message: chatMessage,
+                target_lang: targetLang === 'none' ? null : targetLang
+            };
+            if (previewTranslation.trim()) {
+                payload.translations = { [targetLang]: previewTranslation };
+            }
+            
+            const res = await api.post(`/admin/work-orders/${activeWoId}/messages`, payload)
+            
             setMessages(prev => [...prev, res.data])
             setChatMessage('')
+            setPreviewTranslation('')
             
-            // update local list last message
+            // Update last_message in chats list for left sidebar
             setChats(prev => prev.map(c => 
                 c.work_order_id === activeWoId 
                     ? { ...c, last_message: chatMessage, last_message_time: new Date().toISOString() } 
@@ -119,30 +163,94 @@ export default function AdminChats() {
             
         } catch (err) {
             if (err.response?.status === 403) {
-                 showToast({ message: t('admin.chat_is_closed', 'Acest chat este închis.'), type: "error" })
+                 showToast(t('admin.chat_is_closed', 'Ce chat est fermé.'), "error")
                  setActiveWo(prev => ({...prev, is_chat_closed: true}))
             } else {
-                 showToast({ message: t('admin.error_sending_message', 'Eroare la trimiterea mesajului'), type: "error" })
+                 showToast(t('admin.error_sending_message', 'Erreur lors de l\'envoi du message'), "error")
             }
         }
     }
 
+    const handleToggleReaction = async (msgId, emoji) => {
+        // Optimistic UI Update
+        setMessages(prev => prev.map(m => {
+            if (m.id === msgId) {
+                const currentReactions = { ... (m.reactions || {}) };
+                const usersWithEmoji = currentReactions[emoji] || [];
+                
+                // First, check if we are toggling off
+                let wasTogglingOff = false;
+                if (usersWithEmoji.includes('admin')) {
+                    wasTogglingOff = true;
+                }
+
+                // Remove admin from all emojis
+                Object.keys(currentReactions).forEach(e => {
+                    currentReactions[e] = currentReactions[e].filter(u => u !== 'admin');
+                    if (currentReactions[e].length === 0) delete currentReactions[e];
+                });
+
+                // If not toggling off, add admin to the target emoji
+                if (!wasTogglingOff) {
+                    currentReactions[emoji] = [...(currentReactions[emoji] || []), 'admin'];
+                }
+                
+                return { ...m, reactions: currentReactions };
+            }
+            return m;
+        }));
+        setShowEmojiPickerFor(null);
+
+        try {
+            const res = await api.post(`/admin/work-orders/${activeWoId}/messages/${msgId}/react`, { emoji })
+            // Server truth fallback
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: res.data.reactions } : m))
+        } catch (err) {
+            showToast(t('admin.error_reacting', 'Erreur lors de l\'ajout de la réaction'), "error")
+        }
+    }
+
     const handleDeleteMessage = async (msgId) => {
-        if (!window.confirm(t('admin.confirm_delete_message', 'Sigur ștergi acest mesaj?'))) return
+        if (!window.confirm(t('admin.confirm_delete_message', 'Voulez-vous vraiment supprimer ce message ?'))) return
         try {
             await api.delete(`/admin/work-orders/${activeWoId}/messages/${msgId}`)
             setMessages(prev => prev.filter(m => m.id !== msgId))
-            showToast({ message: t('admin.message_deleted', 'Mesaj șters'), type: "success" })
+            showToast(t('admin.message_deleted', 'Message supprimé'), "success")
             loadChats() // Refresh to update last message if needed
         } catch (err) {
-            showToast({ message: t('admin.error_deleting_message', 'Eroare la ștergerea mesajului'), type: "error" })
+            showToast(t('admin.error_deleting_message', 'Erreur lors de la suppression du message'), "error")
+        }
+    }
+
+    const handleEditMessage = async (msgId) => {
+        if (!editMessageText.trim()) return;
+        try {
+            const res = await api.put(`/admin/work-orders/${activeWoId}/messages/${msgId}`, {
+                message: editMessageText
+            });
+            setMessages(prev => prev.map(m => m.id === msgId ? res.data : m));
+            setEditingMessageId(null);
+            showToast(t('admin.message_updated', 'Message mis à jour'), "success");
+            loadChats(); // Refresh left sidebar (optional, just in case it was the last message)
+        } catch (err) {
+            showToast(t('admin.error_updating_message', 'Erreur lors de la mise à jour du message'), "error");
+        }
+    }
+
+    const handleToggleVisibility = async (msgId) => {
+        try {
+            const res = await api.put(`/admin/work-orders/${activeWoId}/messages/${msgId}/toggle-visibility`);
+            setMessages(prev => prev.map(m => m.id === msgId ? res.data : m));
+            showToast(res.data.is_hidden ? t('admin.message_hidden', 'Message masqué au client') : t('admin.message_visible', 'Message visible pour le client'), "success");
+        } catch (err) {
+            showToast(t('admin.error_toggling_visibility', 'Erreur lors de la modification de la visibilité'), "error");
         }
     }
 
     const handleMarkUnread = async (msgId) => {
         try {
             await api.post(`/admin/work-orders/${activeWoId}/messages/${msgId}/unread`)
-            showToast({ message: t('admin.message_marked_unread', 'Mesaj marcat ca necitit'), type: "success" })
+            showToast(t('admin.message_marked_unread', 'Message marqué comme non lu'), "success")
             setActiveWoId(null)
             setActiveWo(null)
             setMessages([])
@@ -150,7 +258,7 @@ export default function AdminChats() {
             loadChats()
             window.dispatchEvent(new CustomEvent('refresh-notifications'))
         } catch (err) {
-            showToast({ message: t('admin.error_marking_unread', 'Eroare la marcarea mesajului'), type: "error" })
+            showToast(t('admin.error_marking_unread', 'Erreur lors du marquage du message'), "error")
         }
     }
 
@@ -158,7 +266,7 @@ export default function AdminChats() {
         if (!activeWo) return
         const isClosed = activeWo.is_chat_closed
         const endpoint = isClosed ? `/admin/work-orders/${activeWoId}/chat/open` : `/admin/work-orders/${activeWoId}/chat/close`
-        const confirmMsg = isClosed ? t('admin.confirm_reopen_chat', 'Redeschizi acest chat?') : t('admin.confirm_close_chat', 'Închizi acest chat? Clientul nu va mai putea trimite mesaje.')
+        const confirmMsg = isClosed ? t('admin.confirm_reopen_chat', 'Rouvrir ce chat ?') : t('admin.confirm_close_chat', 'Fermer ce chat ? Le client ne pourra plus envoyer de messages.')
         
         if (!window.confirm(confirmMsg)) return
         
@@ -166,9 +274,9 @@ export default function AdminChats() {
             await api.post(endpoint)
             setActiveWo(prev => ({...prev, is_chat_closed: !isClosed}))
             setChats(prev => prev.map(c => c.work_order_id === activeWoId ? { ...c, is_chat_closed: !isClosed } : c))
-            showToast({ message: isClosed ? t('admin.chat_reopened', 'Chat redeschis') : t('admin.chat_closed', 'Chat închis'), type: "success" })
+            showToast(isClosed ? t('admin.chat_reopened', 'Chat rouvert') : t('admin.chat_closed', 'Chat fermé'), "success")
         } catch (err) {
-            showToast({ message: t('common.error', 'Eroare'), type: "error" })
+            showToast(t('common.error', 'Erreur'), "error")
         }
     }
 
@@ -188,7 +296,7 @@ export default function AdminChats() {
                     <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                         <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex items-center gap-2">
                             <MessageSquare className="w-5 h-5 text-blue-500" />
-                            {t('admin.client_messages', 'Mesaje Clienți')}
+                            {t('admin.client_messages', 'Messages Clients')}
                         </h2>
                     </div>
                     
@@ -198,7 +306,7 @@ export default function AdminChats() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder={t('admin.search_quote_client', 'Caută deviz sau client...')}
+                                placeholder={t('admin.search_quote_client', 'Rechercher un devis ou un client...')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 dark:text-white"
@@ -211,11 +319,11 @@ export default function AdminChats() {
                         {loading ? (
                             <div className="p-8 text-center text-slate-500 flex flex-col items-center">
                                 <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                                {t('common.loading', 'Încărcare...')}
+                                {t('common.loading', 'Chargement...')}
                             </div>
                         ) : filteredChats.length === 0 ? (
                             <div className="p-8 text-center text-slate-500 text-sm">
-                                {searchTerm ? t('common.no_results', 'Nu s-au găsit rezultate.') : t('admin.no_conversations', 'Nu există conversații încă.')}
+                                {searchTerm ? t('common.no_results', 'Aucun résultat trouvé.') : t('admin.no_conversations', 'Aucune conversation pour le moment.')}
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -242,7 +350,7 @@ export default function AdminChats() {
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <p className="text-sm text-slate-500 dark:text-slate-400 truncate flex-1 pr-2">
-                                                    {chat.last_message || t('admin.no_text_message', 'Niciun mesaj text')}
+                                                    {chat.last_message || t('admin.no_text_message', 'Aucun message texte')}
                                                 </p>
                                                 {chat.unread_count > 0 && (
                                                     <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
@@ -252,11 +360,11 @@ export default function AdminChats() {
                                             </div>
                                             <div className="mt-1 flex items-center gap-2">
                                                 <span className="text-[10px] font-medium text-slate-400 truncate bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                    {chat.client_name || t('admin.unknown_client', 'Client Necunoscut')}
+                                                    {chat.client_name || t('admin.unknown_client', 'Client Inconnu')}
                                                 </span>
                                                 {chat.is_chat_closed && (
                                                     <span className="text-[10px] font-medium text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
-                                                        {t('admin.closed', 'Închis')}
+                                                        {t('admin.closed', 'Fermé')}
                                                     </span>
                                                 )}
                                             </div>
@@ -321,7 +429,7 @@ export default function AdminChats() {
                                                 : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'}`}
                                     >
                                         {activeWo.is_chat_closed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                        <span className="hidden sm:inline">{activeWo.is_chat_closed ? t('admin.open_chat', 'Deschide Chat') : t('admin.close_chat', 'Închide Chat')}</span>
+                                        <span className="hidden sm:inline">{activeWo.is_chat_closed ? t('admin.open_chat', 'Ouvrir Chat') : t('admin.close_chat', 'Fermer Chat')}</span>
                                     </button>
                                 </div>
                             </div>
@@ -334,67 +442,226 @@ export default function AdminChats() {
                                     </div>
                                 ) : messages.length === 0 ? (
                                     <div className="h-full flex items-center justify-center text-slate-400">
-                                        {t('admin.no_messages_in_chat', 'Nu există mesaje în această conversație.')}
+                                        {t('admin.no_messages_in_chat', 'Il n\'y a aucun message dans cette conversation.')}
                                     </div>
                                 ) : (
                                     <div className="space-y-4 max-w-3xl mx-auto">
-                                        {messages.map(msg => (
-                                            <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'} group relative`}>
-                                                <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'admin' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-white rounded-tl-sm'}`}>
-                                                    <p className="whitespace-pre-wrap break-words text-sm">{msg.message}</p>
-                                                    <span className={`text-[10px] mt-1 block ${msg.sender === 'admin' ? 'text-blue-200' : 'text-slate-400'}`}>
-                                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
+                                        {messages.map(msg => {
+                                            const isSystem = msg.sender === 'system' || msg.is_hidden;
+                                            const isOwn = msg.sender === 'admin';
+                                            return (
+                                            <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start'} group relative`}>
+                                                <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${isOwn && !isSystem ? 'bg-blue-600 text-white rounded-tr-sm' : isSystem ? 'w-full bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs italic text-center border border-slate-200 dark:border-slate-700' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-white rounded-tl-sm'}`}>
+                                                    {editingMessageId === msg.id ? (
+                                                        <div className="flex flex-col gap-2">
+                                                            <textarea 
+                                                                value={editMessageText}
+                                                                onChange={(e) => setEditMessageText(e.target.value)}
+                                                                className="w-full text-sm text-slate-900 bg-white rounded p-1.5 border-none outline-none focus:ring-2 focus:ring-blue-400"
+                                                                rows={2}
+                                                            />
+                                                            <div className="flex justify-end gap-2 mt-1">
+                                                                <button onClick={() => setEditingMessageId(null)} className="text-[10px] uppercase font-bold text-blue-200 hover:text-white transition-colors">{t('common.cancel', 'Annuler')}</button>
+                                                                <button onClick={() => handleEditMessage(msg.id)} className="text-[10px] uppercase font-bold bg-white text-blue-600 px-2 py-0.5 rounded hover:bg-blue-50 transition-colors">{t('common.save', 'Enregistrer')}</button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex items-center gap-2 mb-1 justify-between">
+                                                                <span className={`text-xs font-medium flex items-center gap-1.5 ${isOwn ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                                                                    {msg.sender === 'client' ? (
+                                                                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                                                            {(activeWo.client_name || '?').charAt(0).toUpperCase()}
+                                                                        </span>
+                                                                    ) : msg.sender === 'admin' ? (
+                                                                        (tenant?.favicon_url || tenant?.logo_url) ? (
+                                                                            <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt="Davide Chape" className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0" />
+                                                                        ) : (
+                                                                            <span className="w-5 h-5 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-[10px] shrink-0">DC</span>
+                                                                        )
+                                                                    ) : null}
+                                                                    {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? 'Echipă Davide Chape' : t('admin.system', 'Sistem'))}
+                                                                </span>
+                                                                <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                            <div className={`text-sm whitespace-pre-wrap leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                                {msg.message}
+                                                            </div>
+                                                            
+                                                            {/* Translation Display */}
+                                                            {msg.translations && Object.keys(msg.translations).length > 0 && (
+                                                                <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
+                                                                    <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
+                                                                    {Object.values(msg.translations)[0]}
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
                                                     
-                                                    {msg.sender === 'admin' && (
+                                                    {msg.sender !== 'system' && (
+                                                        <span className={`text-[10px] mt-1 block ${isOwn && !msg.is_hidden ? 'text-blue-200' : 'text-slate-400'}`}>
+                                                            {msg.is_hidden && ` • ${t('admin.hidden_from_client', 'Masqué au client')}`}
+                                                        </span>
+                                                    )}
+                                                
+                                                {/* Render Emojis */}
+                                                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                                                    <div className={`absolute -bottom-3 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-full shadow-sm px-1.5 py-0.5 text-xs z-10 border border-slate-100 dark:border-slate-700`}>
+                                                        {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                                            <button 
+                                                                key={emoji} 
+                                                                onClick={() => handleToggleReaction(msg.id, emoji)}
+                                                                className={`hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full px-1 ${users.includes('admin') ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                                                                title={users.join(', ')}
+                                                            >
+                                                                {emoji} <span className="text-[10px] text-slate-500">{users.length > 1 ? users.length : ''}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Reaction Picker Popover */}
+                                                {showEmojiPickerFor === msg.id && (
+                                                    <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-20`}>
+                                                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
+                                                            <button 
+                                                                key={em} 
+                                                                onClick={() => handleToggleReaction(msg.id, em)}
+                                                                className="hover:bg-slate-100 dark:hover:bg-slate-700 rounded p-1 text-base transition-transform hover:scale-110"
+                                                            >
+                                                                {em}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Hover actions */}
+                                            <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                                <button
+                                                    onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
+                                                    className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                    title={t('admin.react', 'Réagir')}
+                                                >
+                                                    <Smile className="w-3.5 h-3.5" />
+                                                </button>
+                                                
+                                                {!isSystem && isOwn && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleToggleVisibility(msg.id)}
+                                                            className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            title={msg.is_hidden ? t('admin.show_to_client', 'Afișează la client') : t('admin.hide_from_client', 'Ascunde de la client')}
+                                                        >
+                                                            {msg.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingMessageId(msg.id);
+                                                                setEditMessageText(msg.message);
+                                                            }}
+                                                            className="p-1.5 rounded-full text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            title={t('admin.edit_message', 'Éditer le message')}
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                        </button>
                                                         <button
                                                             onClick={() => handleDeleteMessage(msg.id)}
-                                                            className="absolute -left-10 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            title={t('admin.delete_message', 'Șterge mesaj')}
+                                                            className="p-1.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            title={t('admin.delete_message', 'Supprimer le message')}
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
-                                                    )}
-                                                    {msg.sender === 'client' && (
-                                                        <button
-                                                            onClick={() => handleMarkUnread(msg.id)}
-                                                            className="absolute -right-10 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            title={t('admin.mark_unread', 'Marchează ca necitit')}
-                                                        >
-                                                            <EyeOff className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                    </>
+                                                )}
+                                                {!isSystem && !isOwn && (
+                                                     <button
+                                                        onClick={() => handleMarkUnread(msg.id)}
+                                                        className="p-1.5 rounded-full text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                        title={t('admin.mark_unread', 'Marquer comme non lu')}
+                                                    >
+                                                        <Mail className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                             </div>
-                                        ))}
+                                            </div>
+                                        )})}
                                         <div ref={messagesEndRef} />
                                     </div>
                                 )}
                             </div>
                             
                             {/* Input Area */}
-                            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+                            <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
                                 {activeWo.is_chat_closed ? (
                                     <div className="text-center p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 text-sm flex items-center justify-center gap-2">
                                         <Clock className="w-4 h-4" />
-                                        {t('admin.chat_is_closed_cannot_send', 'Această conversație a fost închisă. Nu se mai pot trimite mesaje.')}
+                                        {t('admin.chat_is_closed_cannot_send', 'Cette conversation est fermée. Vous ne pouvez plus envoyer de messages.')}
                                     </div>
                                 ) : (
-                                    <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={chatMessage}
-                                            onChange={(e) => setChatMessage(e.target.value)}
-                                            placeholder={t('admin.type_message', 'Scrie un mesaj...')}
-                                            className="flex-1 rounded-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!chatMessage.trim()}
-                                            className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            <Send className="w-4 h-4 ml-0.5" />
-                                        </button>
+                                    <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto flex flex-col gap-2">
+                                        
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={chatMessage}
+                                                onChange={e => setChatMessage(e.target.value)}
+                                                placeholder={t('admin.type_message', 'Tapez votre message...')}
+                                                className="flex-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                            />
+                                            <select 
+                                                value={targetLang}
+                                                onChange={e => setTargetLang(e.target.value)}
+                                                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none"
+                                                title="Limbă Traducere (la Client)"
+                                            >
+                                                <option value="none">Fără trad.</option>
+                                                <option value="nl">🇳🇱 NL</option>
+                                                <option value="fr">🇫🇷 FR</option>
+                                                <option value="en">🇬🇧 EN</option>
+                                            </select>
+                                            {targetLang !== 'none' && (
+                                                <button
+                                                    type="button"
+                                                    disabled={isTranslating || !chatMessage.trim()}
+                                                    onClick={handleTranslatePreview}
+                                                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-50 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2 flex items-center justify-center transition-colors shadow-sm"
+                                                    title="Previzualizare Traducere"
+                                                >
+                                                    {isTranslating ? (
+                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    ) : (
+                                                        <Globe className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                            )}
+                                            <button
+                                                type="submit"
+                                                disabled={!chatMessage.trim() && !previewTranslation.trim()}
+                                                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl px-4 py-2 flex items-center justify-center transition-colors shadow-sm"
+                                            >
+                                                <Send className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        {previewTranslation !== '' && targetLang !== 'none' && (
+                                            <div className="mt-2 flex gap-2 items-start bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                                                <div className="text-[10px] text-blue-400 pt-2 flex-shrink-0 font-medium">
+                                                    <Globe className="w-3 h-3 inline mr-1" />
+                                                    TR:
+                                                </div>
+                                                <textarea 
+                                                    value={previewTranslation}
+                                                    onChange={e => setPreviewTranslation(e.target.value)}
+                                                    className="flex-1 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:text-slate-200 resize-none"
+                                                    rows={2}
+                                                />
+                                                <button type="button" onClick={() => setPreviewTranslation('')} className="text-slate-400 hover:text-red-500 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </form>
                                 )}
                             </div>
@@ -402,8 +669,8 @@ export default function AdminChats() {
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
                             <MessageSquare className="w-16 h-16 mb-4 text-slate-200 dark:text-slate-800" />
-                            <h3 className="text-lg font-medium text-slate-600 dark:text-slate-300">{t('admin.no_chat_selected', 'Niciun chat selectat')}</h3>
-                            <p className="text-sm mt-1 text-center max-w-sm">{t('admin.select_chat_to_view', 'Selectează o conversație din stânga pentru a vizualiza mesajele sau a continua discuția cu clientul.')}</p>
+                            <h3 className="text-lg font-medium text-slate-600 dark:text-slate-300">{t('admin.no_chat_selected', 'Aucun chat sélectionné')}</h3>
+                            <p className="text-sm mt-1 text-center max-w-sm">{t('admin.select_chat_to_view', 'Sélectionnez une conversation à gauche pour voir les messages ou poursuivre la discussion avec le client.')}</p>
                         </div>
                     )}
                 </div>
