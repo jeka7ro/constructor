@@ -1146,21 +1146,22 @@ def update_work_order(
                 try:
                     send_quote_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, discount_pct=new_discount)
                     
-                    # Salvare mesaj automat în Chat
-                    lang = getattr(wo, 'client_language', 'fr')
-                    if lang == 'nl':
-                        chat_text = f"Hallo, het Davide Chape team heeft u een extra korting van {new_discount}% toegekend op uw offerte. Controleer de bijgewerkte offerte."
-                    elif lang == 'en':
-                        chat_text = f"Hello, the Davide Chape team has granted you an additional discount of {new_discount}% on your quote. Please check the updated offer."
-                    elif lang == 'ro':
-                        chat_text = f"Bună ziua. Ați primit un discount adițional de {new_discount}% din partea echipei Davide Chape. Vă rugăm să verificați oferta actualizată."
-                    else: # default fr
-                        chat_text = f"Bonjour, l'équipe Davide Chape vous a accordé une remise supplémentaire de {new_discount}% sur votre devis. Veuillez vérifier l'offre actualisée."
+                    # Salvare mesaj automat în Chat (cu traduceri pentru frontend)
+                    chat_fr = f"Bonjour, l'équipe Davide Chape vous a accordé une remise supplémentaire de {new_discount}% sur votre devis. Veuillez vérifier l'offre actualisée."
+                    chat_nl = f"Hallo, het Davide Chape team heeft u een extra korting van {new_discount}% toegekend op uw offerte. Controleer de bijgewerkte offerte."
+                    chat_en = f"Hello, the Davide Chape team has granted you an additional discount of {new_discount}% on your quote. Please check the updated offer."
+                    chat_ro = f"Bună ziua. Ați primit un discount adițional de {new_discount}% din partea echipei Davide Chape. Vă rugăm să verificați oferta actualizată."
                     
                     auto_msg = WorkOrderMessage(
                         work_order_id=wo.id,
                         sender="admin",
-                        message=chat_text,
+                        message=chat_fr,
+                        translations={
+                            "fr": chat_fr,
+                            "nl": chat_nl,
+                            "en": chat_en,
+                            "ro": chat_ro
+                        },
                         is_read_by_admin=True
                     )
                     db.add(auto_msg)
