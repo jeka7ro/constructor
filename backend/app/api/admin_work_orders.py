@@ -2645,3 +2645,22 @@ def open_work_order_chat(
     wo.is_chat_closed = False
     db.commit()
     return {"message": "Chat opened successfully"}
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str
+
+@router.post("/translate")
+def translate_text(
+    payload: TranslateRequest,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    try:
+        from deep_translator import GoogleTranslator
+        translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.text)
+        return {"translatedText": translated}
+    except ImportError:
+        return {"translatedText": "[Eroare: modulul deep_translator nu este instalat pe server]"}
+    except Exception as e:
+        return {"translatedText": f"[Eroare la traducere: {str(e)}]"}
