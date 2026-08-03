@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
-from deep_translator import GoogleTranslator
 
 from app.database import get_db
 from app.models import WorkOrder, Organization, User, WorkOrderPhoto, TeamMember, Team, WorkOrderDocument, WorkOrderMessage
@@ -487,6 +486,7 @@ def post_public_work_order_message(
     translations = {}
     try:
         # Auto-translate client message to Romanian for the admin
+        from deep_translator import GoogleTranslator
         translated = GoogleTranslator(source='auto', target='ro').translate(payload.message)
         translations['ro'] = translated
     except Exception as e:

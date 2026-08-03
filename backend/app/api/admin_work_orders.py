@@ -14,7 +14,6 @@ from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, desc, func
 import re
-from deep_translator import GoogleTranslator
 
 from app.database import get_db
 from app.models import WorkOrder, WorkOrderAcknowledgement, WorkOrderCheckin, WorkOrderPhoto, WorkOrderMessage, Organization, ConstructionSite, Client, Admin, TimesheetSegment, Timesheet, User, Team, Vehicle, WarehouseItem, WarehouseTransaction, PricingSetting
