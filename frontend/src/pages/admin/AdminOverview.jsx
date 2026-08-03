@@ -1208,60 +1208,7 @@ export default function AdminOverview() {
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
                                             title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
                                         >
-                                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-slate-800/90 rounded flex gap-0.5 shadow-sm">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/admin/work-orders/${quote.id}`);
-                                                    }}
-                                                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded"
-                                                    title={t('common.view', 'Voir détails')}
-                                                >
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setQuickEditOrder(quote);
-                                                        const v = quote.volumes?.[0] || {};
-                                                        setQuickEditForm({
-                                                            title: quote.title || '',
-                                                            clientId: quote.client_id ? String(quote.client_id) : '',
-                                                            address: quote.site_address || '',
-                                                            latitude: quote.site_latitude || '',
-                                                            longitude: quote.site_longitude || '',
-                                                            surface: v.quantity || '',
-                                                            thickness: v.thickness || '',
-                                                            has_foil: !!v.has_foil,
-                                                            has_mesh: !!v.has_mesh,
-                                                            has_duramint: !!v.has_duramint,
-                                                            teamId: quote.assigned_team_id ? String(quote.assigned_team_id) : '',
-                                                            date: (quote.start_date || quote.deadline_date || '').split('T')[0] || '',
-                                                            time: (quote.start_time || '').substring(0, 5) || '08:00',
-                                                        });
-                                                    }}
-                                                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
-                                                    title={t('common.edit', 'Éditer')}
-                                                >
-                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                </button>
-                                                {quote.status === 'draft' && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setApproveQuoteForm({ date: '', time: '', discount: quote.prices?.discount || 0 });
-                                                            setApproveQuoteModal(quote);
-                                                        }}
-                                                        className="p-1 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
-                                                        title={t('overview.approve', 'Approuver')}
-                                                    >
-                                                        <CheckCircle className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
-                                                <div className="p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">
-                                                    <GripVertical className="w-3.5 h-3.5" />
-                                                </div>
-                                            </div>
+
                                             
                                             {/* ROW 1: Name + Date */}
                                             <div className="flex justify-between items-center pr-4">
