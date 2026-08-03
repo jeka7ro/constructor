@@ -311,7 +311,7 @@ export default function InvoicingManagement() {
         setLoading(true)
         try {
             const [woRes, clRes] = await Promise.all([
-                api.get('/admin/work-orders?limit=200'),
+                api.get('/admin/work-orders?limit=200&invoice_mode=true'),
                 api.get('/admin/clients')
             ])
             // Backend returns is_quote=False orders + is_quote=True with status=planning

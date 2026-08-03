@@ -593,6 +593,52 @@ export default function ShortWorksCalendar({
                             return null;
                         })()}
 
+                        {/* Favorite Clients Box */}
+                        {(() => {
+                            const favoriteClients = clients.filter(c => c.is_favorite);
+                            if (favoriteClients.length > 0) {
+                                return (
+                                    <div className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors">
+                                        <div className="bg-white/20 rounded p-1">
+                                            <Star className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div className="flex flex-col text-left leading-tight">
+                                            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{t('planning.favorites', 'Clients')}</span>
+                                            <span className="text-xs font-bold">{t('planning.favorite_clients', 'Favoris')}</span>
+                                        </div>
+
+                                        <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-auto">
+                                            <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
+                                                {t('planning.drag_client', 'Glisser dans le calendrier')}
+                                            </div>
+                                            <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                                                {favoriteClients.map((c) => (
+                                                    <div 
+                                                        key={c.id} 
+                                                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-700 cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-600 transition-colors"
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                            e.dataTransfer.setData("type", "client");
+                                                            e.dataTransfer.setData("id", c.id);
+                                                            e.dataTransfer.setData("name", c.name);
+                                                        }}
+                                                    >
+                                                        <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0">
+                                                            <span className="text-[10px] font-bold">{c.name.substring(0, 2).toUpperCase()}</span>
+                                                        </div>
+                                                        <span className="font-medium text-slate-100 truncate flex-1" title={c.name}>
+                                                            {c.name}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
                         {/* Holding Area (Moved to the right as requested) */}
                         <div 
                             className={`flex items-center justify-center ${heldOrder ? 'w-auto px-3' : 'w-10'} h-10 rounded-xl border-2 border-dashed ${isSelectingForHolding ? 'border-yellow-400 bg-yellow-400/20 shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse' : heldOrder ? 'border-white bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/40 hover:border-white/80 bg-white/10'} transition-all cursor-pointer relative`}

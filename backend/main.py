@@ -413,6 +413,10 @@ app.include_router(public_calculator.router)
 app.include_router(devis_online.router)
 app.include_router(admin_search.router, prefix="/api")
 
+# Email logs
+from app.api import admin_emails
+app.include_router(admin_emails.router, prefix="/api")
+
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body
 from app.api.auth import get_current_user

@@ -52,6 +52,7 @@ const AdminEmergencies = lazy(() => import('./pages/admin/AdminEmergencies'))
 const InvoicingManagement = lazy(() => import('./pages/admin/InvoicingManagement'))
 const InvoiceDetails = lazy(() => import('./pages/admin/InvoiceDetails'))
 const QuotesManagement = lazy(() => import('./pages/admin/QuotesManagement'))
+const EmailLogs = lazy(() => import('./pages/admin/EmailLogs'))
 const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
 const DevisView = lazy(() => import('./pages/admin/DevisView'))
 const AdminChats = lazy(() => import('./pages/admin/AdminChats'))
@@ -290,6 +291,7 @@ function App() {
                         <Route index element={<Navigate to="/admin/planning" replace />} />
                         <Route path="planning" element={<AdminOverview />} />
                         <Route path="quotes" element={<QuotesManagement />} />
+                        <Route path="emails" element={<EmailLogs />} />
                         <Route path="users" element={<UsersManagement />} />
                         <Route path="employees" element={<EmployeesManagement />} />
                         <Route path="employees/:id" element={<EmployeesManagement />} />

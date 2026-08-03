@@ -2803,7 +2803,7 @@
     "quote_approve_error": "overview.quote_approve_error",
     "error_unplanning": "overview.error_unplanning",
     "search_vies": "overview.search_vies",
-    "new_quotes_desc": "overview.new_quotes_desc"
+    "new_quotes_desc": "You have received {{num}} new quote requests. Do you want to view them now?"
   },
   "calculator": {
     "back": "Back",

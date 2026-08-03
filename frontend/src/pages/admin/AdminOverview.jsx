@@ -418,8 +418,8 @@ export default function AdminOverview() {
         if (refreshTimer.current) clearInterval(refreshTimer.current)
         refreshTimer.current = setInterval(() => {
             fetchStats(true)
-            fetchActiveWorkers()
-            fetchChartData()
+            fetchActiveWorkers(true)
+            fetchChartData(true)
             fetchComplaints()
             fetchTeams()
             fetchClients()
@@ -890,8 +890,8 @@ export default function AdminOverview() {
         // Se va actualiza oricum prin timer-ul de 15 secunde.
     }
 
-    const fetchChartData = async () => {
-        setChartLoading(true)
+    const fetchChartData = async (silent = false) => {
+        if (!silent) setChartLoading(true)
         try {
             const url = globalSiteFilter ? `/admin/dashboard-stats?site_id=${globalSiteFilter}` : '/admin/dashboard-stats'
             const res = await api.get(url)
@@ -925,9 +925,9 @@ export default function AdminOverview() {
         } catch (e) { console.error('[COMPLAINTS]', e) }
     }
 
-    const fetchActiveWorkers = async () => {
+    const fetchActiveWorkers = async (silent = false) => {
         try {
-            setWorkersLoading(true)
+            if (!silent) setWorkersLoading(true)
             const url = globalSiteFilter ? `/admin/timesheets/active-workers?site_id=${globalSiteFilter}` : '/admin/timesheets/active-workers'
             const res = await api.get(url)
             setActiveWorkers(res.data.active_workers || [])
@@ -1204,10 +1204,21 @@ export default function AdminOverview() {
                                             onDragEnd={(e) => {
                                                 e.currentTarget.classList.remove('opacity-50', 'scale-95')
                                             }}
+                                            onDoubleClick={() => navigate(`/admin/work-orders/${quote.id}`)}
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
                                             title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
                                         >
                                             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-slate-800/90 rounded flex gap-0.5 shadow-sm">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/admin/work-orders/${quote.id}`);
+                                                    }}
+                                                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded"
+                                                    title={t('common.view', 'Voir détails')}
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                </button>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -3069,17 +3080,17 @@ export default function AdminOverview() {
                             <ClipboardList className="w-8 h-8" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                            {t('overview.new_quotes_title', 'Devize Noi!')}
+                            {t('overview.new_quotes_title', 'Nouveaux Devis !')}
                         </h3>
                         <p className="text-slate-600 dark:text-slate-400 mb-6">
-                            {t('overview.new_quotes_desc', 'Ai primit {{count}} devize noi. Vrei să le vezi acum?', { count: newQuotesAlert.length })}
+                            {t('overview.new_quotes_desc', { defaultValue: 'Vous avez reçu {{num}} nouveau(x) devis. Voulez-vous les voir maintenant ?', num: newQuotesAlert.length })}
                         </p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setNewQuotesAlert([])}
                                 className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors"
                             >
-                                {t('common.dismiss', 'Omite')}
+                                {t('common.dismiss', 'Ignorer')}
                             </button>
                             <button
                                 onClick={() => {
@@ -3088,7 +3099,7 @@ export default function AdminOverview() {
                                 }}
                                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
                             >
-                                {t('overview.go_to_quotes', 'Mergi la ele')}
+                                {t('overview.go_to_quotes', 'Voir les devis')}
                             </button>
                         </div>
                     </div>
@@ -3103,17 +3114,17 @@ export default function AdminOverview() {
                             <AlertTriangle className="w-8 h-8" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                            Clientul cere reprogramare!
+                            {t('overview.reschedule_title', 'Le client demande une reprogrammation !')}
                         </h3>
                         <p className="text-slate-600 dark:text-slate-400 mb-6">
-                            Clientul a solicitat o altă dată pentru lucrare.
+                            {t('overview.reschedule_desc', 'Le client a demandé une autre date pour le travail.')}
                         </p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setRescheduleAlerts(prev => prev.slice(1))}
                                 className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors"
                             >
-                                {t('common.dismiss', 'Omite')}
+                                {t('common.dismiss', 'Ignorer')}
                             </button>
                             <button
                                 onClick={() => {
@@ -3123,7 +3134,7 @@ export default function AdminOverview() {
                                 }}
                                 className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors"
                             >
-                                Du-mă la comandă
+                                {t('overview.go_to_order', 'Voir la commande')}
                             </button>
                         </div>
                     </div>

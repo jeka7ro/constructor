@@ -21,7 +21,11 @@ Aceste reguli TREBUIE respectate cu strictețe la fiecare interacțiune pentru a
 
 ## 4. Comunicarea și Soluționarea Problemelor
 - Când o aplicație se blochează (crash cu ecran alb), explică imediat **cauza tehnică** utilizatorului (ex. *O importare lipsă*) înainte de a adresa acuzațiile privind dispariția unor funcționalități. Utilizatorul nu poate vedea codul spart.
-## 5. UI, Tabele, și "Z-Index" Modale
+## 5. UI, Tabele, Butoane și "Z-Index" Modale
+- **FOLOSIREA COMPONENTELOR STANDARD (DATATABLE)**: Când creezi pagini de tip listă sau rapoarte în zona de admin, **ESTE OBLIGATORIU** să folosești componenta standard `<DataTable>` (`import DataTable from '../../components/DataTable'`).
+  - **NU CONSTRUI NICIODATĂ** tabele de la zero cu tag-uri simple HTML (`<table>`, `<tr>`, `<td>`).
+  - `DataTable` are deja integrate nativ: paginarea, selectarea rândurilor, căutarea, afișarea numărului curent (Nr. Crt.) și numărarea totalului de înregistrări.
+- **BUTOANE ȘI ACȚIUNI**: Păstrează mereu un design consistent. În interiorul `DataTable`, butoanele de acțiune trebuie să folosească iconițe Lucide (ex: `Eye`, `Edit`, `Trash2`) și același padding ca în restul platformei (`px-3 py-1.5`, `rounded-lg`).
 - Când combini date într-un tabel (pentru lipsă de spațiu), pune-le pe aceeași coloană una sub alta (ex: `Suprafață / Grosime`), în loc să micșorezi fonturile ca să încapă toate.
 - Asigură-te întotdeauna că Modalele, ferestrele de Dialog, și ferestrele de tip Popup (ex: `ConfirmModal`) au un `z-[9999]` sau suficient de mare pentru a randa peste Navigation Bar (Header-ul albastru). **CRITIC:** Deoarece aplicația folosește un layout unde `<main>` și `<header>` sunt siblings, un simplu `z-[9999]` pus în interiorul unei pagini nu va acoperi header-ul din cauza stacking context-ului. **Folosește MEREU `createPortal(<div className="fixed inset-0 z-[9999]...">...</div>, document.body)`** pentru a garanta că modalul acoperă întreg ecranul, inclusiv header-ul!
 - **FĂRĂ ALERTE NATIVE BROWSER**: Este complet interzisă folosirea `alert(...)` sau `prompt(...)`! Folosește exclusiv componenta Toast/Notificări existentă în aplicație (ex: funcția `showToast` existentă deja în pagini) sau un modal stilizat curat.

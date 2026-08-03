@@ -7,7 +7,38 @@ logger = logging.getLogger(__name__)
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
-def send_quote_email(to_email: str, client_name: str, client_language: str, signing_url: str, pdf_path: str = None):
+def _log_email(org_id, wo_id, to_email, client_name, subject, html_content, status, error_message=None):
+    from app.database import SessionLocal
+    from app.models import EmailLog, WorkOrder, Organization
+    db = SessionLocal()
+    try:
+        if not org_id and wo_id:
+            wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+            if wo:
+                org_id = wo.organization_id
+        if not org_id:
+            org = db.query(Organization).first()
+            if org:
+                org_id = org.id
+        if org_id:
+            log = EmailLog(
+                organization_id=org_id,
+                work_order_id=wo_id,
+                client_email=to_email,
+                client_name=client_name,
+                subject=subject,
+                html_content=html_content,
+                status=status,
+                error_message=error_message
+            )
+            db.add(log)
+            db.commit()
+    except Exception as e:
+        logger.error(f"Failed to log email to DB: {e}")
+    finally:
+        db.close()
+
+def send_quote_email(to_email: str, client_name: str, client_language: str, signing_url: str, pdf_path: str = None, org_id: str = None, wo_id: str = None):
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         logger.warning("BREVO_API_KEY is not set. Email not sent.")
@@ -104,12 +135,14 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
         )
         response.raise_for_status()
         logger.info(f"Email sent successfully to {to_email}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "sent")
         return True
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {e}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "failed", str(e))
         return False
 
-def send_planning_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, new_date: str):
+def send_planning_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, new_date: str, org_id: str = None, wo_id: str = None):
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         return False
@@ -179,14 +212,16 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
             timeout=10.0
         )
         r.raise_for_status()
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "sent")
         return True
     except Exception as e:
         print(f"Email trimis esuat (update): {e}")
         logger.error(f"Failed to send planning email: {e}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "failed", str(e))
         return False
 
 
-def send_quote_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, discount_pct: float = 0):
+def send_quote_update_email(to_email: str, client_name: str, client_language: str, signing_url: str, discount_pct: float = 0, org_id: str = None, wo_id: str = None):
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
         return False
@@ -264,13 +299,15 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
             timeout=10.0
         )
         r.raise_for_status()
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "sent")
         return True
     except Exception as e:
         logger.error(f"Failed to send quote update email: {e}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "failed", str(e))
         return False
 
 
-def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone: str, proforma_url: str):
+def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone: str, proforma_url: str, org_id: str = None, wo_id: str = None):
     """Trimite notificare pe e-mail catre admin cand se face un deviz nou din site."""
     brevo_api_key = os.getenv("BREVO_API_KEY")
     if not brevo_api_key:
@@ -315,7 +352,9 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
         )
         r.raise_for_status()
         logger.info(f"Admin new quote alert sent to {admin_email}")
+        _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "sent")
         return True
     except Exception as e:
         logger.error(f"Failed to send admin quote alert: {e}")
+        _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "failed", str(e))
         return False

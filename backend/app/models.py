@@ -1334,3 +1334,25 @@ class RobawsWorkOrderCache(Base):
 
     organization = relationship("Organization")
     team         = relationship("Team", foreign_keys=[team_id])
+
+
+# ── Email Logs ───────────────────────────────────────────────────────────────
+class EmailLog(Base):
+    __tablename__ = "email_logs"
+
+    id              = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    work_order_id   = Column(String(36), ForeignKey("work_orders.id", ondelete="SET NULL"), nullable=True, index=True)
+    
+    client_email    = Column(String(255), nullable=True)
+    client_name     = Column(String(255), nullable=True)
+    subject         = Column(String(255), nullable=True)
+    html_content    = Column(Text, nullable=True)
+    
+    status          = Column(String(50), default='sent') # 'sent', 'failed'
+    error_message   = Column(Text, nullable=True)
+    
+    sent_at         = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    organization    = relationship("Organization")
+    work_order      = relationship("WorkOrder")

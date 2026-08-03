@@ -2771,7 +2771,7 @@
     "quote_approve_error": "overview.quote_approve_error",
     "error_unplanning": "overview.error_unplanning",
     "search_vies": "overview.search_vies",
-    "new_quotes_desc": "overview.new_quotes_desc"
+    "new_quotes_desc": "Sie haben {{num}} neue Angebotsanfragen erhalten. Möchten Sie diese jetzt ansehen?"
   },
   "planning": {
     "cannot_complete_future": "Sie können keinen zukünftigen Arbeitsauftrag abschließen.",

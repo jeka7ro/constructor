@@ -195,6 +195,54 @@ def _serialize_slim(wo: WorkOrder) -> dict:
     }
 
 
+def _serialize_invoice_mode(wo: WorkOrder) -> dict:
+    """Versiune optimizată pentru pagina de facturare — include proforma_data și date client, exclude poze, documente, etc."""
+    site_name = wo.site.name if wo.site else None
+    client_display = wo.client_name or (wo.client.name if wo.client else None)
+    return {
+        "id": wo.id,
+        "token": wo.token,
+        "title": wo.title,
+        "work_type": wo.work_type,
+        "start_date": str(wo.start_date) if wo.start_date else None,
+        "start_time": wo.start_time,
+        "is_quote": bool(wo.is_quote),
+        "status": wo.status,
+        "source_system": wo.source_system,
+        "site_address": wo.site_address or (wo.site.address if wo.site else None),
+        "client_id": wo.client_id,
+        "client_name": client_display,
+        "client_email": wo.client_email or (wo.client.email if wo.client else None),
+        "client_phone": wo.client_phone or (wo.client.phone if wo.client else None),
+        "client_type": wo.client.client_type if wo.client else "juridica",
+        "client_company_reg_number": wo.client.company_reg_number if wo.client else None,
+        "client_company_vat": wo.client.company_vat if wo.client else None,
+        "client_address": wo.client.address if wo.client else wo.client_address,
+        "volumes": wo.volumes or [],
+        "has_foil": wo.has_foil,
+        "actual_has_foil": wo.actual_has_foil,
+        "has_mesh": wo.has_mesh,
+        "actual_has_mesh": wo.actual_has_mesh,
+        "has_fiber": wo.has_fiber,
+        "actual_has_fiber": wo.actual_has_fiber,
+        "surface_m2": wo.surface_m2,
+        "actual_surface_m2": wo.actual_surface_m2,
+        "thickness_cm": wo.thickness_cm,
+        "actual_thickness_cm": wo.actual_thickness_cm,
+        "is_invoiced": bool(wo.is_invoiced),
+        "quote_number": wo.quote_number,
+        "invoice_number": wo.invoice_number,
+        "estimated_price": wo.estimated_price,
+        "computed_total": None,
+        "documents": [],
+        "photos": [],
+        "proforma_data": wo.proforma_data,
+        "prices": wo.prices or {},
+        "created_at": wo.created_at.isoformat() if wo.created_at else None,
+        "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
+    }
+
+
 def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) -> dict:
     """Serializează un WorkOrder pentru răspuns JSON."""
     # ── CACHE FAST-PATH: lucrările mai vechi decât azi se servesc din snapshot ──
@@ -478,6 +526,7 @@ def list_work_orders(
     ignore_quote_filter: bool = Query(False),
     limit: Optional[int] = None,
     slim: bool = Query(False),  # Mod rapid pentru planning — fără calcul preț
+    invoice_mode: bool = Query(False), # Mod rapid pentru facturare — exclude poze/doc, păstrează proforma
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -535,7 +584,7 @@ def list_work_orders(
             (WorkOrder.is_quote == True) & (WorkOrder.status.in_(['planning', 'confirmed', 'in_progress', 'completed']))
         ))
 
-    if slim:
+    if slim or invoice_mode:
         # Mod rapid: nu incarca documente/poze (expensive selectinload)
         q = q.options(
             joinedload(WorkOrder.site),
@@ -582,6 +631,8 @@ def list_work_orders(
     wos = q.all()
     if slim:
         return [_serialize_slim(wo) for wo in wos]
+    if invoice_mode:
+        return [_serialize_invoice_mode(wo) for wo in wos]
     return [_serialize(wo, db) for wo in wos]
 
 
@@ -906,7 +957,7 @@ def update_work_order(
             "old_date": str(old_start_date) if old_start_date else None,
             "new_date": str(update_data["start_date"]),
             "timestamp": datetime.utcnow().isoformat(),
-            "admin_name": current_admin.name
+            "admin_name": current_admin.full_name
         })
         wo.date_history = hist
         from sqlalchemy.orm.attributes import flag_modified
@@ -1030,7 +1081,6 @@ def update_work_order(
     except Exception as _route_err:
         print(f"Route calc warning (non-fatal): {_route_err}")
 
-    from datetime import datetime
     wo.updated_at = datetime.utcnow()
     
     if str(old_start_date) != str(wo.start_date):
@@ -1041,35 +1091,41 @@ def update_work_order(
 
     # Handle manual explicit notifications from frontend modal
     if getattr(payload, 'send_notification', False):
-        wo.client_notified = True
-        db.commit()
-        from app.services.email_service import send_planning_update_email
-        from app.services.whatsapp_service import send_planning_update_whatsapp
-        
-        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
-        formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
-        if wo.start_time:
-            formatted_date += f" ({wo.start_time})"
+        if wo.source_system == "devis_online":
+            wo.client_notified = True
+            db.commit()
+            from app.services.email_service import send_planning_update_email
+            from app.services.whatsapp_service import send_planning_update_whatsapp
+            
+            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+            formatted_date = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
+            if wo.start_time:
+                formatted_date += f" ({wo.start_time})"
 
-        if wo.client_email:
-            try:
-                send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
-            except Exception as e:
-                print(f"Failed to send planning update email: {e}")
-        if wo.client_phone:
-            try:
-                send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
-            except Exception as e:
-                print(f"Failed to send planning update whatsapp: {e}")
+            if wo.client_email:
+                try:
+                    send_planning_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+                except Exception as e:
+                    print(f"Failed to send planning update email: {e}")
+            if wo.client_phone:
+                try:
+                    send_planning_update_whatsapp(wo.client_phone, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, formatted_date)
+                except Exception as e:
+                    print(f"Failed to send planning update whatsapp: {e}")
+        else:
+            print(f"Skipped planning notification for WO {wo.id} because source is {wo.source_system}")
     else:
         # Check if discount was modified from admin modal
         if discount_changed and wo.client_email:
-            from app.services.email_service import send_quote_update_email
-            proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
-            try:
-                send_quote_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, discount_pct=new_discount)
-            except Exception as e:
-                print(f"Failed to send quote update email: {e}")
+            if wo.source_system == "devis_online":
+                from app.services.email_service import send_quote_update_email
+                proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+                try:
+                    send_quote_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, discount_pct=new_discount)
+                except Exception as e:
+                    print(f"Failed to send quote update email: {e}")
+            else:
+                print(f"Skipped discount notification for WO {wo.id} because source is {wo.source_system}")
 
         # Removed backward compatibility for old automatic emails
         # to ensure the admin has full control via the frontend explicit `send_notification` payload flag.
@@ -1382,7 +1438,7 @@ def send_work_order(
         base_url = "http://localhost:5678"
     
     confirm_url = f"{base_url}/confirm/{wo.token}"
-    
+            
     return {**_serialize(wo, db), "confirm_url": confirm_url}
 
 
@@ -1556,11 +1612,12 @@ async def approve_quote(
     from fastapi import BackgroundTasks
     bg_tasks = BackgroundTasks()
 
-    if client_email:
-        bg_tasks.add_task(send_planning_update_email, client_email, client_name, lang, signing_url, date_str)
-    
-    if client_phone:
-        bg_tasks.add_task(send_planning_update_whatsapp, client_phone, client_name, lang, signing_url, date_str)
+    if wo.source_system == "devis_online":
+        if client_email:
+            bg_tasks.add_task(send_planning_update_email, client_email, client_name, lang, signing_url, date_str)
+        
+        if client_phone:
+            bg_tasks.add_task(send_planning_update_whatsapp, client_phone, client_name, lang, signing_url, date_str)
 
     # We must run background tasks explicitly since we created our own instance here,
     # or better, accept BackgroundTasks as a dependency. Wait, I'll just call them sync for now if I can't use BackgroundTasks properly.
@@ -1569,10 +1626,13 @@ async def approve_quote(
     
     # Send directly if BackgroundTasks not injected
     try:
-        if client_email:
-            send_planning_update_email(client_email, client_name, lang, signing_url, date_str)
-        if client_phone:
-            send_planning_update_whatsapp(client_phone, client_name, lang, signing_url, date_str)
+        if wo.source_system == "devis_online":
+            if client_email:
+                send_planning_update_email(client_email, client_name, lang, signing_url, date_str)
+            if client_phone:
+                send_planning_update_whatsapp(client_phone, client_name, lang, signing_url, date_str)
+        else:
+            print(f"Skipped approval notification for WO {wo.id} because source is {wo.source_system}")
     except Exception as e:
         print(f"Eroare trimitere notificari aprobare: {e}")
 

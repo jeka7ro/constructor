@@ -354,7 +354,7 @@ export default function QuotesManagement() {
 
         // Auto-refresh: poll every 30s pentru devize noi (fara F5)
         const interval = setInterval(() => {
-            fetchQuotes()
+            fetchQuotes(true)
         }, 30000)
         return () => clearInterval(interval)
     }, [viewMode])
@@ -367,8 +367,8 @@ export default function QuotesManagement() {
         } catch (e) { console.error('fetchTeams', e) }
     }
 
-    const fetchQuotes = async () => {
-        setLoading(true)
+    const fetchQuotes = async (silent = false) => {
+        if (!silent) setLoading(true)
         try {
             const endpoint = viewMode === 'archived'
                 ? '/admin/work-orders?is_quote=true&status=deleted'
@@ -552,6 +552,9 @@ export default function QuotesManagement() {
                         const d = new Date(row.created_at)
                         if (!isNaN(d.getTime())) {
                             display = d.toLocaleDateString('ro-RO')
+                            if (row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online') {
+                                display += ` ${d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`
+                            }
                         } else {
                             display = row.created_at
                         }
@@ -642,7 +645,7 @@ export default function QuotesManagement() {
                                 </>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 pl-6 text-sm text-slate-500">
+                        <div className={`flex items-center gap-2 text-sm text-slate-500 ${row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online' ? '' : 'pl-6'}`}>
                             {addr ? (
                                 <span className="truncate" title={addr}>{addr}</span>
                             ) : (
@@ -699,9 +702,28 @@ export default function QuotesManagement() {
             key: 'estimated_price',
             label: t('quotes.price', 'Prix (€)'),
             sortable: true,
-            render: (row) => (
-                <EditablePrice row={row} onUpdate={fetchQuotes} />
-            )
+            render: (row) => {
+                const discountPct = row.prices?.discount_pct ? parseFloat(row.prices.discount_pct) : 0;
+                let discountAmount = 0;
+                if (discountPct > 0) {
+                    const finalPrice = row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : 0);
+                    if (finalPrice > 0 && discountPct < 100) {
+                        const originalPrice = finalPrice / (1 - (discountPct / 100));
+                        discountAmount = originalPrice - finalPrice;
+                    }
+                }
+                
+                return (
+                    <div className="flex flex-col gap-0.5">
+                        <EditablePrice row={row} onUpdate={fetchQuotes} />
+                        {discountPct > 0 && discountAmount > 0 && (
+                            <span className="text-emerald-600 text-[10px] font-bold whitespace-nowrap tracking-tight bg-emerald-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                                - {new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(discountAmount)} € ({discountPct}%)
+                            </span>
+                        )}
+                    </div>
+                )
+            }
         },
         {
             key: 'actions',

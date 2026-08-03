@@ -2689,7 +2689,7 @@
     "quote_approve_error": "overview.quote_approve_error",
     "error_unplanning": "overview.error_unplanning",
     "search_vies": "overview.search_vies",
-    "new_quotes_desc": "overview.new_quotes_desc"
+    "new_quotes_desc": "Je hebt {{num}} nieuwe offerteaanvragen ontvangen. Wil je ze nu bekijken?"
   },
   "calculator": {
     "back": "Terug",
