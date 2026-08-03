@@ -1192,6 +1192,9 @@ def update_work_order(
         except Exception as e:
             print(f"Logistics cache invalidation warning: {e}")
 
+    # Commit any remaining changes (e.g., auto_msg from discount update)
+    db.commit()
+
     return _serialize(wo, db)
 
 
