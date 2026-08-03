@@ -2316,13 +2316,16 @@ def post_work_order_message(
         raise HTTPException(status_code=403, detail="Chat is closed")
         
     translations = payload.translations or {}
-    if payload.target_lang and not translations:
-        try:
-            from deep_translator import GoogleTranslator
-            translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.message)
-            translations[payload.target_lang] = translated
-        except Exception as e:
-            print(f"Translation failed: {e}")
+    
+    # Auto-translate to the 3 public languages if deep_translator is available
+    try:
+        from deep_translator import GoogleTranslator
+        for target_lang in ['fr', 'nl', 'en']:
+            if target_lang not in translations:
+                translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
+                translations[target_lang] = translated
+    except Exception as e:
+        print(f"Auto-translation failed: {e}")
             
     msg = WorkOrderMessage(
         work_order_id=wo.id,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile } from 'lucide-react'
+import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import DevisView from '../admin/DevisView'
@@ -545,6 +546,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     // Chat Client-Admin
     const [messages, setMessages] = useState([])
     const [showEmojiPickerFor, setShowEmojiPickerFor] = useState(null)
+    const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [chatMessage, setChatMessage] = useState("")
     const [sendingMessage, setSendingMessage] = useState(false)
     const [lastReadTime, setLastReadTime] = useState(() => localStorage.getItem(`chat_last_read_${token}`) || null)
@@ -870,9 +872,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         {/* Language Selector */}
                         <div className="hidden sm:flex gap-1 bg-slate-100 p-1 rounded-lg">
                             {[
-                                { code: 'fr', label: 'FR' },
-                                { code: 'nl', label: 'NL' },
-                                { code: 'en', label: 'EN' }
+                                { code: 'fr', label: 'FR', flag: '🇫🇷' },
+                                { code: 'nl', label: 'NL', flag: '🇳🇱' },
+                                { code: 'en', label: 'EN', flag: '🇬🇧' }
                             ].map(l => (
                                 <button
                                     key={l.code}
@@ -880,8 +882,9 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                         setLang(l.code);
                                         setSearchParams({ lang: l.code }, { replace: true });
                                     }}
-                                    className={`px-3 py-1 rounded-md text-[10px] font-black transition-colors flex items-center ${lang === l.code ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
+                                    <span className="text-sm leading-none">{l.flag}</span>
                                     {l.label}
                                 </button>
                             ))}
@@ -1133,7 +1136,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             </div>
                             <div className="flex flex-col gap-2">
                                 {order.client_documents.map((d, i) => (
-                                    <a key={i} href={d.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <button 
+                                        key={i} 
+                                        type="button"
+                                        onClick={() => setPreviewDocIndex(i)} 
+                                        className="flex text-left items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors w-full"
+                                    >
                                         <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                                             <FileText className="w-4 h-4 text-blue-600" />
                                         </div>
@@ -1143,7 +1151,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                                 {new Date(d.uploaded_at).toLocaleDateString('ro-RO')}
                                             </p>
                                         </div>
-                                    </a>
+                                    </button>
                                 ))}
                             </div>
                         </div>
@@ -1201,13 +1209,36 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
                 {/* Chat Section */}
                 <div id="chat-section" onMouseEnter={markChatAsRead} onTouchStart={markChatAsRead} className="mt-6 print:hidden w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-                    <div className="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                            <MessageSquare className="w-4 h-4 text-blue-600" />
+                    <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                <MessageSquare className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <h3 className="font-black text-slate-800 uppercase text-sm tracking-wider">
+                                {lang === 'ro' ? 'Comunicare' : lang === 'fr' ? 'Communication' : 'Communication'}
+                            </h3>
                         </div>
-                        <h3 className="font-black text-slate-800 uppercase text-sm tracking-wider">
-                            {lang === 'ro' ? 'Comunicare' : lang === 'fr' ? 'Communication' : 'Communication'}
-                        </h3>
+                        
+                        {/* Language Selector in Chat Header */}
+                        <div className="flex gap-1 bg-slate-200/60 p-1 rounded-lg">
+                            {[
+                                { code: 'fr', label: 'FR', flag: '🇫🇷' },
+                                { code: 'nl', label: 'NL', flag: '🇳🇱' },
+                                { code: 'en', label: 'EN', flag: '🇬🇧' }
+                            ].map(l => (
+                                <button
+                                    key={l.code}
+                                    onClick={() => {
+                                        setLang(l.code);
+                                        setSearchParams({ lang: l.code }, { replace: true });
+                                    }}
+                                    className={`px-3 py-1.5 rounded-md text-[11px] font-black transition-colors flex items-center gap-1.5 ${lang === l.code ? 'bg-white text-blue-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <span className="text-sm leading-none">{l.flag}</span>
+                                    {l.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div ref={chatContainerRef} className="h-64 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
                         {messages.length === 0 ? (
@@ -1489,6 +1520,14 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {previewDocIndex !== null && order?.client_documents && (
+                <DocumentPreviewModal 
+                    documents={order.client_documents} 
+                    initialIndex={previewDocIndex}
+                    onClose={() => setPreviewDocIndex(null)} 
+                />
             )}
         </div>
     )

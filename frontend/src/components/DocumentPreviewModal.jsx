@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Download, FileText, ImageIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
 export default function DocumentPreviewModal({ documents, initialIndex = 0, onClose }) {
+    const { t } = useTranslation();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
     useEffect(() => {
@@ -31,9 +33,11 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
     };
 
     const doc = documents[currentIndex];
-    const isImg = doc.content_type?.startsWith('image/');
     const rawUrl = doc.file_url || doc.file_path;
     const fileUrl = rawUrl?.startsWith('http') ? rawUrl : `${API_BASE}${rawUrl?.startsWith('/') ? '' : '/'}${rawUrl}`;
+    const isImg = doc.content_type?.startsWith('image/') || 
+                  doc.filename?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i) ||
+                  fileUrl?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|heic)(\?.*)?$/i);
 
     return createPortal(
         <div className="fixed inset-0 bg-slate-900/90 z-[99999] flex flex-col backdrop-blur-sm">
@@ -42,7 +46,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                 <div>
                     <h3 className="font-semibold text-lg">{doc.filename}</h3>
                     <p className="text-sm text-slate-300">
-                        {currentIndex + 1} din {documents.length} • {doc.source === 'client' ? 'Încărcat de Client' : 'Document'}
+                        {currentIndex + 1} {t('common.of', 'sur')} {documents.length} • {doc.source === 'client' ? t('common.uploaded_by_client', 'Téléchargé par le client') : t('common.document', 'Document')}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -54,7 +58,7 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                         className="p-2 hover:bg-slate-800 rounded-full transition-colors flex items-center gap-2 text-sm font-medium"
                     >
                         <Download className="w-5 h-5" />
-                        <span className="hidden sm:inline">Descarcă</span>
+                        <span className="hidden sm:inline">{t('common.download', 'Télécharger')}</span>
                     </a>
                     <button
                         onClick={onClose}
@@ -89,14 +93,14 @@ export default function DocumentPreviewModal({ documents, initialIndex = 0, onCl
                         <div className="flex flex-col items-center justify-center bg-white rounded-2xl p-12 max-w-sm w-full text-center shadow-2xl">
                             <FileText className="w-24 h-24 text-blue-500 mb-6" />
                             <h4 className="text-xl font-bold text-slate-800 mb-2 truncate w-full">{doc.filename}</h4>
-                            <p className="text-slate-500 mb-6">Previzualizarea nu este disponibilă pentru acest tip de fișier.</p>
+                            <p className="text-slate-500 mb-6">{t('common.preview_not_available', 'Aperçu non disponible pour ce type de fichier.')}</p>
                             <a
                                 href={fileUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
                             >
-                                Deschide Fișierul
+                                {t('common.open_file', 'Ouvrir le fichier')}
                             </a>
                         </div>
                     )}
