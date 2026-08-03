@@ -922,6 +922,35 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             {t('quotes.copy_link', 'Copier le lien client')}
                         </button>
                     )}
+                    {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
+                        <button
+                            onClick={async () => {
+                                if (window.confirm(t('work_order_detail.confirm_complete', 'Êtes-vous sûr de vouloir marquer cette commande comme terminée ?'))) {
+                                    try {
+                                        await api.put(`/admin/work-orders/${id}`, { status: 'completed' });
+                                        setWo(prev => ({ ...prev, status: 'completed' }));
+                                        showToast(t('work_order_detail.marked_completed', 'Commande marquée comme terminée !'), 'success');
+                                    } catch (e) {
+                                        console.error(e);
+                                        showToast(t('common.error', 'Erreur'), 'error');
+                                    }
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 h-9 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-bold hover:bg-emerald-100 transition-colors shrink-0"
+                            title={t('work_order_detail.mark_completed', 'Marquer comme terminé')}
+                        >
+                            <CheckCircle2 className="w-4 h-4" />
+                            {t('work_order_detail.mark_completed_btn', 'Marquer Finalisé')}
+                        </button>
+                    )}
+                    <button 
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="flex items-center gap-2 px-4 h-9 rounded-full bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors shrink-0"
+                        title={t('common.delete', 'Supprimer')}
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {t('common.delete', 'Supprimer')}
+                    </button>
                     {/* wo.status !== 'completed' && (
                         <>
                             {wo.status === 'planning' && wo.client_email && (

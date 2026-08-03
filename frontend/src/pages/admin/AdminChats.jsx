@@ -30,6 +30,7 @@ export default function AdminChats() {
     const [activeWo, setActiveWo] = useState(null)
     const [messages, setMessages] = useState([])
     const [chatMessage, setChatMessage] = useState('')
+    const [isSending, setIsSending] = useState(false)
     const [loadingMessages, setLoadingMessages] = useState(false)
     const [editingMessageId, setEditingMessageId] = useState(null)
     const [editMessageText, setEditMessageText] = useState('')
@@ -132,13 +133,14 @@ export default function AdminChats() {
 
     const handleSendMessage = async (e) => {
         e.preventDefault()
-        if (!chatMessage.trim()) return
+        if (!chatMessage.trim() || isSending) return
         
         if (activeWo.is_chat_closed) {
             showToast(t('admin.chat_is_closed_cannot_send', 'Cette conversation est fermée. Vous ne pouvez plus envoyer de messages.'), "error")
             return
         }
 
+        setIsSending(true)
         try {
             const payload = {
                 message: chatMessage,
@@ -168,6 +170,8 @@ export default function AdminChats() {
             } else {
                  showToast(t('admin.error_sending_message', 'Erreur lors de l\'envoi du message'), "error")
             }
+        } finally {
+            setIsSending(false)
         }
     }
 

@@ -1106,7 +1106,7 @@ export default function ShortWorksCalendar({
                                             setIsDragging(false);
                                             setDraggedOrder(null);
                                         }}
-                                        className={`group absolute p-1.5 overflow-hidden rounded-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all ${isPast ? '' : 'cursor-move'} mx-1 
+                                        className={`absolute p-1.5 overflow-hidden rounded-md shadow-sm transition-all ${isPast ? '' : 'cursor-move'} mx-1 
                                             ${!wo.assigned_team_id ? 'bg-white dark:bg-slate-900 border-2 border-red-500 border-l-[6px] border-l-red-500' : 'border-l-4'}
                                             ${isThisDragged ? 'opacity-50 ring-2 ring-blue-500' : ''} 
                                             ${syncing ? 'opacity-70 pointer-events-none' : ''} 
@@ -1230,56 +1230,16 @@ export default function ShortWorksCalendar({
                                         title={`${(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)} — trageți pentru a muta`}
                                     >
                                         {!isCompleted && (
-                                            <div className={`absolute top-1 right-1 z-10 transition-opacity duration-150 opacity-100 group-hover:opacity-0`}>
+                                            <div className={`absolute top-1 right-1 z-10 opacity-70`}>
                                                 <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
                                             </div>
                                         )}
-
-                                        <div className="absolute top-1 right-1 flex items-center gap-1 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm p-0.5 border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-                                                <button
-                                                    onClick={(e) => isCompleted ? handleUncomplete(wo, e) : handleComplete(wo, e)}
-                                                    className={`p-1 rounded transition-colors ${isCompleted ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30' : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400'}`}
-                                                    title={isCompleted ? 'Anulează finalizare' : 'Marchează Finalizat'}
-                                                    disabled={completing === wo.id}
-                                                >
-                                                    {completing === wo.id
-                                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                        : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                                </button>
-                                                {!isCompleted && (
-                                                    <>
-                                                        <button 
-                                                            onClick={(e) => { 
-                                                                e.stopPropagation(); 
-                                                                if (onOrderEdit) onOrderEdit(wo);
-                                                                else navigate(`/admin/work-orders/${wo.id}/edit`, { state: { from: '/admin/planning' } }); 
-                                                            }}
-                                                            className="hidden lg:flex p-1 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-500 rounded transition-colors"
-                                                            title={t('common.edit', 'Editează')}
-                                                        >
-                                                            <Edit2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); setOrderToDelete(wo); }}
-                                                            className="hidden lg:flex p-1 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 text-slate-500 rounded transition-colors"
-                                                            title={t('common.delete', 'Șterge')}
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </>
-                                                )}
-                                        </div>
 
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
                                             <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                         </div>
-                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none xl:pointer-events-auto xl:cursor-pointer xl:hover:text-blue-600 xl:dark:hover:text-blue-400"
-                                             onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 const addr = wo.site_address || wo.site_name;
-                                                 if (addr) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
-                                             }}>
+                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none">
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
                                             <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
                                         </div>

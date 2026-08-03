@@ -1145,8 +1145,31 @@ def update_work_order(
                 proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
                 try:
                     send_quote_update_email(wo.client_email, wo.client_name, getattr(wo, 'client_language', 'fr'), proforma_url, discount_pct=new_discount)
+                    
+                    # Salvare mesaj automat în Chat
+                    lang = getattr(wo, 'client_language', 'fr')
+                    if lang == 'nl':
+                        chat_text = f"Hallo, het Davide Chape team heeft u een extra korting van {new_discount}% toegekend op uw offerte. Controleer de bijgewerkte offerte."
+                    elif lang == 'en':
+                        chat_text = f"Hello, the Davide Chape team has granted you an additional discount of {new_discount}% on your quote. Please check the updated offer."
+                    elif lang == 'ro':
+                        chat_text = f"Bună ziua. Ați primit un discount adițional de {new_discount}% din partea echipei Davide Chape. Vă rugăm să verificați oferta actualizată."
+                    else: # default fr
+                        chat_text = f"Bonjour, l'équipe Davide Chape vous a accordé une remise supplémentaire de {new_discount}% sur votre devis. Veuillez vérifier l'offre actualisée."
+                    
+                    auto_msg = WorkOrderMessage(
+                        work_order_id=wo.id,
+                        sender="admin",
+                        admin_id=current_admin.id if current_admin else None,
+                        message=chat_text,
+                        is_read_by_client=False,
+                        is_read_by_admin=True,
+                        message_type="text"
+                    )
+                    db.add(auto_msg)
+                    db.flush()
                 except Exception as e:
-                    print(f"Failed to send quote update email: {e}")
+                    print(f"Failed to send quote update email or chat: {e}")
             else:
                 print(f"Skipped discount notification for WO {wo.id} because source is {wo.source_system}")
 
@@ -2574,7 +2597,11 @@ def get_unread_quotes_count(
             print(f"Error parsing since: {e}")
             
     count = query.count()
-    return {"unread_count": count}
+    from datetime import datetime
+    return {
+        "unread_count": count,
+        "server_time": datetime.utcnow().isoformat() + "Z"
+    }
 
 @router.get("/chats")
 def get_all_chats(

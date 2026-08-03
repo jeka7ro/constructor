@@ -619,8 +619,13 @@ export default function WorkOrderConfirm({ hideMap = false }) {
 
     // Auto-refresh polling: check for updates every 30 seconds
     const lastUpdatedRef = useRef(null)
+    const orderRef = useRef(order)
     const [updateToast, setUpdateToast] = useState(null)
     const [needsDateConfirmation, setNeedsDateConfirmation] = useState(false)
+
+    useEffect(() => {
+        orderRef.current = order
+    }, [order])
 
     useEffect(() => {
         if (!order) return
@@ -637,22 +642,34 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                 const newTimestamp = newData.updated_at || newData.created_at
                 if (lastUpdatedRef.current && newTimestamp !== lastUpdatedRef.current) {
                     lastUpdatedRef.current = newTimestamp
+                    
+                    const currentOrder = orderRef.current
+                    const hasMeaningfulChange = currentOrder && (
+                        newData.status !== currentOrder.status ||
+                        newData.start_date !== currentOrder.start_date ||
+                        newData.start_time !== currentOrder.start_time ||
+                        newData.estimated_price !== currentOrder.estimated_price ||
+                        JSON.stringify(newData.prices) !== JSON.stringify(currentOrder.prices)
+                    )
+
                     setOrder(newData)
                     
-                    const isFinal = newData.status === 'completed' || newData.final_confirmed_at;
-                    setMode(isFinal ? 'final' : 'quote');
-                    if (isFinal) {
-                        setConfirmed(!!newData.final_confirmed_at)
-                    } else {
-                        setConfirmed(!!newData.confirmed_at)
-                    }
-                    setDateConfirmed(!!newData.date_confirmed_at)
-                    
-                    if (newData.start_date !== order.start_date && !newData.date_confirmed_at) {
-                        setNeedsDateConfirmation(newData.start_date)
-                    } else {
-                        // Show update notification — stays until dismissed
-                        setUpdateToast(t.updateNotification)
+                    if (hasMeaningfulChange) {
+                        const isFinal = newData.status === 'completed' || newData.final_confirmed_at;
+                        setMode(isFinal ? 'final' : 'quote');
+                        if (isFinal) {
+                            setConfirmed(!!newData.final_confirmed_at)
+                        } else {
+                            setConfirmed(!!newData.confirmed_at)
+                        }
+                        setDateConfirmed(!!newData.date_confirmed_at)
+                        
+                        if (newData.start_date !== currentOrder.start_date && !newData.date_confirmed_at) {
+                            setNeedsDateConfirmation(newData.start_date)
+                        } else {
+                            // Show update notification — stays until dismissed
+                            setUpdateToast(t.updateNotification)
+                        }
                     }
                 }
                 

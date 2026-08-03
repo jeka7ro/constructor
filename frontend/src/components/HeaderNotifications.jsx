@@ -14,6 +14,7 @@ export default function HeaderNotifications() {
     const [unreadQuotesCount, setUnreadQuotesCount] = useState(0)
     const dropdownRef = useRef(null)
     const isInitialLoad = useRef(true)
+    const lastServerTimeRef = useRef(new Date().toISOString())
 
     const fetchMessages = async () => {
         try {
@@ -44,13 +45,19 @@ export default function HeaderNotifications() {
             const params = lastViewed ? { since: lastViewed } : {}
             const res = await api.get('/admin/quotes/unread-count', { params })
             setUnreadQuotesCount(res.data.unread_count || 0)
+            if (res.data.server_time) {
+                lastServerTimeRef.current = res.data.server_time
+            }
         } catch (e) {
             console.error('Failed to fetch unread quotes', e)
         }
     }
 
     useEffect(() => {
-        const handleQuotesViewed = () => setUnreadQuotesCount(0);
+        const handleQuotesViewed = () => {
+            setUnreadQuotesCount(0);
+            localStorage.setItem('lastQuotesViewAt', lastServerTimeRef.current);
+        };
         window.addEventListener('quotesViewed', handleQuotesViewed);
         
         fetchMessages()
@@ -110,7 +117,7 @@ export default function HeaderNotifications() {
         <div className="flex items-center gap-2">
             <button 
                 onClick={() => {
-                    localStorage.setItem('lastQuotesViewAt', new Date().toISOString());
+                    localStorage.setItem('lastQuotesViewAt', lastServerTimeRef.current);
                     setUnreadQuotesCount(0);
                     navigate('/admin/quotes');
                 }}

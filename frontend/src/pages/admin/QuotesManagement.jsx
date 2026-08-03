@@ -160,7 +160,7 @@ const EditablePrice = ({ row, onUpdate }) => {
         >
             {isSaving
                 ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                : <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                : <span className="text-sm font-bold text-slate-800 transition-colors">
                     {displayValue != null ? fmt(displayValue) : '—'}
                   </span>
             }
@@ -399,14 +399,7 @@ export default function QuotesManagement() {
             const activeQuotes = res.data.filter(q => q.status !== 'cancelled');
             setQuotes(activeQuotes)
             
-            // Fix unread count by using the latest quote's created_at
-            if (activeQuotes.length > 0) {
-                const maxDate = new Date(Math.max(...activeQuotes.map(q => new Date(q.created_at).getTime())));
-                maxDate.setSeconds(maxDate.getSeconds() + 2); // add 2 seconds safety buffer
-                localStorage.setItem('lastQuotesViewAt', maxDate.toISOString());
-            } else {
-                localStorage.setItem('lastQuotesViewAt', new Date().toISOString());
-            }
+            // Fix unread count by dispatching event, HeaderNotifications will handle localStorage
             window.dispatchEvent(new Event('quotesViewed'));
         } catch (e) {
             console.error('Failed to load quotes', e)
