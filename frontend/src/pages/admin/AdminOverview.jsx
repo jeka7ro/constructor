@@ -18,6 +18,7 @@ import {
 import KPICard from '../../components/KPICard'
 import DataTable from '../../components/DataTable'
 import ShortWorksCalendar from '../../components/ShortWorksCalendar'
+import CalendarErrorBoundary from '../../components/CalendarErrorBoundary'
 import WorkOrderDetail from './WorkOrderDetail'
 import WorkOrderForm from './WorkOrderForm'
 import MiniLiveTrackingMap from '../../components/MiniLiveTrackingMap'
@@ -1063,7 +1064,8 @@ export default function AdminOverview() {
                     }
                 >
                     <div className={isCalendarFull ? "flex-1 h-full min-w-0" : "min-w-0"}>
-                        <ShortWorksCalendar 
+                        <CalendarErrorBoundary>
+                            <ShortWorksCalendar 
                             isCalendarFull={isCalendarFull}
                             toggleCalendarFullscreen={toggleCalendarFullscreen}
                             workOrders={allWorkOrders} 
@@ -1124,9 +1126,10 @@ export default function AdminOverview() {
                                 setQuickCreateStep(1)
                             }}
                         />
+                        </CalendarErrorBoundary>
                     </div>
                     {!isCalendarFull && (
-                        <div className="flex flex-col gap-4 h-[800px]">
+                        <div className="hidden xl:flex flex-col gap-4 h-[800px]">
                             {/* Panel DEVIS — draggable pe calendar si invers */}
                             <div 
                                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 flex-1 flex flex-col overflow-hidden min-h-0"
