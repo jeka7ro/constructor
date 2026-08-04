@@ -190,13 +190,7 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                                     {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
                                 </span>
                             </div>
-                            {(!isTodayFlag && viewMode === 'day') && (
-                                <div className="flex justify-end px-1 mb-1">
-                                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
-                                        {dayOrders.length} {dayOrders.length === 1 ? t('general.order', 'chantier') : t('general.orders', 'chantiers')}
-                                    </span>
-                                </div>
-                            )}
+
 
                             {/* Lista Comenzi pt Zi */}
                             {dayOrders.length > 0 ? (
