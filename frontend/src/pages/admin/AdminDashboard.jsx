@@ -9,7 +9,7 @@ import HeaderNotifications from '../../components/HeaderNotifications'
 import GlobalSearch from '../../components/GlobalSearch'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -416,6 +416,17 @@ export default function AdminDashboard() {
                          >
                              <Menu className="w-5 h-5" />
                          </button>
+                         
+                         {/* Mobile Back Button */}
+                         {location.pathname !== '/admin/planning' && location.pathname !== '/admin' && (
+                             <button
+                                 onClick={() => navigate(-1)}
+                                 className="md:hidden p-1 -ml-2 text-white/90 hover:text-white transition-colors"
+                             >
+                                 <ChevronLeft className="w-7 h-7" />
+                             </button>
+                         )}
+
                      {/* Desktop Logo */}
                      <div className="hidden md:flex items-center justify-center mr-2">
                          {tenant ? (
@@ -428,15 +439,19 @@ export default function AdminDashboard() {
                              <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-10 object-contain opacity-70" />
                          )}
                      </div>
-                         {/* Mobile Logo & Tenant Name */}
-                         <div className="md:hidden flex items-center gap-2">
-                              {tenant?.logo_url && (
-                                  <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-8 h-8 object-contain rounded-md bg-white drop-shadow-sm p-0.5" />
-                              )}
-                              <span className="font-extrabold text-[15px] leading-tight tracking-tighter text-white truncate max-w-[200px]">
-                                  {tenant?.name || 'Smart Timesheet'}
-                              </span>
-                         </div>
+
+                     {/* Mobile Logo Only */}
+                     <div className="md:hidden flex items-center justify-center mr-2">
+                         {tenant ? (
+                             tenant.logo_url ? (
+                                 <img src={getImageUrl(tenant.logo_url)} alt="Tenant Logo" className="h-8 max-h-10 w-auto object-contain bg-transparent" />
+                             ) : (
+                                 <div className="font-extrabold text-[15px] leading-tight tracking-tighter text-white truncate max-w-[150px]">{tenant.name || 'Tenant'}</div>
+                             )
+                         ) : (
+                             <img src="/getapp_smart_timesheet_icon.png" alt="Smart Timesheet" className="h-8 object-contain opacity-70" />
+                         )}
+                     </div>
 
                     </div>
 
@@ -638,7 +653,7 @@ export default function AdminDashboard() {
 
             {/* Main Content Area */}
                 {/* Main View Outlet */}
-                <main className={`flex-1 overflow-auto relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                <main className={`flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar transition-colors ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
                     {/* Page Content with smooth fade transition */}
                     <div
                         key={location.pathname}
@@ -659,60 +674,64 @@ export default function AdminDashboard() {
                 </main>
             </div>
 
-            {/* Bottom Navigation Bar (Admin Mobile) */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_25px_rgba(0,0,0,0.5)] z-[70]">
-                
-                {/* Left Side Group */}
-                <div className="flex flex-1 justify-around">
-                    {/* 1. Angajati */}
-                    <NavLink to="/admin/employees" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-blue-600 dark:text-blue-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                        <HardHat className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">{t('nav.employees', 'Employés')}</span>
-                    </NavLink>
+            {/* Bottom Navigation Bar (Admin Mobile - Heavy Styling) */}
+            <nav 
+                className={`md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] z-[70] rounded-t-3xl transition-colors duration-300 ${darkMode ? 'bg-slate-900' : ''}`}
+                style={darkMode ? {} : { backgroundColor: tenant?.primary_color || '#2563EB' }}
+            >
+                {/* 1. Harta (Live Fleet) */}
+                <NavLink
+                    to="/admin/tracking"
+                    className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                >
+                    <MapIcon className="w-7 h-7 mb-1.5" />
+                    <span className="text-[10px] font-bold text-center leading-tight">{t('live.fleet_map_short', 'Carte')}</span>
+                </NavLink>
 
-                    {/* 2. Șantiere (sau Rapoarte daca nu are santiere lungi, specifice SAPE) */}
-                    {hasLongTerm ? (
-                        <NavLink to="/admin/sites" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-orange-600 dark:text-orange-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                            <Building2 className="w-6 h-6 mb-1.5" />
-                            <span className="text-[10px] font-bold">{t('nav.sites', 'Chantiers')}</span>
-                        </NavLink>
-                    ) : (
-                        <NavLink to="/admin/reports" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-violet-600 dark:text-violet-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                            <BarChart3 className="w-6 h-6 mb-1.5" />
-                            <span className="text-[10px] font-bold">{t('nav.reports', 'Rapports')}</span>
-                        </NavLink>
-                    )}
-                </div>
+                {/* 2. Devize */}
+                <NavLink
+                    to="/admin/quotes"
+                    className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                >
+                    <Calculator className="w-7 h-7 mb-1.5" />
+                    <span className="text-[10px] font-bold text-center leading-tight">{t('nav.quotes', 'Devis')}</span>
+                </NavLink>
 
-                {/* 3. Dashboard (Home) - Centered Shrink-0 */}
-                <div className="relative flex justify-center w-[96px] shrink-0">
-                    <button onClick={() => navigate('/admin/planning')} className={`absolute -top-12 flex flex-col items-center justify-center w-[72px] h-[72px] text-white rounded-full transition-all active:scale-95 border-4 border-slate-50 dark:border-slate-900 bg-[color:var(--mobile-bg)] shadow-[0_5px_15px_rgba(0,0,0,0.15)] ${location.pathname === '/admin/planning' ? 'ring-2 ring-[color:var(--mobile-bg)] scale-105' : ''}`} style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}>
+                {/* 3. Center Dashboard Button (Big Round) */}
+                <div className="relative flex justify-center w-[96px]">
+                    <button
+                        onClick={() => navigate('/admin/planning')}
+                        style={darkMode ? {} : { backgroundColor: tenant?.primary_color || '#2563EB' }}
+                        className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white dark:border-slate-900 backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] ${location.pathname === '/admin/planning' ? 'scale-105' : ''} ${darkMode ? 'bg-slate-800' : ''}`}
+                    >
                         {tenant?.favicon_url ? (
-                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-sm rounded-lg" />
+                            <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                         ) : tenant?.logo_url ? (
-                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-sm rounded-lg" />
+                            <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
                         ) : (
-                            <LayoutDashboard className="w-8 h-8" />
+                            <LayoutDashboard className="w-8 h-8 drop-shadow-md text-white" />
                         )}
                     </button>
                 </div>
 
-                {/* Right Side Group */}
-                <div className="flex flex-1 justify-around">
-                    {/* 4. Comenzi */}
-                    <NavLink to="/admin/work-orders" className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-110 drop-shadow-md' : 'text-slate-500 dark:text-slate-400'}`}>
-                        <ClipboardList className="w-6 h-6 mb-1.5" />
-                        <span className="text-[10px] font-bold">{t('nav.work_orders', 'Commandes')}</span>
-                    </NavLink>
+                {/* 4. Chat */}
+                <NavLink
+                    to="/admin/chats"
+                    className={({isActive}) => `flex flex-col items-center p-2 w-[80px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                >
+                    <MessageSquare className="w-7 h-7 mb-1.5" />
+                    <span className="text-[10px] font-bold text-center leading-tight">Chat</span>
+                </NavLink>
 
-                    {/* 5. Menu */}
-                    <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center p-2 w-[72px] transition-all text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-                        <svg className="w-6 h-6 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                        <span className="text-[10px] font-bold">{t('nav.menu', 'Menu')}</span>
-                    </button>
-                </div>
+                {/* 5. Menu */}
+                <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="flex flex-col items-center p-2 w-[80px] transition-all text-white/60 hover:text-white"
+                >
+                    <Menu className="w-7 h-7 mb-1.5" />
+                    <span className="text-[10px] font-bold text-center leading-tight">{t('nav.menu', 'Menu')}</span>
+                </button>
+
             </nav>
 
             {/* Birthday Popup */}
