@@ -1,3 +1,4 @@
+import MobileAgenda from "./MobileAgenda";
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Hand, Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning, Loader2, AlertTriangle, Edit2, Trash2, Plus, CheckCircle2, Maximize2, Minimize2, Truck, Building2, Star, Search, X, Move } from 'lucide-react';
@@ -531,13 +532,46 @@ export default function ShortWorksCalendar({
     });
 
     return (
-        <div 
-            ref={calendarSwipeRef}
-            className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEndEvent}
-        >
-            {/* Header */}
+        <>
+            {/* MOBILE VIEW - COMPLETELY UNRESTRICTED */}
+            <div className="block md:hidden w-full min-h-[calc(100vh-200px)] bg-slate-50 dark:bg-slate-900">
+                <MobileAgenda 
+                    orders={weeklyOrders}
+                    onOrderClick={(wo) => {
+                        if (isSelectingForHolding) {
+                            const dateStr = wo.start_date || wo.deadline_date;
+                            const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
+                            let isPast = false;
+                            if (parsedDate) {
+                                const dropDateObj = new Date(parsedDate);
+                                dropDateObj.setHours(0, 0, 0, 0);
+                                const todayObj = new Date();
+                                todayObj.setHours(0, 0, 0, 0);
+                                isPast = dropDateObj < todayObj;
+                            }
+                            if (isPast) {
+                                toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail depuis le passé.'));
+                                return;
+                            }
+                            setHeldOrder(wo);
+                            setIsSelectingForHolding(false);
+                            return;
+                        }
+                        if (onOrderClick) onOrderClick(wo);
+                        else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
+                    }}
+                    currentDate={currentDate}
+                    setCurrentDate={setCurrentDate}
+                />
+            </div>
+            
+            <div 
+                ref={calendarSwipeRef}
+                className={`hidden md:flex bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-col relative ${isCalendarFull ? 'h-full' : 'h-[800px]'}`}
+                onTouchStart={onTouchStart}
+                onTouchEnd={onTouchEndEvent}
+            >
+                {/* Header */}
             <div className="flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
                 <div className="px-4 h-[60px] flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1282,124 +1316,6 @@ export default function ShortWorksCalendar({
                     </div>
                 </div>
             </div>
-
-            {/* Calendar List View (Mobile) */}
-            <div className="flex-1 overflow-y-auto md:hidden p-4 pb-32 flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-                {weeklyOrders.length === 0 ? (
-                    <div className="flex items-center justify-center py-10">
-                        <span className="text-slate-400 text-sm font-semibold">{t('admin_overview.no_orders_week', 'Nicio comandă în această săptămână')}</span>
-                    </div>
-                ) : (
-                    (() => {
-                        const sorted = [...weeklyOrders].sort((a, b) => {
-                            const dateA = a.start_date || a.deadline_date || '';
-                            const dateB = b.start_date || b.deadline_date || '';
-                            if (dateA !== dateB) return String(dateB).localeCompare(String(dateA));
-                            const tA = a.start_time ? String(a.start_time) : '07:00';
-                            const tB = b.start_time ? String(b.start_time) : '07:00';
-                            return tA.localeCompare(tB);
-                        });
-                        
-                        let lastDate = null;
-                        
-                        return sorted.map(wo => {
-                            const dateStr = wo.start_date || wo.deadline_date;
-                            const isNewDay = dateStr !== lastDate;
-                            lastDate = dateStr;
-                            
-                            const colorHex = wo.team?.color || '#3b82f6';
-                            const parsedDate = dateStr ? new Date(dateStr.split('T')[0]) : null;
-                            const isCompleted = wo.status === 'completed';
-                            
-                            // Calculate if it's in the past
-                            let isPast = false;
-                            if (parsedDate) {
-                                const dropDateObj = new Date(parsedDate);
-                                dropDateObj.setHours(0, 0, 0, 0);
-                                const todayObj = new Date();
-                                todayObj.setHours(0, 0, 0, 0);
-                                isPast = dropDateObj < todayObj;
-                            }
-                            
-                            if (deletedIds.has(wo.id)) return null;
-                            
-                            return (
-                                <React.Fragment key={wo.id}>
-                                    {isNewDay && parsedDate && (
-                                        <div className="mt-2 mb-1">
-                                            <span className="text-xs font-black uppercase text-slate-500 tracking-wider">
-                                                {format(parsedDate, 'EEEE, d MMM', { locale: dateLocale })}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <div 
-                                        className={`relative p-3 rounded-xl border shadow-sm flex flex-col gap-2 transition-transform ${isCompleted ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'} ${isPast ? 'cursor-default opacity-80' : 'cursor-pointer active:scale-[0.98]'}`}
-                                        style={!isCompleted ? { borderLeft: `4px solid ${colorHex}`, backgroundColor: `${colorHex}15` } : { borderLeft: `4px solid #22c55e` }}
-                                        onClick={() => {
-                                            if (isSelectingForHolding) {
-                                                if (isPast) {
-                                                    toast.error(t('planning.cannot_move_past', 'Vous ne pouvez pas déplacer un travail depuis le passé.'));
-                                                    return;
-                                                }
-                                                setHeldOrder(wo);
-                                                setIsSelectingForHolding(false);
-                                                return;
-                                            }
-                                            if (onOrderClick) onOrderClick(wo);
-                                            else navigate(`/admin/work-orders/${wo.id}`, { state: { from: '/admin/planning' } });
-                                        }}
-                                    >
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="font-bold text-slate-800 dark:text-white text-sm leading-tight pr-10 flex items-center gap-1.5">
-                                                {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" title="Finalizată" />}
-                                                <span>{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
-                                            </div>
-                                            {!isCompleted && (
-                                                <div className="absolute top-2 right-2">
-                                                    <WeatherWidget lat={wo.site_latitude || 50.8503} lon={wo.site_longitude || 4.3517} dateStr={(wo.start_date || wo.deadline_date) + (wo.start_time ? `T${wo.start_time}` : '')} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-2 mt-1 mb-1">
-                                            {wo.volumes && wo.volumes.length > 0 && wo.volumes.map((v, idx) => {
-                                                const sq = parseFloat(v.quantity);
-                                                const th = parseFloat(v.thickness);
-                                                if (!sq && !th) return null;
-                                                return (
-                                                    <span key={idx} className="text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
-                                                        {v.label ? `${v.label}: ` : ''}
-                                                        {sq > 0 ? `${sq}m²` : ''}
-                                                        {sq > 0 && th > 0 ? ' × ' : ''}
-                                                        {th > 0 ? `${th}cm` : ''}
-                                                    </span>
-                                                );
-                                            })}
-                                            {calculateOrderSand(wo) > 0 && (
-                                                <span className="text-[11px] text-amber-700 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50 shrink-0">
-                                                    {calculateOrderSand(wo).toFixed(1)}T Nisip
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
-                                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                            <span className="truncate">{formatAddressCityFirst((wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.site_name) || wo.site_address || t('common.no_location', 'Aucune adresse'))}</span>
-                                        </div>
-                                        <div className="mt-1 flex items-center gap-1.5">
-                                            {getDistanceTextForOrder(wo) && (
-                                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md shadow-sm whitespace-nowrap">
-                                                    {getDistanceTextForOrder(wo)}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </React.Fragment>
-                            );
-                        });
-                    })()
-                )}
-            </div>
-                </div>
-            </div>
             {/* Planning Modal */}
             {pendingReschedule && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -1564,5 +1480,8 @@ export default function ShortWorksCalendar({
                 document.body
             )}
         </div>
+        </div>
+        </div>
+        </>
     );
 }
