@@ -55,7 +55,7 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                 .then(() => setError(null))
                 .catch(e => {
                     console.error('SiteMap fetch error:', e)
-                    setError('Nu s-au putut incarca datele hartii.')
+                    setError(t('sitemap.error_loading', 'Nu s-au putut incarca datele hartii.'))
                 })
                 .finally(() => setLoading(false))
         } else {
@@ -196,10 +196,10 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
             const checkInTime = new Date(worker.check_in_time).toLocaleTimeString('ro-RO', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' })
             
             let statusText = worker.status
-            if (worker.status === 'geofence') statusText = 'În afara perimetrului'
-            if (worker.status === 'gps_pierdut') statusText = 'GPS Pierdut'
-            if (worker.status === 'activ') statusText = 'Activ pe șantier'
-            if (worker.status === 'pauză') statusText = 'În pauză'
+            if (worker.status === 'geofence') statusText = t('sitemap.status_geofence', 'În afara perimetrului')
+            if (worker.status === 'gps_pierdut') statusText = t('sitemap.status_gps_lost', 'GPS Pierdut')
+            if (worker.status === 'activ') statusText = t('sitemap.status_active', 'Activ pe șantier')
+            if (worker.status === 'pauză') statusText = t('sitemap.status_break', 'În pauză')
 
             const popupHtml = `
                 <div class="p-1 min-w-[200px] font-sans">
@@ -207,32 +207,32 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                         ${iconHtml}
                         <div>
                             <b class="text-sm text-slate-800 leading-none block">${worker.worker_name}</b>
-                            <span class="text-[10px] text-slate-500">Cod: ${worker.employee_code || 'N/A'}</span>
+                            <span class="text-[10px] text-slate-500">${t('sitemap.code', 'Cod:')} ${worker.employee_code || 'N/A'}</span>
                         </div>
                     </div>
                     <div class="space-y-1.5 text-xs text-slate-600 mb-4">
                         <div class="flex justify-between">
-                            <span class="text-slate-400">Check-in:</span>
+                            <span class="text-slate-400">${t('sitemap.check_in', 'Check-in:')}</span>
                             <span class="font-bold text-slate-700">${checkInTime}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-400">Ore lucrate:</span>
+                            <span class="text-slate-400">${t('sitemap.worked_hours', 'Ore lucrate:')}</span>
                             <span class="font-bold text-slate-700">${worker.worked_hours > 0 ? worker.worked_hours + 'h' : '0h'}</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-slate-400">Status:</span>
+                            <span class="text-slate-400">${t('sitemap.status', 'Status:')}</span>
                             <div class="flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full" style="background:${color}"></span>
                                 <span class="font-bold text-slate-700">${statusText}</span>
                             </div>
                         </div>
                         <div class="flex justify-between mt-2 pt-2 border-t border-slate-100">
-                            <span class="text-slate-400">Activități raportate:</span>
+                            <span class="text-slate-400">${t('sitemap.reported_activities', 'Activități raportate:')}</span>
                             <span class="font-bold text-blue-600">${worker.activities ? worker.activities.length : 0}</span>
                         </div>
                     </div>
                     <button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-sm worker-detail-btn" data-worker-id="${worker.worker_id}">
-                        Vezi Profil Complet
+                        ${t('sitemap.view_full_profile', 'Vezi Profil Complet')}
                     </button>
                 </div>
             `
@@ -302,10 +302,10 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                             onChange={(e) => setTimeFilter(e.target.value)}
                             className="ml-4 text-xs font-bold text-slate-600 bg-slate-100 border-none rounded-lg px-2 py-1 outline-none"
                         >
-                            <option value="current_month">Luna Curenta</option>
-                            <option value="last_month">Luna Trecuta</option>
-                            <option value="this_year">Anul Curent</option>
-                            <option value="all">Toate</option>
+                            <option value="current_month">{t('sitemap.current_month', 'Luna Curenta')}</option>
+                            <option value="last_month">{t('sitemap.last_month', 'Luna Trecuta')}</option>
+                            <option value="this_year">{t('sitemap.this_year', 'Anul Curent')}</option>
+                            <option value="all">{t('sitemap.all_time', 'Toate')}</option>
                         </select>
                     )}
                 </div>
@@ -348,10 +348,10 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                     {!loading && !error && sitesWithCoords.length === 0 && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/50 z-10 gap-2">
                             <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                                Niciun santier cu coordonate GPS
+                                {t('sitemap.no_gps_sites', 'Niciun santier cu coordonate GPS')}
                             </span>
                             <span className="text-xs text-slate-400">
-                                Adauga latitudine/longitudine in Gestionare Santiere
+                                {t('sitemap.add_coords_hint', 'Adauga latitudine/longitudine in Gestionare Santiere')}
                             </span>
                         </div>
                     )}
@@ -367,37 +367,37 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                         <div className="space-y-2.5 text-xs">
                             {selectedSite.county && (
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Judet</span>
+                                    <span className="text-slate-400">{t('sitemap.county', 'Judet')}</span>
                                     <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedSite.county}</span>
                                 </div>
                             )}
                             <div className="flex justify-between">
-                                <span className="text-slate-400">Muncitori activi</span>
+                                <span className="text-slate-400">{t('sitemap.active_workers', 'Muncitori activi')}</span>
                                 <span className={`font-bold ${selectedSite.active_workers > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
                                     {selectedSite.active_workers}
                                 </span>
                             </div>
                             {selectedSite.vehicle_count > 0 && (
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Vehicule</span>
+                                    <span className="text-slate-400">{t('sitemap.vehicles', 'Vehicule')}</span>
                                     <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedSite.vehicle_count}</span>
                                 </div>
                             )}
                             {selectedSite.panel_count && (
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Panouri</span>
+                                    <span className="text-slate-400">{t('sitemap.panels', 'Panouri')}</span>
                                     <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedSite.panel_count}</span>
                                 </div>
                             )}
                             {selectedSite.system_power_kw && (
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Putere</span>
+                                    <span className="text-slate-400">{t('sitemap.power', 'Putere')}</span>
                                     <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedSite.system_power_kw} kW</span>
                                 </div>
                             )}
                             {selectedSite.client_name && (
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Client</span>
+                                    <span className="text-slate-400">{t('sitemap.client', 'Client')}</span>
                                     <span className="font-semibold text-slate-700 dark:text-slate-200 text-right max-w-[120px] leading-tight">{selectedSite.client_name}</span>
                                 </div>
                             )}
@@ -436,7 +436,7 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                             : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
                 >
-                    Toate
+                    {t('sitemap.all', 'Toate')}
                 </button>
                 {sitesWithCoords.map(s => (
                     <button
@@ -456,11 +456,11 @@ export default function SiteMap({ selectedSiteId, onSiteSelect, workers = [], on
                 ))}
                 {sitesNoCoords.length > 0 && (
                     <span className="text-xs text-slate-400 self-center ml-1">
-                        + {sitesNoCoords.length} fara GPS: {sitesNoCoords.map(s => s.name).join(', ')}
+                        + {sitesNoCoords.length} {t('sitemap.no_gps', 'fara GPS:')} {sitesNoCoords.map(s => s.name).join(', ')}
                     </span>
                 )}
                 {allMapSites.length === 0 && !loading && (
-                    <span className="text-xs text-slate-400">Niciun santier activ in aceasta perioada</span>
+                    <span className="text-xs text-slate-400">{t('sitemap.no_active_sites', 'Niciun santier activ in aceasta perioada')}</span>
                 )}
             </div>
         </div>

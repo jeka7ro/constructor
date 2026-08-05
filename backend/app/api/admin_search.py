@@ -19,11 +19,25 @@ def global_search(
     org_id = current_admin.organization_id
     results = []
 
+    # Dacă este Super Admin (fără org_id), returnăm doar Organizațiile, NU datele tenanților!
+    if org_id is None:
+        if current_admin.is_super_admin:
+            from app.models import Organization
+            orgs = db.query(Organization).all()
+            for o in orgs:
+                results.append({
+                    "id": o.id,
+                    "type": "client", # folosim o iconiță generică
+                    "title": o.name,
+                    "subtitle": f"Tenant / Organizație",
+                    "nav_url": f"/admin/saas", # sau ruta corectă de editare
+                    "raw_data": f"{o.name} {o.slug or ''}"
+                })
+        return results
+
     # Helper function to apply org filter
     def apply_org_filter(query, model):
-        if org_id is not None:
-            return query.filter(model.organization_id == org_id)
-        return query
+        return query.filter(model.organization_id == org_id)
 
     # 1. Fetch Clients
     clients = apply_org_filter(db.query(Client), Client).all()

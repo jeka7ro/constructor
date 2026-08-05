@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import PricingSetting, Admin
 from app.api.admin_auth import get_current_admin
+from app.services.audit_service import log_audit
 
 router = APIRouter()
 
@@ -148,6 +149,17 @@ def update_pricing_settings(
     setting.surface_thresholds = thresholds
     
     db.commit()
+
+    log_audit(
+        db=db,
+        organization_id=org_id,
+        admin_id=current_admin.id,
+        action="UPDATE_PRICING",
+        resource_type="PricingSetting",
+        resource_id=setting.id,
+        details={"message": f"Updated pricing settings for client {payload.client_id or 'Global'}"}
+    )
+
     return {"status": "success"}
 
 @router.delete("/pricing-settings")

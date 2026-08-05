@@ -107,7 +107,7 @@ export default function Login() {
                             {tenant?.name || "Pontaj Digital"}
                         </h1>
                         <p className="text-sm text-slate-500 font-medium">
-                            Système moderne de gestion d'entreprise
+                            {t('login.subtitle', "Système moderne de gestion d'entreprise")}
                         </p>
                     </div>
 
@@ -115,7 +115,7 @@ export default function Login() {
                         {/* Employee Code Input */}
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Code Employé
+                                {t('login.employee_code', "Code Employé")}
                             </label>
                             <input
                                 type="text"
@@ -134,7 +134,7 @@ export default function Login() {
                         {/* PIN Input */}
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Code PIN (4 chiffres)
+                                {t('login.pin_code', "Code PIN (4 chiffres)")}
                             </label>
                             <div className="relative">
                                 <input
@@ -182,12 +182,12 @@ export default function Login() {
                                     className="mt-1 w-4.5 h-4.5 rounded border-2 border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-2 cursor-pointer shrink-0"
                                 />
                                 <span className="text-sm text-slate-700 leading-snug">
-                                    J'accepte la <Link to="/politique-de-confidentialite" target="_blank" className="text-blue-600 font-semibold hover:underline">Politique de Confidentialité</Link>.
+                                    {t('login.accept_terms', "J'accepte la")} <Link to="/politique-de-confidentialite" target="_blank" className="text-blue-600 font-semibold hover:underline">{t('login.privacy_policy', "Politique de Confidentialité")}</Link>.
                                 </span>
                             </label>
                             <div className="mt-3 pl-7 text-xs text-slate-500 flex items-start gap-2">
                                 <span className="text-base leading-none">📍</span>
-                                <span><strong>Avis GPS :</strong> Cette application collecte vos données de localisation pendant les heures de travail pour assurer le pointage et la gestion des chantiers.</span>
+                                <span><strong>{t('login.gps_notice_title', "Avis GPS :")}</strong> {t('login.gps_notice_desc', "Cette application collecte vos données de localisation pendant les heures de travail pour assurer le pointage et la gestion des chantiers.")}</span>
                             </div>
                         </div>
 
@@ -215,7 +215,7 @@ export default function Login() {
                                 </>
                             ) : (
                                 <>
-                                    <span>Se connecter</span>
+                                    <span>{t('login.sign_in', "Se connecter")}</span>
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -225,17 +225,17 @@ export default function Login() {
                     {/* Footer Link */}
                     <div className="mt-6 mb-6 text-center">
                         <a href="#" className="text-sm text-slate-600 hover:text-blue-600 transition-colors font-medium">
-                            Code PIN oublié ?
+                            {t('login.forgot_pin', "Code PIN oublié ?")}
                         </a>
                     </div>
 
                     {/* Footer Inside Box */}
                     <div className="pt-6 border-t border-slate-200/50 text-center flex flex-col items-center justify-center gap-3">
                         <p className="text-xs text-slate-500 font-medium tracking-wide">
-                            Une solution de <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-slate-700 hover:text-blue-600 font-bold transition-all underline decoration-slate-300 underline-offset-4">getapp.ro</a>
+                            {t('login.powered_by', "Une solution de")} <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="text-slate-700 hover:text-blue-600 font-bold transition-all underline decoration-slate-300 underline-offset-4">getapp.ro</a>
                         </p>
                         <a href="https://getapp.ro" target="_blank" rel="noopener noreferrer" className="inline-block opacity-90 hover:opacity-100 transition-all transform hover:scale-105">
-                            <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-8 w-auto object-contain mx-auto drop-shadow-sm" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-slate-700 font-bold text-xs border border-slate-300 px-3 py-1 rounded-md">Powered by Smart Timesheet</span>' }} />
+                            <img src="https://getapp.ro/logo_getapp_original.png" alt="Smart Timesheet" className="h-8 w-auto object-contain mx-auto drop-shadow-sm" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<span class="text-slate-700 font-bold text-xs border border-slate-300 px-3 py-1 rounded-md">${t('login.powered_by_smart', "Powered by Smart Timesheet")}</span>` }} />
                         </a>
                     </div>
                 </div>

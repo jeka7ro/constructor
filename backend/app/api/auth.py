@@ -26,7 +26,8 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Employee login with code + PIN"""
     
     # Find user by employee code
-    user = db.query(User).filter(User.employee_code == request.employee_code).first()
+    emp_code = request.employee_code.strip()
+    user = db.query(User).filter(User.employee_code == emp_code).first()
     
     if not user or not user.is_active:
         raise HTTPException(

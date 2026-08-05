@@ -258,12 +258,26 @@ export default function AdminDashboard() {
             items: [
                 { path: '/admin/users', icon: Shield, label: t('nav.users', 'Utilisateurs') },
                 { path: '/admin/pricing-settings', icon: Calculator, label: t('nav.pricing_settings', 'Tarifs') },
+                { path: '/admin/audit-logs', icon: History, label: t('nav.audit_logs', 'Journaux d\'Activité') },
                 { path: '/admin/emails', icon: Mail, label: t('nav.email_logs', 'Journaux d\'E-mails') },
                 { path: '/admin/settings', icon: Settings, label: t('nav.settings', 'Paramètres') },
                 { path: '/admin/notifications', icon: Bell, label: t('nav.notifications', 'Notifications') },
             ]
         }
     ]
+
+    // Dacă e Super Admin FĂRĂ organizație, eliminăm elementele operaționale / de tenant din Sistem
+    if ((admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !admin?.organization_id) {
+        const systemCategory = categories.find(c => c.id === 'system')
+        if (systemCategory) {
+            // Un Super Admin de SaaS ar trebui să aibă probabil doar setări generale sau propriul cont, 
+            // NU rapoarte de email, audit de tenant, notificări de tenant sau utilizatori de tenant.
+            // Vom ascunde tot ce ține de tenant din Sistem pentru el.
+            systemCategory.items = systemCategory.items.filter(item => 
+                !['/admin/users', '/admin/audit-logs', '/admin/emails', '/admin/notifications', '/admin/settings'].includes(item.path)
+            )
+        }
+    }
 
     // Adăugăm meniul SaaS Management doar dacă este Master Admin
     if (admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) {
@@ -420,7 +434,13 @@ export default function AdminDashboard() {
                          {/* Mobile Back Button */}
                          {location.pathname !== '/admin/planning' && location.pathname !== '/admin' && (
                              <button
-                                 onClick={() => navigate(-1)}
+                                 onClick={() => {
+                                     if (location.pathname.startsWith('/admin/chats/') && location.pathname !== '/admin/chats') {
+                                         navigate('/admin/chats');
+                                     } else {
+                                         navigate(-1);
+                                     }
+                                 }}
                                  className="md:hidden p-1 -ml-2 text-white/90 hover:text-white transition-colors"
                              >
                                  <ChevronLeft className="w-7 h-7" />
@@ -475,13 +495,17 @@ export default function AdminDashboard() {
                            <LanguageSelector variant="dark" className="!text-white !border-white/30 !bg-white/10 hover:!bg-white/20" />
                            <div className="w-[1px] h-5 bg-white/20 mx-1 hidden sm:block"></div>
                            
-                           <button
-                               onClick={() => setShowGlobalSearch(true)}
-                               title={t('search.placeholder', 'Rechercher (Cmd+K)')}
-                               className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
-                           >
-                               <Search className="w-4 h-4 text-white" />
-                           </button>
+                           {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && (
+                               <>
+                                   <button
+                                       onClick={() => setShowGlobalSearch(true)}
+                                       title={t('search.placeholder', 'Rechercher (Cmd+K)')}
+                                       className="w-8 h-8 rounded-full flex items-center justify-center border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 shadow-sm"
+                                   >
+                                       <Search className="w-4 h-4 text-white" />
+                                   </button>
+                               </>
+                           )}
 
                            <button
                                onClick={() => setDarkMode(!darkMode)}
@@ -493,7 +517,8 @@ export default function AdminDashboard() {
                                    : <Sun className="w-4 h-4 text-white" />
                                }
                            </button>
-                           {!isScreeds && (
+
+                           {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !isScreeds && (
                                <>
                                    <button onClick={() => navigate('/admin/complaints')} className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 transition-colors relative text-white/90 hover:text-white hover:bg-white/10 shadow-sm" title={t('admin.new_complaints', 'Nouvelles plaintes')}>
                                        <MessageSquareWarning className="w-4 h-4" />
@@ -505,7 +530,10 @@ export default function AdminDashboard() {
                                    </button>
                                </>
                            )}
-                           <HeaderNotifications />
+
+                           {!(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && (
+                               <HeaderNotifications />
+                           )}
                         </div>
                         
                         <div className="w-[1px] h-8 bg-white/20 hidden sm:block"></div>
@@ -522,11 +550,11 @@ export default function AdminDashboard() {
                                 <img 
                                     src={admin.avatar_path.startsWith('http') ? admin.avatar_path : `${API_BASE}${admin.avatar_path}`}
                                     alt={admin.full_name}
-                                    className="w-9 h-11 rounded-lg object-cover object-[center_20%] ring-2 ring-white/20 shadow-md hover:ring-blue-400/50 transition-all cursor-pointer hover:scale-105"
+                                    className="hidden sm:block w-9 h-11 rounded-lg object-cover object-[center_20%] ring-2 ring-white/20 shadow-md hover:ring-blue-400/50 transition-all cursor-pointer hover:scale-105"
                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex' }}
                                 />
                             ) : null}
-                            <div className={`w-9 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg items-center justify-center font-bold text-white shadow-md cursor-pointer hover:shadow-lg transition-all border-2 border-white/20 ${admin?.avatar_path ? 'hidden' : 'flex'}`}>
+                            <div className={`w-9 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg items-center justify-center font-bold text-white shadow-md cursor-pointer hover:shadow-lg transition-all border-2 border-white/20 ${admin?.avatar_path ? 'hidden' : 'hidden sm:flex'}`}>
                                 {admin?.full_name?.charAt(0)}
                             </div>
                             

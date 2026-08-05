@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { ArrowRight, Building2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function WorkspaceRouter({ isAdmin = false }) {
+    const { t } = useTranslation()
     const [workspace, setWorkspace] = useState('')
 
     const handleSubmit = (e) => {
@@ -45,10 +47,10 @@ export default function WorkspaceRouter({ isAdmin = false }) {
                         <Building2 className="w-12 h-12 text-blue-300" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">
-                        Bine ai venit
+                        {t('router.welcome', "Bine ai venit")}
                     </h1>
                     <p className="text-blue-100 font-medium">
-                        Te rugăm să introduci codul companiei tale
+                        {t('router.enter_code', "Te rugăm să introduci codul companiei tale")}
                     </p>
                 </div>
 
@@ -56,7 +58,7 @@ export default function WorkspaceRouter({ isAdmin = false }) {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Workspace (Nume Companie)
+                                {t('router.workspace_label', "Workspace (Nume Companie)")}
                             </label>
                             <div className="relative flex items-center">
                                 <input
@@ -82,18 +84,18 @@ export default function WorkspaceRouter({ isAdmin = false }) {
                                      active:scale-[0.98] transition-all duration-200
                                      shadow-sm flex items-center justify-center gap-2 group"
                         >
-                            <span>Continuă</span>
+                            <span>{t('router.continue', "Continuă")}</span>
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
                     </form>
                     
                     <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                        <p className="text-sm text-slate-500 mb-4">Nu ai un cont pentru compania ta?</p>
+                        <p className="text-sm text-slate-500 mb-4">{t('router.no_account', "Nu ai un cont pentru compania ta?")}</p>
                         <button 
                             onClick={() => window.location.href = '/demo'}
                             className="w-full px-5 h-12 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition-colors"
                         >
-                            Începe un Demo de 30 de zile gratuit
+                            {t('router.start_demo', "Începe un Demo de 30 de zile gratuit")}
                         </button>
                     </div>
                 </div>

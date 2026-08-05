@@ -28,6 +28,7 @@ const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 const DemoSignup = lazy(() => import('./pages/DemoSignup'))
 const WorkspaceRouter = lazy(() => import('./pages/WorkspaceRouter'))
 const UsersManagement = lazy(() => import('./pages/admin/UsersManagement'))
+const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'))
 const ClientsManagement = lazy(() => import('./pages/admin/ClientsManagement'))
 const PhotoTestPage = lazy(() => import('./pages/admin/PhotoTestPage'))
 const TimesheetsPage = lazy(() => import('./pages/employee/TimesheetsPage'))
@@ -293,6 +294,7 @@ function App() {
                         <Route path="quotes" element={<QuotesManagement />} />
                         <Route path="emails" element={<EmailLogs />} />
                         <Route path="users" element={<UsersManagement />} />
+                        <Route path="audit-logs" element={<AuditLogs />} />
                         <Route path="employees" element={<EmployeesManagement />} />
                         <Route path="employees/:id" element={<EmployeesManagement />} />
                         <Route path="leaves" element={<LeavesManagement />} />

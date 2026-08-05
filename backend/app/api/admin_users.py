@@ -20,6 +20,7 @@ from app.database import get_db
 from app.models import User, Role, Admin, EmployeeDocument
 from app.api.admin_auth import get_current_admin
 from app.storage import upload_file, delete_file, get_content_type
+from app.services.audit_service import log_audit
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 
@@ -865,6 +866,16 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
         else:
             raise HTTPException(status_code=400, detail="Eroare la salvarea datelor în baza de date.")
 
+    log_audit(
+        db=db,
+        organization_id=current_admin.organization_id,
+        admin_id=current_admin.id,
+        action="CREATE_USER",
+        resource_type="User",
+        resource_id=new_user.id,
+        details={"message": f"Created user {new_user.email}", "email": new_user.email}
+    )
+
     return build_user_response(new_user, role.name)
 
 
@@ -1129,10 +1140,28 @@ def delete_user(user_id: str, hard_delete: bool = False, db: Session = Depends(g
     if hard_delete:
         db.delete(user)
         db.commit()
+        log_audit(
+            db=db,
+            organization_id=current_admin.organization_id,
+            admin_id=current_admin.id,
+            action="DELETE_USER",
+            resource_type="User",
+            resource_id=user_id,
+            details={"message": f"Hard deleted user {user.email}", "email": user.email}
+        )
         return {"message": "Utilizator șters definitiv din sistem"}
     else:
         user.is_active = False
         db.commit()
+        log_audit(
+            db=db,
+            organization_id=current_admin.organization_id,
+            admin_id=current_admin.id,
+            action="ARCHIVE_USER",
+            resource_type="User",
+            resource_id=user_id,
+            details={"message": f"Archived user {user.email}", "email": user.email}
+        )
         return {"message": "Utilizator arhivat cu succes (mutat în Arhivă)"}
 
 

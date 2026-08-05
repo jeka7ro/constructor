@@ -407,11 +407,12 @@ app.include_router(calendar_sync.router, prefix="/api")
 app.include_router(public_work_orders.router, prefix="/api")
 app.include_router(worker_orders.router, prefix="/api")
 app.include_router(admin_logistics.router, prefix="/api")
-from app.api import admin_search
+from app.api import admin_search, admin_audit
 
 app.include_router(public_calculator.router)
 app.include_router(devis_online.router)
 app.include_router(admin_search.router, prefix="/api")
+app.include_router(admin_audit.router, prefix="/api/admin/audit-logs", tags=["admin-audit"])
 
 # Email logs
 from app.api import admin_emails

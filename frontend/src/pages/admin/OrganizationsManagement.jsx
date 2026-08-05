@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Building2, Plus, Search, Edit2, Trash2, Globe, Check, Image as ImageIcon, Loader2, ChevronDown, Users, X, ShieldCheck, UserPlus, Eye, EyeOff } from 'lucide-react'
+import { Building2, Plus, Search, Edit2, Trash2, Globe, Check, Image as ImageIcon, Loader2, ChevronDown, Users, X, ShieldCheck, UserPlus, Eye, EyeOff, Save } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from 'react-i18next'
 import { useAdminStore } from '../../store/adminStore'
@@ -709,8 +709,8 @@ export default function OrganizationsManagement() {
 
 
             {/* =================== ADMINS DRAWER =================== */}
-            {adminsDrawerOrg && (
-                <div className="fixed inset-0 z-50 flex">
+            {adminsDrawerOrg && createPortal(
+                <div className="fixed inset-0 z-[99999] flex">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setAdminsDrawerOrg(null)} />
                     <div className="relative ml-auto w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full border-l border-slate-200 dark:border-slate-800 animate-in slide-in-from-right duration-200">
                         {/* Drawer Header */}
@@ -796,11 +796,11 @@ export default function OrganizationsManagement() {
                         </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             {/* =================== ADD ADMIN MODAL =================== */}
-            {isAddAdminModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            {isAddAdminModalOpen && createPortal(
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Admin Nou Local</h3>
@@ -859,11 +859,11 @@ export default function OrganizationsManagement() {
                         </form>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
             {/* =================== EDIT PASSWORD MODAL =================== */}
-            {isEditPasswordModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            {isEditPasswordModalOpen && createPortal(
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Schimbă Parola Admin</h3>
@@ -912,7 +912,7 @@ export default function OrganizationsManagement() {
                         </form>
                     </div>
                 </div>
-            )}
+            , document.body)}
 
         </div>
     )

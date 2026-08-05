@@ -534,7 +534,7 @@ export default function ShortWorksCalendar({
     return (
         <>
             {/* MOBILE VIEW - COMPLETELY UNRESTRICTED */}
-            <div className="block md:hidden w-full min-h-[calc(100vh-200px)] bg-slate-50 dark:bg-slate-900">
+            <div className="block md:hidden w-full min-h-[calc(100vh-200px)] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <MobileAgenda 
                     orders={weeklyOrders}
                     onOrderClick={(wo) => {

@@ -32,7 +32,7 @@ import {
     AlertCircle, Navigation, Package, Camera, Upload,
     Check, X, Plus, Trash2, ClipboardList, Info,
     Timer, Layers, Send, LogIn, LogOut, Lock, Eye, Home,
-    FileText, ExternalLink, Loader2, Sun, Moon
+    FileText, MessageCircle, Bell, ExternalLink, Loader2, Sun, Moon
 } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 import { isToday, isFuture, format, startOfDay, startOfWeek, addWeeks, subWeeks, isSameWeek, isSameDay, addDays, parseISO } from 'date-fns'
@@ -272,7 +272,7 @@ function OrderCard({ order, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SUB-COMPONENT: Tab Bar
 // ─────────────────────────────────────────────────────────────────────────────
-function TabBar({ active, onChange, onHomePress, tenant }) {
+function TabBar({ active, onChange, onHomePress, tenant, isDriver }) {
     const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
     const getImageUrl = (url) => {
         if (!url) return '';
@@ -282,57 +282,75 @@ function TabBar({ active, onChange, onHomePress, tenant }) {
         return `${base}${path}`;
     };
 
+    const adminTabs = [
+        { id: 'info',       label: 'Info',       icon: Info },
+        { id: 'poze',       label: 'Photos',     icon: Camera },
+        { id: 'deviz',      label: 'Devis',      icon: FileText },
+        { id: 'chat',       label: 'Chat',       icon: MessageCircle },
+        { id: 'materiale',  label: 'Matériaux',  icon: Package },
+        { id: 'trimite',    label: 'Finaliser',  icon: Send },
+    ]
+    
+    const currentTabs = isDriver ? TABS : adminTabs;
+    const midIndex = Math.ceil(currentTabs.length / 2);
+    const leftTabs = currentTabs.slice(0, midIndex);
+    const rightTabs = currentTabs.slice(midIndex);
+
+    // Ajustăm lățimea recipientelor laterale în funcție de numărul de butoane
+    const sideContainerClass = isDriver ? "flex justify-around w-[40%]" : "flex justify-around w-[42%]";
+    const buttonClass = isDriver ? "flex flex-col items-center p-2 w-[72px] transition-all" : "flex flex-col items-center p-1.5 flex-1 transition-all";
+
     return (
         <div 
             className="backdrop-blur-xl border-4 border-b-0 border-white/20 px-2 py-3 flex justify-between items-center shadow-[0_-10px_25px_rgba(0,0,0,0.2)] rounded-t-3xl pb-[calc(env(safe-area-inset-bottom)+12px)] relative"
             style={{ backgroundColor: tenant?.primary_color || '#2563EB' }}
         >
-            <div className="flex justify-around w-[40%]">
-                {TABS.slice(0, 2).map(({ id, label, icon: Icon }) => (
+            <div className={sideContainerClass}>
+                {leftTabs.map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         onClick={() => onChange(id)}
-                        className={`flex flex-col items-center p-2 w-[72px] transition-all ${
+                        className={`${buttonClass} ${
                             active === id
                                 ? 'text-white scale-110 drop-shadow-md'
                                 : 'text-white/60'
                         }`}
                     >
-                        <Icon className="w-7 h-7 mb-1.5" />
-                        <span className="text-[10px] font-bold text-center leading-tight uppercase">{label}</span>
+                        <Icon className="w-6 h-6 mb-1" />
+                        <span className="text-[9px] font-bold text-center leading-tight uppercase truncate w-full px-0.5">{label}</span>
                     </button>
                 ))}
             </div>
 
-            <div className="relative flex justify-center w-[20%]">
+            <div className="relative flex justify-center shrink-0 w-[16%]">
                 <button
                     onClick={onHomePress}
-                    className={`absolute -top-14 flex flex-col items-center justify-center w-[76px] h-[76px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] bg-[color:var(--mobile-bg)]`}
+                    className={`absolute -top-14 flex flex-col items-center justify-center w-[68px] h-[68px] text-white rounded-full transition-all active:scale-95 border-4 border-white backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,1),inset_0_2px_6px_rgba(255,255,255,0.4)] bg-[color:var(--mobile-bg)]`}
                     style={{ '--mobile-bg': tenant?.primary_color || '#2563EB' }}
                 >
                     {tenant?.favicon_url ? (
-                        <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
+                        <img src={getImageUrl(tenant.favicon_url)} alt="Favicon" className="w-8 h-8 object-contain drop-shadow-md rounded-xl" />
                     ) : tenant?.logo_url ? (
-                        <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-xl" />
+                        <img src={getImageUrl(tenant.logo_url)} alt="Logo" className="w-9 h-9 object-contain drop-shadow-md rounded-xl" />
                     ) : (
-                        <Home className="w-8 h-8 drop-shadow-md text-white" />
+                        <Home className="w-7 h-7 drop-shadow-md text-white" />
                     )}
                 </button>
             </div>
 
-            <div className="flex justify-around w-[40%]">
-                {TABS.slice(2).map(({ id, label, icon: Icon }) => (
+            <div className={sideContainerClass}>
+                {rightTabs.map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         onClick={() => onChange(id)}
-                        className={`flex flex-col items-center p-2 w-[72px] transition-all ${
+                        className={`${buttonClass} ${
                             active === id
                                 ? 'text-white scale-110 drop-shadow-md'
                                 : 'text-white/60'
                         }`}
                     >
-                        <Icon className="w-7 h-7 mb-1.5" />
-                        <span className="text-[10px] font-bold text-center leading-tight uppercase">{label}</span>
+                        <Icon className="w-6 h-6 mb-1" />
+                        <span className="text-[9px] font-bold text-center leading-tight uppercase truncate w-full px-0.5">{label}</span>
                     </button>
                 ))}
             </div>
@@ -1303,8 +1321,9 @@ export default function WorkerOrdersPage({ isHistory = false }) {
     const [closing, setClosing]                       = useState(false)
     const [lightboxUrl, setLightboxUrl]               = useState(null)
 
-    const isLeader = ['TEAM_LEADER', 'TEAM_LEAD', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN'].includes(user?.role?.code)
-    const isDriver = ['DRIVER', 'SOFER'].includes(user?.role?.code)
+    const roleCode = user?.role?.code?.toUpperCase() || ''
+    const isLeader = ['TEAM_LEADER', 'TEAM_LEAD', 'SEF_ECHIPA', 'ADMIN', 'MANAGER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(roleCode)
+    const isDriver = ['DRIVER', 'SOFER'].includes(roleCode)
 
     // GPS watch
     useEffect(() => {
@@ -1628,7 +1647,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                             </div>
                             <div>
                                 <h2 className="font-bold text-lg leading-tight">{user?.full_name}</h2>
-                                <p className="text-blue-200 text-sm">{isLeader ? t('roles.team_leader', "Chef d'équipe") : t('roles.worker', 'Ouvrier')}</p>
+                                <p className="text-blue-200 text-sm">{user?.role?.name || (isLeader ? t('roles.team_leader', "Chef d'équipe") : t('roles.worker', 'Ouvrier'))}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1677,12 +1696,40 @@ export default function WorkerOrdersPage({ isHistory = false }) {
                 title={selected.client_name || "Client Necunoscut"} 
                 showBack={false} 
                 rightContent={
-                    <button
-                        onClick={() => setSelected(null)}
-                        className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md w-10 h-10 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all"
-                    >
-                        <ChevronRight className="w-6 h-6 rotate-180" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {!isDriver && (
+                            <div className="flex items-center gap-2 mr-1">
+                                {/* Notificare Deviz */}
+                                <button onClick={() => setActiveTab('deviz')} className="relative p-2 bg-white/90 dark:bg-slate-800/90 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200">
+                                    <FileText className="w-5 h-5" />
+                                    {selected.documents?.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-white dark:border-slate-900"></span>
+                                        </span>
+                                    )}
+                                </button>
+                                {/* Notificare Chat */}
+                                <button onClick={() => setActiveTab('chat')} className="relative p-2 bg-white/90 dark:bg-slate-800/90 rounded-xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200">
+                                    <MessageCircle className="w-5 h-5" />
+                                    {selected.unread_admin_messages_count > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-red-500 text-[9px] font-bold text-white border-2 border-white dark:border-slate-900">
+                                                {selected.unread_admin_messages_count}
+                                            </span>
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => setSelected(null)}
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md w-10 h-10 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all"
+                        >
+                            <ChevronRight className="w-6 h-6 rotate-180" />
+                        </button>
+                    </div>
                 }
             />
 
@@ -1800,7 +1847,7 @@ export default function WorkerOrdersPage({ isHistory = false }) {
 
             {/* TabBar mutat in panoul de jos */}
             <div className="shrink-0 z-20">
-                <TabBar active={activeTab} onChange={setActiveTab} onHomePress={() => navigate('/')} tenant={tenant} />
+                <TabBar active={activeTab} onChange={setActiveTab} onHomePress={() => navigate('/')} tenant={tenant} isDriver={isDriver} />
             </div>
 
             <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />

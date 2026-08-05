@@ -1359,3 +1359,24 @@ class EmailLog(Base):
 
     organization    = relationship("Organization")
     work_order      = relationship("WorkOrder")
+
+# ── Audit Logs ───────────────────────────────────────────────────────────────
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id              = Column(String(36), primary_key=True, default=generate_uuid)
+    organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    admin_id        = Column(String(36), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id         = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    
+    action          = Column(String(100), nullable=False) # e.g., 'CREATE_USER', 'DELETE_WORK_ORDER'
+    resource_type   = Column(String(100), nullable=True) # e.g., 'User', 'WorkOrder'
+    resource_id     = Column(String(36), nullable=True) 
+    details         = Column(Text, nullable=True) # JSON or text string containing changes/info
+    ip_address      = Column(String(50), nullable=True)
+    
+    created_at      = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    organization    = relationship("Organization")
+    admin           = relationship("Admin")
+    user            = relationship("User")

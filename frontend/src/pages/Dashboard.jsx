@@ -39,28 +39,28 @@ export default function Dashboard() {
     const quickActions = [
         {
             icon: MapPin,
-            title: 'Clock In/Out',
+            title: t('dashboard.clock_in_out', 'Clock In/Out'),
             description: t('dashboard.clock_in_gps'),
             gradient: 'from-green-500 to-emerald-600',
             href: '/clock-in'
         },
         {
             icon: Clock,
-            title: 'Pontaj Azi',
+            title: t('dashboard.today_timesheet', 'Pontaj Azi'),
             description: t('dashboard.complete_daily'),
             gradient: 'from-blue-500 to-blue-600',
             href: '/today'
         },
         {
             icon: Calendar,
-            title: 'Istoric',
-            description: 'Vezi pontajele anterioare',
+            title: t('dashboard.history', 'Istoric'),
+            description: t('dashboard.history_desc', 'Vezi pontajele anterioare'),
             gradient: 'from-emerald-500 to-emerald-600',
             href: '/history'
         },
         {
             icon: Users,
-            title: 'Echipa',
+            title: t('dashboard.team', 'Echipa'),
             description: t('dashboard.manage_team'),
             gradient: 'from-violet-500 to-violet-600',
             href: '/team'
@@ -68,28 +68,28 @@ export default function Dashboard() {
         {
             icon: Settings,
             title: t('dashboard.settings'),
-            description: 'Configurare cont',
+            description: t('dashboard.settings_desc', 'Configurare cont'),
             gradient: 'from-slate-500 to-slate-600',
             href: '/settings'
         },
         {
             icon: PackageSearch,
-            title: 'Necesar Materiale',
-            description: 'Cereri pentru șantier',
+            title: t('dashboard.materials', 'Necesar Materiale'),
+            description: t('dashboard.materials_desc', 'Cereri pentru șantier'),
             gradient: 'from-amber-500 to-orange-600',
             href: '/material-requests'
         },
         {
             icon: AlertTriangle,
-            title: 'Urgențe',
-            description: 'Alerte rapide din șantier',
+            title: t('dashboard.emergencies', 'Urgențe'),
+            description: t('dashboard.emergencies_desc', 'Alerte rapide din șantier'),
             gradient: 'from-rose-500 to-red-600',
             href: '/emergencies'
         },
         {
             icon: MessageSquareWarning,
-            title: 'Sesizări / Reclamații',
-            description: 'Trimite o sesizare',
+            title: t('dashboard.complaints', 'Sesizări / Reclamații'),
+            description: t('dashboard.complaints_desc', 'Trimite o sesizare'),
             gradient: 'from-sky-500 to-cyan-600',
             href: '/sesizari'
         }
@@ -106,8 +106,8 @@ export default function Dashboard() {
                                 <Briefcase className="w-5 h-5 text-white" strokeWidth={2.5} />
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-slate-900">Pontaj Digital</h1>
-                                <p className="text-xs text-slate-500">Sistem de pontaj</p>
+                                <h1 className="text-xl font-bold text-slate-900">{tenant?.name || "Pontaj Digital"}</h1>
+                                <p className="text-xs text-slate-500">{t('dashboard.app_subtitle', 'Sistem de pontaj')}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -121,7 +121,7 @@ export default function Dashboard() {
                             <button
                                 onClick={handleLogout}
                                 className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 hover:text-slate-900"
-                                title="Deconectare"
+                                title={t('dashboard.logout', "Deconectare")}
                             >
                                 <LogOut className="w-5 h-5" />
                             </button>
@@ -135,7 +135,7 @@ export default function Dashboard() {
                 {/* Welcome Section */}
                 <div className="slide-up">
                     <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                        Bună, {user?.full_name?.split(' ')[0]}! 👋
+                        {t('dashboard.hello', "Bună")}, {user?.full_name?.split(' ')[0]}! 👋
                     </h2>
                     <p className="text-slate-600">
                         {t('dashboard.welcome_back')}
@@ -152,13 +152,13 @@ export default function Dashboard() {
                     />
                     <KPICard
                         icon={Calendar}
-                        label="Zile Lucrate"
+                        label={t('dashboard.days_worked', "Zile Lucrate")}
                         value="20"
                         colorTheme="green"
                     />
                     <KPICard
                         icon={MapPin}
-                        label="Șantiere Active"
+                        label={t('dashboard.active_sites', "Șantiere Active")}
                         value="3"
                         colorTheme="purple"
                     />
@@ -166,7 +166,7 @@ export default function Dashboard() {
 
                 {/* Quick Actions */}
                 <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Acțiuni Rapide</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">{t('dashboard.quick_actions', "Acțiuni Rapide")}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {quickActions.map((action, index) => (
                             <ActionCard
@@ -188,6 +188,7 @@ export default function Dashboard() {
 
 function ActionCard({ icon, title, description, href, gradient, delay }) {
     const navigate = useNavigate()
+    const { t } = useTranslation()
 
     return (
         <div
@@ -211,7 +212,7 @@ function ActionCard({ icon, title, description, href, gradient, delay }) {
                 {description}
             </p>
             <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
-                <span>Deschide</span>
+                <span>{t('dashboard.open', "Deschide")}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
         </div>

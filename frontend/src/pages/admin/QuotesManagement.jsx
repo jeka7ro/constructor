@@ -1324,6 +1324,69 @@ export default function QuotesManagement() {
                     emptyText={t('quotes.empty', 'Aucun devis en attente.')}
                     onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes' } })}
                     rowClassName={() => 'cursor-pointer hover:bg-blue-50/40 transition-colors'}
+                    mobileCard={(row, index) => (
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 relative mb-2">
+                            <div className="flex justify-between items-start">
+                                <div className="max-w-[70%]">
+                                    <h4 className="font-bold text-slate-800 dark:text-white text-[15px] leading-tight break-words">
+                                        {row.client_name || row.client?.name || 'Client Inconnu'}
+                                    </h4>
+                                    <div className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1 opacity-80">
+                                        <MapPin className="w-3 h-3 shrink-0" />
+                                        <span className="line-clamp-2">{row.address || 'Pas d\'adresse'}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end">
+                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mb-1 ${row.status === 'planning' ? 'bg-emerald-100 text-emerald-700' : row.status === 'archived' ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-700'}`}>
+                                        {row.status === 'planning' ? 'En Planification' : row.status === 'archived' ? 'Archivé' : 'En Attente'}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                        EST{String(row.id).padStart(4, '0')}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-1.5 text-xs font-semibold mt-1">
+                                {row.volumes && row.volumes.length > 0 ? (
+                                    row.volumes.map((v, i) => (
+                                        <span key={i} className="bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg flex items-center gap-1">
+                                            {v.label} <span className="text-blue-600 dark:text-blue-400">{v.quantity}m²</span>
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg">Aucun volume</span>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100 dark:border-slate-700 justify-end">
+                                {row.token && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`); showToast(t('quotes.link_copied', 'Lien copié!'), 'success'); }}
+                                        className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors shrink-0"
+                                    >
+                                        <Link className="w-4 h-4" />
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/quotes/${row.id}/pdf`) }}
+                                    className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 h-9 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
+                                >
+                                    <FileText className="w-4 h-4" /> PDF
+                                </button>
+                                <button
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        const todayStr = new Date().toISOString().split('T')[0];
+                                        setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' }); 
+                                        setPlanningModal(row); 
+                                    }}
+                                    className="flex-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-9 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
+                                >
+                                    <CalendarDays className="w-4 h-4" /> Planifier
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 />
             </div>
 

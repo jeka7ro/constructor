@@ -62,12 +62,11 @@ export default function AdminLogin() {
 
             setAuth(admin, access_token)
             
-            if (worker_token && worker_data && window.innerWidth < 768) {
+            if (worker_token && worker_data) {
+                // Save worker data but don't redirect to worker app just because it's a phone
                 useAuthStore.getState().setAuth(worker_data, worker_token)
-                navigate('/')
-            } else {
-                navigate('/admin/planning')
             }
+            navigate('/admin/planning')
         } catch (err) {
             setError(err.response?.data?.detail || t('admin_login.auth_error', 'Erreur d\'authentification'))
         } finally {

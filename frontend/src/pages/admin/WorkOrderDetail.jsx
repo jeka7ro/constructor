@@ -1431,7 +1431,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                             <>
                                                                 <div className="w-px h-3 bg-slate-200 dark:bg-slate-700"></div>
                                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.works_volumes', 'Travaux / Volumes')}</p>
-                                                                <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-2 flex-wrap">
                                                                     {wo.volumes.map((v, i) => (
                                                                         <div key={i} className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
                                                                             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{translateDynamicLabel(v.label)}</span>
@@ -1481,7 +1481,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                                 <p className="text-[10px] whitespace-nowrap font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.materials_volumes.consumed', 'RÉELLEMENT CONSOMMÉ')}</p>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 {wo.actual_surface_m2 && (
                                                                     <div className="flex items-center whitespace-nowrap shrink-0 gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
                                                                         <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{t('work_order_detail.materials_volumes.confirmed_surface', 'Surface confirmée')}</span>

@@ -2030,7 +2030,7 @@ export default function AdminOverview() {
 
             )}
 
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
+            <div className="hidden xl:grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6 items-start">
             {/* Live Tracking Module full width under calendar */}
             {isShortTerm && (
                 <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg flex flex-col overflow-hidden h-[500px]">
@@ -2129,7 +2129,7 @@ export default function AdminOverview() {
             )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
+            <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-start">
 
 
             {/* Live Site Map — afiseaza doar daca tenant are santiere clasice */}

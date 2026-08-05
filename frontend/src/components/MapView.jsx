@@ -192,7 +192,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                     scaledSize: new window.google.maps.Size(36, 36),
                     anchor: new window.google.maps.Point(18, 18)
                   },
-            title: popupLabel || 'Destinație'
+            title: popupLabel || t('mapview.destination', 'Destinație')
         });
 
         if (popupLabel) {
@@ -282,7 +282,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                             scaledSize: new window.google.maps.Size(28, 28),
                             anchor: new window.google.maps.Point(14, 14)
                         },
-                        title: isRealBase ? `Baza: ${startName}` : `Precedent: ${startName}`
+                        title: isRealBase ? `${t('mapview.base', 'Baza:')} ${startName}` : `${t('mapview.previous', 'Precedent:')} ${startName}`
                     });
 
                     // Google Maps Directions (reliable, already loaded)
@@ -487,7 +487,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         <button 
                             onClick={() => setIsFullScreen(true)}
                             className="bg-white/90 dark:bg-slate-800/90 p-2 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center backdrop-blur-sm"
-                            title="Mărește harta (Ecran complet)"
+                            title={t('mapview.fullscreen', 'Mărește harta (Ecran complet)')}
                         >
                             <Maximize2 className="w-5 h-5" />
                         </button>
@@ -502,7 +502,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                                 />
                                 <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${showSandStations ? 'translate-x-3' : 'translate-x-0'}`} />
                             </div>
-                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nisip</span>
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{t('mapview.sand', 'Nisip')}</span>
                         </label>
                     )}
                 </div>
@@ -518,14 +518,14 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 {geocoding && (
                     <div className="absolute inset-0 bg-white/70 dark:bg-slate-800/70 flex flex-col items-center justify-center gap-2 z-[400] pointer-events-none">
                         <div className="w-7 h-7 rounded-full border-3 border-blue-500 border-t-transparent animate-spin" />
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Se caută locația pe hartă...</span>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{t('mapview.searching', 'Se caută locația pe hartă...')}</span>
                     </div>
                 )}
 
                 {/* Mesaj eroare */}
                 {geoError && !geocoding && (
                     <div className="absolute bottom-2 left-2 right-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 z-[400] pointer-events-none">
-                        <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">⚠️ Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere.</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">⚠️ {t('mapview.geo_error', 'Adresa nu a putut fi localizată. Adaugă GPS manual în Șantiere.')}</p>
                     </div>
                 )}
             </div>

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Wrench, AlertTriangle, Calendar, ClipboardList, Map as MapIcon, Moon, Sun } from 'lucide-react'
+import { Home, Wrench, AlertTriangle, Calendar, ClipboardList, Map as MapIcon, Moon, Sun, Calculator, MessageSquare, CalendarDays } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTenantStore } from '../../store/tenantStore'
+import { useAdminStore } from '../../store/adminStore'
 import useViewPreferencesStore from '../../store/viewPreferencesStore'
 import api from '../../lib/api'
 
@@ -12,6 +13,8 @@ export default function EmployeeLayout() {
     const navigate = useNavigate()
     const isHome = location.pathname === '/'
     const tenant = useTenantStore((state) => state.tenant)
+    const admin = useAdminStore((state) => state.admin)
+    const isAdmin = !!admin
     const hasLongTerm = tenant?.has_long_term_sites !== false
     
     const globalTheme = useViewPreferencesStore(state => state.globalTheme)
@@ -178,7 +181,7 @@ export default function EmployeeLayout() {
                     </NavLink>
                 )}
 
-                {/* 4. Inventar */}
+                {/* 4. Inventar (Right of Center for LongTerm) */}
                 {hasLongTerm && (
                     <NavLink
                         to="/my-inventory"
@@ -187,6 +190,33 @@ export default function EmployeeLayout() {
                         <Wrench className="w-7 h-7 mb-1.5" />
                         <span className="text-xs font-bold">{t('nav.inventory', 'Inventar')}</span>
                     </NavLink>
+                )}
+
+                {/* 4. Extra Admin Buttons (Only if Admin & ShortWorks) */}
+                {isAdmin && !hasLongTerm && (
+                    <>
+                        <NavLink
+                            to="/admin/planning"
+                            className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                        >
+                            <CalendarDays className="w-7 h-7 mb-1.5" />
+                            <span className="text-[10px] font-bold text-center leading-tight">{t('nav.planning', 'Planning')}</span>
+                        </NavLink>
+                        <NavLink
+                            to="/admin/quotes"
+                            className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                        >
+                            <Calculator className="w-7 h-7 mb-1.5" />
+                            <span className="text-[10px] font-bold text-center leading-tight">{t('nav.quotes', 'Devis')}</span>
+                        </NavLink>
+                        <NavLink
+                            to="/admin/chats"
+                            className={({isActive}) => `flex flex-col items-center p-2 w-[72px] transition-all ${isActive ? 'text-white scale-110 drop-shadow-md' : 'text-white/60'}`}
+                        >
+                            <MessageSquare className="w-7 h-7 mb-1.5" />
+                            <span className="text-[10px] font-bold text-center leading-tight">Chat</span>
+                        </NavLink>
+                    </>
                 )}
 
                 {/* 5. Sesizari */}

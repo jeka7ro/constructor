@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import { Shield, Plus, Search, Edit2, Trash2, Loader2, Mail, Phone, X, Save, Eye, EyeOff, UserCog, Lock, ScanLine, Upload, UploadCloud, FileText } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { useUIStore } from '../../store/uiStore'
 import { useAdminStore } from '../../store/adminStore'
 import AvatarCropModal from '../../components/AvatarCropModal'
@@ -503,9 +504,9 @@ export default function UsersManagement() {
             />
 
             {/* ADD/EDIT MODAL */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {showModal && createPortal(
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex flex-shrink-0 items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-700">
                             <div className="flex items-center gap-2">
@@ -685,7 +686,7 @@ export default function UsersManagement() {
                         </div>
 
                         {/* Footer */}
-                        <div className="flex flex-shrink-0 justify-end gap-2.5 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-b-2xl">
+                        <div className="flex flex-shrink-0 justify-end gap-2.5 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-b-[24px]">
                             <button onClick={() => setShowModal(false)} className="px-5 h-10 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-300 rounded-full transition-colors">
                                 {t('common.cancel', 'Anulează')}
                             </button>
@@ -695,7 +696,8 @@ export default function UsersManagement() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )

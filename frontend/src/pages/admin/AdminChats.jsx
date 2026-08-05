@@ -38,6 +38,11 @@ export default function AdminChats() {
     const [showEmojiPickerFor, setShowEmojiPickerFor] = useState(null)
     const messagesEndRef = useRef(null)
 
+    const getAvatarColor = (source_system) => {
+        if (source_system === 'calculator_public' || source_system === 'we-r') return "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400";
+        return "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"; // devis_online
+    };
+
     // Load list of chats
     const loadChats = async () => {
         try {
@@ -290,11 +295,11 @@ export default function AdminChats() {
     )
 
     return (
-        <div className="flex flex-col h-[calc(100vh-120px)] bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="flex h-full">
+        <div className="flex flex-col h-[calc(100dvh-160px)] md:h-full bg-white dark:bg-slate-900 md:rounded-xl md:shadow-sm md:border border-slate-200 dark:border-slate-800 overflow-hidden relative -mx-4 md:mx-0 -mb-24 md:mb-0">
+            <div className="flex h-full min-h-0 w-full overflow-hidden">
                 
                 {/* LEFT SIDEBAR - CHATS LIST */}
-                <div className={`w-full md:w-96 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col ${activeWoId ? 'hidden md:flex' : 'flex'}`}>
+                <div className={`w-full md:w-96 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col absolute md:relative inset-0 z-10 transition-transform duration-300 ${activeWoId ? '-translate-x-full md:translate-x-0 md:flex hidden' : 'translate-x-0 flex'}`}>
                     
                     {/* Header Sidebar */}
                     <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
@@ -337,12 +342,13 @@ export default function AdminChats() {
                                         onClick={() => setActiveWoId(chat.work_order_id)}
                                         className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative flex items-start gap-3 ${activeWoId === chat.work_order_id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0 font-medium">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-medium ${getAvatarColor(chat.source_system)}`}>
                                             {chat.client_name ? chat.client_name.charAt(0).toUpperCase() : '#'}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start mb-1">
                                                 <h3 className="font-medium text-slate-900 dark:text-white truncate pr-2">
+                                                    {chat.client_name ? `${chat.client_name} - ` : ''}
                                                     {chat.is_quote 
                                                         ? (chat.quote_number || `DEV-${chat.work_order_id.substring(0,4).toUpperCase()}`) 
                                                         : (chat.invoice_number || `CMD-${chat.work_order_id.substring(0,4).toUpperCase()}`)}
@@ -362,16 +368,13 @@ export default function AdminChats() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="mt-1 flex items-center gap-2">
-                                                <span className="text-[10px] font-medium text-slate-400 truncate bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                    {chat.client_name || t('admin.unknown_client', 'Client Inconnu')}
-                                                </span>
-                                                {chat.is_chat_closed && (
+                                            {chat.is_chat_closed && (
+                                                <div className="mt-1 flex items-center gap-2">
                                                     <span className="text-[10px] font-medium text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
                                                         {t('admin.closed', 'Fermé')}
                                                     </span>
-                                                )}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </button>
                                 ))}
@@ -381,7 +384,7 @@ export default function AdminChats() {
                 </div>
                 
                 {/* RIGHT SIDE - CHAT WINDOW */}
-                <div className={`flex-1 flex flex-col bg-white dark:bg-slate-900 ${!activeWoId ? 'hidden md:flex' : 'flex'}`}>
+                <div className={`flex-1 flex flex-col bg-white dark:bg-slate-900 w-full absolute md:relative inset-0 z-20 transition-transform duration-300 ${!activeWoId ? 'translate-x-full md:translate-x-0 md:flex hidden' : 'translate-x-0 flex'}`}>
                     {activeWoId && activeWo ? (
                         <>
                             {/* Chat Header */}
@@ -393,7 +396,7 @@ export default function AdminChats() {
                                     >
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
-                                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0 font-medium">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-medium ${getAvatarColor(activeWo.source_system)}`}>
                                         {activeWo.client_name ? activeWo.client_name.charAt(0).toUpperCase() : '#'}
                                     </div>
                                     <div className="truncate">
@@ -449,13 +452,13 @@ export default function AdminChats() {
                                         {t('admin.no_messages_in_chat', 'Il n\'y a aucun message dans cette conversation.')}
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 max-w-3xl mx-auto">
+                                    <div className="space-y-4 md:max-w-3xl md:mx-auto w-full">
                                         {messages.map(msg => {
                                             const isSystem = msg.sender === 'system' || msg.is_hidden;
-                                            const isOwn = msg.sender === 'admin';
+                                            const isOwn = !isSystem && msg.sender !== 'client';
                                             return (
-                                            <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start'} group relative`}>
-                                                <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${isOwn && !isSystem ? 'bg-blue-600 text-white rounded-tr-sm' : isSystem ? 'w-full bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs italic text-center border border-slate-200 dark:border-slate-700' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-white rounded-tl-sm'}`}>
+                                            <div key={msg.id} className="group relative">
+                                                <div className={`w-fit min-w-[140px] max-w-[85%] md:max-w-[75%] rounded-2xl p-3 shadow-sm relative ${isOwn && !isSystem ? 'bg-blue-600 text-white rounded-tr-sm ml-auto' : isSystem ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs italic text-center border border-slate-200 dark:border-slate-700 mx-auto' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-white rounded-tl-sm mr-auto'}`}>
                                                     {editingMessageId === msg.id ? (
                                                         <div className="flex flex-col gap-2">
                                                             <textarea 
@@ -474,23 +477,25 @@ export default function AdminChats() {
                                                             <div className="flex items-center gap-2 mb-1 justify-between">
                                                                 <span className={`text-xs font-medium flex items-center gap-1.5 ${isOwn ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
                                                                     {msg.sender === 'client' ? (
-                                                                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                                                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">
                                                                             {(activeWo.client_name || '?').charAt(0).toUpperCase()}
                                                                         </span>
                                                                     ) : msg.sender === 'admin' ? (
                                                                         (tenant?.favicon_url || tenant?.logo_url) ? (
-                                                                            <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt="Davide Chape" className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0" />
+                                                                            <img src={tenant.favicon_url ? getImageUrl(tenant.favicon_url) : getImageUrl(tenant.logo_url)} alt="Davide Chape" className="w-5 h-5 rounded-full object-contain bg-white p-[2px] shrink-0 hidden md:block" />
                                                                         ) : (
-                                                                            <span className="w-5 h-5 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-[10px] shrink-0">DC</span>
+                                                                            <span className="w-5 h-5 rounded-full bg-white text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">DC</span>
                                                                         )
                                                                     ) : null}
-                                                                    {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? 'Echipă Davide Chape' : t('admin.system', 'Sistem'))}
+                                                                    <span className="truncate max-w-[150px] md:max-w-[200px]">
+                                                                        {msg.sender === 'client' ? activeWo.client_name : (msg.sender === 'admin' ? 'Echipă Davide Chape' : t('admin.system', 'Sistem'))}
+                                                                    </span>
                                                                 </span>
                                                                 <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                                                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                 </span>
                                                             </div>
-                                                            <div className={`text-sm whitespace-pre-wrap leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                            <div className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                                                 {msg.message}
                                                             </div>
                                                             
@@ -598,7 +603,7 @@ export default function AdminChats() {
                             </div>
                             
                             {/* Input Area */}
-                            <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+                            <div className="p-3 md:p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex-shrink-0 pb-[calc(env(safe-area-inset-bottom,0px)+80px)] md:pb-4">
                                 {activeWo.is_chat_closed ? (
                                     <div className="text-center p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 text-sm flex items-center justify-center gap-2">
                                         <Clock className="w-4 h-4" />
@@ -607,13 +612,13 @@ export default function AdminChats() {
                                 ) : (
                                     <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto flex flex-col gap-2">
                                         
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 w-full">
                                             <input
                                                 type="text"
                                                 value={chatMessage}
                                                 onChange={e => setChatMessage(e.target.value)}
                                                 placeholder={t('admin.type_message', 'Tapez votre message...')}
-                                                className="flex-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                                className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 md:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                                             />
                                             <select 
                                                 value={targetLang}

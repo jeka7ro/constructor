@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, Calendar } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { Clock, MapPin, Truck, ChevronRight, Navigation, Map, CheckCircle2, Calculator, ChevronLeft, Package, Check, Calendar, LayoutGrid, CalendarDays } from 'lucide-react';
 import StreetViewPhotos from './StreetViewPhotos';
 import WeatherWidget from './WeatherWidget';
 import { format, addDays, startOfWeek, isSameDay, isSameWeek, subWeeks, addWeeks, parseISO } from 'date-fns';
@@ -59,6 +59,16 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
     const isFrench = i18n.language === 'fr';
     const locale = isFrench ? fr : ro;
 
+    const [viewMode, setViewMode] = useState(() => {
+        try { return localStorage.getItem('mobile_agenda_view') || 'jour'; } catch { return 'jour'; }
+    });
+    const weekScrollRef = useRef(null);
+
+    const toggleView = (mode) => {
+        setViewMode(mode);
+        try { localStorage.setItem('mobile_agenda_view', mode); } catch {}
+    };
+
     const weekDays = useMemo(() => {
         return [...Array(7)].map((_, i) => addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), i));
     }, [currentDate]);
@@ -115,10 +125,10 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
     return (
         <div className="flex flex-col pb-10">
             {/* Header: LUNA, ANUL și Navigare Săptămâni */}
-            <div className="flex items-center justify-between px-6 pt-2 pb-4">
+            <div className="flex items-center justify-between px-4 pt-2 pb-3">
                 <button 
                     onClick={() => setCurrentDate(d => addWeeks(d, -1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
+                    className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -134,12 +144,43 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
 
                 <button 
                     onClick={() => setCurrentDate(d => addWeeks(d, 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
+                    className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors shrink-0"
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>
 
+            {/* Toggle Jour / Semaine — iOS style */}
+            <div className="flex items-center justify-center px-4 pb-3">
+                <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 gap-0.5">
+                    <button
+                        onClick={() => toggleView('jour')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-xs font-bold transition-all duration-200 ${
+                            viewMode === 'jour'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                        }`}
+                    >
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {t('mobile_agenda.day', 'Jour')}
+                    </button>
+                    <button
+                        onClick={() => toggleView('semaine')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-xs font-bold transition-all duration-200 ${
+                            viewMode === 'semaine'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                        }`}
+                    >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                        {t('mobile_agenda.week', 'Semaine')}
+                    </button>
+                </div>
+            </div>
+
+            {/* ============ MODE: JOUR ============ */}
+            {viewMode === 'jour' && (
+            <>
             {/* Apple Style Week Strip */}
             <div className="flex items-center justify-between px-4 pb-4 mb-4">
                 {weekDays.map((d, i) => {
@@ -363,6 +404,122 @@ export default function MobileAgenda({ orders, onOrderClick, currentDate, setCur
                     );
                 })}
             </div>
+            </>
+            )}
+
+            {/* ============ MODE: SEMAINE (Planning Board Orizontal) ============ */}
+            {viewMode === 'semaine' && (
+                <div 
+                    ref={weekScrollRef}
+                    className="flex overflow-x-auto snap-x snap-mandatory gap-0 pb-4 scrollbar-hide"
+                    style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    {weekDays.map((day, dayIdx) => {
+                        const dateStr = format(day, 'yyyy-MM-dd');
+                        const dayOrders = ordersByDay[dateStr] || [];
+                        const isToday = isSameDay(day, new Date());
+                        const isSelected = isSameDay(day, currentDate);
+
+                        return (
+                            <div 
+                                key={dateStr}
+                                className={`snap-start flex-shrink-0 flex flex-col border-r border-slate-100 dark:border-slate-800 last:border-r-0`}
+                                style={{ width: '38vw', minWidth: '145px' }}
+                            >
+                                {/* Column Header */}
+                                <button
+                                    onClick={() => { setCurrentDate(day); toggleView('jour'); }}
+                                    className={`sticky top-0 z-10 px-2 py-2.5 text-center border-b transition-colors ${
+                                        isToday 
+                                            ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800' 
+                                            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'
+                                    }`}
+                                >
+                                    <div className={`text-[9px] font-bold uppercase tracking-wider ${
+                                        isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
+                                    }`}>
+                                        {format(day, 'EEE', { locale })}
+                                    </div>
+                                    <div className={`text-base font-black mt-0.5 ${
+                                        isToday 
+                                            ? 'text-blue-600 dark:text-blue-400' 
+                                            : 'text-slate-800 dark:text-slate-200'
+                                    }`}>
+                                        {format(day, 'd')}
+                                    </div>
+                                    {dayOrders.length > 0 && (
+                                        <div className={`mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block ${
+                                            isToday 
+                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                        }`}>
+                                            {dayOrders.length}
+                                        </div>
+                                    )}
+                                </button>
+
+                                {/* Cards */}
+                                <div className="flex-1 p-1.5 space-y-1.5 min-h-[120px]">
+                                    {dayOrders.length > 0 ? dayOrders.map((wo) => {
+                                        const color = wo.assigned_team_color || '#3b82f6';
+                                        const teamName = wo.team?.name || wo.assigned_team_name || '';
+                                        const clientName = wo.client?.name || wo.client_name || '—';
+                                        const address = wo.site_address || wo.site?.address || wo.address || '';
+                                        const isDone = wo.status === 'completed' || wo.status === 'done';
+
+                                        return (
+                                            <button
+                                                key={wo.id}
+                                                onClick={() => onOrderClick(wo)}
+                                                className="w-full text-left rounded-xl border shadow-sm active:scale-[0.97] transition-transform overflow-hidden"
+                                                style={{ 
+                                                    borderColor: color + '40',
+                                                    backgroundColor: color + '0d'
+                                                }}
+                                            >
+                                                <div className="flex">
+                                                    {/* Team color bar */}
+                                                    <div className="w-1 shrink-0 rounded-l-xl" style={{ backgroundColor: color }} />
+                                                    <div className="flex-1 p-2 min-w-0">
+                                                        {/* Client */}
+                                                        <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                                                            {clientName}
+                                                        </div>
+                                                        {/* Time */}
+                                                        {wo.start_time && (
+                                                            <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                                                                <Clock className="w-2.5 h-2.5" />
+                                                                {wo.start_time?.substring(0, 5)}
+                                                            </div>
+                                                        )}
+                                                        {/* Team */}
+                                                        {teamName && (
+                                                            <div className="text-[9px] font-semibold mt-0.5 truncate" style={{ color }}>
+                                                                {teamName}
+                                                            </div>
+                                                        )}
+                                                        {/* Status indicator */}
+                                                        {isDone && (
+                                                            <div className="flex items-center gap-0.5 mt-1">
+                                                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                                                <span className="text-[8px] font-bold text-emerald-600 uppercase">OK</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    }) : (
+                                        <div className="flex items-center justify-center h-16 text-slate-300 dark:text-slate-700 text-[10px] font-medium">
+                                            —
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

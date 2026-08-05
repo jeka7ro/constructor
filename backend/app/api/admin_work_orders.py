@@ -23,6 +23,7 @@ from app.services.pdf_generator import generate_invoice_pdf
 from app.storage import get_file_url
 from datetime import date as date_today_import
 from sqlalchemy import func
+from app.services.audit_service import log_audit
 
 def sync_work_order_reservations(db: Session, org_id: str, old_materials: list, new_materials: list):
     """Calculeaza diferenta de materiale si ajusteaza reserved_quantity in Magazie."""
@@ -907,6 +908,16 @@ def create_work_order(
     except Exception as e:
         print(f"Logistics recalculation warning: {e}")
 
+    log_audit(
+        db=db,
+        organization_id=current_admin.organization_id,
+        admin_id=current_admin.id,
+        action="CREATE_WORK_ORDER",
+        resource_type="WorkOrder",
+        resource_id=wo.id,
+        details={"message": f"Created work order/quote {wo.quote_number or wo.invoice_number}", "is_quote": wo.is_quote}
+    )
+
     return _serialize(wo, db)
 
 
@@ -1303,6 +1314,17 @@ def delete_work_order(
         
     wo.status = "deleted"
     db.commit()
+
+    log_audit(
+        db=db,
+        organization_id=current_admin.organization_id,
+        admin_id=current_admin.id,
+        action="DELETE_WORK_ORDER",
+        resource_type="WorkOrder",
+        resource_id=wo.id,
+        details={"message": f"Deleted work order/quote {wo.quote_number or wo.invoice_number}"}
+    )
+
     return {"ok": True}
 
 
@@ -2640,6 +2662,7 @@ def get_all_chats(
             "quote_number": getattr(wo, 'quote_number', None),
             "invoice_number": getattr(wo, 'invoice_number', None),
             "is_chat_closed": getattr(wo, 'is_chat_closed', False),
+            "source_system": getattr(wo, 'source_system', 'manual'),
             "unread_count": unread,
             "last_message": last_msg.message if last_msg else "",
             "last_message_time": last_msg_time.isoformat() + "Z" if last_msg_time else wo.created_at.isoformat() + "Z"

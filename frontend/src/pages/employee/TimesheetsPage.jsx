@@ -34,10 +34,10 @@ export default function TimesheetsPage() {
 
     const getStatusBadge = (status) => {
         const badges = {
-            DRAFT: { color: 'bg-gray-100 text-gray-700', icon: FileText, label: 'Draft' },
-            SUBMITTED: { color: 'bg-blue-100 text-blue-700', icon: Clock, label: 'În așteptare' },
-            APPROVED: { color: 'bg-green-100 text-green-700', icon: CheckCircle, label: 'Aprobat' },
-            REJECTED: { color: 'bg-red-100 text-red-700', icon: XCircle, label: 'Respins' }
+            DRAFT: { color: 'bg-gray-100 text-gray-700', icon: FileText, label: t('timesheets.status_draft', 'Draft') },
+            SUBMITTED: { color: 'bg-blue-100 text-blue-700', icon: Clock, label: t('timesheets.status_submitted', 'În așteptare') },
+            APPROVED: { color: 'bg-green-100 text-green-700', icon: CheckCircle, label: t('timesheets.status_approved', 'Aprobat') },
+            REJECTED: { color: 'bg-red-100 text-red-700', icon: XCircle, label: t('timesheets.status_rejected', 'Respins') }
         }
         const badge = badges[status] || badges.DRAFT
         const Icon = badge.icon
@@ -55,7 +55,7 @@ export default function TimesheetsPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Pontajele Mele</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('timesheets.title', 'Pontajele Mele')}</h1>
                     <p className="text-slate-600">{t('timesheets.manage_daily')}</p>
                 </div>
                 <button
@@ -63,7 +63,7 @@ export default function TimesheetsPage() {
                     className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full font-semibold transition-all shadow-lg hover:shadow-xl"
                 >
                     <Plus className="w-5 h-5" />
-                    Pontaj Nou
+                    {t('timesheets.new_timesheet', 'Pontaj Nou')}
                 </button>
             </div>
 
@@ -78,7 +78,7 @@ export default function TimesheetsPage() {
                                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                             }`}
                     >
-                        {f === 'all' ? 'Toate' : f === 'draft' ? 'Draft' : f === 'submitted' ? 'În așteptare' : 'Aprobate'}
+                        {f === 'all' ? t('timesheets.filter_all', 'Toate') : f === 'draft' ? t('timesheets.filter_draft', 'Draft') : f === 'submitted' ? t('timesheets.filter_pending', 'În așteptare') : t('timesheets.filter_approved', 'Aprobate')}
                     </button>
                 ))}
             </div>
@@ -92,7 +92,7 @@ export default function TimesheetsPage() {
                 <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-12 text-center">
                     <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                        Nu ai pontaje
+                        {t('timesheets.no_timesheets', 'Nu ai pontaje')}
                     </h3>
                     <p className="text-slate-500 mb-4">
                         {t('timesheets.create_first_start')}
@@ -101,7 +101,7 @@ export default function TimesheetsPage() {
                         onClick={() => navigate('/timesheets/new')}
                         className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors"
                     >
-                        Creează Pontaj
+                        {t('timesheets.create', 'Creează Pontaj')}
                     </button>
                 </div>
             ) : (
@@ -124,7 +124,7 @@ export default function TimesheetsPage() {
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
                                         <Clock className="w-4 h-4" />
-                                        {ts.total_hours}h lucrate
+                                        {ts.total_hours}h {t('timesheets.worked', 'lucrate')}
                                     </div>
                                 </div>
                                 {getStatusBadge(ts.status)}

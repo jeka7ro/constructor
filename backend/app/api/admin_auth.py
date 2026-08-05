@@ -10,6 +10,7 @@ import os
 from app.database import get_db
 from app.models import Admin, User
 from app.config import settings
+from app.services.audit_service import log_audit
 
 router = APIRouter()
 
@@ -118,7 +119,9 @@ def get_current_admin(token: str = Depends(oauth2_scheme), db: Session = Depends
 @router.post("/login", response_model=Token)
 def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
     """Admin login with email and password"""
-    admin = db.query(Admin).filter(Admin.email == credentials.email).first()
+    from sqlalchemy import func
+    email_clean = credentials.email.lower().strip()
+    admin = db.query(Admin).filter(func.lower(Admin.email) == email_clean).first()
     
     if not admin or not verify_password(credentials.password, admin.password_hash):
         raise HTTPException(
@@ -167,6 +170,16 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
             "role": "driver",
             "organization_id": getattr(user_record, 'organization_id', None)
         }
+
+    # Log admin login
+    if hasattr(admin, 'organization_id'):
+        log_audit(
+            db=db,
+            organization_id=admin.organization_id,
+            admin_id=admin.id,
+            action="LOGIN_ADMIN",
+            details={"message": "Administrator logged in successfully", "email": admin.email}
+        )
 
     return {
         "access_token": access_token,
