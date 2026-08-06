@@ -1421,7 +1421,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                         </h3>
                         <p className="text-slate-600 text-sm mb-6">
                             {lang === 'ro' ? 'Noua dată propusă este: ' : lang === 'fr' ? 'La nouvelle date proposée est: ' : lang === 'nl' ? 'De nieuwe voorgestelde datum is: ' : 'The new proposed date is: '}
-                            <br/><strong className="text-emerald-700 text-lg">{new Date(needsDateConfirmation).toLocaleDateString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone })}</strong>
+                            <br/><strong className="text-emerald-700 text-lg">{new Date(needsDateConfirmation).toLocaleString(lang === 'fr' ? 'fr-BE' : lang === 'nl' ? 'nl-BE' : 'en-GB', { timeZone: orgTimezone, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
                         </p>
                         <div className="flex flex-col gap-2">
                             <button 
