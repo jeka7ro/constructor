@@ -58,12 +58,12 @@ def get_audit_logs(
     admin_map = {}
     if admin_ids:
         admins = db.query(Admin).filter(Admin.id.in_(admin_ids)).all()
-        admin_map = {a.id: f"{a.last_name or ''} {a.first_name or ''}".strip() or a.email for a in admins}
+        admin_map = {a.id: a.full_name or a.email for a in admins}
         
     user_map = {}
     if user_ids:
         users = db.query(User).filter(User.id.in_(user_ids)).all()
-        user_map = {u.id: f"{u.last_name or ''} {u.first_name or ''}".strip() for u in users}
+        user_map = {u.id: u.full_name for u in users}
 
     results = []
     for log in logs:
