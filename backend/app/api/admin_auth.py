@@ -140,10 +140,19 @@ def get_current_admin(request: Request, token: str = Depends(oauth2_scheme), db:
             if tenant:
                 admin.organization_id = tenant.id
                 
-    # Store IP for audit logs
-    ip = request.headers.get("x-forwarded-for", request.client.host if getattr(request, 'client', None) else None)
+    # Store IP for audit logs - check proxy headers first (Netlify, Cloudflare, etc.)
+    ip = request.headers.get("x-nf-client-connection-ip") or \
+         request.headers.get("true-client-ip") or \
+         request.headers.get("cf-connecting-ip") or \
+         request.headers.get("x-real-ip") or \
+         request.headers.get("x-forwarded-for")
+         
+    if not ip and getattr(request, 'client', None):
+        ip = request.client.host
+        
     if ip and "," in ip:
         ip = ip.split(",")[0].strip()
+        
     admin.current_ip = ip
     
     return admin
@@ -222,12 +231,25 @@ def admin_login(request: Request, credentials: AdminLogin, db: Session = Depends
 
     # Log admin login
     if log_org_id:
+        ip = request.headers.get("x-nf-client-connection-ip") or \
+             request.headers.get("true-client-ip") or \
+             request.headers.get("cf-connecting-ip") or \
+             request.headers.get("x-real-ip") or \
+             request.headers.get("x-forwarded-for")
+             
+        if not ip and getattr(request, 'client', None):
+            ip = request.client.host
+            
+        if ip and "," in ip:
+            ip = ip.split(",")[0].strip()
+            
         log_audit(
             db=db,
             organization_id=log_org_id,
             admin_id=admin.id,
             action="LOGIN_ADMIN",
-            details={"message": "Administrator logged in successfully", "email": admin.email}
+            details={"message": "Administrator logged in successfully", "email": admin.email},
+            ip_address=ip
         )
 
     return {
