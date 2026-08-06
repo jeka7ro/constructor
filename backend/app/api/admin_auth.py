@@ -114,6 +114,15 @@ def get_current_admin(request: Request, token: str = Depends(oauth2_scheme), db:
     
     # If super admin, infer organization_id from subdomain to scope data to the current tenant
     if admin.role == 'SUPER_ADMIN' or admin.is_super_admin:
+        # Auto-heal data corruption (in case a previous bug saved their org_id)
+        if admin.organization_id is not None:
+            admin.organization_id = None
+            db.commit()
+            
+        # Detach the admin instance from the session to prevent any in-memory 
+        # modifications (like impersonation or IP tracking) from being saved to the database!
+        db.expunge(admin)
+        
         # First, try to get the explicit tenant subdomain sent by frontend (bypasses Vite proxy issues)
         subdomain = request.headers.get("x-tenant-subdomain")
         
