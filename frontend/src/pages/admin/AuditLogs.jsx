@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
-import { History, Search, Filter } from 'lucide-react'
+import { History, Search, Filter, Calendar, User as UserIcon, Activity } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 
 export default function AuditLogs() {
@@ -18,15 +18,70 @@ export default function AuditLogs() {
     const [limit, setLimit] = useState(25)
     const [totalPages, setTotalPages] = useState(1)
     const [totalRecords, setTotalRecords] = useState(0)
+    
+    // Filters
+    const [filterDateRange, setFilterDateRange] = useState('today')
+    const [customDateFrom, setCustomDateFrom] = useState(new Date().toISOString().split('T')[0])
+    const [customDateTo, setCustomDateTo] = useState(new Date().toISOString().split('T')[0])
+    const [filterUserId, setFilterUserId] = useState('')
+    const [filterAction, setFilterAction] = useState('')
+    const [filterOptions, setFilterOptions] = useState({ actions: [], users: [] })
+
+    useEffect(() => {
+        api.get('/admin/audit-logs/filters').then(res => setFilterOptions(res.data)).catch(console.error)
+    }, [])
 
     const fetchLogs = async () => {
         setLoading(true)
+        
+        let date_from = undefined;
+        let date_to = undefined;
+        const now = new Date();
+        
+        if (filterDateRange === 'today') {
+            const d = new Date(now);
+            d.setHours(0,0,0,0);
+            date_from = d.toISOString();
+            
+            const end = new Date(now);
+            end.setHours(23,59,59,999);
+            date_to = end.toISOString();
+        } else if (filterDateRange === 'week') {
+            const d = new Date(now);
+            const first = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1);
+            d.setDate(first);
+            d.setHours(0,0,0,0);
+            date_from = d.toISOString();
+        } else if (filterDateRange === 'month') {
+            const d = new Date(now.getFullYear(), now.getMonth(), 1);
+            d.setHours(0,0,0,0);
+            date_from = d.toISOString();
+        } else if (filterDateRange === 'year') {
+            const d = new Date(now.getFullYear(), 0, 1);
+            d.setHours(0,0,0,0);
+            date_from = d.toISOString();
+        } else if (filterDateRange === 'custom') {
+            if (customDateFrom) {
+                const d = new Date(customDateFrom);
+                d.setHours(0,0,0,0);
+                date_from = d.toISOString();
+            }
+            if (customDateTo) {
+                const d = new Date(customDateTo);
+                d.setHours(23,59,59,999);
+                date_to = d.toISOString();
+            }
+        }
         try {
             const resp = await api.get('/admin/audit-logs/', {
                 params: {
                     page,
                     limit,
-                    search: searchQuery || undefined
+                    search: searchQuery || undefined,
+                    action: filterAction || undefined,
+                    user_id: filterUserId || undefined,
+                    date_from,
+                    date_to
                 }
             })
             setLogs(resp.data.data || [])
@@ -43,7 +98,7 @@ export default function AuditLogs() {
     useEffect(() => {
         fetchLogs()
         // eslint-disable-next-line
-    }, [page, limit, searchQuery])
+    }, [page, limit, searchQuery, filterDateRange, customDateFrom, customDateTo, filterUserId, filterAction])
 
     const columns = [
         {
@@ -91,11 +146,35 @@ export default function AuditLogs() {
         {
             key: 'details',
             label: t('audit.details', 'Detalii'),
-            render: (row) => (
-                <div className="text-sm text-slate-600 dark:text-slate-400 max-w-xs truncate" title={row.details || ''}>
-                    {row.details || '-'}
-                </div>
-            )
+            render: (row) => {
+                let text = row.details || '-';
+                let fullText = typeof row.details === 'string' ? row.details : JSON.stringify(row.details || '');
+                if (typeof row.details === 'string') {
+                    try {
+                        const parsed = JSON.parse(row.details);
+                        if (parsed && parsed.message) {
+                            text = parsed.message;
+                            if (text === "Administrator logged in successfully") {
+                                text = t('audit.msg_login_admin', 'Administrator autentificat cu succes');
+                            } else if (text.startsWith("Deleted work order/quote")) {
+                                text = text.replace("Deleted work order/quote", t('audit.msg_deleted_wo', 'Deviz/Comandă ștearsă'));
+                            } else if (text.startsWith("Created work order/quote")) {
+                                text = text.replace("Created work order/quote", t('audit.msg_created_wo', 'Deviz/Comandă creată'));
+                            }
+                        } else {
+                            text = JSON.stringify(parsed, null, 2);
+                        }
+                    } catch (e) {}
+                } else if (typeof row.details === 'object' && row.details !== null) {
+                    text = row.details.message || JSON.stringify(row.details, null, 2);
+                }
+                
+                return (
+                    <div className="text-sm text-slate-600 dark:text-slate-400 min-w-[200px] break-words whitespace-pre-wrap" title={fullText}>
+                        {text}
+                    </div>
+                )
+            }
         },
         {
             key: 'ip_address',
@@ -120,20 +199,97 @@ export default function AuditLogs() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder={t('audit.search_placeholder', 'Caută acțiune sau detalii...')}
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value)
-                            setPage(1)
-                        }}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
-                    />
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    {/* Search */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder={t('audit.search_placeholder', 'Caută acțiune sau detalii...')}
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                setPage(1)
+                            }}
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                        />
+                    </div>
+                    
+                    {/* Filter Dropdowns */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Date Filter */}
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                            <Calendar className="w-4 h-4 text-slate-400" />
+                            <select
+                                value={filterDateRange}
+                                onChange={(e) => { setFilterDateRange(e.target.value); setPage(1); }}
+                                className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-0 cursor-pointer"
+                            >
+                                <option value="today">{t('audit.filter_today', 'Astăzi (Today)')}</option>
+                                <option value="week">{t('audit.filter_week', 'Săptămâna curentă')}</option>
+                                <option value="month">{t('audit.filter_month', 'Luna curentă')}</option>
+                                <option value="year">{t('audit.filter_year', 'Anul curent')}</option>
+                                <option value="all">{t('audit.filter_all', 'Tot')}</option>
+                                <option value="custom">{t('audit.filter_custom', 'Perioadă personalizată')}</option>
+                            </select>
+                        </div>
+                        
+                        {/* User Filter */}
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                            <UserIcon className="w-4 h-4 text-slate-400" />
+                            <select
+                                value={filterUserId}
+                                onChange={(e) => { setFilterUserId(e.target.value); setPage(1); }}
+                                className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-0 cursor-pointer max-w-[150px] truncate"
+                            >
+                                <option value="">{t('audit.filter_any_user', 'Orice Utilizator')}</option>
+                                {filterOptions.users.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Action Filter */}
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                            <Activity className="w-4 h-4 text-slate-400" />
+                            <select
+                                value={filterAction}
+                                onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
+                                className="bg-transparent border-none text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-0 cursor-pointer max-w-[150px] truncate"
+                            >
+                                <option value="">{t('audit.filter_any_action', 'Orice Acțiune')}</option>
+                                {filterOptions.actions.map(a => (
+                                    <option key={a} value={a}>{a}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
+                
+                {/* Custom Date Pickers */}
+                {filterDateRange === 'custom' && (
+                    <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('audit.from', 'De la:')}</label>
+                            <input
+                                type="date"
+                                value={customDateFrom}
+                                onChange={(e) => { setCustomDateFrom(e.target.value); setPage(1); }}
+                                className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 dark:text-white"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('audit.to', 'Până la:')}</label>
+                            <input
+                                type="date"
+                                value={customDateTo}
+                                onChange={(e) => { setCustomDateTo(e.target.value); setPage(1); }}
+                                className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 dark:text-white"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Table */}

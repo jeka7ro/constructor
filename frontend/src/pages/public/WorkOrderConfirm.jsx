@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile } from 'lucide-react'
+import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile, Edit2 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import api from '../../lib/api'
 import MapView from '../../components/MapView'
 import DevisView from '../admin/DevisView'
+import AddressAutocomplete from '../../components/AddressAutocomplete'
 
 // ─── Signature Pad ────────────────────────────────────────────────────────────
 function SignaturePad({ onChange, disabled, t }) {
@@ -542,6 +543,31 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const docInputRef = useRef(null)
     const [isUploadingDoc, setIsUploadingDoc] = useState(false)
     const [toast, setToast] = useState(null)
+    
+    // Address Edit
+    const [isEditingAddress, setIsEditingAddress] = useState(false)
+    const [editAddressData, setEditAddressData] = useState({ address: '', lat: null, lon: null })
+
+    const handleSaveAddress = async () => {
+        try {
+            await api.patch(`/public/work-orders/${token}/address`, {
+                site_address: editAddressData.address,
+                site_latitude: editAddressData.lat,
+                site_longitude: editAddressData.lon
+            })
+            setOrder(prev => ({
+                ...prev,
+                site_address: editAddressData.address,
+                site_lat: editAddressData.lat,
+                site_lon: editAddressData.lon
+            }))
+            setIsEditingAddress(false)
+            showToast(translations[lang].addressUpdated || 'Address updated successfully.', 'success')
+        } catch (err) {
+            console.error(err)
+            showToast(translations[lang].errorConfirming || 'Error updating address.', 'error')
+        }
+    }
 
     // Chat Client-Admin
     const [messages, setMessages] = useState([])
@@ -1047,7 +1073,48 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                     <div className="bg-transparent rounded-2xl border-0 overflow-hidden w-full flex flex-col print:hidden">
                                         <div className="px-1 py-2 flex items-center gap-2 mb-2">
                                             <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
-                                            <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">{displayAddr}</div>
+                                            {isEditingAddress ? (
+                                                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 w-full z-50">
+                                                    <div className="flex-1 relative z-50">
+                                                        <AddressAutocomplete
+                                                            value={editAddressData.address}
+                                                            onChange={(val) => setEditAddressData(p => ({ ...p, address: val }))}
+                                                            onSelect={({ address, lat, lon }) => setEditAddressData({ address, lat, lon })}
+                                                            placeholder={translations[lang].location || 'Lieu'}
+                                                            className="!bg-transparent !border-none !text-xs !py-1 !px-2 !shadow-none !h-7 !min-h-0"
+                                                        />
+                                                    </div>
+                                                    <div className="flex shrink-0 gap-1 pr-1">
+                                                        <button 
+                                                            onClick={handleSaveAddress}
+                                                            className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded transition-colors"
+                                                            title="Enregistrer"
+                                                        >
+                                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setIsEditingAddress(false)}
+                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 rounded transition-colors"
+                                                            title="Annuler"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate group flex items-center gap-2">
+                                                    {displayAddr}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditAddressData({ address: order.site_address || order.site_name || '', lat: order.site_lat, lon: order.site_lon });
+                                                            setIsEditingAddress(true);
+                                                        }}
+                                                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all"
+                                                    >
+                                                        <Edit2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner w-full flex-1 min-h-[220px]">
                                             <MapView latitude={order.site_lat} longitude={order.site_lon} address={displayAddr} height="100%" zoom={15} markerType="pin" />

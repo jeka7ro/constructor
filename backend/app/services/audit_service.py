@@ -20,6 +20,12 @@ def log_audit(
     Înregistrează o acțiune în tabela de AuditLog.
     """
     try:
+        from app.models import Admin
+        if not ip_address and admin_id:
+            admin_obj = db.query(Admin).filter(Admin.id == admin_id).first()
+            if admin_obj and hasattr(admin_obj, 'current_ip'):
+                ip_address = admin_obj.current_ip
+
         details_str = json.dumps(details) if details else None
         
         audit_entry = AuditLog(

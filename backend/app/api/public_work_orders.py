@@ -245,6 +245,32 @@ def get_public_proforma(token: str, db: Session = Depends(get_db)):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# PATCH — Actualizare adresă (fără autentificare, pe bază de token)
+# ──────────────────────────────────────────────────────────────────────────────
+class UpdateAddressPayload(BaseModel):
+    site_address: str
+    site_latitude: Optional[float] = None
+    site_longitude: Optional[float] = None
+
+@router.patch("/public/work-orders/{token}/address")
+def update_public_work_order_address(token: str, payload: UpdateAddressPayload, db: Session = Depends(get_db)):
+    wo = db.query(WorkOrder).filter(WorkOrder.token == token).first()
+    if not wo or wo.status == 'deleted':
+        raise HTTPException(status_code=404, detail="Comanda nu a fost găsită sau link-ul este invalid.")
+    
+    wo.site_address = payload.site_address
+    wo.site_latitude = payload.site_latitude
+    wo.site_longitude = payload.site_longitude
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    return {"status": "success", "message": "Adresa a fost actualizată."}
+
+# ──────────────────────────────────────────────────────────────────────────────
 # POST — Confirmare comandă de către client
 # ──────────────────────────────────────────────────────────────────────────────
 class ConfirmPayload(BaseModel):

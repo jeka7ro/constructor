@@ -44,7 +44,32 @@
         "inventory": "Inventaire",
         "tracking": "Suivi en direct",
         "quotes": "Citations",
-        "email_logs": "Journaux d'E-mails"
+        "email_logs": "Journaux d'E-mails",
+        "audit_logs": "Journaux d'Activité"
+    },
+    "audit": {
+        "title": "Journal d'activité",
+        "subtitle": "Surveillez les actions effectuées par les administrateurs et les utilisateurs.",
+        "search_placeholder": "Rechercher une action ou des détails...",
+        "date": "Date & Heure",
+        "actor": "Utilisateur/Admin",
+        "action": "Action",
+        "resource": "Ressource",
+        "details": "Détails",
+        "no_logs": "Aucun enregistrement dans le journal.",
+        "from": "De:",
+        "to": "À:",
+        "filter_today": "Aujourd'hui",
+        "filter_week": "Cette semaine",
+        "filter_month": "Ce mois-ci",
+        "filter_year": "Cette année",
+        "filter_all": "Tout",
+        "filter_custom": "Période personnalisée",
+        "filter_any_user": "N'importe quel utilisateur",
+        "filter_any_action": "Toute action",
+        "msg_login_admin": "Administrateur connecté avec succès",
+        "msg_deleted_wo": "Devis/Commande supprimé",
+        "msg_created_wo": "Devis/Commande créé"
     },
     "emails": {
         "title": "Journaux d'E-mails",
@@ -1228,6 +1253,8 @@
         "generic": "Une erreur est survenue. Veuillez réessayer."
     },
     "admin": {
+        "chat_with_client": "Chat avec le client",
+        "no_messages": "Aucun message",
         "logout": "Déconnexion",
         "administrator": "Administrateur",
         "admin_system": "Système Admin",
@@ -1704,6 +1731,8 @@
     "work_order_detail": {
         "loading_order": "Chargement...",
         "not_found": "Commande introuvable",
+        "mark_completed_btn": "Marquer comme terminé",
+        "mark_completed": "Marquer comme terminé",
         "back": "Retour",
         "edit": "Modifier",
         "kpi": {

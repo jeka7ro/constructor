@@ -1249,6 +1249,8 @@
         "chat_reopened": "Chat redeschis",
         "chat_closed": "Chat închis",
         "client_messages": "Mesaje Clienți",
+        "chat_with_client": "Chat cu clientul",
+        "no_messages": "Nu există mesaje",
         "search_quote_client": "Caută deviz sau client...",
         "no_conversations": "Nu există conversații încă.",
         "unknown_client": "Client Necunoscut",
@@ -1699,6 +1701,8 @@
     "work_order_detail": {
         "loading_order": "Se încarcă comanda...",
         "not_found": "Comanda nu a fost găsită",
+        "mark_completed_btn": "Marchează ca terminat",
+        "mark_completed": "Marchează ca terminat",
         "back": "Înapoi",
         "edit": "Editează",
         "kpi": {
@@ -3270,5 +3274,29 @@
         "placeholder": "Caută... (Cmd+K)",
         "no_results": "Niciun rezultat găsit pentru",
         "help_text": "Caută după nume client, număr deviz, adresă șantier, etc."
+    },
+    "audit": {
+        "title": "Jurnal Activitate",
+        "subtitle": "Monitorizează acțiunile efectuate de administratori și utilizatori.",
+        "search_placeholder": "Caută acțiune sau detalii...",
+        "date": "Dată & Oră",
+        "actor": "Utilizator/Admin",
+        "action": "Acțiune",
+        "resource": "Resursă",
+        "details": "Detalii",
+        "no_logs": "Nu există nicio înregistrare în jurnal.",
+        "from": "De la:",
+        "to": "Până la:",
+        "filter_today": "Astăzi (Today)",
+        "filter_week": "Săptămâna curentă",
+        "filter_month": "Luna curentă",
+        "filter_year": "Anul curent",
+        "filter_all": "Tot",
+        "filter_custom": "Perioadă personalizată",
+        "filter_any_user": "Orice Utilizator",
+        "filter_any_action": "Orice Acțiune",
+        "msg_login_admin": "Administrator autentificat cu succes",
+        "msg_deleted_wo": "Deviz/Comandă ștearsă",
+        "msg_created_wo": "Deviz/Comandă creată"
     }
 }

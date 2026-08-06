@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
@@ -8,7 +8,7 @@ import hashlib
 import os
 
 from app.database import get_db
-from app.models import Admin, User
+from app.models import Admin, User, Organization
 from app.config import settings
 from app.services.audit_service import log_audit
 
@@ -89,7 +89,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-def get_current_admin(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_admin(request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Get current authenticated admin from JWT token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -112,12 +112,37 @@ def get_current_admin(token: str = Depends(oauth2_scheme), db: Session = Depends
     if not admin.is_active:
         raise HTTPException(status_code=400, detail="Inactive admin account")
     
+    # If super admin, infer organization_id from subdomain to scope data to the current tenant
+    if admin.role == 'SUPER_ADMIN' or admin.is_super_admin:
+        # First, try to get the explicit tenant subdomain sent by frontend (bypasses Vite proxy issues)
+        subdomain = request.headers.get("x-tenant-subdomain")
+        
+        if not subdomain:
+            # Fallback to Host header
+            host = request.headers.get("x-forwarded-host", request.headers.get("host", ""))
+            if host:
+                subdomain = host.split(".")[0]
+                if ":" in subdomain:
+                    subdomain = subdomain.split(":")[0]
+                
+        # Avoid looking up master domain or local if they don't map to a tenant
+        if subdomain and subdomain not in ["localhost", "127", "pontaj"]:
+            tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
+            if tenant:
+                admin.organization_id = tenant.id
+                
+    # Store IP for audit logs
+    ip = request.headers.get("x-forwarded-for", request.client.host if getattr(request, 'client', None) else None)
+    if ip and "," in ip:
+        ip = ip.split(",")[0].strip()
+    admin.current_ip = ip
+    
     return admin
 
 
 # Routes
 @router.post("/login", response_model=Token)
-def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
+def admin_login(request: Request, credentials: AdminLogin, db: Session = Depends(get_db)):
     """Admin login with email and password"""
     from sqlalchemy import func
     email_clean = credentials.email.lower().strip()
@@ -171,11 +196,26 @@ def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
             "organization_id": getattr(user_record, 'organization_id', None)
         }
 
+    # Determine organization_id for logging
+    log_org_id = admin.organization_id
+    if not log_org_id and (admin.role == 'SUPER_ADMIN' or getattr(admin, 'is_super_admin', False)):
+        subdomain = request.headers.get("x-tenant-subdomain")
+        if not subdomain:
+            host = request.headers.get("x-forwarded-host", request.headers.get("host", ""))
+            if host:
+                subdomain = host.split(".")[0]
+                if ":" in subdomain:
+                    subdomain = subdomain.split(":")[0]
+        if subdomain and subdomain not in ["localhost", "127", "pontaj"]:
+            tenant = db.query(Organization).filter(Organization.slug == subdomain).first()
+            if tenant:
+                log_org_id = tenant.id
+
     # Log admin login
-    if hasattr(admin, 'organization_id'):
+    if log_org_id:
         log_audit(
             db=db,
-            organization_id=admin.organization_id,
+            organization_id=log_org_id,
             admin_id=admin.id,
             action="LOGIN_ADMIN",
             details={"message": "Administrator logged in successfully", "email": admin.email}

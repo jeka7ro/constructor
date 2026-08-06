@@ -50,15 +50,26 @@ export default function DataTable({
     }) // 'asc' | 'desc'
     const [searchTerm, setSearchTerm] = useState('')
 
+    // Deep search helper
+    const matchesSearch = (obj, term) => {
+        if (obj == null) return false;
+        if (typeof obj === 'string' || typeof obj === 'number') {
+            return String(obj).toLowerCase().includes(term);
+        }
+        if (Array.isArray(obj)) {
+            return obj.some(item => matchesSearch(item, term));
+        }
+        if (typeof obj === 'object') {
+            return Object.values(obj).some(val => matchesSearch(val, term));
+        }
+        return false;
+    };
+
     // 1. Filter
     const filtered = useMemo(() => {
         if (!searchTerm) return data
         const lower = searchTerm.toLowerCase()
-        return data.filter(row => 
-            Object.values(row).some(val => 
-                val != null && String(val).toLowerCase().includes(lower)
-            )
-        )
+        return data.filter(row => matchesSearch(row, lower))
     }, [data, searchTerm])
 
     // 2. Sort

@@ -55,6 +55,18 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`
         }
+
+        // Inject tenant subdomain for Super Admin impersonation support
+        try {
+            const hostname = window.location.hostname;
+            if (hostname) {
+                const subdomain = hostname.split('.')[0];
+                if (subdomain && !['localhost', '127', 'pontaj'].includes(subdomain)) {
+                    config.headers['X-Tenant-Subdomain'] = subdomain;
+                }
+            }
+        } catch (e) { }
+
         return config
     },
     (error) => Promise.reject(error)

@@ -6,7 +6,7 @@ import {
     ChevronLeft, ClipboardList, MapPin, User, Calendar, Clock,
     Package, Camera, Edit2, Timer, AlertCircle, FileText,
     Navigation, Send, Play, Ban, CheckCircle, CheckCircle2,
-    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff
+    Circle, Users, Wrench, BarChart2, ExternalLink, Activity, Paperclip, ImageIcon, Download, Layers, X, Calculator, CalendarDays, Trash2, Link, RefreshCw, ChevronRight, XCircle, Building2, MessageSquare, EyeOff, Globe, Eye, Mail, Smile, Copy, Check
 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -19,6 +19,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import HourlyWeather from '../../components/HourlyWeather'
 import StreetViewPhotos from '../../components/StreetViewPhotos'
+import AddressAutocomplete from '../../components/AddressAutocomplete'
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const getStatusConfig = (t) => ({
@@ -167,7 +168,7 @@ function NavButtons({ lat, lon, address }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const params = useParams()
     const id = orderId || params.id
     const navigate = useNavigate()
@@ -222,24 +223,29 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [showConvertConfirm, setShowConvertConfirm] = useState(false)
     
+    // Address Edit
+    const [isEditingAddress, setIsEditingAddress] = useState(false)
+    const [editAddressData, setEditAddressData] = useState({ address: '', lat: null, lon: null })
+    
     // Chat Admin-Client
     const [messages, setMessages] = useState([])
-    const [chatModalOpen, setChatModalOpen] = useState(false)
     const [chatMessage, setChatMessage] = useState("")
     const [sendingMessage, setSendingMessage] = useState(false)
+    const [targetLang, setTargetLang] = useState('nl')
+    const [previewTranslation, setPreviewTranslation] = useState('')
+    const [isTranslating, setIsTranslating] = useState(false)
     const [historyModalOpen, setHistoryModalOpen] = useState(false)
     const [editingMessageId, setEditingMessageId] = useState(null)
     const [editMessageText, setEditMessageText] = useState("")
+    const [showEmojiPickerFor, setShowEmojiPickerFor] = useState(null)
     
     const messagesEndRef = useRef(null)
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }
     useEffect(() => {
-        if (chatModalOpen) {
-            setTimeout(scrollToBottom, 100)
-        }
-    }, [messages, chatModalOpen])
+        setTimeout(scrollToBottom, 100)
+    }, [messages])
 
     const showToast = (msg, type = 'success') => {
         if (typeof msg === 'object' && msg !== null) {
@@ -247,6 +253,28 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         }
         setToast({ message: msg, type })
         setTimeout(() => setToast({ message: null, type: 'success' }), 3000)
+    }
+    const [copiedLink, setCopiedLink] = useState(false)
+
+    const handleSaveAddress = async () => {
+        try {
+            await api.put(`/admin/work-orders/${id}`, {
+                site_address: editAddressData.address,
+                site_latitude: editAddressData.lat,
+                site_longitude: editAddressData.lon
+            })
+            setWo(prev => ({
+                ...prev,
+                site_address: editAddressData.address,
+                site_latitude: editAddressData.lat,
+                site_longitude: editAddressData.lon
+            }))
+            setIsEditingAddress(false)
+            showToast(t('admin.address_updated', 'Adresse mise à jour'), "success")
+        } catch (err) {
+            console.error(err)
+            showToast(t('admin.address_update_error', "Erreur lors de la mise à jour de l'adresse"), "error")
+        }
     }
 
     const handleGenerateProforma = async () => {
@@ -385,20 +413,27 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     const handleRouteCalculated = async (km) => {
         if (!wo || km <= 0) return;
-        if (wo.route_distance_km && Math.abs(wo.route_distance_km - km) < 0.1) return;
+        
+        const currentSegmentsTotal = (wo.route_segments || []).reduce((sum, s) => sum + (s.km || 0), 0);
+        const isSegmentsCorrect = Math.abs(currentSegmentsTotal - (km / 2)) < 0.1;
+        
+        if (wo.route_distance_km && Math.abs(wo.route_distance_km - km) < 0.1 && isSegmentsCorrect) return;
+        
         try {
             const updatedSegments = [...(wo.route_segments || [])];
             const oldTotal = updatedSegments.reduce((sum, s) => sum + (s.km || 0), 0);
+            const oneWayKm = km / 2;
+            
             if (oldTotal > 0 && updatedSegments.length > 0) {
                 updatedSegments.forEach(seg => {
-                    seg.km = parseFloat(((seg.km / oldTotal) * km).toFixed(1));
+                    seg.km = parseFloat(((seg.km / oldTotal) * oneWayKm).toFixed(1));
                 });
             } else if (updatedSegments.length === 2) {
                 // Simple A→B→A: split equally
-                updatedSegments[0].km = parseFloat((km / 2).toFixed(1));
-                updatedSegments[1].km = parseFloat((km / 2).toFixed(1));
+                updatedSegments[0].km = parseFloat((oneWayKm / 2).toFixed(1));
+                updatedSegments[1].km = parseFloat((oneWayKm / 2).toFixed(1));
             } else if (updatedSegments.length > 0) {
-                updatedSegments[0].km = parseFloat(km.toFixed(1));
+                updatedSegments[0].km = parseFloat(oneWayKm.toFixed(1));
             }
             setWo(prev => ({ 
                 ...prev, 
@@ -459,21 +494,63 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     useEffect(() => { load() }, [load])
 
+    const handleTranslatePreview = async () => {
+        if (!chatMessage.trim() || targetLang === 'none') return;
+        setIsTranslating(true);
+        try {
+            const res = await api.post('/admin/translate', {
+                text: chatMessage,
+                target_lang: targetLang
+            });
+            setPreviewTranslation(res.data.translatedText);
+        } catch (e) {
+            console.error("Translation error", e);
+        } finally {
+            setIsTranslating(false);
+        }
+    }
+
     const handleSendMessage = async () => {
         if (!chatMessage.trim()) return;
         setSendingMessage(true);
         try {
-            const res = await api.post(`/admin/work-orders/${id}/messages`, {
-                message: chatMessage
-            });
+            const payload = {
+                message: chatMessage,
+                target_lang: targetLang === 'none' ? null : targetLang
+            };
+            if (previewTranslation.trim()) {
+                payload.translations = { [targetLang]: previewTranslation };
+            }
+            const res = await api.post(`/admin/work-orders/${id}/messages`, payload);
             setMessages(prev => [...prev, res.data]);
             setChatMessage("");
+            setPreviewTranslation("");
         } catch (err) {
             showToast("Eroare la trimiterea mesajului.", "error");
         } finally {
             setSendingMessage(false);
         }
     };
+
+    const handleToggleReaction = async (msgId, emoji) => {
+        try {
+            const res = await api.post(`/admin/work-orders/${id}/messages/${msgId}/react`, { emoji })
+            setMessages(prev => prev.map(m => m.id === msgId ? res.data : m))
+            setShowEmojiPickerFor(null)
+        } catch (err) {
+            showToast(t('admin.error_reacting', "Erreur lors de l'ajout de la réaction"), 'error')
+        }
+    }
+
+    const handleToggleVisibility = async (msgId) => {
+        try {
+            const res = await api.put(`/admin/work-orders/${id}/messages/${msgId}/toggle-visibility`);
+            setMessages(prev => prev.map(m => m.id === msgId ? res.data : m));
+            showToast(res.data.is_hidden ? t('admin.message_hidden', 'Message masqué au client') : t('admin.message_visible', 'Message visible pour le client'), "success");
+        } catch (err) {
+            showToast(t('admin.error_toggling_visibility', 'Erreur lors de la modification de la visibilité'), "error");
+        }
+    }
 
     const handleDeleteMessage = async (msgId) => {
         try {
@@ -503,7 +580,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         try {
             await api.post(`/admin/work-orders/${id}/messages/${msgId}/unread`);
             showToast(t('admin.message_marked_unread', 'Mesaj marcat ca necitit'), "success");
-            setChatModalOpen(false);
             window.dispatchEvent(new CustomEvent('refresh-notifications'));
         } catch (err) {
             showToast(t('admin.error_marking_unread', 'Eroare la marcarea mesajului'), "error");
@@ -556,7 +632,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const lat     = wo.site_latitude  ?? null
     const lon     = wo.site_longitude ?? null
     const geoR    = wo.geo_radius     ?? null
-    const address = wo.site_address   || wo.site_name || null
+    let rawAddress = wo.site_address || wo.site_name || null;
+    let countryTranslated = 'Belgique';
+    if (i18n.language?.startsWith('nl')) countryTranslated = 'België';
+    else if (i18n.language?.startsWith('de')) countryTranslated = 'Belgien';
+    else if (i18n.language?.startsWith('en')) countryTranslated = 'Belgium';
+    else if (i18n.language?.startsWith('ro')) countryTranslated = 'Belgia';
+    const address = rawAddress ? rawAddress.replace(/,\s*(belgia|belgique|belgium|belgië|belgien)\s*$/i, `, ${countryTranslated}`).replace(/\b(belgia|belgique|belgium|belgië|belgien)\b/i, countryTranslated) : null;
 
     // KPIs
     const totalHours = sessions?.total_hours || 0
@@ -889,11 +971,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                                 {cfg.label}
                             </span>
-                            {wo.site_address && (
-                                <span className="text-xs text-slate-400 flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />{wo.site_address}
-                                </span>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -914,12 +991,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     : `${window.location.origin}/confirm/${wo.token}`;
                                 navigator.clipboard.writeText(clientLink)
                                 showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'))
+                                setCopiedLink(true)
+                                setTimeout(() => setCopiedLink(false), 3000)
                             }}
-                            className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-200 transition-colors shadow-sm shrink-0"
+                            className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shrink-0 ${copiedLink ? 'bg-emerald-50 text-emerald-600 border border-emerald-500' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
                             title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
                         >
-                            <Link className="w-3.5 h-3.5" />
-                            {t('quotes.copy_link', 'Copier le lien client')}
+                            {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                         </button>
                     )}
                     {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
@@ -940,7 +1018,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             title={t('work_order_detail.mark_completed', 'Marquer comme terminé')}
                         >
                             <CheckCircle2 className="w-4 h-4" />
-                            {t('work_order_detail.mark_completed_btn', 'Marquer Finalisé')}
+                            {t('work_order_detail.mark_completed_btn', 'Marquer comme terminé')}
                         </button>
                     )}
                     <button 
@@ -974,7 +1052,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 </button>
                             )}
                             <button
-                                onClick={() => setChatModalOpen(true)}
+                                onClick={() => document.getElementById('chat-input-field')?.focus()}
                                 className="flex items-center gap-2 px-4 h-9 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-sm font-bold hover:bg-blue-100 transition-colors shrink-0"
                                 title="Chat cu clientul"
                             >
@@ -1010,10 +1088,50 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
             <div className="bg-transparent rounded-2xl border-0 overflow-hidden">
                 <div className="px-1 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || t('work_order_detail.location.no_address', 'Aucune adresse spécifiée')}</div>
-                    </div>
+                    {isEditingAddress ? (
+                        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 w-full max-w-md z-50">
+                            <div className="flex-1 relative z-50">
+                                <AddressAutocomplete
+                                    value={editAddressData.address}
+                                    onChange={(val) => setEditAddressData(p => ({ ...p, address: val }))}
+                                    onSelect={({ address, lat, lon }) => setEditAddressData({ address, lat, lon })}
+                                    placeholder={t('quotes.address', 'Adresse')}
+                                    className="!bg-transparent !border-none !text-xs !py-1 !px-2 !shadow-none !h-7 !min-h-0"
+                                />
+                            </div>
+                            <div className="flex shrink-0 gap-1 pr-1">
+                                <button 
+                                    onClick={handleSaveAddress}
+                                    className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded transition-colors"
+                                    title={t('common.save', 'Enregistrer')}
+                                >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                    onClick={() => setIsEditingAddress(false)}
+                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 rounded transition-colors"
+                                    title={t('common.cancel', 'Annuler')}
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 group">
+                            <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <div className="font-extrabold text-slate-900 dark:text-white text-sm uppercase tracking-wide truncate">{address || t('work_order_detail.location.no_address', 'Aucune adresse spécifiée')}</div>
+                            <button
+                                onClick={() => {
+                                    setEditAddressData({ address: wo.site_address || '', lat: wo.site_latitude, lon: wo.site_longitude });
+                                    setIsEditingAddress(true);
+                                }}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 transition-colors shrink-0"
+                                title={t('common.edit', 'Modifier')}
+                            >
+                                <Edit2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
                 </div>
                 
                 {(lat || lon || address) && (
@@ -1195,17 +1313,6 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         icon={FileText} 
                         title={t('work_order_detail.general_details.title', 'Détails Généraux')} 
                         contentClassName="!p-3"
-                        headerRight={
-                            <button 
-                                onClick={() => setChatModalOpen(true)}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${messages.length > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 ring-2 ring-blue-500/20' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-                                title={t('admin.open_client_chat', 'Ouvrir la communication avec le client')}
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{t('admin.chat', 'Chat')}</span>
-                                {messages.length > 0 && <span className="bg-white/20 px-1.5 rounded-full">{messages.length}</span>}
-                            </button>
-                        }
                     >
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2 pb-2 border-b border-slate-50 dark:border-slate-700/50">
                                                 <div>
@@ -1265,17 +1372,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
                                                     <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.general_details.client', 'Client')}</p>
-                                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_name} <span className="text-xs text-slate-400">{getLanguageFlag(wo.client_language)}</span></p>
+                                                    <div className="flex flex-col">
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                                            {wo.client_name} <span className="text-xs text-slate-400">{getLanguageFlag(wo.client_language)}</span>
+                                                        </p>
+                                                        {wo.client_email && (
+                                                            <a href={`mailto:${wo.client_email}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline mt-0.5 break-all transition-colors">
+                                                                {wo.client_email}
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.email', 'Email')}</p>
-                                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 break-all">{wo.client_email || '—'}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Telefon')}</p>
+                                                    <p className="text-[10px] whitespace-nowrap font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('common.phone', 'Téléphone')}</p>
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{wo.client_phone || '—'}</p>
                                                 </div>
                                             </div>
@@ -1299,7 +1411,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                                         <p className="text-xs text-amber-700 font-semibold italic mb-2">"{wo.reschedule_reason}"</p>
                                                                     )}
                                                                     <button
-                                                                        onClick={() => setChatModalOpen(true)}
+                                                                        onClick={() => document.getElementById('chat-input-field')?.focus()}
                                                                         className="mt-2 flex items-center justify-center gap-2 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold uppercase transition-colors"
                                                                     >
                                                                         <MessageSquare className="w-4 h-4" />
@@ -1378,6 +1490,233 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </Section>
                 </div>
                 <div className="flex flex-col gap-5">
+
+                    <Section 
+                        className="flex-1 flex flex-col min-h-[500px]" 
+                        icon={MessageSquare} 
+                        title={t('admin.chat_with_client', 'Chat avec le client')}
+                        contentClassName="!p-0 flex flex-col flex-1"
+                    >
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+                            {messages.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                                    {t('admin.no_messages', 'Aucun message')}
+                                </div>
+                            ) : (
+                                messages.map(msg => {
+                                    const isSystem = msg.sender === 'system' || msg.is_hidden;
+                                    const isOwn = !isSystem && msg.sender !== 'client';
+                                    return (
+                                    <div key={msg.id} className="group relative">
+                                        <div className={`w-fit min-w-[140px] max-w-[85%] md:max-w-[75%] rounded-2xl p-3 shadow-sm relative ${isOwn && !isSystem ? 'bg-blue-600 text-white rounded-tr-sm ml-auto' : isSystem ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs italic text-center border border-slate-200 dark:border-slate-700 mx-auto' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-white rounded-tl-sm mr-auto'}`}>
+                                            {editingMessageId === msg.id ? (
+                                                <div className="flex flex-col gap-2">
+                                                    <textarea 
+                                                        value={editMessageText}
+                                                        onChange={(e) => setEditMessageText(e.target.value)}
+                                                        className="w-full text-sm text-slate-900 bg-white rounded p-1.5 border-none outline-none focus:ring-2 focus:ring-blue-400"
+                                                        rows={2}
+                                                    />
+                                                    <div className="flex justify-end gap-2 mt-1">
+                                                        <button onClick={() => setEditingMessageId(null)} className="text-[10px] uppercase font-bold text-blue-200 hover:text-white transition-colors">{t('common.cancel', 'Annuler')}</button>
+                                                        <button onClick={() => handleEditMessage(msg.id)} className="text-[10px] uppercase font-bold bg-white text-blue-600 px-2 py-0.5 rounded hover:bg-blue-50 transition-colors">{t('common.save', 'Enregistrer')}</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-center gap-2 mb-1 justify-between">
+                                                        <span className={`text-xs font-medium flex items-center gap-1.5 ${isOwn ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                                                            {msg.sender === 'client' ? (
+                                                                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">
+                                                                    {(wo?.client_name || '?').charAt(0).toUpperCase()}
+                                                                </span>
+                                                            ) : msg.sender === 'admin' ? (
+                                                                <span className="w-5 h-5 rounded-full bg-white text-blue-600 hidden md:flex items-center justify-center font-bold text-[10px] shrink-0">DC</span>
+                                                            ) : null}
+                                                            <span className="truncate max-w-[150px] md:max-w-[200px]">
+                                                                {msg.sender === 'client' ? wo?.client_name : (msg.sender === 'admin' ? 'Echipă Davide Chape' : t('admin.system', 'Sistem'))}
+                                                            </span>
+                                                        </span>
+                                                        <span className={`text-[10px] ${isOwn ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    <div className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                        {msg.message}
+                                                    </div>
+                                                    
+                                                    {/* Translation Display */}
+                                                    {msg.translations && Object.keys(msg.translations).length > 0 && (
+                                                        <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
+                                                            <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
+                                                            {Object.values(msg.translations)[0]}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                            
+                                            {msg.sender !== 'system' && (
+                                                <span className={`text-[10px] mt-1 block ${isOwn && !msg.is_hidden ? 'text-blue-200' : 'text-slate-400'}`}>
+                                                    {msg.is_hidden && ` • ${t('admin.hidden_from_client', 'Masqué au client')}`}
+                                                </span>
+                                            )}
+                                        
+                                        {/* Render Emojis */}
+                                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                                            <div className={`absolute -bottom-3 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-full shadow-sm px-1.5 py-0.5 text-xs z-10 border border-slate-100 dark:border-slate-700`}>
+                                                {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                                    <button 
+                                                        key={emoji} 
+                                                        onClick={() => handleToggleReaction(msg.id, emoji)}
+                                                        className={`hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full px-1 ${users.includes('admin') ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                                                        title={users.join(', ')}
+                                                    >
+                                                        {emoji} <span className="text-[10px] text-slate-500">{users.length > 1 ? users.length : ''}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Reaction Picker Popover */}
+                                        {showEmojiPickerFor === msg.id && (
+                                            <div className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-20`}>
+                                                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(em => (
+                                                    <button 
+                                                        key={em} 
+                                                        onClick={() => handleToggleReaction(msg.id, em)}
+                                                        className="hover:bg-slate-100 dark:hover:bg-slate-700 rounded p-1 text-base transition-transform hover:scale-110"
+                                                    >
+                                                        {em}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Hover actions */}
+                                    <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'flex-row-reverse' : ''}`}>
+                                        <button
+                                            onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
+                                            className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                            title={t('admin.react', 'Réagir')}
+                                        >
+                                            <Smile className="w-3.5 h-3.5" />
+                                        </button>
+                                        
+                                        {!isSystem && isOwn && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleToggleVisibility(msg.id)}
+                                                    className="p-1.5 rounded-full text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                    title={msg.is_hidden ? t('admin.show_to_client', 'Afișează la client') : t('admin.hide_from_client', 'Ascunde de la client')}
+                                                >
+                                                    {msg.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingMessageId(msg.id);
+                                                        setEditMessageText(msg.message);
+                                                    }}
+                                                    className="p-1.5 rounded-full text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                    title={t('admin.edit_message', 'Éditer le message')}
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteMessage(msg.id)}
+                                                    className="p-1.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                    title={t('admin.delete_message', 'Supprimer le message')}
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {!isSystem && !isOwn && (
+                                                <button
+                                                onClick={() => handleMarkUnread(msg.id)}
+                                                className="p-1.5 rounded-full text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                title={t('admin.mark_unread', 'Marquer comme non lu')}
+                                            >
+                                                <Mail className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    </div>
+                                )})
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shrink-0">
+                            <form 
+                                onSubmit={e => {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }} 
+                                className="max-w-3xl mx-auto flex flex-col gap-2"
+                            >
+                                <div className="flex gap-2 w-full">
+                                    <input
+                                        type="text"
+                                        value={chatMessage}
+                                        onChange={e => setChatMessage(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                                        placeholder={t('admin.type_message', 'Tapez votre message...')}
+                                        className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 md:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                    />
+                                    <select 
+                                        value={targetLang}
+                                        onChange={e => setTargetLang(e.target.value)}
+                                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none"
+                                        title="Limbă Traducere (la Client)"
+                                    >
+                                        <option value="none">Fără trad.</option>
+                                        <option value="nl">🇳🇱 NL</option>
+                                        <option value="fr">🇫🇷 FR</option>
+                                        <option value="en">🇬🇧 EN</option>
+                                    </select>
+                                    {targetLang !== 'none' && (
+                                        <button
+                                            type="button"
+                                            disabled={isTranslating || !chatMessage.trim()}
+                                            onClick={handleTranslatePreview}
+                                            className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-50 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2 flex items-center justify-center transition-colors shadow-sm"
+                                            title="Previzualizare Traducere"
+                                        >
+                                            {isTranslating ? (
+                                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                            ) : (
+                                                <Globe className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        disabled={sendingMessage || (!chatMessage.trim() && !previewTranslation.trim())}
+                                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl px-4 py-2 flex items-center justify-center transition-colors shadow-sm"
+                                    >
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                {previewTranslation !== '' && targetLang !== 'none' && (
+                                    <div className="flex gap-2 items-start bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                                        <div className="text-[10px] text-blue-400 pt-2 flex-shrink-0 font-medium">
+                                            <Globe className="w-3 h-3 inline mr-1" />
+                                            TR:
+                                        </div>
+                                        <textarea 
+                                            value={previewTranslation}
+                                            onChange={e => setPreviewTranslation(e.target.value)}
+                                            className="flex-1 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:text-slate-200 resize-none"
+                                            rows={2}
+                                        />
+                                        <button type="button" onClick={() => setPreviewTranslation('')} className="text-slate-400 hover:text-red-500 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+                    </Section>
 
                     {(() => {
                         const hasConsumed = (wo.materials_consumed || []).filter(m => m.name).length > 0 || wo.actual_surface_m2 || wo.actual_sand_quantity;
@@ -2366,110 +2705,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 onClose={() => setShowConvertConfirm(false)}
                 onConfirm={executeConvertToOrder}
                 title={t('quotes.convert', 'Transformer')}
-                message={t('quotes.confirm_convert', 'Êtes-vous sûr de vouloir transformer ce devis en une commande de travail ?')}
-                confirmText={t('common.confirm', 'Confirmer')}
+                message={t('quotes.confirm_convert', 'Êtes-vous sûr de vouloir transformer ce devis en intervention ?')}
+                confirmText={t('quotes.convert', 'Transformer')}
                 cancelText={t('common.cancel', 'Annuler')}
-                type="primary"
             />
+
             
-            {/* Chat Modal */}
-            {chatModalOpen && createPortal(
-                <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col h-[80vh] overflow-hidden">
-                        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10 shrink-0">
-                            <div className="flex items-center gap-2">
-                                <MessageSquare className="w-5 h-5 text-blue-600" />
-                                <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">{t('admin.client_communication', 'Comunicare cu clientul')}</h3>
-                            </div>
-                            <button onClick={() => setChatModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50">
-                            {messages.length === 0 ? (
-                                <div className="text-center text-slate-400 py-10 text-sm font-semibold">{t('admin.no_messages_yet', 'Niciun mesaj încă. Începeți conversația!')}</div>
-                            ) : (
-                                messages.map(msg => (
-                                    <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : msg.sender === 'system' ? 'justify-center' : 'justify-start'} group relative`}>
-                                        <div className={`max-w-[75%] rounded-2xl p-3 shadow-sm relative ${msg.sender === 'admin' ? 'bg-blue-600 text-white rounded-br-none' : msg.sender === 'system' ? 'w-full bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs italic text-center border border-slate-200 dark:border-slate-700' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none'}`}>
-                                            {editingMessageId === msg.id ? (
-                                                <div className="flex flex-col gap-2">
-                                                    <textarea 
-                                                        value={editMessageText}
-                                                        onChange={(e) => setEditMessageText(e.target.value)}
-                                                        className="w-full text-sm text-slate-900 bg-white rounded p-1.5 border-none outline-none focus:ring-2 focus:ring-blue-400"
-                                                        rows={2}
-                                                    />
-                                                    <div className="flex justify-end gap-2 mt-1">
-                                                        <button onClick={() => setEditingMessageId(null)} className="text-[10px] uppercase font-bold text-blue-200 hover:text-white transition-colors">{t('common.cancel', 'Anulează')}</button>
-                                                        <button onClick={() => handleEditMessage(msg.id)} className="text-[10px] uppercase font-bold bg-white text-blue-600 px-2 py-0.5 rounded hover:bg-blue-50 transition-colors">{t('common.save', 'Salvează')}</button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <p className="text-sm">{msg.message}</p>
-                                            )}
-                                            <div className="flex items-center justify-between mt-1 gap-4">
-                                                <span className={`text-[9px] font-bold uppercase ${msg.sender === 'admin' ? 'text-blue-200' : 'text-slate-400'}`}>
-                                                    {msg.sender !== 'system' && new Date(msg.created_at).toLocaleString('ro-RO')}
-                                                </span>
-                                                {msg.sender === 'admin' && msg.id !== 'initial-req' && msg.id !== 'reschedule-req' && (
-                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                                        <button 
-                                                            onClick={() => {
-                                                                setEditingMessageId(msg.id);
-                                                                setEditMessageText(msg.message);
-                                                            }}
-                                                            className="p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
-                                                            title={t('admin.edit_message', 'Editează mesaj')}
-                                                        >
-                                                            <Edit2 className="w-3 h-3" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDeleteMessage(msg.id)}
-                                                            className="p-1 rounded-full hover:bg-blue-500 text-blue-200 hover:text-white"
-                                                            title={t('admin.delete_message', 'Șterge mesaj')}
-                                                        >
-                                                            <Trash2 className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                {msg.sender === 'client' && (
-                                                    <button 
-                                                        onClick={() => handleMarkUnread(msg.id)}
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-blue-600"
-                                                        title={t('admin.mark_unread', 'Marchează ca necitit')}
-                                                    >
-                                                        <EyeOff className="w-3 h-3" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-                        <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 shrink-0 flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={chatMessage}
-                                onChange={e => setChatMessage(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                                placeholder={t('admin.type_message', 'Scrie un mesaj...')}
-                                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white placeholder:text-slate-400"
-                            />
-                            <button
-                                onClick={handleSendMessage}
-                                disabled={sendingMessage || !chatMessage.trim()}
-                                className="w-11 h-11 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
 
             {historyModalOpen && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">

@@ -266,8 +266,8 @@ export default function AdminDashboard() {
         }
     ]
 
-    // Dacă e Super Admin FĂRĂ organizație, eliminăm elementele operaționale / de tenant din Sistem
-    if ((admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !admin?.organization_id) {
+    // Dacă e Super Admin și NU suntem pe un subdomeniu, eliminăm elementele operaționale / de tenant din Sistem
+    if ((admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !currentSubdomain) {
         const systemCategory = categories.find(c => c.id === 'system')
         if (systemCategory) {
             // Un Super Admin de SaaS ar trebui să aibă probabil doar setări generale sau propriul cont, 
@@ -323,8 +323,8 @@ export default function AdminDashboard() {
             items: featureFilteredItems
         }
     }).filter(cat => {
-        // Dacă e super admin FĂRĂ organizație, ascundem operațiunile (doar SaaS și System)
-        if ((admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !admin?.organization_id) {
+        // Dacă e super admin FĂRĂ tenant selectat (fără subdomeniu), ascundem operațiunile (doar SaaS și System)
+        if ((admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin) && !currentSubdomain) {
             return ['saas', 'system'].includes(cat.id)
         }
         return cat.items.length > 0
