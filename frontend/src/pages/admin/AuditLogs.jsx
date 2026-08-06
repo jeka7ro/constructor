@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../lib/api'
 import DataTable from '../../components/DataTable'
-import { History, Search, Filter, Calendar, User as UserIcon, Activity } from 'lucide-react'
+import { History, Search, Filter, Calendar, User as UserIcon, Activity, MapPin } from 'lucide-react'
 import { useUIStore } from '../../store/uiStore'
 
 export default function AuditLogs() {
@@ -179,7 +179,21 @@ export default function AuditLogs() {
         {
             key: 'ip_address',
             label: 'IP',
-            render: (row) => <span className="text-xs font-mono text-slate-500">{row.ip_address || '-'}</span>
+            render: (row) => {
+                if (!row.ip_address) return <span className="text-xs font-mono text-slate-500">-</span>;
+                return (
+                    <a 
+                        href={`https://ipinfo.io/${row.ip_address}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs font-mono text-blue-500 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+                        title={t('audit.view_ip_map', 'Vezi locația IP-ului pe hartă')}
+                    >
+                        {row.ip_address}
+                        <MapPin className="w-3 h-3" />
+                    </a>
+                )
+            }
         }
     ]
 
