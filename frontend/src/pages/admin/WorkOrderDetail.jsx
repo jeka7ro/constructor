@@ -984,21 +984,34 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         inline={true}
                     />
                     {wo.token && (
-                        <button
-                            onClick={() => {
-                                const clientLink = wo.is_invoiced 
-                                    ? `${window.location.origin}/public/proforma/${wo.token}?type=invoice`
-                                    : `${window.location.origin}/confirm/${wo.token}`;
-                                navigator.clipboard.writeText(clientLink)
-                                showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'))
-                                setCopiedLink(true)
-                                setTimeout(() => setCopiedLink(false), 3000)
-                            }}
-                            className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shrink-0 ${copiedLink ? 'bg-emerald-50 text-emerald-600 border border-emerald-500' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
-                            title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
-                        >
-                            {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => {
+                                    const clientLink = wo.is_invoiced 
+                                        ? `${window.location.origin}/public/proforma/${wo.token}?type=invoice`
+                                        : `${window.location.origin}/confirm/${wo.token}`;
+                                    navigator.clipboard.writeText(clientLink)
+                                    showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'))
+                                    setCopiedLink(true)
+                                    setTimeout(() => setCopiedLink(false), 3000)
+                                }}
+                                className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shrink-0 ${copiedLink ? 'bg-emerald-50 text-emerald-600 border border-emerald-500' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                                title={wo.is_invoiced ? t('quotes.copy_link_invoice', 'Copier le lien de la facture') : t('quotes.copy_link_desc', 'Envoyer ce lien au client pour signature')}
+                            >
+                                {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                            <a
+                                href={wo.is_invoiced 
+                                    ? `/public/proforma/${wo.token}?type=invoice`
+                                    : `/confirm/${wo.token}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors shrink-0"
+                                title={t('quotes.open_link', 'Ouvrir le lien')}
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                            </a>
+                        </div>
                     )}
                     {wo.status !== 'completed' && wo.status !== 'cancelled' && wo.status !== 'draft' && (
                         <button
