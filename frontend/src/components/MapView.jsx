@@ -60,7 +60,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         detailMarker: null,
         directionsRenderer: null,
         sandStationMarkers: [],
-        infoWindow: null
+        infoWindow: null,
+        geocodeCache: {}
     });
 
     const [geocoding, setGeocoding] = useState(false);
@@ -257,11 +258,16 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 if (query.toLowerCase().includes('baza') || query.toLowerCase().includes('base') || query.toLowerCase().includes('h&h')) {
                     return { lat: 50.88243, lng: 4.39343 }; // Baza H&H Resources Brussels
                 }
+                if (elementsRef.current.geocodeCache && elementsRef.current.geocodeCache[query]) {
+                    return Promise.resolve(elementsRef.current.geocodeCache[query]);
+                }
                 return new Promise((resolve) => {
                     const geocoder = new window.google.maps.Geocoder();
                     geocoder.geocode({ address: query }, (results, status) => {
                         if (status === 'OK' && results[0]) {
-                            resolve({ lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() });
+                            const coords = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
+                            elementsRef.current.geocodeCache[query] = coords;
+                            resolve(coords);
                         } else {
                             resolve(null);
                         }
@@ -342,6 +348,8 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isFullScreen]);
 
+    const routeSegmentsStr = JSON.stringify(routeSegments || []);
+
     useEffect(() => {
         if (!mapRef.current || !window.google) return;
 
@@ -350,6 +358,12 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
         if (hasCoords) {
             initMap(parseFloat(latitude), parseFloat(longitude), zoom, label || address);
         } else if (address && address.trim().length > 3) {
+            if (elementsRef.current.geocodeCache && elementsRef.current.geocodeCache[address]) {
+                const cached = elementsRef.current.geocodeCache[address];
+                initMap(cached.lat, cached.lng, 15, label || address);
+                return;
+            }
+
             setGeocoding(true);
             setGeoError(false);
             const geocoder = new window.google.maps.Geocoder();
@@ -358,6 +372,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 if (status === 'OK' && results[0]) {
                     const lat = results[0].geometry.location.lat();
                     const lon = results[0].geometry.location.lng();
+                    elementsRef.current.geocodeCache[address] = { lat, lon };
                     initMap(lat, lon, 15, label || address);
                 } else {
                     setGeoError(true);
@@ -399,7 +414,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                 });
             }
         }
-    }, [latitude, longitude, address, zoom, geofenceRadius, routeSegments]);
+    }, [latitude, longitude, address, zoom, geofenceRadius, routeSegmentsStr]);
 
     // Render Sand Stations
     useEffect(() => {
