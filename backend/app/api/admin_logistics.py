@@ -259,7 +259,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
     wos = db.query(WorkOrder).filter(
         WorkOrder.organization_id == admin.organization_id,
         WorkOrder.start_date == target_date,
-        WorkOrder.status.notin_(['cancelled', 'isoflex']),
+        WorkOrder.status.notin_(['cancelled', 'isoflex', 'deleted']),
         WorkOrder.assigned_team_id != None   # cu echipă asignată
     ).all()
 
@@ -911,7 +911,7 @@ def get_period_report(
         WorkOrder.organization_id == admin.organization_id,
         WorkOrder.start_date >= start_date,
         WorkOrder.start_date <= end_date,
-        WorkOrder.status != "cancelled",
+        WorkOrder.status.notin_(["cancelled", "isoflex", "deleted"]),
     ).order_by(WorkOrder.start_date, WorkOrder.start_time).all()
 
     team_ids = list({wo.assigned_team_id for wo in wos if wo.assigned_team_id})

@@ -291,47 +291,51 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         title: isRealBase ? `${t('mapview.base', 'Baza:')} ${startName}` : `${t('mapview.previous', 'Precedent:')} ${startName}`
                     });
 
-                    // Google Maps Directions (reliable, already loaded)
+                    // Calculate and draw real route on roads
                     const directionsService = new window.google.maps.DirectionsService();
                     const directionsRenderer = new window.google.maps.DirectionsRenderer({
                         map: mapInstance.current,
                         suppressMarkers: true,
                         polylineOptions: {
                             strokeColor: '#3b82f6',
-                            strokeOpacity: 0.8,
                             strokeWeight: 4,
+                            strokeOpacity: 0.8
                         }
                     });
                     elementsRef.current.directionsRenderer = directionsRenderer;
 
-                    directionsService.route({
-                        origin: startCoords,
-                        destination: center,
-                        travelMode: window.google.maps.TravelMode.DRIVING,
-                    }, (result, status) => {
-                        if (status === 'OK') {
-                            directionsRenderer.setDirections(result);
-                            const route = result.routes[0];
-                            const distanceKm = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
-                            if (onRouteCalculated) onRouteCalculated(distanceKm * 2);
-                        } else {
-                            console.error('Google Directions error:', status);
-                            // Fallback direct line only if Directions also fails
-                            const line = new window.google.maps.Polyline({
-                                path: [startCoords, center],
-                                strokeColor: '#3b82f6',
-                                strokeOpacity: 0.5,
-                                strokeWeight: 3,
-                                strokeDashArray: [10, 5],
-                                map: mapInstance.current
-                            });
-                            elementsRef.current.directionsRenderer = line;
-                            const bounds = new window.google.maps.LatLngBounds();
-                            bounds.extend(startCoords);
-                            bounds.extend(center);
-                            mapInstance.current.fitBounds(bounds, { padding: 50 });
-                        }
-                    });
+                    // Use cache for routes to avoid redundant API calls for the same coordinates
+                    const routeKey = `${startCoords.lat},${startCoords.lng}-${center.lat},${center.lng}`;
+                    if (elementsRef.current.routeCache && elementsRef.current.routeCache[routeKey]) {
+                        directionsRenderer.setDirections(elementsRef.current.routeCache[routeKey]);
+                    } else {
+                        directionsService.route({
+                            origin: startCoords,
+                            destination: center,
+                            travelMode: window.google.maps.TravelMode.DRIVING
+                        }, (result, status) => {
+                            if (status === 'OK') {
+                                if (!elementsRef.current.routeCache) elementsRef.current.routeCache = {};
+                                elementsRef.current.routeCache[routeKey] = result;
+                                directionsRenderer.setDirections(result);
+                            } else {
+                                // Fallback to straight line if routing fails
+                                const line = new window.google.maps.Polyline({
+                                    path: [startCoords, center],
+                                    strokeColor: '#3b82f6',
+                                    strokeOpacity: 0.5,
+                                    strokeWeight: 3,
+                                    map: mapInstance.current
+                                });
+                                elementsRef.current.directionsRenderer = line;
+                                
+                                const bounds = new window.google.maps.LatLngBounds();
+                                bounds.extend(startCoords);
+                                bounds.extend(center);
+                                mapInstance.current.fitBounds(bounds, { padding: 50 });
+                            }
+                        });
+                    }
 
                 }
             });

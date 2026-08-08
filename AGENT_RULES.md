@@ -42,3 +42,10 @@
 - UI Rules: vezi `frontend/UI_RULES.md`
 - Backend: FastAPI + SQLAlchemy, port local 5678
 - Frontend: React + Vite + Tailwind, dist servit de backend
+
+---
+
+## 6. PREVENIREA BUCLELOR ȘI A COSTURILOR API
+- Agentul TREBUIE SĂ VERIFICE ÎNTOTDEAUNA existența buclelor infinite (în special dependențele hook-urilor `useEffect`) și posibilele bug-uri DUPĂ ORICE modificare sau adăugare de cod.
+- Este OBLIGATORIE evitarea apelurilor automate (în loop) către API-uri cu plată (precum Google Maps Directions/Geocoding) la randarea paginilor.
+- Aceste calcule trebuie legate exclusiv de butoane acționate manual de utilizator, pentru a păstra costurile la zero.

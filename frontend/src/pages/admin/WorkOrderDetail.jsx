@@ -227,6 +227,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [isEditingAddress, setIsEditingAddress] = useState(false)
     const [editAddressData, setEditAddressData] = useState({ address: '', lat: null, lon: null })
     
+    // Route Recalculation
+    const [isRecalculatingRoute, setIsRecalculatingRoute] = useState(false)
+    
     // Chat Admin-Client
     const [messages, setMessages] = useState([])
     const [chatMessage, setChatMessage] = useState("")
@@ -241,7 +244,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     
     const messagesEndRef = useRef(null)
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+        if (messagesEndRef.current) {
+            const parent = messagesEndRef.current.parentElement;
+            if (parent) {
+                parent.scrollTo({ top: parent.scrollHeight, behavior: 'smooth' });
+            }
+        }
     }
     useEffect(() => {
         setTimeout(scrollToBottom, 100)
@@ -584,6 +592,68 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         } catch (err) {
             showToast(t('admin.error_marking_unread', 'Eroare la marcarea mesajului'), "error");
         }
+    };
+
+    const handleRecalculateRoute = async () => {
+        if (!wo) return;
+        
+        // If scheduled for a specific date, trigger full day recalculation via logistics
+        if (wo.start_date && wo.status !== 'quote' && wo.status !== 'new') {
+            setIsRecalculatingRoute(true);
+            try {
+                await api.post(`/admin/logistics/archive-day`, { target_date: wo.start_date });
+                showToast(t('work_order_detail.route_updated', 'Les itinéraires de la journée ont été recalculés !'), 'success');
+                load(); // refresh all data to get new segments
+            } catch (err) {
+                console.error("Recalc route error", err);
+                showToast(t('work_order_detail.recalc_error', 'Erreur lors du recalcul de l\'itinéraire.'), 'error');
+            } finally {
+                setIsRecalculatingRoute(false);
+            }
+            return;
+        }
+
+        // Fallback for simple standalone quotes or unscheduled work orders
+        if (!window.google || !window.google.maps) {
+            showToast(t('work_order_detail.maps_not_loaded', 'Google Maps non chargé.'), 'error');
+            return;
+        }
+        
+        setIsRecalculatingRoute(true);
+        let startLat = 50.88243;
+        let startLng = 4.39343;
+
+        const endLat = parseFloat(wo.site_latitude);
+        const endLng = parseFloat(wo.site_longitude);
+
+        if (!endLat || !endLng) {
+            showToast(t('work_order_detail.invalid_coords', 'Coordonnées invalides pour le calcul.'), 'error');
+            setIsRecalculatingRoute(false);
+            return;
+        }
+
+        const directionsService = new window.google.maps.DirectionsService();
+        directionsService.route({
+            origin: { lat: startLat, lng: startLng },
+            destination: { lat: endLat, lng: endLng },
+            travelMode: window.google.maps.TravelMode.DRIVING,
+        }, async (result, status) => {
+            if (status === 'OK') {
+                const route = result.routes[0];
+                const distanceKm = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
+                const roundTrip = distanceKm * 2;
+                try {
+                    await api.put(`/admin/work-orders/${id}`, { route_distance_km: roundTrip });
+                    setWo(prev => ({ ...prev, route_distance_km: roundTrip }));
+                    showToast(t('work_order_detail.route_updated', 'La distance a été recalculée et sauvegardée.'), 'success');
+                } catch (e) {
+                    showToast('Erreur', 'error');
+                }
+            } else {
+                showToast(t('work_order_detail.route_not_found', 'Impossible de calculer l\'itinéraire (API).'), 'error');
+            }
+            setIsRecalculatingRoute(false);
+        });
     };
 
 
@@ -1095,7 +1165,24 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', 'Épaisseur')}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', 'moyenne')} color="rose" />
-                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       value={wo.route_distance_km ? `${(wo.route_distance_km).toFixed(1)} km` : '—'} sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
+                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       
+                    value={
+                        <div className="flex items-center gap-1.5">
+                            <span>{wo.route_distance_km ? `${(wo.route_distance_km).toFixed(1)} km` : '—'}</span>
+                            {wo.status !== 'completed' && wo.status !== 'cancelled' && (
+                                <button 
+                                    onClick={handleRecalculateRoute}
+                                    disabled={isRecalculatingRoute}
+                                    title={t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
+                                    className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-blue-500 transition-colors ${isRecalculatingRoute ? 'opacity-50 animate-spin' : ''}`}
+                                >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    } 
+                    sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
+
             </div>
 
             {/* ── Locație & Hartă (Moved up for Mobile) ────────────────────── */}
@@ -1250,12 +1337,34 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
-                                            <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0) * 2).toFixed(1)} km</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0) * 2).toFixed(1)} km</span>
+                                                {wo.status !== 'completed' && wo.status !== 'cancelled' && (
+                                                    <button 
+                                                        onClick={handleRecalculateRoute}
+                                                        disabled={isRecalculatingRoute}
+                                                        title={t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
+                                                        className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-blue-500 transition-colors ${isRecalculatingRoute ? 'opacity-50 animate-spin' : ''}`}
+                                                    >
+                                                        <RefreshCw className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="flex items-center justify-center h-16 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
-                                        <span className="text-xs text-slate-400 font-medium">{t('work_order_detail.planning.no_route', 'Aucun itinéraire enregistré')}</span>
+                                    <div className="flex flex-col items-center justify-center py-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
+                                        <span className="text-xs text-slate-400 font-medium mb-2">{t('work_order_detail.planning.no_route', 'Aucun itinéraire enregistré')}</span>
+                                        {wo.status !== 'completed' && wo.status !== 'cancelled' && (
+                                            <button 
+                                                onClick={handleRecalculateRoute}
+                                                disabled={isRecalculatingRoute}
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider hover:bg-blue-100 transition-colors ${isRecalculatingRoute ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                <RefreshCw className={`w-3 h-3 ${isRecalculatingRoute ? 'animate-spin' : ''}`} />
+                                                {t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
