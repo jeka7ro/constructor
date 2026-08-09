@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, Database, HardDrive, RefreshCw } from 'lucide-react'
-import api from '../../../lib/api'
-import DataTable from '../../../components/DataTable'
-import { toast } from 'react-hot-toast'
+import api from '../../lib/api'
+import DataTable from '../../components/DataTable'
+import { useUIStore } from '../../store/uiStore'
 
 export default function AdminBackups() {
     const { t } = useTranslation()
+    const { showToast } = useUIStore()
     const [backups, setBackups] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -17,7 +18,7 @@ export default function AdminBackups() {
             setBackups(res.data.backups || [])
         } catch (error) {
             console.error('Failed to fetch backups', error)
-            toast.error(t('backups.fetch_error', 'Erreur lors du chargement des sauvegardes.'))
+            showToast(t('backups.fetch_error', 'Erreur lors du chargement des sauvegardes.'), 'error')
         } finally {
             setLoading(false)
         }
@@ -29,17 +30,17 @@ export default function AdminBackups() {
 
     const handleDownload = async (filename) => {
         try {
-            const toastId = toast.loading(t('backups.downloading', 'Préparation du téléchargement...'))
+            showToast(t('backups.downloading', 'Préparation du téléchargement...'), 'info')
             const res = await api.get(`/admin/backups/${filename}/download`)
             if (res.data.url) {
-                toast.success(t('backups.download_ready', 'Téléchargement prêt!'), { id: toastId })
+                showToast(t('backups.download_ready', 'Téléchargement prêt!'), 'success')
                 window.location.href = res.data.url
             } else {
                 throw new Error("No URL returned")
             }
         } catch (error) {
             console.error('Failed to get signed URL', error)
-            toast.error(t('backups.download_error', 'Erreur lors du téléchargement de la sauvegarde.'))
+            showToast(t('backups.download_error', 'Erreur lors du téléchargement de la sauvegarde.'), 'error')
         }
     }
 
