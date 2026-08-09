@@ -121,6 +121,7 @@ class WorkOrderCreate(BaseModel):
     estimated_price: Optional[str] = None
     is_auto_calculated: Optional[bool] = None
     route_distance_km: Optional[float] = None
+    route_segments: Optional[list] = None
     # Devis / Quote
     is_quote: Optional[bool] = False
     approximate_date: Optional[str] = None
