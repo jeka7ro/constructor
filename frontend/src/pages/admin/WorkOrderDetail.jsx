@@ -935,6 +935,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 ...(wo.prices || {}),
                 base: parseFloat(calcEditForm.base_price) || 0,
                 extra: parseFloat(calcEditForm.extra_price) || 0,
+                extra_thickness_price_per_cm: parseFloat(calcEditForm.extra_price) || 0,
                 foil: parseFloat(calcEditForm.foil_price) || 0,
                 mesh: parseFloat(calcEditForm.mesh_price) || 0,
                 fiber: parseFloat(calcEditForm.fiber_price) || 0,
