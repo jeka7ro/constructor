@@ -642,9 +642,34 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 const route = result.routes[0];
                 const distanceKm = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
                 const roundTrip = distanceKm * 2;
+                
+                const newRouteSegments = [
+                    {
+                        from: "H&H Resources Brussels",
+                        to: wo.site_address || wo.title,
+                        km: parseFloat(distanceKm.toFixed(2)),
+                        from_lat: startLat,
+                        from_lng: startLng
+                    },
+                    {
+                        from: wo.site_address || wo.title,
+                        to: "Baza",
+                        km: parseFloat(distanceKm.toFixed(2)),
+                        from_lat: endLat,
+                        from_lng: endLng
+                    }
+                ];
+
                 try {
-                    await api.put(`/admin/work-orders/${id}`, { route_distance_km: roundTrip });
-                    setWo(prev => ({ ...prev, route_distance_km: roundTrip }));
+                    await api.put(`/admin/work-orders/${id}`, { 
+                        route_distance_km: roundTrip,
+                        route_segments: newRouteSegments
+                    });
+                    setWo(prev => ({ 
+                        ...prev, 
+                        route_distance_km: roundTrip,
+                        route_segments: newRouteSegments
+                    }));
                     showToast(t('work_order_detail.route_updated', 'La distance a été recalculée et sauvegardée.'), 'success');
                 } catch (e) {
                     showToast('Erreur', 'error');
@@ -1338,7 +1363,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (seg.km || 0), 0) * 2).toFixed(1)} km</span>
+                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0) * 2).toFixed(1)} km</span>
                                                 {wo.status !== 'completed' && wo.status !== 'cancelled' && (
                                                     <button 
                                                         onClick={handleRecalculateRoute}
