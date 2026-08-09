@@ -1617,9 +1617,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         className="flex-1 flex flex-col min-h-[500px]" 
                         icon={MessageSquare} 
                         title={t('admin.chat_with_client', 'Chat avec le client')}
-                        contentClassName="!p-0 flex flex-col flex-1"
+                        contentClassName="!p-0 flex flex-col flex-1 h-[500px] max-h-[70vh] relative"
                     >
-                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/50 pb-20">
                             {messages.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-slate-400 text-sm">
                                     {t('admin.no_messages', 'Aucun message')}

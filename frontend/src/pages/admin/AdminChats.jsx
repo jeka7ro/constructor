@@ -442,7 +442,7 @@ export default function AdminChats() {
                             </div>
                             
                             {/* Messages Area */}
-                            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-900/50">
+                            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-900/50 pb-24">
                                 {loadingMessages ? (
                                     <div className="h-full flex items-center justify-center">
                                         <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
