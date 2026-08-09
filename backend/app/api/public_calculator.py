@@ -185,8 +185,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         fiber_cost = 0
         if payload.surface <= pricing.fiber_large_threshold_sqm:
             fiber_cost = pricing.fiber_price_sqm * payload.surface
-            else:
-                fiber_cost = pricing.fiber_price_sqm_large * payload.surface
+        else:
+            fiber_cost = pricing.fiber_price_sqm_large * payload.surface
         
         # Determine hidden thresholds
         hidden_extra = 0
