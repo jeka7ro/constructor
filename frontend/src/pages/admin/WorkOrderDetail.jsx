@@ -800,7 +800,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
     const computeChapeTotal = (surface, thickness, flags, prices) => {
-        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0, extraThick: 0 };
+        if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, extraThick: 0 };
         const extraThick = Math.max(0, thickness - 5);
         const base  = parseFloat(prices?.base  || 12.5) * surface;
         const extra = extraThick * parseFloat(prices?.extra || 1.25) * surface;
@@ -823,9 +823,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             );
             if (match) threshold = parseFloat(match.extra_charge) || 0;
         }
-        const grossBeforeDiscount = base + extra + foil + mesh + fiber + threshold;
+        const truck_cost = parseFloat(prices?.truck_cost || 0);
+        const grossBeforeDiscount = base + extra + foil + mesh + fiber + threshold + truck_cost;
         const discountAmount = (grossBeforeDiscount * discountPct) / 100;
-        return { base, extra, foil, mesh, fiber, threshold, discountPct, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick };
+        return { base, extra, foil, mesh, fiber, threshold, truck_cost, discountPct, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick };
     };
 
     // Calculation Logic for Sapa — Estimatif (din volumes[])

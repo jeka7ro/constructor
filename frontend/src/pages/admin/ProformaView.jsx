@@ -318,6 +318,18 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         })
     }
 
+    // Transport (Frais de déplacement) - adaugat din prices.truck_cost
+    const truckCost = parseFloat(activePrices.truck_cost || 0);
+    if (truckCost > 0) {
+        items.push({
+            id: 'transport',
+            desc: 'Frais de déplacement (Transport)',
+            qty: 1,
+            unit: 'Forfait',
+            price: truckCost
+        });
+    }
+
     const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
     const activeDiscountPct = parseFloat(activePrices.discount_pct || discountPct || 0)
     const discountAmount = (priceRaw * (activeDiscountPct / 100)) + parseFloat(activePrices.discount || 0)

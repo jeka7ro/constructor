@@ -480,9 +480,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                         dist_from_prev = osrm_distance(last_lat, last_lng, w_lat, w_lng)
                         
                         # Salvăm distanța pentru referințe externe (dacă e nevoie pe viitor)
-                        w.route_distance_km = dist_from_prev
+                        # Eliminat: w.route_distance_km = dist_from_prev (afectează facturarea/PDF-ul clientului)
                         w.route_sand_kg = sand_kg
-                        flag_modified(w, "route_distance_km")
                         
                         team_distance_km += dist_from_prev
                         segment = {
