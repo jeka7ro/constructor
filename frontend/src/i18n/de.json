@@ -43,7 +43,8 @@
         "inventory": "Inventory",
         "tracking": "Live-Tracking",
         "quotes": "Zitate",
-        "invoicing": "Fakturierung"
+        "invoicing": "Fakturierung",
+        "backups": "System Backups"
     },
     "logistics": {
         "title": "Logistik",
@@ -3216,5 +3217,17 @@
         "content_title": "E-Mail-Inhalt",
         "to": "An:",
         "load_error": "Fehler beim Laden des Inhalts."
+    },
+    "backups": {
+        "title": "System Backups",
+        "subtitle": "View and download automatic database backups.",
+        "filename": "Filename",
+        "size": "Size",
+        "download_btn": "Download",
+        "fetch_error": "Error loading backups.",
+        "downloading": "Preparing download...",
+        "download_ready": "Download ready!",
+        "download_error": "Error downloading backup file.",
+        "empty": "No backups found."
     }
 }

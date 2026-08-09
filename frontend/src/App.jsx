@@ -57,6 +57,7 @@ const EmailLogs = lazy(() => import('./pages/admin/EmailLogs'))
 const ProformaView = lazy(() => import('./pages/admin/ProformaView'))
 const DevisView = lazy(() => import('./pages/admin/DevisView'))
 const AdminChats = lazy(() => import('./pages/admin/AdminChats'))
+const AdminBackups = lazy(() => import('./pages/admin/AdminBackups'))
 const PublicProformaView = lazy(() => import('./pages/PublicProformaView'))
 const PublicCalculator = lazy(() => import('./pages/PublicCalculator'))
 const DevisOnline = lazy(() => import('./pages/DevisOnline'))
@@ -301,6 +302,7 @@ function App() {
                         <Route path="organizations" element={<OrganizationsManagement />} />
 
                         <Route path="clients" element={<ClientsManagement />} />
+                        <Route path="backups" element={<AdminBackups />} />
                         <Route path="sites" element={<SitesManagement />} />
                         <Route path="photos-test" element={<PhotoTestPage />} />
                         <Route path="reports" element={<ReportsPage />} />

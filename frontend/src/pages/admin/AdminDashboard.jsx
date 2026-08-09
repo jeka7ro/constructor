@@ -9,7 +9,7 @@ import HeaderNotifications from '../../components/HeaderNotifications'
 import GlobalSearch from '../../components/GlobalSearch'
 import {
     LayoutDashboard, Users, Building2, FileText, Settings, LogOut,
-    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon
+    ChevronLeft, Clock, Activity, Bell, ChevronRight, Camera, Sun, Moon, Truck, Package, Briefcase, Shield, HardHat, MessageSquareWarning, BedDouble, Wallet, PackageSearch, AlertTriangle, Megaphone, Globe, Navigation, ClipboardList, CalendarDays, Menu, BarChart3, Calculator, Radio, History, MessageSquare, Search, Mail, MapIcon, HardDrive
 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ''
@@ -260,6 +260,7 @@ export default function AdminDashboard() {
                 { path: '/admin/pricing-settings', icon: Calculator, label: t('nav.pricing_settings', 'Tarifs') },
                 { path: '/admin/audit-logs', icon: History, label: t('nav.audit_logs', 'Journaux d\'Activité') },
                 { path: '/admin/emails', icon: Mail, label: t('nav.email_logs', 'Journaux d\'E-mails') },
+                { path: '/admin/backups', icon: HardDrive, label: t('nav.backups', 'Sauvegardes (Backups)') },
                 { path: '/admin/settings', icon: Settings, label: t('nav.settings', 'Paramètres') },
                 { path: '/admin/notifications', icon: Bell, label: t('nav.notifications', 'Notifications') },
             ]

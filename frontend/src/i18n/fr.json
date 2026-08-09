@@ -45,7 +45,8 @@
         "tracking": "Suivi en direct",
         "quotes": "Citations",
         "email_logs": "Journaux d'E-mails",
-        "audit_logs": "Journaux d'Activité"
+        "audit_logs": "Journaux d'Activité",
+        "backups": "Sauvegardes (Backups)"
     },
     "audit": {
         "title": "Journal d'activité",
@@ -3317,5 +3318,17 @@
         "placeholder": "Rechercher... (Cmd+K)",
         "no_results": "Aucun résultat trouvé pour",
         "help_text": "Recherchez par nom de client, numéro de devis, adresse du chantier, etc."
+    },
+    "backups": {
+        "title": "Sauvegardes du Système",
+        "subtitle": "Consultez et téléchargez les sauvegardes automatiques de la base de données.",
+        "filename": "Nom du fichier",
+        "size": "Taille",
+        "download_btn": "Télécharger",
+        "fetch_error": "Erreur lors du chargement des sauvegardes.",
+        "downloading": "Préparation du téléchargement...",
+        "download_ready": "Téléchargement prêt!",
+        "download_error": "Erreur lors du téléchargement de la sauvegarde.",
+        "empty": "Aucune sauvegarde trouvée."
     }
 }

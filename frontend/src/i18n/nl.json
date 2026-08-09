@@ -43,7 +43,8 @@
         "inventory": "Inventory",
         "tracking": "Live volgen",
         "quotes": "Citaten",
-        "invoicing": "Facturering"
+        "invoicing": "Facturering",
+        "backups": "Systeem Back-ups"
     },
     "logistics": {
         "title": "Logistiek",
@@ -3215,5 +3216,17 @@
         "content_title": "E-mailinhoud",
         "to": "Aan:",
         "load_error": "Fout bij laden inhoud."
+    },
+    "backups": {
+        "title": "Systeem Back-ups",
+        "subtitle": "Bekijk en download automatische database back-ups.",
+        "filename": "Bestandsnaam",
+        "size": "Grootte",
+        "download_btn": "Downloaden",
+        "fetch_error": "Fout bij laden back-ups.",
+        "downloading": "Download voorbereiden...",
+        "download_ready": "Download klaar!",
+        "download_error": "Fout bij downloaden back-upbestand.",
+        "empty": "Geen back-ups gevonden."
     }
 }

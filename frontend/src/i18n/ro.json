@@ -44,7 +44,8 @@
         "tracking": "Live Tracking GPS",
         "quotes": "Devize / Oferte",
         "invoicing": "Facturare",
-        "email_logs": "Rapoarte E-mail"
+        "email_logs": "Rapoarte E-mail",
+        "backups": "Copii de Siguranță (Backups)"
     },
     "emails": {
         "title": "Rapoarte E-mail",
@@ -3300,5 +3301,17 @@
         "msg_login_admin": "Administrator autentificat cu succes",
         "msg_deleted_wo": "Deviz/Comandă ștearsă",
         "msg_created_wo": "Deviz/Comandă creată"
+    },
+    "backups": {
+        "title": "Backup-uri Sistem",
+        "subtitle": "Vizualizează și descarcă copiile de siguranță automate ale bazei de date.",
+        "filename": "Nume fișier",
+        "size": "Mărime",
+        "download_btn": "Descarcă",
+        "fetch_error": "Eroare la încărcarea backup-urilor.",
+        "downloading": "Se pregătește descărcarea...",
+        "download_ready": "Descărcare pregătită!",
+        "download_error": "Eroare la descărcarea fișierului de backup.",
+        "empty": "Nu a fost găsit niciun backup."
     }
 }

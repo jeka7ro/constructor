@@ -20,7 +20,7 @@ from app.api import (
     alerts, admin_complaints, admin_accommodations, admin_expenses, admin_emergencies,
     public_tenant, admin_work_orders, admin_pricing, admin_organizations, admin_transport,
     admin_leaves, calendar_sync, public_work_orders, worker_orders,
-    admin_logistics, public_calculator, gps_verification, devis_online
+    admin_logistics, public_calculator, gps_verification, devis_online, admin_backups
 )
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.backup_service import run_backup
@@ -428,6 +428,7 @@ app.include_router(admin_audit.router, prefix="/api/admin/audit-logs", tags=["ad
 # Email logs
 from app.api import admin_emails
 app.include_router(admin_emails.router, prefix="/api")
+app.include_router(admin_backups.router, prefix="/api/admin", tags=["admin-backups"])
 
 # ─── User: Sesizari ───────────────────────────────────────────────────────────
 from fastapi import Body
