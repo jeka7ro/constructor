@@ -279,6 +279,8 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     
     if payload.source:
         wo.source_system = payload.source
+    elif getattr(payload, 'is_iframe', False):
+        wo.source_system = "we-r"
     else:
         wo.source_system = "devis_online"
         
