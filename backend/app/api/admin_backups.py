@@ -16,13 +16,13 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
 BACKUP_BUCKET = "backups"
 
-def require_super_admin(admin: Admin = Depends(get_current_admin)):
-    if admin.role != "SUPER_ADMIN" and not getattr(admin, 'is_super_admin', False):
+def require_admin_role(admin: Admin = Depends(get_current_admin)):
+    if admin.role not in ["ADMIN", "SUPER_ADMIN"] and not getattr(admin, 'is_super_admin', False):
         raise HTTPException(status_code=403, detail="Not authorized")
     return admin
 
 @router.get("/backups")
-def list_backups(admin: Admin = Depends(require_super_admin)):
+def list_backups(admin: Admin = Depends(require_admin_role)):
     """Return a list of all backup files from Supabase Storage."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase credentials not configured")
@@ -63,7 +63,7 @@ def list_backups(admin: Admin = Depends(require_super_admin)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/backups/{filename}/download")
-def download_backup(filename: str, admin: Admin = Depends(require_super_admin)):
+def download_backup(filename: str, admin: Admin = Depends(require_admin_role)):
     """Generate a signed URL to download a backup file."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase credentials not configured")
