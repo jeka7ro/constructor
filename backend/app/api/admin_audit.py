@@ -19,6 +19,7 @@ class AuditLogResponse(BaseModel):
     resource_id: Optional[str] = None
     details: Optional[str] = None
     ip_address: Optional[str] = None
+    device_type: Optional[str] = None
     created_at: datetime
 
 @router.get("/filters")

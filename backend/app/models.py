@@ -56,6 +56,8 @@ class PricingSetting(Base):
     client_id = Column(String(36), ForeignKey("clients.id", ondelete="CASCADE"), nullable=True)
     
     base_price_sqm = Column(Float, default=12.5)
+    base_price_sqm_large = Column(Float, default=12.5)
+    base_large_threshold_sqm = Column(Float, default=200.0)
     extra_thickness_price_per_cm = Column(Float, default=1.25)
     standard_thickness_cm = Column(Float, default=5.0)
     plastic_foil_price_sqm = Column(Float, default=1.2)
@@ -65,6 +67,12 @@ class PricingSetting(Base):
     fiber_large_threshold_sqm = Column(Float, default=200.0)
     
     surface_thresholds = Column(JSON, default=list) 
+    
+    # ── Truck Distance Configuration ────────────────────────────────────────
+    truck_base_address = Column(Text, nullable=True)
+    truck_distance_threshold_km = Column(Float, default=50.0)
+    truck_extra_price_flat = Column(Float, default=0.0)
+    truck_surface_threshold_free_sqm = Column(Float, default=500.0)
     
     # ── VAT Configuration ───────────────────────────────────────────────────
     vat_legal_entity = Column(Float, default=0.0)
@@ -317,6 +325,7 @@ class Admin(Base):
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_super_admin = Column(Boolean, default=False, nullable=False, server_default='false')
+    receive_quote_alerts = Column(Boolean, default=False, nullable=False, server_default='false')
     accepted_terms_at = Column(DateTime, nullable=True)
     accepted_dpa_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -1374,6 +1383,7 @@ class AuditLog(Base):
     resource_id     = Column(String(36), nullable=True) 
     details         = Column(Text, nullable=True) # JSON or text string containing changes/info
     ip_address      = Column(String(50), nullable=True)
+    device_type     = Column(String(50), nullable=True) # e.g. PC, Mobile
     
     created_at      = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 

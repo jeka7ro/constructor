@@ -1211,6 +1211,32 @@ def update_work_order(
 # ──────────────────────────────────────────────────────────────────────────────
 # SYNC PRICES
 # ──────────────────────────────────────────────────────────────────────────────
+def get_driving_distance_km(origin: str, destination: str) -> float:
+    import requests
+    import os
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key or not origin or not destination:
+        return 0.0
+    
+    url = "https://maps.googleapis.com/maps/api/distancematrix/json"
+    params = {
+        "origins": origin,
+        "destinations": destination,
+        "key": api_key,
+        "units": "metric"
+    }
+    try:
+        res = requests.get(url, params=params, timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            if data.get("rows") and data["rows"][0].get("elements"):
+                element = data["rows"][0]["elements"][0]
+                if element.get("status") == "OK":
+                    return element["distance"]["value"] / 1000.0
+    except Exception as e:
+        print(f"Error calculating distance: {e}")
+    return 0.0
+
 @router.post("/work-orders/{wo_id}/sync-prices")
 def sync_work_order_prices(
     wo_id: str,
@@ -1238,27 +1264,45 @@ def sync_work_order_prices(
     if not pricing:
         raise HTTPException(status_code=404, detail="Setările de preț globale nu au fost găsite.")
         
-    wo.prices = {
-        "base": pricing.base_price_sqm,
-        "extra": pricing.extra_thickness_price_per_cm,
-        "foil": pricing.plastic_foil_price_sqm,
-        "mesh": pricing.metal_mesh_price_sqm,
-        "fiber": pricing.fiber_price_sqm,
-        "fiber_large": pricing.fiber_price_sqm_large,
-        "fiber_threshold": pricing.fiber_large_threshold_sqm
-    }
-    
-    db.commit()
-    
-    # Recalculate estimated price using the updated prices
     try:
-        from app.api.public_work_orders import compute_chape_total
-        auto_base = 0
-        auto_extra = 0
-        auto_foil = 0
-        auto_mesh = 0
-        auto_fiber = 0
         auto_net = 0
+        total_truck = 0
+        total_surface = sum(float(v.get('quantity') or 0) for v in (wo.volumes or []) if 'chape' in str(v.get('label') or '').lower() or 'sapa' in str(v.get('label') or '').lower() or 'şapă' in str(v.get('label') or '').lower() or 'șapă' in str(v.get('label') or '').lower())
+        
+        # Calculate truck cost based on total surface of chape
+        distance_km = 0
+        truck_cost = 0
+        if wo.site_address:
+            if total_surface <= getattr(pricing, 'truck_surface_threshold_free_sqm', 500.0):
+                # Import the LogisticBase model
+                from app.models import LogisticBase
+                bases = db.query(LogisticBase).filter(LogisticBase.organization_id == current_admin.organization_id).all()
+                if bases:
+                    # Calculate distance for all bases and take the minimum
+                    min_dist = 999999.0
+                    for base_record in bases:
+                        if base_record.address:
+                            dist = get_driving_distance_km(base_record.address, wo.site_address)
+                            if 0 < dist < min_dist:
+                                min_dist = dist
+                    
+                    if min_dist < 999999.0:
+                        distance_km = min_dist
+                        if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
+                            truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
+                    
+        wo.prices = {
+            "base": pricing.base_price_sqm,
+            "base_large": pricing.base_price_sqm_large,
+            "base_threshold": pricing.base_large_threshold_sqm,
+            "extra": pricing.extra_thickness_price_per_cm,
+            "standard_thickness": pricing.standard_thickness_cm,
+            "foil": pricing.plastic_foil_price_sqm,
+            "mesh": pricing.metal_mesh_price_sqm,
+            "fiber": pricing.fiber_price_sqm if total_surface <= pricing.fiber_large_threshold_sqm else pricing.fiber_price_sqm_large,
+            "truck_cost": truck_cost,
+            "distance_km": distance_km
+        }
         
         for vol in (wo.volumes or []):
             quantity = float(vol.get('quantity') or 0)
@@ -1266,22 +1310,30 @@ def sync_work_order_prices(
             label = str(vol.get('label') or '').lower()
             if 'chape' in label or 'sapa' in label or 'şapă' in label or 'șapă' in label:
                 if quantity > 0:
-                    flags = {
-                        'has_foil': vol.get('has_foil', False),
-                        'has_mesh': vol.get('has_mesh', False),
-                        'has_fiber': vol.get('has_fiber', False),
-                        'has_duramint': vol.get('has_duramint', False)
-                    }
-                    c = compute_chape_total(quantity, thickness, flags, wo.prices)
-                    auto_base += c.get('base', 0)
-                    auto_extra += c.get('extra', 0)
-                    auto_foil += c.get('foil', 0)
-                    auto_mesh += c.get('mesh', 0)
-                    auto_fiber += c.get('fiber', 0)
-                    auto_net += c.get('net', 0)
+                    base_rate = pricing.base_price_sqm if quantity <= pricing.base_large_threshold_sqm else pricing.base_price_sqm_large
+                    base = quantity * base_rate
                     
-        if auto_net > 0:
-            wo.estimated_price = auto_net
+                    extra_cm = max(0, thickness - pricing.standard_thickness_cm)
+                    extra_cost = quantity * extra_cm * pricing.extra_thickness_price_per_cm
+                    
+                    foil_cost = quantity * pricing.plastic_foil_price_sqm if vol.get('has_foil') else 0
+                    mesh_cost = quantity * pricing.metal_mesh_price_sqm if vol.get('has_mesh') else 0
+                    
+                    fiber_rate = pricing.fiber_price_sqm if quantity <= pricing.fiber_large_threshold_sqm else pricing.fiber_price_sqm_large
+                    fiber_cost = quantity * fiber_rate if (vol.get('has_fiber') or vol.get('has_duramint')) else 0
+                    
+                    hidden_extra = 0
+                    if pricing.surface_thresholds:
+                        for thresh in pricing.surface_thresholds:
+                            min_s = float(thresh.get("min_sqm") or 0)
+                            max_s = float(thresh.get("max_sqm") or 999999)
+                            if min_s <= quantity < max_s:
+                                hidden_extra += float(thresh.get("extra_charge") or 0)
+                                
+                    auto_net += (base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra)
+                    
+        if auto_net > 0 or truck_cost > 0:
+            wo.estimated_price = auto_net + truck_cost
         
         from datetime import datetime
         wo.updated_at = datetime.utcnow()

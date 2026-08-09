@@ -493,12 +493,15 @@ export default function DevisOnline() {
                                         </div>
                                         <input type="checkbox" checked={formData.has_mesh} onChange={e => setFormData({ ...formData, has_mesh: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
                                     </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_duramint ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
+                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all border-yellow-400 bg-yellow-50/50 opacity-80 cursor-not-allowed`} title={t('calculator.duramint_always_included', 'Toujours inclus')}>
                                         <div className="flex items-center gap-3">
-                                            <Layers className={`w-5 h-5 ${formData.has_duramint ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
+                                            <Layers className={`w-5 h-5 text-yellow-600`} />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
+                                                <span className="text-[10px] text-yellow-700">{t('calculator.always_included', 'Toujours inclus')}</span>
+                                            </div>
                                         </div>
-                                        <input type="checkbox" checked={formData.has_duramint} onChange={e => setFormData({ ...formData, has_duramint: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
+                                        <input type="checkbox" checked={true} readOnly className="w-4 h-4 accent-yellow-400 cursor-not-allowed" />
                                     </label>
                                 </div>
 

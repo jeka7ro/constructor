@@ -56,10 +56,22 @@ export default function PricingSettingsForm({
                 <div className="px-5 pt-1 pb-4">
                     <SectionHeader label={t('pricing_settings.section_chape', 'Chape')} />
                     <PriceRow
-                        label={t('pricing_settings.base', 'Prix de Base')}
-                        sublabel={t('pricing_settings.base_sub', '≤ ép. standard')}
+                        label={t('pricing_settings.base', 'Prix de Base (petite surf.)')}
+                        sublabel={`≤ ${settings.base_large_threshold_sqm} m²`}
                         value={settings.base_price_sqm}
                         onChange={v => onSettingChange('base_price_sqm', v)}
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.base_large', 'Prix de Base (grande surf.)')}
+                        sublabel={`> ${settings.base_large_threshold_sqm} m²`}
+                        value={settings.base_price_sqm_large}
+                        onChange={v => onSettingChange('base_price_sqm_large', v)}
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.base_threshold', 'Seuil Grande Surface')}
+                        value={settings.base_large_threshold_sqm}
+                        onChange={v => onSettingChange('base_large_threshold_sqm', v)}
+                        unit="m²"
                     />
 
                     <SectionHeader label={t('pricing_settings.section_thick', 'Épaisseur Supplémentaire')} />
@@ -110,6 +122,29 @@ export default function PricingSettingsForm({
                         onChange={v => onSettingChange('fiber_large_threshold_sqm', v)}
                         unit="m²"
                     />
+
+                    <SectionHeader label={t('pricing_settings.section_transport', 'Transport / Camion')} />
+                    <PriceRow
+                        label={t('pricing_settings.truck_distance', 'Distance de facturation')}
+                        sublabel={t('pricing_settings.truck_distance_sub', 'Si trajet > km, appliquer frais')}
+                        value={settings.truck_distance_threshold_km}
+                        onChange={v => onSettingChange('truck_distance_threshold_km', v)}
+                        unit="km"
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.truck_price', 'Frais de transport (Fixe)')}
+                        value={settings.truck_extra_price_flat}
+                        onChange={v => onSettingChange('truck_extra_price_flat', v)}
+                        unit="€"
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.truck_free_surface', 'Gratuit pour grande surface')}
+                        sublabel={t('pricing_settings.truck_free_surface_sub', 'Pas de frais si surface >')}
+                        value={settings.truck_surface_threshold_free_sqm}
+                        onChange={v => onSettingChange('truck_surface_threshold_free_sqm', v)}
+                        unit="m²"
+                    />
+
                     <SectionHeader label={t('pricing_settings.section_vat', 'TVA (Taxes)')} />
                     <PriceRow
                         label={t('pricing_settings.vat_legal', 'Entreprise (Cocontractant)')}

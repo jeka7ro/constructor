@@ -1,0 +1,126 @@
+495:            <div className="block md:hidden w-full min-h-[calc(100vh-200px)]">
+524:            </div>
+527:            <div 
+534:            <div className="hidden md:flex flex-col border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+535:                <div className="px-4 h-[60px] flex items-center justify-between">
+536:                    <div className="hidden md:flex items-center gap-2">
+541:                    </div>
+542:                    <div className="hidden md:flex items-center gap-3">
+548:                                    <div className="group relative hidden md:flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl text-white mr-2 cursor-pointer hover:bg-white/20 transition-colors">
+549:                                        <div className="bg-white/20 rounded p-1">
+551:                                        </div>
+552:                                        <div className="flex flex-col text-left leading-tight">
+555:                                        </div>
+557:                                        <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 text-white rounded-xl shadow-xl p-3 text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] border border-slate-700 pointer-events-auto">
+558:                                            <div className="font-bold mb-2 pb-2 border-b border-slate-700 text-slate-300">
+560:                                            </div>
+561:                                            <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+563:                                                    <div 
+573:                                                        <div className="w-6 h-6 rounded bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0">
+575:                                                        </div>
+579:                                                    </div>
+581:                                            </div>
+582:                                        </div>
+583:                                    </div>
+590:                        <div 
+623:                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+626:                                <div className="flex items-center gap-2 text-white text-xs font-bold pl-1 pr-2">
+628:                                    <div className="flex flex-col text-left">
+633:                                    </div>
+645:                                </div>
+649:                        </div>
+662:                        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg p-1 border border-blue-500 dark:border-slate-700 shadow-sm">
+670:                        </div>
+671:                    </div>
+676:                    <div className="px-4 pb-3 flex items-center gap-6 overflow-x-auto custom-scrollbar">
+678:                        <div className="flex items-center gap-2 shrink-0">
+680:                            <div className="flex gap-2 items-center">
+682:                                    <div 
+694:                                    </div>
+696:                            </div>
+697:                        </div>
+700:                        <div className="w-px h-6 bg-white/20 shrink-0"></div>
+703:                        <div className="flex items-center gap-2 shrink-0">
+705:                            <div className="flex gap-2 items-center">
+707:                                    <div 
+724:                                    </div>
+726:                            </div>
+727:                        </div>
+728:                    </div>
+730:            </div>
+734:                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden md:block">
+735:                    <div className="bg-slate-900/80 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
+738:                    </div>
+739:                </div>
+743:            <div className="absolute inset-0 md:relative flex md:flex-1 overflow-hidden flex-col bg-slate-50 dark:bg-slate-950">
+746:                <div
+754:                    <div style={{
+780:                    </div>
+781:                </div>
+783:                <div 
+802:            <div 
+807:                <div className="w-10 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 sticky left-0 z-20">
+808:                    <div className="h-14 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-slate-50 dark:bg-slate-900/80 z-20" />
+810:                        <div key={i} className="h-[70px] border-b border-slate-200 dark:border-slate-800 flex items-start justify-center text-[11px] text-slate-500 font-bold pt-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+812:                        </div>
+814:                </div>
+817:                <div className="flex-1 min-w-[700px]">
+820:                    <div className="grid border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr' }}>
+827:                                <div
+858:                                </div>
+861:                    </div>
+864:                    <div className="relative grid bg-slate-50/30 dark:bg-slate-900/30" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 0.6fr', gridTemplateRows: `repeat(${END_HOUR - dynamicStartHour}, minmax(70px, 70px))` }}>
+866:                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+868:                            </div>
+876:                                <div 
+966:                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full flex items-center justify-center shadow-md pointer-events-none" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+968:                                    </div>
+969:                                </div>
+1025:                                    <div 
+1170:                                            <div className={`absolute top-1 right-1 z-10 opacity-70`}>
+1172:                                            </div>
+1175:                                        <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
+1178:                                        </div>
+1179:                                        <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none">
+1182:                                        </div>
+1183:                                        <div className="mt-1 flex items-center gap-1.5 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
+1214:                                        </div>
+1215:                                    </div>
+1219:                    </div>
+1220:                </div>
+1221:            </div>
+1222:        </div>
+1226:                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+1227:                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+1228:                        <div className="p-5">
+1229:                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+1231:                            </div>
+1234:                            <div className="space-y-4 my-6">
+1235:                                <div className="grid grid-cols-2 gap-3">
+1236:                                    <div>
+1244:                                    </div>
+1245:                                    <div>
+1253:                                    </div>
+1254:                                </div>
+1256:                                <div 
+1264:                                    <div className="flex h-5 items-center">
+1271:                                    </div>
+1272:                                    <div className="flex flex-col">
+1275:                                    </div>
+1276:                                </div>
+1277:                            </div>
+1279:                            <div className="flex items-center gap-3">
+1314:                            </div>
+1315:                        </div>
+1316:                    </div>
+1317:                </div>,
+1323:                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+1324:                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+1325:                        <div className="p-5">
+1326:                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+1328:                            </div>
+1333:                            <div className="flex items-center gap-3">
+1363:                            </div>
+1364:                        </div>
+1365:                    </div>
+1366:                </div>,

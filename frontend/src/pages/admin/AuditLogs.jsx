@@ -177,6 +177,20 @@ export default function AuditLogs() {
             }
         },
         {
+            key: 'device_type',
+            label: 'Dispozitiv',
+            render: (row) => {
+                if (!row.device_type) return <span className="text-xs font-mono text-slate-500">-</span>;
+                const isMobile = row.device_type.toLowerCase() === 'mobil';
+                return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isMobile ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                        {isMobile ? '📱 ' : '💻 '}
+                        {row.device_type}
+                    </span>
+                )
+            }
+        },
+        {
             key: 'ip_address',
             label: 'IP',
             render: (row) => {

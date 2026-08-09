@@ -26,6 +26,12 @@ def log_audit(
             if admin_obj and hasattr(admin_obj, 'current_ip'):
                 ip_address = admin_obj.current_ip
 
+        from app.context import request_user_agent_ctx
+        ua = request_user_agent_ctx.get()
+        device_type = "PC"
+        if ua and any(kw in ua for kw in ["Mobile", "Android", "iPhone", "iPad"]):
+            device_type = "Mobil"
+
         details_str = json.dumps(details) if details else None
         
         audit_entry = AuditLog(
@@ -36,7 +42,8 @@ def log_audit(
             resource_type=resource_type,
             resource_id=resource_id,
             details=details_str,
-            ip_address=ip_address
+            ip_address=ip_address,
+            device_type=device_type
         )
         db.add(audit_entry)
         db.commit()

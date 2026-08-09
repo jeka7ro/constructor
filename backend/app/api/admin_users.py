@@ -38,45 +38,35 @@ class UserCreate(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100)
     first_name: str = Field(..., min_length=1, max_length=100)
     role_id: str
-    pin: str = Field(..., min_length=4, max_length=6)
-    is_active: bool = True
-    password: Optional[str] = None
-    cnp: Optional[str] = Field(None, max_length=13)
-    birth_place: Optional[str] = None
-    id_card_series: Optional[str] = None
-    phone: Optional[str] = Field(None, max_length=20)
+    employee_code: str
+    first_name: str
+    last_name: str
     email: Optional[str] = None
-    address: Optional[str] = None
-    site_id: Optional[str] = None
-    birth_date: Optional[str] = None
+    role_id: str
+    pin: Optional[str] = None
+    contract_path: Optional[str] = None
+    id_card_path: Optional[str] = None
     avatar_path: Optional[str] = None
+    cnp: Optional[str] = None
+    phone: Optional[str] = None
+    organization_id: Optional[str] = None
+    receive_quote_alerts: Optional[bool] = False
 
 
 class UserUpdate(BaseModel):
-    employee_code: Optional[str] = Field(None, max_length=20)
-    last_name: Optional[str] = Field(None, max_length=100)
-    first_name: Optional[str] = Field(None, max_length=100)
-    full_name: Optional[str] = Field(None, max_length=200)
+    employee_code: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
     role_id: Optional[str] = None
     is_active: Optional[bool] = None
-    password: Optional[str] = None
-    birth_date: Optional[str] = None
-    cnp: Optional[str] = Field(None, max_length=13)
-    birth_place: Optional[str] = None
-    id_card_series: Optional[str] = None
-    phone: Optional[str] = Field(None, max_length=20)
-    email: Optional[str] = None
-    address: Optional[str] = None
-    site_id: Optional[str] = None
-    hourly_rate: Optional[float] = None  # Tarif orar — confidential, admin-only
+    contract_path: Optional[str] = None
+    id_card_path: Optional[str] = None
     avatar_path: Optional[str] = None
-
-    @field_validator('employee_code', 'last_name', 'first_name', 'full_name', 'cnp', 'phone', mode='before')
-    @classmethod
-    def empty_str_to_none(cls, v):
-        if v == "":
-            return None
-        return v
+    cnp: Optional[str] = None
+    phone: Optional[str] = None
+    organization_id: Optional[str] = None
+    receive_quote_alerts: Optional[bool] = None
 
 
 class UserPinReset(BaseModel):
@@ -108,6 +98,7 @@ class UserResponse(BaseModel):
     contract_path: Optional[str] = None
     hourly_rate: Optional[float] = None  # Tarif orar — confidential
     accepted_terms_at: Optional[datetime] = None
+    receive_quote_alerts: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -134,10 +125,18 @@ def split_full_name(full_name: str):
     return full_name, ''
 
 
-def build_user_response(user, role_name=None):
+def build_user_response(user, role_name=None, db=None):
     """Build UserResponse from a User model instance"""
     rname = role_name or (user.role.name if user.role else 'N/A')
     last_name, first_name = split_full_name(user.full_name)
+    
+    receive_quote_alerts = False
+    if db and user.email:
+        from app.models import Admin
+        admin_rec = db.query(Admin).filter(Admin.email == user.email).first()
+        if admin_rec:
+            receive_quote_alerts = admin_rec.receive_quote_alerts
+            
     return UserResponse(
         id=user.id,
         employee_code=user.employee_code,
@@ -163,6 +162,7 @@ def build_user_response(user, role_name=None):
         contract_path=getattr(user, 'contract_path', None),
         hourly_rate=float(user.hourly_rate) if user.hourly_rate is not None else None,
         accepted_terms_at=getattr(user, 'accepted_terms_at', None),
+        receive_quote_alerts=receive_quote_alerts
     )
 
 
@@ -523,9 +523,10 @@ def get_users(
     """Get paginated list of users with optional filters"""
     query = db.query(User).join(Role)
     
-    if not getattr(current_admin, 'is_super_admin', False) and current_admin.organization_id:
+    if current_admin.organization_id:
         query = query.filter(User.organization_id == current_admin.organization_id)
-        
+        # Prevent tenant dashboards from seeing Super Administrators (they are system-wide)
+        query = query.filter(Role.name != 'Super Administrator')
 
     if search:
         query = query.filter(or_(
@@ -553,7 +554,7 @@ def get_users(
     total = query.count()
     offset = (page - 1) * page_size
     users = query.offset(offset).limit(page_size).all()
-    return UsersListResponse(users=[build_user_response(u) for u in users], total=total, page=page, page_size=page_size)
+    return UsersListResponse(users=[build_user_response(u, db=db) for u in users], total=total, page=page, page_size=page_size)
 
 
 @router.get("/stats/summary")
@@ -565,7 +566,7 @@ def get_users_stats(
     base_query = db.query(User)
     role_query = db.query(Role.name, func.count(User.id).label('count')).join(User)
     
-    if not getattr(current_admin, 'is_super_admin', False) and current_admin.organization_id:
+    if current_admin.organization_id:
         base_query = base_query.filter(User.organization_id == current_admin.organization_id)
         role_query = role_query.filter(User.organization_id == current_admin.organization_id)
 
@@ -786,7 +787,7 @@ def get_user(user_id: str, db: Session = Depends(get_db), current_admin: Admin =
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return build_user_response(user)
+    return build_user_response(user, db=db)
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -804,23 +805,16 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
 
     full_name = f"{user_data.last_name} {user_data.first_name}".strip()
     
-    # Convert birth_date string to date object for SQLite
-    birth_date_val = None
-    if user_data.birth_date:
-        from datetime import datetime as dt
-        try:
-            birth_date_val = dt.strptime(user_data.birth_date, "%Y-%m-%d").date()
-        except (ValueError, TypeError):
-            birth_date_val = None
+    # Ensure organization_id is set correctly for the admin creating the user
+    org_id_to_use = user_data.organization_id or current_admin.organization_id
     
     new_user = User(
-        organization_id=role.organization_id,
+        organization_id=org_id_to_use,
         employee_code=user_data.employee_code,
         full_name=full_name, role_id=user_data.role_id,
-        pin_hash=hash_pin(user_data.pin), is_active=user_data.is_active,
-        birth_date=birth_date_val, cnp=user_data.cnp,
-        birth_place=user_data.birth_place, id_card_series=user_data.id_card_series,
-        phone=user_data.phone, email=user_data.email, address=user_data.address,
+        pin_hash=hash_pin(user_data.pin or "1234"), is_active=True,
+        cnp=user_data.cnp,
+        phone=user_data.phone, email=user_data.email,
         avatar_path=user_data.avatar_path
     )
     db.add(new_user)
@@ -829,27 +823,22 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
     if role.name in ['Administrator', 'Super Administrator']:
         if not user_data.email:
             raise HTTPException(status_code=400, detail="Email is required for Administrator accounts")
-        if not user_data.password:
-            raise HTTPException(status_code=400, detail="Password is required for Administrator accounts")
         
         # Check if email is already used by an admin
         existing_admin = db.query(Admin).filter(Admin.email == user_data.email).first()
         if existing_admin:
             raise HTTPException(status_code=400, detail="Adresa de email este deja folosită de alt administrator")
             
-        # SECURITATE CRITICA: un admin de tenant (cu organization_id) nu poate fi niciodata SUPER_ADMIN
-        # indiferent de numele rolului sau de orice alt parametru.
-        # Doar admini fara organization_id (platforma SaaS) pot fi super admini.
-        is_tenant_admin = bool(role.organization_id)
         new_admin = Admin(
             id=str(uuid.uuid4()),
-            organization_id=role.organization_id,
+            organization_id=org_id_to_use,
             email=user_data.email,
             full_name=full_name,
-            password_hash=hashlib.sha256(user_data.password.encode()).hexdigest(),
-            role="ADMIN",  # Toti adminii de tenant sunt ADMIN — niciodata SUPER_ADMIN
-            is_active=user_data.is_active,
-            is_super_admin=False  # Niciodata True pentru admini de tenant
+            password_hash=hashlib.sha256(str(user_data.pin or "1234").encode()).hexdigest(),
+            role="ADMIN",
+            is_active=True,
+            is_super_admin=False,
+            receive_quote_alerts=user_data.receive_quote_alerts
         )
         db.add(new_admin)
 
@@ -858,13 +847,7 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
         db.refresh(new_user)
     except Exception as e:
         db.rollback()
-        error_msg = str(e).lower()
-        if 'users_cnp_key' in error_msg or 'cnp' in error_msg:
-            raise HTTPException(status_code=400, detail="Există deja un angajat cu acest CNP în sistem.")
-        elif 'users_employee_code_key' in error_msg or 'employee_code' in error_msg:
-            raise HTTPException(status_code=400, detail="Codul de angajat introdus există deja.")
-        else:
-            raise HTTPException(status_code=400, detail="Eroare la salvarea datelor în baza de date.")
+        raise HTTPException(status_code=400, detail=str(e))
 
     log_audit(
         db=db,
@@ -876,7 +859,7 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), current_ad
         details={"message": f"Created user {new_user.email}", "email": new_user.email}
     )
 
-    return build_user_response(new_user, role.name)
+    return build_user_response(new_user, role.name, db=db)
 
 
 @router.put("/{user_id}", response_model=UserResponse)
@@ -891,8 +874,8 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
         last = user_data.last_name if user_data.last_name is not None else current_last
         first = user_data.first_name if user_data.first_name is not None else current_first
         user.full_name = f"{last} {first}".strip()
-    elif user_data.full_name is not None:
-        user.full_name = user_data.full_name
+        if user_data.phone is not None:
+            user.phone = user_data.phone
 
     # Check if trying to assign an admin role — only super admin can do this
     if user_data.role_id is not None:
@@ -961,6 +944,8 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
             admin_record.is_active = user.is_active
             admin_record.role = "SUPER_ADMIN" if user_role.name == "Super Administrator" else "ADMIN"
             admin_record.is_super_admin = True if user_role.name == "Super Administrator" else False
+            if user_data.receive_quote_alerts is not None:
+                admin_record.receive_quote_alerts = user_data.receive_quote_alerts
             if user_data.email:
                 admin_record.email = user_data.email
             if user_data.password:
@@ -978,13 +963,14 @@ def update_user(user_id: str, user_data: UserUpdate, db: Session = Depends(get_d
                         password_hash=hashlib.sha256(user_data.password.encode()).hexdigest(),
                         role="SUPER_ADMIN" if user_role.name == "Super Administrator" else "ADMIN",
                         is_active=user.is_active,
-                        is_super_admin=True if user_role.name == "Super Administrator" else False
+                        is_super_admin=True if user_role.name == "Super Administrator" else False,
+                        receive_quote_alerts=user_data.receive_quote_alerts if user_data.receive_quote_alerts is not None else False
                     )
                     db.add(new_admin)
 
     db.commit()
     db.refresh(user)
-    return build_user_response(user)
+    return build_user_response(user, db=db)
 
 
 @router.post("/{user_id}/reset-pin")

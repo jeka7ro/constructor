@@ -25,7 +25,8 @@ const EMPTY_FORM = {
     cnp: '',
     birth_place: '',
     id_card_series: '',
-    birth_date: ''
+    birth_date: '',
+    receive_quote_alerts: false
 }
 
 export default function UsersManagement() {
@@ -108,7 +109,8 @@ export default function UsersManagement() {
             cnp: user.cnp || '',
             birth_place: user.birth_place || '',
             id_card_series: user.id_card_series || '',
-            birth_date: user.birth_date || ''
+            birth_date: user.birth_date || '',
+            receive_quote_alerts: user.receive_quote_alerts || false
         })
         setShowPassword(false)
         setIdCardFile(null)
@@ -204,7 +206,8 @@ export default function UsersManagement() {
                 cnp: formData.cnp,
                 birth_place: formData.birth_place,
                 id_card_series: formData.id_card_series,
-                birth_date: formData.birth_date
+                birth_date: formData.birth_date,
+                receive_quote_alerts: formData.receive_quote_alerts
             }
             if (formData.avatar_path) payload.avatar_path = formData.avatar_path;
             if (formData.password.trim()) payload.password = formData.password.trim()
@@ -295,6 +298,18 @@ export default function UsersManagement() {
         }
     }
 
+    const handleToggleQuoteAlerts = async (user) => {
+        try {
+            await api.put(`/admin/users/${user.id}`, { receive_quote_alerts: !user.receive_quote_alerts })
+            fetchUsers()
+            showToast(t('users.quote_alerts_updated', 'Setări notificări actualizate'), 'success')
+        } catch (err) {
+            console.error(err)
+            showToast('Eroare la actualizare', 'error')
+        }
+    }
+
+
     const filtered = users.filter(u => {
         if (!search) return true
         const q = search.toLowerCase()
@@ -371,16 +386,17 @@ export default function UsersManagement() {
                                 <th className="px-5 py-3 text-left">{t('common.contact', 'Contact')}</th>
                                 <th className="px-5 py-3 text-left">{t('common.role', 'Rol')}</th>
                                 <th className="px-5 py-3 text-left">{t('common.status', 'Status')}</th>
+                                <th className="px-5 py-3 text-center">{t('common.alerts', 'Notificări Devis')}</th>
                                 <th className="px-5 py-3 text-right">{t('common.actions', 'Acțiuni')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
-                                <tr><td colSpan={5} className="py-16 text-center">
+                                <tr><td colSpan={6} className="py-16 text-center">
                                     <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" />
                                 </td></tr>
                             ) : paginatedUsers.length === 0 ? (
-                                <tr><td colSpan={5} className="py-16 text-center text-slate-400 text-sm">
+                                <tr><td colSpan={6} className="py-16 text-center text-slate-400 text-sm">
                                     {t('users.no_users', 'Niciun utilizator găsit')}
                                 </td></tr>
                             ) : paginatedUsers.map(user => (
@@ -444,6 +460,29 @@ export default function UsersManagement() {
                                             <div className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                                             {user.is_active ? t('common.active', 'Activ') : t('common.inactive', 'Inactiv')}
                                         </button>
+                                    </td>
+                                    <td className="px-5 py-3 text-center">
+                                        {user.role_name.includes('Admin') ? (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Mail 
+                                                    className={`w-4 h-4 ${!user.receive_quote_alerts ? 'text-slate-400' : 'text-blue-600'}`}
+                                                    style={user.receive_quote_alerts ? { color: 'var(--primary-tenant, #2563eb)' } : {}}
+                                                />
+                                                <button 
+                                                    onClick={() => handleToggleQuoteAlerts(user)} 
+                                                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${!user.receive_quote_alerts ? 'bg-slate-300 dark:bg-slate-600' : 'bg-blue-600'}`}
+                                                    style={user.receive_quote_alerts ? { backgroundColor: 'var(--primary-tenant, #2563eb)' } : {}}
+                                                    role="switch" 
+                                                    aria-checked={user.receive_quote_alerts}
+                                                    title={t('users.toggle_quote_alerts', 'Activează/dezactivează notificările Devis pe Email')}
+                                                >
+                                                    <span className="sr-only">Toggle Notificări Devis</span>
+                                                    <span aria-hidden="true" className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${user.receive_quote_alerts ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-300 dark:text-slate-600">-</span>
+                                        )}
                                     </td>
                                     <td className="px-5 py-3">
                                         <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
@@ -639,14 +678,21 @@ export default function UsersManagement() {
                                             {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                         </select>
                                     </div>
-                                    {editingUser && (
-                                        <div className="flex items-center mt-6">
+                                    <div className="flex flex-col gap-2 mt-6">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('users_modal.active_account', 'Cont activ')}</span>
+                                        </label>
+                                        
+                                        {/* Only show Devis notification toggle if the role is Admin */}
+                                        {roles.find(r => r.id === formData.role_id)?.name.includes('Admin') && (
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('users_modal.active_account', 'Cont activ')}</span>
+                                                <input type="checkbox" checked={formData.receive_quote_alerts} onChange={e => setFormData({ ...formData, receive_quote_alerts: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{t('users_modal.receive_quote_alerts', 'Primește notificări Devis Online pe Email')}</span>
                                             </label>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 mt-4">

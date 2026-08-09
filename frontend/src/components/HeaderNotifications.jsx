@@ -58,7 +58,12 @@ export default function HeaderNotifications() {
             setUnreadQuotesCount(0);
             localStorage.setItem('lastQuotesViewAt', lastServerTimeRef.current);
         };
+        const handleRefreshNotifications = () => {
+            fetchMessages();
+        };
+
         window.addEventListener('quotesViewed', handleQuotesViewed);
+        window.addEventListener('refresh-notifications', handleRefreshNotifications);
         
         fetchMessages()
         fetchQuotes()
@@ -71,6 +76,7 @@ export default function HeaderNotifications() {
         return () => {
             clearInterval(interval)
             window.removeEventListener('quotesViewed', handleQuotesViewed)
+            window.removeEventListener('refresh-notifications', handleRefreshNotifications)
         }
     }, [])
 

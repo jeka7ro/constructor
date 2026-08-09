@@ -226,6 +226,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.context import request_user_agent_ctx
+
+@app.middleware("http")
+async def capture_user_agent(request: Request, call_next):
+    user_agent = request.headers.get("user-agent", "")
+    token = request_user_agent_ctx.set(user_agent)
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        request_user_agent_ctx.reset(token)
 
 
 @app.get("/api")

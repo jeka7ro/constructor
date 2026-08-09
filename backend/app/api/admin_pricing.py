@@ -19,6 +19,8 @@ class SurfaceThreshold(BaseModel):
 class PricingSettingSchema(BaseModel):
     client_id: Optional[str] = None
     base_price_sqm: float
+    base_price_sqm_large: float
+    base_large_threshold_sqm: float
     extra_thickness_price_per_cm: float
     standard_thickness_cm: float
     plastic_foil_price_sqm: float
@@ -30,6 +32,10 @@ class PricingSettingSchema(BaseModel):
     vat_legal_entity: float = 0.0
     vat_physical_new: float = 21.0
     vat_physical_repair: float = 6.0
+    truck_base_address: Optional[str] = None
+    truck_distance_threshold_km: float = 50.0
+    truck_extra_price_flat: float = 0.0
+    truck_surface_threshold_free_sqm: float = 500.0
 
 @router.get("/pricing-settings")
 def get_pricing_settings(
@@ -83,6 +89,8 @@ def get_pricing_settings(
     return {
         "is_custom": is_custom,
         "base_price_sqm": setting.base_price_sqm,
+        "base_price_sqm_large": setting.base_price_sqm_large if setting.base_price_sqm_large is not None else setting.base_price_sqm,
+        "base_large_threshold_sqm": setting.base_large_threshold_sqm if setting.base_large_threshold_sqm is not None else 200.0,
         "extra_thickness_price_per_cm": setting.extra_thickness_price_per_cm,
         "standard_thickness_cm": setting.standard_thickness_cm,
         "plastic_foil_price_sqm": setting.plastic_foil_price_sqm,
@@ -93,7 +101,11 @@ def get_pricing_settings(
         "surface_thresholds": setting.surface_thresholds or [],
         "vat_legal_entity": setting.vat_legal_entity,
         "vat_physical_new": setting.vat_physical_new,
-        "vat_physical_repair": setting.vat_physical_repair
+        "vat_physical_repair": setting.vat_physical_repair,
+        "truck_base_address": setting.truck_base_address,
+        "truck_distance_threshold_km": setting.truck_distance_threshold_km if setting.truck_distance_threshold_km is not None else 50.0,
+        "truck_extra_price_flat": setting.truck_extra_price_flat if setting.truck_extra_price_flat is not None else 0.0,
+        "truck_surface_threshold_free_sqm": setting.truck_surface_threshold_free_sqm if setting.truck_surface_threshold_free_sqm is not None else 500.0
     }
 
 @router.put("/pricing-settings")
@@ -121,11 +133,21 @@ def update_pricing_settings(
         setting = PricingSetting(
             id=str(uuid.uuid4()),
             organization_id=org_id,
-            client_id=payload.client_id
+            client_id=payload.client_id,
+            base_price_sqm=payload.base_price_sqm,
+            base_price_sqm_large=payload.base_price_sqm_large,
+            base_large_threshold_sqm=payload.base_large_threshold_sqm,
+            extra_thickness_price_per_cm=payload.extra_thickness_price_per_cm,
+            truck_base_address=payload.truck_base_address,
+            truck_distance_threshold_km=payload.truck_distance_threshold_km,
+            truck_extra_price_flat=payload.truck_extra_price_flat,
+            truck_surface_threshold_free_sqm=payload.truck_surface_threshold_free_sqm
         )
         db.add(setting)
         
     setting.base_price_sqm = payload.base_price_sqm
+    setting.base_price_sqm_large = payload.base_price_sqm_large
+    setting.base_large_threshold_sqm = payload.base_large_threshold_sqm
     setting.extra_thickness_price_per_cm = payload.extra_thickness_price_per_cm
     setting.standard_thickness_cm = payload.standard_thickness_cm
     setting.plastic_foil_price_sqm = payload.plastic_foil_price_sqm
@@ -137,6 +159,11 @@ def update_pricing_settings(
     setting.vat_legal_entity = payload.vat_legal_entity
     setting.vat_physical_new = payload.vat_physical_new
     setting.vat_physical_repair = payload.vat_physical_repair
+    
+    setting.truck_base_address = payload.truck_base_address
+    setting.truck_distance_threshold_km = payload.truck_distance_threshold_km
+    setting.truck_extra_price_flat = payload.truck_extra_price_flat
+    setting.truck_surface_threshold_free_sqm = payload.truck_surface_threshold_free_sqm
     
     thresholds = []
     for t in payload.surface_thresholds:
