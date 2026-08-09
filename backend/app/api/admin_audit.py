@@ -143,6 +143,7 @@ def get_audit_logs(
             "resource_id": log.resource_id,
             "details": log.details,
             "ip_address": log.ip_address,
+            "device_type": log.device_type,
             "created_at": log.created_at
         })
 

@@ -7,8 +7,8 @@ import json
 
 from app.database import get_db
 from sqlalchemy.orm import Session
-from app.api.auth import get_current_user
-from app.models import User
+from app.api.admin_auth import get_current_admin
+from app.models import Admin
 
 router = APIRouter()
 
@@ -16,13 +16,13 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
 BACKUP_BUCKET = "backups"
 
-def require_super_admin(user: User = Depends(get_current_user)):
-    if user.role != "SUPER_ADMIN" and not getattr(user, 'is_super_admin', False):
+def require_super_admin(admin: Admin = Depends(get_current_admin)):
+    if admin.role != "SUPER_ADMIN" and not getattr(admin, 'is_super_admin', False):
         raise HTTPException(status_code=403, detail="Not authorized")
-    return user
+    return admin
 
 @router.get("/backups")
-def list_backups(user: User = Depends(require_super_admin)):
+def list_backups(admin: Admin = Depends(require_super_admin)):
     """Return a list of all backup files from Supabase Storage."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase credentials not configured")
@@ -63,7 +63,7 @@ def list_backups(user: User = Depends(require_super_admin)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/backups/{filename}/download")
-def download_backup(filename: str, user: User = Depends(require_super_admin)):
+def download_backup(filename: str, admin: Admin = Depends(require_super_admin)):
     """Generate a signed URL to download a backup file."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(status_code=500, detail="Supabase credentials not configured")
