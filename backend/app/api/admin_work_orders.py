@@ -963,7 +963,8 @@ def update_work_order(
         "site_id", "site_address", "site_latitude", "site_longitude", "client_id", "client_name",
         "client_email", "client_phone", "client_language", "requirements", "materials", "volumes", "prices",
         "assigned_team_id", "assigned_vehicle_id", "min_photos_required", "access_notes",
-        "estimated_price", "status", "is_quote", "work_type", "proforma_data"
+        "estimated_price", "status", "is_quote", "work_type", "proforma_data",
+        "route_distance_km", "route_segments"
     ]
     
     update_data = payload.dict(exclude_unset=True)
