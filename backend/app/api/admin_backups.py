@@ -82,7 +82,15 @@ def download_backup(filename: str, admin: Admin = Depends(require_admin_role)):
         r = requests.post(sign_url, json=payload, headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
-            signed_url = f"{SUPABASE_URL}{data.get('signedURL')}" if data.get('signedURL') else None
+            signed_path = data.get('signedURL')
+            if signed_path:
+                if signed_path.startswith('/storage/v1'):
+                    signed_url = f"{SUPABASE_URL}{signed_path}"
+                else:
+                    signed_url = f"{SUPABASE_URL}/storage/v1{signed_path}"
+            else:
+                signed_url = None
+                
             if not signed_url:
                 raise HTTPException(status_code=500, detail="No signed URL returned")
             return {"url": signed_url}
