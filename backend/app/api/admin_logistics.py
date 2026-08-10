@@ -494,6 +494,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                         # Salvează segmentul direct pe Work Order pentru a reflecta progresul real pe parcursul zilei
                         w.route_segments = [segment]
                         flag_modified(w, "route_segments")
+                        # Sincronizează route_distance_km cu suma segmentelor pentru KPI
+                        w.route_distance_km = sum(s.get("km", 0) for s in w.route_segments)
                 
                     waypoints.append({
                         "type": "work",
@@ -548,6 +550,8 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                         })
                         last_wo.route_segments = segments
                         flag_modified(last_wo, "route_segments")
+                        # Sincronizează route_distance_km cu suma tuturor segmentelor (inclusiv retur)
+                        last_wo.route_distance_km = sum(s.get("km", 0) for s in last_wo.route_segments)
                 
                 team_distance_km += return_dist
 

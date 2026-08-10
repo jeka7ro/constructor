@@ -133,7 +133,9 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
             detailMarker: null,
             directionsRenderer: null,
             sandStationMarkers: [],
-            infoWindow: new window.google.maps.InfoWindow()
+            infoWindow: new window.google.maps.InfoWindow(),
+            geocodeCache: elementsRef.current.geocodeCache || {},
+            routeCache: elementsRef.current.routeCache || {}
         };
     };
 

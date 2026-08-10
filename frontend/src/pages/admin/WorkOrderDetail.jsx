@@ -623,8 +623,33 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         let startLat = 50.88243;
         let startLng = 4.39343;
 
-        const endLat = parseFloat(wo.site_latitude);
-        const endLng = parseFloat(wo.site_longitude);
+        let endLat = parseFloat(wo.site_latitude);
+        let endLng = parseFloat(wo.site_longitude);
+
+        // Dacă nu avem coordonate dar avem adresă, geocodificăm adresa mai întâi
+        if ((!endLat || !endLng) && wo.site_address) {
+            try {
+                const geocoder = new window.google.maps.Geocoder();
+                const geoResult = await new Promise((resolve, reject) => {
+                    geocoder.geocode({ address: wo.site_address }, (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            resolve({
+                                lat: results[0].geometry.location.lat(),
+                                lng: results[0].geometry.location.lng()
+                            });
+                        } else {
+                            reject(new Error('Geocoding failed'));
+                        }
+                    });
+                });
+                endLat = geoResult.lat;
+                endLng = geoResult.lng;
+            } catch(e) {
+                showToast(t('work_order_detail.geocode_failed', 'Impossible de géocoder l\'adresse. Vérifiez l\'adresse.'), 'error');
+                setIsRecalculatingRoute(false);
+                return;
+            }
+        }
 
         if (!endLat || !endLng) {
             showToast(t('work_order_detail.invalid_coords', 'Coordonnées invalides pour le calcul.'), 'error');
@@ -661,14 +686,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 ];
 
                 try {
+                    // Un singur PUT cu TOATE datele: coordonate + distanță + segmente
                     await api.put(`/admin/work-orders/${id}`, { 
+                        site_latitude: endLat,
+                        site_longitude: endLng,
                         route_distance_km: roundTrip,
                         route_segments: newRouteSegments
                     });
                     setWo(prev => ({ 
                         ...prev, 
                         route_distance_km: roundTrip,
-                        route_segments: newRouteSegments
+                        route_segments: newRouteSegments,
+                        site_latitude: endLat,
+                        site_longitude: endLng
                     }));
                     showToast(t('work_order_detail.route_updated', 'La distance a été recalculée et sauvegardée.'), 'success');
                 } catch (e) {

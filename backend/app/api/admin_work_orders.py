@@ -941,6 +941,130 @@ def get_work_order(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# BATCH RECALCULATE ROUTES
+# ──────────────────────────────────────────────────────────────────────────────
+class BatchRecalculateRequest(BaseModel):
+    ids: List[str]
+
+@router.post("/work-orders/batch-recalculate-routes")
+def batch_recalculate_routes(
+    payload: BatchRecalculateRequest,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Recalculate route distances for multiple work orders using haversine (free, no Directions API cost)."""
+    import math, os, requests
+    from app.models import LogisticBase
+    from sqlalchemy.orm.attributes import flag_modified
+
+    def _haversine(lat1, lon1, lat2, lon2):
+        R = 6371
+        dLat = math.radians(lat2 - lat1)
+        dLon = math.radians(lon2 - lon1)
+        a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    # Cache geocoding per batch
+    geo_cache = {}
+    def _geocode(address):
+        if not address or len(address.strip()) < 5:
+            return None
+        key = address.strip().lower()
+        if key in geo_cache:
+            return geo_cache[key]
+        api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+        if not api_key:
+            return None
+        try:
+            res = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": address, "key": api_key},
+                timeout=5
+            )
+            data = res.json()
+            if data.get("status") == "OK" and data.get("results"):
+                loc = data["results"][0]["geometry"]["location"]
+                result = (float(loc["lat"]), float(loc["lng"]))
+                geo_cache[key] = result
+                return result
+        except Exception:
+            pass
+        return None
+
+    # Find the organization's base
+    base = db.query(LogisticBase).filter(
+        LogisticBase.organization_id == current_admin.organization_id
+    ).first()
+    base_lat = base.latitude if base else 50.88243
+    base_lng = base.longitude if base else 4.39343
+    base_name = base.name if base else "H&H Resources Brussels"
+
+    success_count = 0
+    failed_count = 0
+    ROAD_FACTOR = 1.3  # haversine → real road distance approximation
+
+    for wo_id in payload.ids:
+        wo = db.query(WorkOrder).filter(
+            WorkOrder.id == wo_id,
+            WorkOrder.organization_id == current_admin.organization_id
+        ).first()
+        if not wo:
+            failed_count += 1
+            continue
+
+        try:
+            site_lat = wo.site_latitude
+            site_lng = wo.site_longitude
+
+            # Geocode if missing
+            if not site_lat or not site_lng:
+                if wo.site_address:
+                    coords = _geocode(wo.site_address)
+                    if coords:
+                        site_lat, site_lng = coords
+                        wo.site_latitude = site_lat
+                        wo.site_longitude = site_lng
+                    else:
+                        failed_count += 1
+                        continue
+                else:
+                    failed_count += 1
+                    continue
+
+            # Calculate haversine distance × road factor × 2 (round trip)
+            straight_km = _haversine(base_lat, base_lng, site_lat, site_lng)
+            one_way_km = round(straight_km * ROAD_FACTOR, 2)
+            round_trip_km = round(one_way_km * 2, 2)
+
+            wo.route_distance_km = round_trip_km
+            wo.route_segments = [
+                {
+                    "from": base_name,
+                    "to": wo.site_address or wo.title,
+                    "km": one_way_km,
+                    "from_lat": base_lat,
+                    "from_lng": base_lng
+                },
+                {
+                    "from": wo.site_address or wo.title,
+                    "to": "Baza",
+                    "km": one_way_km,
+                    "from_lat": site_lat,
+                    "from_lng": site_lng
+                }
+            ]
+            flag_modified(wo, "route_segments")
+            wo.updated_at = datetime.utcnow()
+            success_count += 1
+        except Exception as e:
+            print(f"Batch recalc error for {wo_id}: {e}")
+            failed_count += 1
+
+    db.commit()
+    return {"success": success_count, "failed": failed_count}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # UPDATE
 # ──────────────────────────────────────────────────────────────────────────────
 @router.put("/work-orders/{wo_id}")
@@ -977,6 +1101,13 @@ def update_work_order(
     for f in fields:
         if f in update_data:
             setattr(wo, f, update_data[f])
+    
+    # flag_modified pe coloanele JSON — fără asta SQLAlchemy NU detectează schimbarea și NU o salvează!
+    from sqlalchemy.orm.attributes import flag_modified
+    json_fields = ["route_segments", "prices", "materials", "volumes", "requirements", "proforma_data"]
+    for jf in json_fields:
+        if jf in update_data:
+            flag_modified(wo, jf)
             
     # Daca se modifica volumele, recalculam necesarul de nisip pe backend o singura data
     if "volumes" in update_data:

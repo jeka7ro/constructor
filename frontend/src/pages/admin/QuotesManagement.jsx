@@ -1,6 +1,7 @@
 // v2 - with delete button
 import { useState, useEffect } from 'react'
-import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye, Route, Copy, ExternalLink, MessageSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import DataTable from '../../components/DataTable'
@@ -233,6 +234,8 @@ export default function QuotesManagement() {
     const [selectedIds, setSelectedIds] = useState([])
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
     const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+    const [isBulkRecalculating, setIsBulkRecalculating] = useState(false)
+    const [previewPdfId, setPreviewPdfId] = useState(null)
     const [viewMode, setViewMode] = useState('active') // 'active' | 'archived'
 
     const handleSelectAll = (e) => {
@@ -299,6 +302,23 @@ export default function QuotesManagement() {
         setToast({ msg, type })
         setTimeout(() => setToast(null), 3000)
     }
+
+    const handleBulkRecalculate = async () => {
+        if (selectedIds.length === 0) return;
+        setIsBulkRecalculating(true);
+        try {
+            const res = await api.post('/admin/work-orders/batch-recalculate-routes', { ids: selectedIds });
+            const { success, failed } = res.data;
+            showToast(t('quotes.bulk_recalc_success', `${success} devis recalculés avec succès${failed > 0 ? `, ${failed} échoués` : ''}.`), success > 0 ? 'success' : 'error');
+            setSelectedIds([]);
+            fetchQuotes(true);
+        } catch (error) {
+            console.error('Bulk recalculate error', error);
+            showToast(t('quotes.bulk_recalc_error', 'Erreur lors du recalcul des distances.'), 'error');
+        } finally {
+            setIsBulkRecalculating(false);
+        }
+    };
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: 'danger', title: '', message: '', confirmText: '', action: null })
 
@@ -395,7 +415,8 @@ export default function QuotesManagement() {
             const endpoint = viewMode === 'archived'
                 ? '/admin/work-orders?is_quote=true&status=deleted'
                 : '/admin/work-orders?is_quote=true';
-            const res = await api.get(endpoint)
+            // Add timestamp cache buster to force fresh data from server
+            const res = await api.get(`${endpoint}&_t=${Date.now()}`)
             const activeQuotes = res.data.filter(q => q.status !== 'cancelled');
             setQuotes(activeQuotes)
             
@@ -742,34 +763,35 @@ export default function QuotesManagement() {
         },
         {
             key: 'actions',
-            label: '',
+            label: t('common.actions', 'Actions'),
             render: (row) => (
                 <div className="flex justify-end gap-2 items-center">
                     {row.status === 'deleted' ? (
                         <button
-                            title={t('quotes.btn_restore', 'Restaurer le devis')}
+                            title={t('quotes.btn_restore_short', 'Restaurer')}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setConfirmModal({
                                     isOpen: true,
-                                    type: 'success',
-                                    title: t('quotes.btn_restore', 'Restaurează devizul'),
-                                    message: t('quotes.confirm_restore', 'Ești sigur că vrei să restaurezi acest deviz?'),
-                                    confirmText: t('quotes.btn_restore_short', 'Restaurează'),
+                                    type: 'info',
+                                    title: t('quotes.restore_title', 'Restaurer Devis'),
+                                    message: t('quotes.restore_msg', 'Voulez-vous restaurer ce devis?'),
+                                    confirmText: t('quotes.btn_restore', 'Restaurer'),
                                     action: async () => {
                                         try {
                                             await api.post(`/admin/work-orders/${row.id}/restore`);
-                                            showToast(t('quotes.restore_success', 'Devizul a fost restaurat!'), "success");
                                             fetchQuotes();
-                                        } catch(e) {
+                                            showToast(t('quotes.restore_success', 'Devizul a fost restaurat!'), "success");
+                                        } catch (e) {
+                                            console.error("Restore error:", e);
                                             showToast(t('quotes.restore_error', 'Eroare la restaurare'), "error");
                                         }
                                     }
                                 });
                             }}
-                            className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors font-bold text-xs px-3"
+                            className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                         >
-                            {t('quotes.btn_restore_short', 'Restaurer')}
+                            <RefreshCw className="w-4 h-4" />
                         </button>
                     ) : (
                         <>
@@ -781,30 +803,28 @@ export default function QuotesManagement() {
                                         navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
                                         showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'), 'success');
                                     }}
-                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors"
+                                    className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                                 >
-                                    <Link className="w-4 h-4" />
+                                    <Copy className="w-4 h-4" />
                                 </button>
                             )}
-
                             <button 
-                                title={t('quotes.view_details', 'Voir les détails')}
+                                title={t('quotes.chat_client', 'Messages / Chat Client')}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes' } });
+                                    navigate(`/admin/chats?wo_id=${row.id}`);
                                 }}
-                                className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                             >
-                                <Eye className="w-4 h-4" />
+                                <MessageSquare className="w-4 h-4" />
                             </button>
-
                             <button 
-                                title="Voir Devis PDF"
+                                title="Télécharger Devis PDF"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/admin/quotes/${row.id}/pdf`)
+                                    setPreviewPdfId(row.id);
                                 }}
-                                className="p-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-xl transition-colors"
+                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                             >
                                 <FileText className="w-4 h-4" />
                             </button>
@@ -816,7 +836,7 @@ export default function QuotesManagement() {
                                     setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' })
                                     setPlanningModal(row)
                                 }}
-                                className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors"
+                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                             >
                                 <CalendarDays className="w-4 h-4" />
                             </button>
@@ -841,7 +861,7 @@ export default function QuotesManagement() {
                                         }
                                     })
                                 }}
-                                className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors"
+                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -1301,13 +1321,23 @@ export default function QuotesManagement() {
                         </span>
                     </div>
                     {selectedIds.length > 0 && (
-                        <button 
-                            onClick={() => setShowBulkDeleteConfirm(true)}
-                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-red-200"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            {t('common.delete_selected', 'Șterge')} ({selectedIds.length})
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={handleBulkRecalculate}
+                                disabled={isBulkRecalculating}
+                                className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-blue-200 disabled:opacity-50"
+                            >
+                                {isBulkRecalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}
+                                {t('quotes.recalculate_distances', 'Recalculer distances')} ({selectedIds.length})
+                            </button>
+                            <button 
+                                onClick={() => setShowBulkDeleteConfirm(true)}
+                                className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-red-200"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                {t('common.delete_selected', 'Supprimer')} ({selectedIds.length})
+                            </button>
+                        </div>
                     )}
                 </div>
                 
@@ -1368,7 +1398,7 @@ export default function QuotesManagement() {
                                     </button>
                                 )}
                                 <button 
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/quotes/${row.id}/pdf`) }}
+                                    onClick={(e) => { e.stopPropagation(); setPreviewPdfId(row.id); }}
                                     className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 h-9 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
                                 >
                                     <FileText className="w-4 h-4" /> PDF
@@ -1739,6 +1769,54 @@ export default function QuotesManagement() {
                         </div>
                     </div>
                 </div>
+            )}
+            
+            {/* Inline PDF Preview Modal */}
+            {previewPdfId && createPortal(
+                <div className="fixed inset-0 bg-slate-900/80 z-[99999] flex items-center justify-center p-2 sm:p-6 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-5xl h-[95vh] flex flex-col overflow-hidden relative shadow-2xl animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                    <FileText className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-700 dark:text-slate-200">Devis PDF</h3>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => window.open(`/admin/quotes/${previewPdfId}/pdf`, '_blank')}
+                                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 rounded-xl transition-colors hidden sm:flex items-center gap-2 text-sm font-medium"
+                                    title="Deschide în tab nou"
+                                >
+                                    <Link className="w-4 h-4" /> Tab
+                                </button>
+                                <button 
+                                    onClick={() => setPreviewPdfId(null)}
+                                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 rounded-xl transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        {/* iframe */}
+                        <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900 overflow-hidden relative">
+                            {/* Fallback loader behind iframe */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+                            </div>
+                            <iframe 
+                                src={`/admin/quotes/${previewPdfId}/pdf`}
+                                className="w-full h-full relative z-10"
+                                frameBorder="0"
+                                title="Previzualizare Deviz"
+                            />
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
             
             {previewDocs && (
