@@ -1195,7 +1195,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       
                     value={
                         <div className="flex items-center gap-1.5">
-                            <span>{wo.route_distance_km ? `${(wo.route_distance_km).toFixed(1)} km` : '—'}</span>
+                            <span>{(wo.route_distance_km || (wo.route_segments && wo.route_segments.length > 0 && wo.route_segments.reduce((s, seg) => s + (parseFloat(seg.km) || 0), 0))) ? `${(wo.route_distance_km || wo.route_segments.reduce((s, seg) => s + (parseFloat(seg.km) || 0), 0)).toFixed(1)} km` : '—'}</span>
                             {wo.status !== 'completed' && wo.status !== 'cancelled' && (
                                 <button 
                                     onClick={handleRecalculateRoute}
