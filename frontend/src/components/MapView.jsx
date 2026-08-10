@@ -299,7 +299,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                         map: mapInstance.current,
                         suppressMarkers: true,
                         polylineOptions: {
-                            strokeColor: '#3b82f6',
+                            strokeColor: teamColor || '#3b82f6',
                             strokeWeight: 4,
                             strokeOpacity: 0.8
                         }
@@ -324,7 +324,7 @@ const MapView = ({ latitude, longitude, address, height = 300, zoom = 15, geofen
                                 // Fallback to straight line if routing fails
                                 const line = new window.google.maps.Polyline({
                                     path: [startCoords, center],
-                                    strokeColor: '#3b82f6',
+                                    strokeColor: teamColor || '#3b82f6',
                                     strokeOpacity: 0.5,
                                     strokeWeight: 3,
                                     map: mapInstance.current

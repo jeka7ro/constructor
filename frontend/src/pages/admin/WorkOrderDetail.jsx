@@ -200,6 +200,43 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     // TVA toggle — NOT automatic, user controls it
     const [vatEnabled, setVatEnabled] = useState(false)
     const [vatType, setVatType] = useState('21') // '21', '6', '0'
+
+    const [gpsArrival, setGpsArrival] = useState(null)
+    const [loadingGpsArrival, setLoadingGpsArrival] = useState(false)
+
+    useEffect(() => {
+        if (!wo || !wo.start_date || !wo.assigned_team_id) return;
+        let mounted = true;
+        
+        const fetchGps = async () => {
+            setLoadingGpsArrival(true)
+            try {
+                // Fetch daily GPS info for all vehicles
+                const res = await api.get(`/admin/gps-verification/daily?date=${wo.start_date}`, { validateStatus: () => true })
+                if (mounted && res.status === 200 && res.data.results) {
+                    
+                    let foundWo = null;
+                    // Look through all vehicles' itineraries to find any vehicle that stopped at this work order
+                    for (const vehicleRes of res.data.results) {
+                        if (vehicleRes.itinerary) {
+                            const match = vehicleRes.itinerary.find(w => w.type === 'work_order' && w.name === wo.client_name)
+                            if (match && match.arrived) {
+                                foundWo = match;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (foundWo) {
+                        setGpsArrival(foundWo)
+                    }
+                }
+            } catch(e) {}
+            if (mounted) setLoadingGpsArrival(false)
+        }
+        fetchGps()
+        return () => { mounted = false }
+    }, [wo])
     const [signatureConfirm, setSignatureConfirm] = useState(false)
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showCamera, setShowCamera] = useState(false)
@@ -657,58 +694,60 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             return;
         }
 
-        const directionsService = new window.google.maps.DirectionsService();
-        directionsService.route({
-            origin: { lat: startLat, lng: startLng },
-            destination: { lat: endLat, lng: endLng },
-            travelMode: window.google.maps.TravelMode.DRIVING,
-        }, async (result, status) => {
-            if (status === 'OK') {
-                const route = result.routes[0];
-                const distanceKm = route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000;
-                const roundTrip = distanceKm * 2;
-                
-                const newRouteSegments = [
-                    {
-                        from: "H&H Resources Brussels",
-                        to: wo.site_address || wo.title,
-                        km: parseFloat(distanceKm.toFixed(2)),
-                        from_lat: startLat,
-                        from_lng: startLng
-                    },
-                    {
-                        from: wo.site_address || wo.title,
-                        to: "Baza",
-                        km: parseFloat(distanceKm.toFixed(2)),
-                        from_lat: endLat,
-                        from_lng: endLng
-                    }
-                ];
+        fetch(`https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=false`)
+            .then(res => res.json())
+            .then(async data => {
+                if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    const distanceKm = route.distance / 1000;
+                    const roundTrip = distanceKm * 2;
+                    
+                    const newRouteSegments = [
+                        {
+                            from: "H&H Resources Brussels",
+                            to: wo.site_address || wo.title,
+                            km: parseFloat(distanceKm.toFixed(2)),
+                            from_lat: startLat,
+                            from_lng: startLng
+                        },
+                        {
+                            from: wo.site_address || wo.title,
+                            to: "Baza",
+                            km: parseFloat(distanceKm.toFixed(2)),
+                            from_lat: endLat,
+                            from_lng: endLng
+                        }
+                    ];
 
-                try {
-                    // Un singur PUT cu TOATE datele: coordonate + distanță + segmente
-                    await api.put(`/admin/work-orders/${id}`, { 
-                        site_latitude: endLat,
-                        site_longitude: endLng,
-                        route_distance_km: roundTrip,
-                        route_segments: newRouteSegments
-                    });
-                    setWo(prev => ({ 
-                        ...prev, 
-                        route_distance_km: roundTrip,
-                        route_segments: newRouteSegments,
-                        site_latitude: endLat,
-                        site_longitude: endLng
-                    }));
-                    showToast(t('work_order_detail.route_updated', 'La distance a été recalculée et sauvegardée.'), 'success');
-                } catch (e) {
-                    showToast('Erreur', 'error');
+                    try {
+                        await api.put(`/admin/work-orders/${id}`, { 
+                            site_latitude: endLat,
+                            site_longitude: endLng,
+                            route_distance_km: roundTrip,
+                            route_segments: newRouteSegments
+                        });
+                        setWo(prev => ({ 
+                            ...prev, 
+                            route_distance_km: roundTrip,
+                            route_segments: newRouteSegments,
+                            site_latitude: endLat,
+                            site_longitude: endLng
+                        }));
+                        showToast(t('work_order_detail.route_updated', 'La distance a été recalculée et sauvegardée.'), 'success');
+                    } catch (e) {
+                        showToast('Erreur', 'error');
+                    }
+                } else {
+                    showToast(t('work_order_detail.route_not_found', 'Impossible de calculer l\'itinéraire (API).'), 'error');
                 }
-            } else {
+            })
+            .catch(err => {
+                console.error('OSRM route error:', err);
                 showToast(t('work_order_detail.route_not_found', 'Impossible de calculer l\'itinéraire (API).'), 'error');
-            }
-            setIsRecalculatingRoute(false);
-        });
+            })
+            .finally(() => {
+                setIsRecalculatingRoute(false);
+            });
     };
 
 
@@ -831,9 +870,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     // ── Funcție unică de calcul (aceeași formulă pentru deviz și factură) ──────
     const computeChapeTotal = (surface, thickness, flags, prices) => {
         if (!surface || surface <= 0) return { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, extraThick: 0 };
-        const extraThick = Math.max(0, thickness - 5);
+        const standardThick = parseFloat(prices?.standard_thickness || 5);
+        const extraThick = Math.max(0, thickness - standardThick);
         const base  = parseFloat(prices?.base  || 12.5) * surface;
-        const extra = extraThick * parseFloat(prices?.extra || 1.25) * surface;
+        
+        let extraRate = 0;
+        if (prices?.extra_large !== undefined && prices?.extra_threshold !== undefined) {
+            extraRate = surface > parseFloat(prices.extra_threshold) ? parseFloat(prices.extra_large) : parseFloat(prices.extra);
+        } else {
+            extraRate = parseFloat(prices?.extra || 1.25);
+        }
+        const extra = extraThick * extraRate * surface;
         const foil  = flags?.has_foil  ? parseFloat(prices?.foil  || 1.2) * surface : 0;
         const mesh  = flags?.has_mesh  ? parseFloat(prices?.mesh  || 2.5) * surface : 0;
         let fiberRate = 0;
@@ -1222,20 +1269,10 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <KPI icon={Package}  label={matLabel}       value={matValue}         sub={matSub}           color="amber" />
                 <KPI icon={BarChart2} label={t('work_order_detail.kpi.volume', 'Volume')}         value={volumeTotal > 0 ? volumeTotal : '—'} sub={volSub} color="green" />
                 <KPI icon={Layers}   label={t('work_order_detail.kpi.thickness', 'Épaisseur')}        value={maxThickness > 0 ? `${maxThickness.toFixed(1)} cm` : '—'} sub={t('work_order_detail.kpi.avg', 'moyenne')} color="rose" />
-                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.route', 'Itinéraire')}       
+                <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.base_dist', 'Distance Base')}       
                     value={
                         <div className="flex items-center gap-1.5">
-                            <span>{(wo.route_distance_km || (wo.route_segments && wo.route_segments.length > 0 && wo.route_segments.reduce((s, seg) => s + (parseFloat(seg.km) || 0), 0))) ? `${(wo.route_distance_km || wo.route_segments.reduce((s, seg) => s + (parseFloat(seg.km) || 0), 0)).toFixed(1)} km` : '—'}</span>
-                            {wo.status !== 'completed' && wo.status !== 'cancelled' && (
-                                <button 
-                                    onClick={handleRecalculateRoute}
-                                    disabled={isRecalculatingRoute}
-                                    title={t('work_order_detail.recalculate', 'Recalculer l\'itinéraire')}
-                                    className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-blue-500 transition-colors ${isRecalculatingRoute ? 'opacity-50 animate-spin' : ''}`}
-                                >
-                                    <RefreshCw className="w-3.5 h-3.5" />
-                                </button>
-                            )}
+                            <span>{wo.prices?.distance_km ? `${parseFloat(wo.prices.distance_km).toFixed(1)} km` : '—'}</span>
                         </div>
                     } 
                     sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
@@ -1346,8 +1383,25 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div>
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{t('work_order_detail.planning.schedule', 'Orar Planificat')}</p>
                                     <div className="flex items-baseline gap-1 text-xs">
-                                        <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(wo.start_date)}</span>
-                                        
+                                        <span className="font-bold text-slate-700 dark:text-slate-200">{fmt(wo.start_date)}</span> {wo.start_time ? <span className="font-semibold text-slate-500"> {wo.start_time}</span> : ''}
+                                    </div>
+                                    <div className="mt-1.5 p-1.5 bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-100 dark:border-slate-700/50">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                            <Navigation className="w-2.5 h-2.5" /> 
+                                            Ora Reală Sosire (GPS)
+                                        </p>
+                                        <div className="text-xs font-bold">
+                                            {loadingGpsArrival ? (
+                                                <span className="text-slate-400 italic">Se verifică GPS...</span>
+                                            ) : gpsArrival?.arrived ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                    {wo.start_date ? new Date(wo.start_date).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}, {gpsArrival.arrived}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-400 italic">Nu există date GPS</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2">
@@ -1380,14 +1434,14 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="relative pl-5 space-y-1.5 before:absolute before:inset-y-2 before:left-[9px] before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                             {wo.route_segments.map((seg, idx) => (
                                                 <div key={idx} className="relative">
-                                                    <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-800 shadow-sm"></div>
+                                                    <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-fuchsia-500 ring-2 ring-white dark:ring-slate-800 shadow-sm"></div>
                                                     <div className="bg-slate-50 dark:bg-slate-700/40 rounded-lg px-2 py-1 border border-slate-100 dark:border-slate-700/50 flex items-center justify-between gap-1 min-w-0">
                                                         <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight min-w-0 flex-1">
                                                             <span className="block truncate">{seg.from}</span>
                                                             <span className="text-slate-400">→ </span>
                                                             <span className="block truncate">{seg.to}</span>
                                                         </p>
-                                                        <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">{seg.km} km</span>
+                                                        <span className="text-[9px] font-black text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/30 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">{seg.km} km</span>
                                                     </div>
                                                 </div>
                                             ))}

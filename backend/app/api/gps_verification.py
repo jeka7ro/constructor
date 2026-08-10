@@ -5,6 +5,7 @@ import httpx
 import os
 import math
 from datetime import datetime, timezone, timedelta
+import pytz
 from typing import List
 
 from fastapi import APIRouter, Depends, Query
@@ -141,7 +142,8 @@ def fetch_flespi_track(imei: str, date_str: str, flespi_data: dict) -> List[dict
         if lat is None or lng is None:
             continue
         speed = float(msg.get("position.speed") or 0)
-        local_dt = datetime.fromtimestamp(ts, tz=timezone.utc) + timedelta(hours=2)
+        brussels = pytz.timezone('Europe/Brussels')
+        local_dt = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(brussels)
         points.append({
             "ts": ts, "lat": lat, "lng": lng,
             "speed": round(speed, 1),
@@ -181,8 +183,8 @@ def analyze_site_visit(track, site_lat, site_lng):
         return {"arrived": None, "departed": None, "time_on_site_min": None, "max_speed_nearby": None}
 
     time_on_site_min = round((departure_ts - arrival_ts) / 60) if departure_ts else 0
-    local_arrival = (datetime.fromtimestamp(arrival_ts, tz=timezone.utc) + timedelta(hours=2)).strftime("%H:%M")
-    local_departure = (datetime.fromtimestamp(departure_ts, tz=timezone.utc) + timedelta(hours=2)).strftime("%H:%M") if departure_ts else None
+    local_arrival = datetime.fromtimestamp(arrival_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M")
+    local_departure = datetime.fromtimestamp(departure_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M") if departure_ts else None
 
     return {
         "arrived": local_arrival,
@@ -257,8 +259,8 @@ def build_itinerary(track, base, orders):
                 last_seen_ts = pt["ts"]
             else:
                 if pt["ts"] - last_seen_ts > 300:
-                    local_arr = (datetime.fromtimestamp(arrival_ts, tz=timezone.utc) + timedelta(hours=2)).strftime("%H:%M")
-                    local_dep = (datetime.fromtimestamp(last_seen_ts, tz=timezone.utc) + timedelta(hours=2)).strftime("%H:%M")
+                    local_arr = datetime.fromtimestamp(arrival_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M")
+                    local_dep = datetime.fromtimestamp(last_seen_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M")
                     itinerary.append({
                         "type": current_poi["type"],
                         "name": current_poi["name"],
@@ -280,8 +282,8 @@ def build_itinerary(track, base, orders):
                 last_seen_ts = pt["ts"]
 
     if current_poi and last_seen_ts > arrival_ts:
-        local_arr = (datetime.fromtimestamp(arrival_ts, tz=timezone.utc) + timedelta(hours=2)).strftime("%H:%M")
-        local_dep = (datetime.fromtimestamp(last_seen_ts, tz=timezone.utc) + timedelta(hours=2)).strftime("%H:%M")
+        local_arr = datetime.fromtimestamp(arrival_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M")
+        local_dep = datetime.fromtimestamp(last_seen_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M")
         itinerary.append({
             "type": current_poi["type"],
             "name": current_poi["name"],
@@ -347,18 +349,29 @@ def daily_verification(
         results = []
 
         for vehicle in vehicles:
-            wo_sample = db.query(WorkOrder).filter(
-                WorkOrder.assigned_vehicle_id == vehicle.id,
-                WorkOrder.assigned_team_id.isnot(None)
-            ).order_by(WorkOrder.created_at.desc()).first()
-
+            # 1. Try to find team from active VehicleUserAssignments (via team leader)
+            from app.models import VehicleUserAssignment, User, Team, LogisticBase
+            vua = db.query(VehicleUserAssignment).filter(
+                VehicleUserAssignment.vehicle_id == vehicle.id,
+                VehicleUserAssignment.is_active == True
+            ).first()
+            
             team = None
             base = None
-            if wo_sample:
-                team = db.query(Team).filter(Team.id == wo_sample.assigned_team_id).first()
-                if team and getattr(team, 'base_id', None):
-                    from app.models import LogisticBase
-                    base = db.query(LogisticBase).filter(LogisticBase.id == team.base_id).first()
+            if vua:
+                team = db.query(Team).filter(Team.team_leader_id == vua.user_id).first()
+                
+            # 2. Fallback: check recent work orders assigned to this vehicle
+            if not team:
+                wo_sample = db.query(WorkOrder).filter(
+                    WorkOrder.assigned_vehicle_id == vehicle.id,
+                    WorkOrder.assigned_team_id.isnot(None)
+                ).order_by(WorkOrder.created_at.desc()).first()
+                if wo_sample:
+                    team = db.query(Team).filter(Team.id == wo_sample.assigned_team_id).first()
+                    
+            if team and getattr(team, 'base_id', None):
+                base = db.query(LogisticBase).filter(LogisticBase.id == team.base_id).first()
 
             try:
                 from datetime import date as dt_date
@@ -366,8 +379,9 @@ def daily_verification(
             except ValueError:
                 continue
 
+            # We fetch ALL work orders for the day, so that even if a team took a different 
+            # vehicle than their assigned one, we still detect their arrival at the site.
             orders = db.query(WorkOrder).filter(
-                WorkOrder.assigned_vehicle_id == vehicle.id,
                 WorkOrder.start_date == day_obj,
                 WorkOrder.is_quote == False,
                 WorkOrder.status.notin_(["cancelled"]),
