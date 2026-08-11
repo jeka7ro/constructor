@@ -3137,7 +3137,15 @@ export default function AdminOverview() {
                                         </div>
                                     ), sortable: true, sortValue: (row) => row.created_at, render: (row) => (
                                         <div>
-                                            <div className="font-mono text-xs font-semibold text-blue-600">{row.quote_number || (row.id || '').substring(0,8).toUpperCase()}</div>
+                                            <div className="font-mono text-xs font-semibold text-blue-600 flex items-center gap-1.5">
+                                                {row.quote_number || (row.id || '').substring(0,8).toUpperCase()}
+                                                {row.source_system && (
+                                                    <span 
+                                                        className={`w-2 h-2 rounded-full shrink-0 ${row.source_system.includes('we-r') || row.source_system.includes('calculator') ? 'bg-amber-500' : 'bg-blue-500'}`} 
+                                                        title={row.source_system.replace('_', ' ').toUpperCase()} 
+                                                    />
+                                                )}
+                                            </div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 flex-wrap">
                                                 <span className="whitespace-nowrap">{row.created_at ? new Date(row.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : '-'}</span>
                                             </div>
@@ -3146,13 +3154,13 @@ export default function AdminOverview() {
                                     { key: 'client_name', label: t('quotes.client', 'Client'), sortable: true, render: (row) => (
                                         <div>
                                             <div className="font-semibold text-slate-900">{row.client_name}</div>
-                                            {row.source_system ? (
-                                                <div className="text-[10px] font-bold uppercase" style={{ color: row.source_system.includes('calculator') || row.source_system.includes('we-r') ? '#d97706' : '#2563eb' }}>
-                                                    {row.source_system.replace('_', ' ')}
+                                            {row.approximate_date ? (
+                                                <div className="text-[10px] text-blue-600 font-medium truncate max-w-[150px]" title={row.approximate_date}>
+                                                    {row.approximate_date}
                                                 </div>
-                                            ) : (
+                                            ) : !row.source_system ? (
                                                 <div className="text-[10px] text-slate-400 italic">Manual</div>
-                                            )}
+                                            ) : null}
                                         </div>
                                     )},
                                     { key: 'address', label: t('quotes.address', 'Adresă'), sortable: true, sortValue: (row) => row.site_address, render: (row) => (
@@ -3200,9 +3208,11 @@ export default function AdminOverview() {
                                         </div>
                                     )},
                                     { key: 'price', label: t('quotes.price', 'Preț (€)'), sortable: true, sortValue: (row) => parseFloat(row.estimated_price || 0), render: (row) => (
-                                        <span className="font-bold text-slate-900 whitespace-nowrap">
-                                            {row.estimated_price ? `${parseFloat(row.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
-                                        </span>
+                                        <div>
+                                            <div className="font-bold text-slate-900 whitespace-nowrap">
+                                                {row.estimated_price ? `${parseFloat(row.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
+                                            </div>
+                                        </div>
                                     )},
                                     { key: 'actions', label: t('common.actions', 'Acțiuni'), render: (row) => (
                                         <div className="flex items-center gap-1">
