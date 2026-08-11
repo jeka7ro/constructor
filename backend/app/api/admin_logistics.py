@@ -467,9 +467,10 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                     if geocoded:
                         w_lat, w_lng = geocoded
                         # Persist coords so next load is instant
-                        w.site_latitude = w_lat
-                        w.site_longitude = w_lng
-                        db.add(w)
+                        if not is_past:
+                            w.site_latitude = w_lat
+                            w.site_longitude = w_lng
+                            db.add(w)
 
                 if w_lat and w_lng:
                     dist_from_prev = 0
@@ -481,7 +482,6 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                         
                         # Salvăm distanța pentru referințe externe (dacă e nevoie pe viitor)
                         # Eliminat: w.route_distance_km = dist_from_prev (afectează facturarea/PDF-ul clientului)
-                        w.route_sand_kg = sand_kg
                         
                         team_distance_km += dist_from_prev
                         segment = {
@@ -491,11 +491,14 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                             "from_lat": last_lat,
                             "from_lng": last_lng
                         }
-                        # Salvează segmentul direct pe Work Order pentru a reflecta progresul real pe parcursul zilei
-                        w.route_segments = [segment]
-                        flag_modified(w, "route_segments")
-                        # Sincronizează route_distance_km cu suma segmentelor pentru KPI
-                        w.route_distance_km = sum(s.get("km", 0) for s in w.route_segments)
+                        
+                        if not is_past:
+                            w.route_sand_kg = sand_kg
+                            # Salvează segmentul direct pe Work Order pentru a reflecta progresul real pe parcursul zilei
+                            w.route_segments = [segment]
+                            flag_modified(w, "route_segments")
+                            # Sincronizează route_distance_km cu suma segmentelor pentru KPI
+                            w.route_distance_km = sum(s.get("km", 0) for s in w.route_segments)
                 
                     waypoints.append({
                         "type": "work",
@@ -539,7 +542,7 @@ def _calculate_daily_routes(target_date: date, db: Session, admin, is_past: bool
                 else:
                     return_dist = osrm_distance(last_lat, last_lng, base.latitude, base.longitude)
                     # Persistăm segmentul de retur cu flag_modified
-                    if last_wo:
+                    if last_wo and not is_past:
                         segments = list(last_wo.route_segments) if last_wo.route_segments else []
                         segments.append({
                             "from": last_name,

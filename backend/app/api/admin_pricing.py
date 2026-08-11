@@ -22,6 +22,8 @@ class PricingSettingSchema(BaseModel):
     base_price_sqm_large: float
     base_large_threshold_sqm: float
     extra_thickness_price_per_cm: float
+    extra_thickness_price_per_cm_large: float
+    extra_thickness_large_threshold_sqm: float
     standard_thickness_cm: float
     plastic_foil_price_sqm: float
     metal_mesh_price_sqm: float
@@ -92,6 +94,8 @@ def get_pricing_settings(
         "base_price_sqm_large": setting.base_price_sqm_large if setting.base_price_sqm_large is not None else setting.base_price_sqm,
         "base_large_threshold_sqm": setting.base_large_threshold_sqm if setting.base_large_threshold_sqm is not None else 200.0,
         "extra_thickness_price_per_cm": setting.extra_thickness_price_per_cm,
+        "extra_thickness_price_per_cm_large": setting.extra_thickness_price_per_cm_large if setting.extra_thickness_price_per_cm_large is not None else setting.extra_thickness_price_per_cm,
+        "extra_thickness_large_threshold_sqm": setting.extra_thickness_large_threshold_sqm if setting.extra_thickness_large_threshold_sqm is not None else 200.0,
         "standard_thickness_cm": setting.standard_thickness_cm,
         "plastic_foil_price_sqm": setting.plastic_foil_price_sqm,
         "metal_mesh_price_sqm": setting.metal_mesh_price_sqm,
@@ -138,6 +142,8 @@ def update_pricing_settings(
             base_price_sqm_large=payload.base_price_sqm_large,
             base_large_threshold_sqm=payload.base_large_threshold_sqm,
             extra_thickness_price_per_cm=payload.extra_thickness_price_per_cm,
+            extra_thickness_price_per_cm_large=payload.extra_thickness_price_per_cm_large,
+            extra_thickness_large_threshold_sqm=payload.extra_thickness_large_threshold_sqm,
             truck_base_address=payload.truck_base_address,
             truck_distance_threshold_km=payload.truck_distance_threshold_km,
             truck_extra_price_flat=payload.truck_extra_price_flat,
@@ -149,6 +155,8 @@ def update_pricing_settings(
     setting.base_price_sqm_large = payload.base_price_sqm_large
     setting.base_large_threshold_sqm = payload.base_large_threshold_sqm
     setting.extra_thickness_price_per_cm = payload.extra_thickness_price_per_cm
+    setting.extra_thickness_price_per_cm_large = payload.extra_thickness_price_per_cm_large
+    setting.extra_thickness_large_threshold_sqm = payload.extra_thickness_large_threshold_sqm
     setting.standard_thickness_cm = payload.standard_thickness_cm
     setting.plastic_foil_price_sqm = payload.plastic_foil_price_sqm
     setting.metal_mesh_price_sqm = payload.metal_mesh_price_sqm

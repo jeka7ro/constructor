@@ -83,11 +83,24 @@ export default function PricingSettingsForm({
                         unit="cm"
                     />
                     <PriceRow
-                        label={t('pricing_settings.extra_thickness_price', 'Prix/cm suppl.')}
-                        sublabel={t('pricing_settings.extra_thickness_sub', 'au-dessus standard')}
+                        label={t('pricing_settings.extra_thickness_price', 'Prix/cm suppl. (petite surf.)')}
+                        sublabel={`≤ ${settings.extra_thickness_large_threshold_sqm} m²`}
                         value={settings.extra_thickness_price_per_cm}
                         onChange={v => onSettingChange('extra_thickness_price_per_cm', v)}
                         unit="€/cm"
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.extra_thickness_price_large', 'Prix/cm suppl. (grande surf.)')}
+                        sublabel={`> ${settings.extra_thickness_large_threshold_sqm} m²`}
+                        value={settings.extra_thickness_price_per_cm_large}
+                        onChange={v => onSettingChange('extra_thickness_price_per_cm_large', v)}
+                        unit="€/cm"
+                    />
+                    <PriceRow
+                        label={t('pricing_settings.extra_thickness_threshold', 'Seuil Grande Surface (Épaisseur)')}
+                        value={settings.extra_thickness_large_threshold_sqm}
+                        onChange={v => onSettingChange('extra_thickness_large_threshold_sqm', v)}
+                        unit="m²"
                     />
 
                     <SectionHeader label={t('pricing_settings.section_options', 'Options')} />

@@ -178,7 +178,9 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
             
         base = base_rate * payload.surface
         extra_thick = max(0, payload.thickness - pricing.standard_thickness_cm)
-        extra_cost = extra_thick * pricing.extra_thickness_price_per_cm * payload.surface
+        extra_thresh = getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0)
+        extra_price = getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm) if payload.surface > extra_thresh else pricing.extra_thickness_price_per_cm
+        extra_cost = extra_thick * extra_price * payload.surface
         foil_cost = pricing.plastic_foil_price_sqm * payload.surface if payload.has_foil else 0
         mesh_cost = pricing.metal_mesh_price_sqm * payload.surface if payload.has_mesh else 0
         

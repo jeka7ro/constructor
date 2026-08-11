@@ -498,7 +498,8 @@ export default function WorkOrderForm() {
             const extraThickness = Math.max(0, thickness - standardThick);
             extraThickForAuto += extraThickness;
             autoBase += (parseFloat(form.prices?.base || pricingSettings?.base_price_sqm || 12.5) * surface);
-            autoExtra += extraThickness * parseFloat(form.prices?.extra || pricingSettings?.extra_thickness_price_per_cm || 1.25) * surface;
+            const extraPrice = parseFloat(form.prices?.extra) || (surface <= (pricingSettings?.extra_thickness_large_threshold_sqm ?? 200) ? (pricingSettings?.extra_thickness_price_per_cm ?? 1.25) : (pricingSettings?.extra_thickness_price_per_cm_large ?? 1.25));
+            autoExtra += extraThickness * extraPrice * surface;
             autoFoil += vol.has_foil ? parseFloat(form.prices?.foil || pricingSettings?.plastic_foil_price_sqm || 1.2) * surface : 0;
             autoMesh += vol.has_mesh ? parseFloat(form.prices?.mesh || pricingSettings?.metal_mesh_price_sqm || 2.5) * surface : 0;
             

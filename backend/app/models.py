@@ -59,6 +59,8 @@ class PricingSetting(Base):
     base_price_sqm_large = Column(Float, default=12.5)
     base_large_threshold_sqm = Column(Float, default=200.0)
     extra_thickness_price_per_cm = Column(Float, default=1.25)
+    extra_thickness_price_per_cm_large = Column(Float, default=1.25)
+    extra_thickness_large_threshold_sqm = Column(Float, default=200.0)
     standard_thickness_cm = Column(Float, default=5.0)
     plastic_foil_price_sqm = Column(Float, default=1.2)
     metal_mesh_price_sqm = Column(Float, default=2.5)

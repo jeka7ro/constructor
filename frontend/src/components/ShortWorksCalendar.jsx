@@ -1273,13 +1273,19 @@ export default function ShortWorksCalendar({
                                             {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
                                             <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                         </div>
+                                        {wo.is_quote && (
+                                            <div className="flex items-center gap-1 mt-0.5 mb-0.5">
+                                                <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" title="Provenit din Devis/Calculator Online" />
+                                                <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400">Devis / Calculator</span>
+                                            </div>
+                                        )}
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none">
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
                                             <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
                                         </div>
                                         <div className="mt-1 flex items-center gap-1.5 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
                                             {getDistanceTextForOrder(wo) && (
-                                                <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                                                <span className="text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 whitespace-nowrap" title="Distanță Rută (Planning)">
                                                     {getDistanceTextForOrder(wo)}
                                                 </span>
                                             )}

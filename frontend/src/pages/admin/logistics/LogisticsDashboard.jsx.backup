@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Truck, MapPin, Map, Navigation, Beaker, Calendar, Loader2, Filter, Layers, ChevronLeft, ChevronRight, Save, CheckCircle2, BarChart3, RefreshCw, X, ExternalLink, Package, Ruler, Maximize2, Minimize2, CloudRain } from 'lucide-react'
 import api from '../../../lib/api'
-import GpsVehicleCard from '../../../components/GpsVehicleCard'
 import { useTenantStore } from '../../../store/tenantStore'
 
 // ── Iconițe vehicule realiste bazate pe tip ──────────────────────────────
@@ -336,21 +335,6 @@ export default function LogisticsDashboard() {
     })
     const [focusedTeamId, setFocusedTeamId] = useState(null)
     const navigate = useNavigate()
-
-    const [gpsVerificationData, setGpsVerificationData] = useState(null)
-    useEffect(() => {
-        const fetchGpsData = async () => {
-            try {
-                const res = await api.get(`/admin/gps-verification/daily?date=${targetDate}&speed_limit=90`, { validateStatus: () => true })
-                if (res.status === 200) {
-                    setGpsVerificationData(res.data)
-                }
-            } catch (e) {
-                console.error('Failed to fetch gps verification data', e)
-            }
-        }
-        fetchGpsData()
-    }, [targetDate])
 
     // Resetează focusul când se schimbă data sau echipele active din lista principală
     useEffect(() => {
@@ -893,16 +877,14 @@ export default function LogisticsDashboard() {
                                                         <div className="font-bold text-slate-900 dark:text-white">{(route.total_sand_kg / 1000).toFixed(1)} t</div>
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800 relative">
-                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 justify-end">
+                                                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                                             <TruckSVG color={route.team_color || '#64748b'} vehicleType={route.vehicle_type} className="w-3.5 h-3.5" />
                                                             {t('logistics.distance', 'Distanţă')}
                                                         </div>
-                                                        <div className="font-bold text-slate-900 dark:text-white" title="Estimare traseu ideal (OSRM)">
-                                                            {Math.round(route.total_distance_km)} <span className="text-[10px] font-normal text-slate-500">km est.</span>
-                                                        </div>
+                                                        <div className="font-bold text-slate-900 dark:text-white">{Math.round(route.total_distance_km)} km</div>
                                                         
                                                         {(() => {
-                                                            // GPS distance — uses gps_trace from route (TripLog snapshot)
+                                                            // GPS deviation badge — uses gps_trace from route (TripLog snapshot)
                                                             const gpsTrace = route.gps_trace;
                                                             if (!gpsTrace || gpsTrace.length === 0) return null;
                                                             // Calculate approximate GPS distance from trace points
@@ -913,18 +895,17 @@ export default function LogisticsDashboard() {
                                                                 gpsTotalKm += Math.sqrt(dx*dx + dy*dy);
                                                             }
                                                             const devKm = gpsTotalKm - route.total_distance_km;
-                                                            return (
-                                                                <div className="flex flex-col items-end mt-1">
-                                                                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400" title="Distanță reală parcursă (GPS)">
-                                                                        {Math.round(gpsTotalKm)} <span className="text-[10px] font-normal">km reali</span>
-                                                                    </div>
-                                                                    {devKm > 5 && (
-                                                                        <span className="text-[9px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1 py-0.5 rounded border border-red-200 mt-1">
-                                                                            +{Math.round(devKm)} km Abatere
+                                                            if (devKm > 5) {
+                                                                return (
+                                                                    <div className="absolute top-2 right-2 flex flex-col items-end">
+                                                                        <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800 animate-pulse" title="Écart de trajet GPS">
+                                                                            +{Math.round(devKm)} km
                                                                         </span>
-                                                                    )}
-                                                                </div>
-                                                            )
+                                                                        <span className="text-[9px] text-red-500 mt-0.5 font-semibold">Écart GPS</span>
+                                                                    </div>
+                                                                )
+                                                            }
+                                                            return null;
                                                         })()}
                                                     </div>
                                                 </div>
@@ -964,19 +945,6 @@ export default function LogisticsDashboard() {
                                                         )})}
                                                     </div>
                                                 )}
-                                                {isActive && gpsVerificationData && gpsVerificationData.results && (() => {
-                                                    const gpsRes = gpsVerificationData.results.find(r => r.team_id === route.team_id)
-                                                    if (!gpsRes) return null;
-                                                    return (
-                                                        <div className="mt-4 -mx-2 border-t border-slate-200 dark:border-slate-700 pt-4">
-                                                            <div className="text-xs font-black uppercase text-slate-500 mb-2 px-2">Desfășurător Ziua Curentă (GPS)</div>
-                                                            <div className="px-2">
-                                                                <GpsVehicleCard result={gpsRes} />
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })()}
-
                                                 </div>
                                             </div>
                                         )
