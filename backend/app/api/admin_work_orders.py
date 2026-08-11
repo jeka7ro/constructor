@@ -187,7 +187,9 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "photos": [],
         "proforma_data": None,
         "prices": wo.prices or {},
+        "distance_km": (wo.prices or {}).get("distance_km") if isinstance(wo.prices, dict) else None,
         "route_distance_km": wo.route_distance_km,
+        "created_at": str(wo.created_at) if wo.created_at else None,
         "route_segments": wo.route_segments,
         "route_sand_kg": wo.route_sand_kg,
         "access_notes": wo.access_notes,
@@ -262,7 +264,7 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
     if db is not None:
         pricing = db.query(PricingSetting).filter(
             PricingSetting.organization_id == wo.organization_id,
-            PricingSetting.client_id == (wo.client_id if wo.client_id else None)
+            PricingSetting.client_id == (wo.client_id if wo.client else None)
         ).first()
         if not pricing:
             pricing = db.query(PricingSetting).filter(
@@ -276,10 +278,14 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
             if not wo.is_invoiced:
                 if 'base' not in wo_prices and pricing.base_price_sqm is not None: wo_prices['base'] = float(pricing.base_price_sqm)
                 if 'extra' not in wo_prices and pricing.extra_thickness_price_per_cm is not None: wo_prices['extra'] = float(pricing.extra_thickness_price_per_cm)
+                if 'extra_large' not in wo_prices and getattr(pricing, 'extra_thickness_price_per_cm_large', None) is not None: 
+                    wo_prices['extra_large'] = float(pricing.extra_thickness_price_per_cm_large)
+                if 'extra_threshold' not in wo_prices and getattr(pricing, 'extra_thickness_large_threshold_sqm', None) is not None: 
+                    wo_prices['extra_threshold'] = float(pricing.extra_thickness_large_threshold_sqm)
+                if 'standard_thickness' not in wo_prices and pricing.standard_thickness_cm is not None: wo_prices['standard_thickness'] = float(pricing.standard_thickness_cm)
                 if 'foil' not in wo_prices and pricing.plastic_foil_price_sqm is not None: wo_prices['foil'] = float(pricing.plastic_foil_price_sqm)
                 if 'mesh' not in wo_prices and pricing.metal_mesh_price_sqm is not None: wo_prices['mesh'] = float(pricing.metal_mesh_price_sqm)
                 if 'fiber' not in wo_prices and pricing.fiber_price_sqm is not None: wo_prices['fiber'] = float(pricing.fiber_price_sqm)
-                if 'standard_thickness' not in wo_prices and pricing.standard_thickness_cm is not None: wo_prices['standard_thickness'] = float(pricing.standard_thickness_cm)
             
             # Adaugam restul setarilor (TVA, praguri) daca lipsesc
             if 'surface_thresholds' not in wo_prices and pricing.surface_thresholds:
@@ -349,7 +355,9 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
                     extra_thick = max(0.0, thick - std_thick)
                     items_calc.append({'qty': surface, 'price': float(p.get('base') or 12.5)})
                     if extra_thick > 0:
-                        items_calc.append({'qty': surface, 'price': extra_thick * float(p.get('extra_thickness_price_per_cm') or p.get('extra') or 1.25)})
+                        extra_thresh = float(p.get('extra_threshold') or 200)
+                        extra_price = float(p.get('extra_large') or p.get('extra') or 1.25) if surface > extra_thresh else float(p.get('extra') or 1.25)
+                        items_calc.append({'qty': surface, 'price': extra_thick * extra_price})
                     if vol.get('has_foil'):
                         items_calc.append({'qty': surface, 'price': float(p.get('foil') or 1.2)})
                     if vol.get('has_mesh'):
@@ -884,12 +892,29 @@ def create_work_order(
                 pass
 
         if base_lat and base_lng and not wo.route_segments:
+            import math
+            def _local_haversine(lat1, lon1, lat2, lon2):
+                R = 6371
+                dLat = math.radians(lat2 - lat1)
+                dLon = math.radians(lon2 - lon1)
+                a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2)**2
+                return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            
+            site_lat = wo.site_latitude
+            site_lng = wo.site_longitude
+            one_way_km = 0.0
+            
+            if site_lat and site_lng:
+                straight_km = _local_haversine(base_lat, base_lng, site_lat, site_lng)
+                one_way_km = round(straight_km * 1.3, 2)
+                wo.route_distance_km = round(one_way_km * 2, 2)
+
             # Fallback so frontend MapView knows where the base is and can draw the route
             wo.route_segments = [
                 {
                     "from": base_name,
                     "to": wo.site_address or wo.title,
-                    "km": 0,
+                    "km": one_way_km,
                     "from_lat": base_lat,
                     "from_lng": base_lng
                 }
@@ -1234,12 +1259,29 @@ def update_work_order(
                 pass
 
         if base_lat and base_lng and not wo.route_segments:
+            import math
+            def _local_haversine(lat1, lon1, lat2, lon2):
+                R = 6371
+                dLat = math.radians(lat2 - lat1)
+                dLon = math.radians(lon2 - lon1)
+                a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2)**2
+                return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            
+            site_lat = wo.site_latitude
+            site_lng = wo.site_longitude
+            one_way_km = 0.0
+            
+            if site_lat and site_lng:
+                straight_km = _local_haversine(base_lat, base_lng, site_lat, site_lng)
+                one_way_km = round(straight_km * 1.3, 2)
+                wo.route_distance_km = round(one_way_km * 2, 2)
+
             # Fallback so frontend MapView knows where the base is and can draw the route
             wo.route_segments = [
                 {
                     "from": base_name,
                     "to": wo.site_address or wo.title,
-                    "km": 0,
+                    "km": one_way_km,
                     "from_lat": base_lat,
                     "from_lng": base_lng
                 }
@@ -1429,6 +1471,8 @@ def sync_work_order_prices(
             "base_large": pricing.base_price_sqm_large,
             "base_threshold": pricing.base_large_threshold_sqm,
             "extra": pricing.extra_thickness_price_per_cm,
+            "extra_large": getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm),
+            "extra_threshold": getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0),
             "standard_thickness": pricing.standard_thickness_cm,
             "foil": pricing.plastic_foil_price_sqm,
             "mesh": pricing.metal_mesh_price_sqm,
@@ -1447,7 +1491,9 @@ def sync_work_order_prices(
                     base = quantity * base_rate
                     
                     extra_cm = max(0, thickness - pricing.standard_thickness_cm)
-                    extra_cost = quantity * extra_cm * pricing.extra_thickness_price_per_cm
+                    extra_thresh = getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0)
+                    extra_price = getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm) if quantity > extra_thresh else pricing.extra_thickness_price_per_cm
+                    extra_cost = quantity * extra_cm * extra_price
                     
                     foil_cost = quantity * pricing.plastic_foil_price_sqm if vol.get('has_foil') else 0
                     mesh_cost = quantity * pricing.metal_mesh_price_sqm if vol.get('has_mesh') else 0
