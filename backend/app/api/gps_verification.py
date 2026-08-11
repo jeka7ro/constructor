@@ -346,6 +346,28 @@ def daily_verification(
             traceback.print_exc()
             return {"error": f"GPS data fetch failed: {str(e)}", "results": []}
 
+        # PRE-COMPUTE DATA OUTSIDE THE VEHICLE LOOP TO PREVENT O(N^2) CPU HANGS AND DB POOL EXHAUSTION
+        try:
+            from datetime import date as dt_date
+            day_obj = dt_date.fromisoformat(date)
+        except ValueError:
+            return {"error": "Invalid date format", "results": []}
+
+        all_orders_for_day = db.query(WorkOrder).filter(
+            WorkOrder.start_date == day_obj,
+            WorkOrder.is_quote == False,
+            WorkOrder.status.notin_(["cancelled"]),
+        ).order_by(WorkOrder.start_time.asc()).all()
+
+        flespi_grouped = {}
+        for msg in flespi_data.get("result", []):
+            imei_val = str(msg.get("ident", ""))
+            if not imei_val:
+                continue
+            if imei_val not in flespi_grouped:
+                flespi_grouped[imei_val] = {"result": []}
+            flespi_grouped[imei_val]["result"].append(msg)
+
         results = []
 
         for vehicle in vehicles:
@@ -373,21 +395,12 @@ def daily_verification(
             if team and getattr(team, 'base_id', None):
                 base = db.query(LogisticBase).filter(LogisticBase.id == team.base_id).first()
 
-            try:
-                from datetime import date as dt_date
-                day_obj = dt_date.fromisoformat(date)
-            except ValueError:
-                continue
+            # We use the pre-fetched orders for the day to prevent 50+ DB queries
+            orders = all_orders_for_day
 
-            # We fetch ALL work orders for the day, so that even if a team took a different 
-            # vehicle than their assigned one, we still detect their arrival at the site.
-            orders = db.query(WorkOrder).filter(
-                WorkOrder.start_date == day_obj,
-                WorkOrder.is_quote == False,
-                WorkOrder.status.notin_(["cancelled"]),
-            ).order_by(WorkOrder.start_time.asc()).all()
-
-            track = fetch_flespi_track(vehicle.imei, date, flespi_data)
+            # Use the pre-grouped flespi data to prevent O(N^2) parsing loop
+            vehicle_flespi_data = flespi_grouped.get(str(vehicle.imei), {"result": []})
+            track = fetch_flespi_track(vehicle.imei, date, vehicle_flespi_data)
             
             # Skip OSM Overpass dynamic speed limits — too slow (30s+ per vehicle)
             # Use only the user-configured speed_limit parameter
