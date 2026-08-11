@@ -3180,7 +3180,7 @@ export default function AdminOverview() {
                                         </div>
                                     )},
                                     { key: 'price', label: t('quotes.price', 'Preț (€)'), sortable: true, sortKey: (row) => parseFloat(row.estimated_price || 0), render: (row) => (
-                                        <span className="font-bold text-slate-900">
+                                        <span className="font-bold text-slate-900 whitespace-nowrap">
                                             {row.estimated_price ? `${parseFloat(row.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
                                         </span>
                                     )},
