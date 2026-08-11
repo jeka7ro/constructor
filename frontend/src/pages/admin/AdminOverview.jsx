@@ -3138,10 +3138,16 @@ export default function AdminOverview() {
                                     ), sortable: true, sortValue: (row) => row.created_at, render: (row) => (
                                         <div>
                                             <div className="flex items-center gap-1.5 mb-0.5">
-                                                <span className="font-mono text-xs font-semibold text-blue-600">{row.quote_number || (row.id || '').substring(0,8).toUpperCase()}</span>
-                                                {row.source_system && (
-                                                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0 ${row.source_system.includes('we-r') || row.source_system.includes('calculator') ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                        {row.source_system.replace('_', ' ')}
+                                                {row.source_system ? (
+                                                    <span 
+                                                        title={row.source_system.replace('_', ' ').toUpperCase()}
+                                                        className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-bold shrink-0 ${row.source_system.includes('we-r') || row.source_system.includes('calculator') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}
+                                                    >
+                                                        {row.quote_number || (row.id || '').substring(0,8).toUpperCase()}
+                                                    </span>
+                                                ) : (
+                                                    <span className="font-mono text-xs font-semibold text-blue-600">
+                                                        {row.quote_number || (row.id || '').substring(0,8).toUpperCase()}
                                                     </span>
                                                 )}
                                             </div>
