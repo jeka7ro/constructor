@@ -565,7 +565,7 @@ export default function DevisOnline() {
 
                                 {/* Yes / No buttons */}
                                 {!formData.needs_isolation && !formData.isolation_type && (
-                                    <div className="space-y-4 mt-auto">
+                                    <>
                                         <div className="grid grid-cols-2 gap-4">
                                             <button type="button" onClick={() => { setFormData(p => ({ ...p, needs_isolation: true })); }}
                                                 className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col items-center gap-3">
@@ -581,40 +581,42 @@ export default function DevisOnline() {
                                             </button>
                                         </div>
                                         <button type="button" onClick={() => setStep(1)}
-                                            className="text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+                                            className="mt-auto pt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1 w-fit">
                                             <ChevronLeft className="w-4 h-4" /> {t('common.back', 'Retour')}
                                         </button>
-                                    </div>
+                                    </>
                                 )}
 
                                 {/* PUR vs EPS choice */}
                                 {formData.needs_isolation && !formData.isolation_type && (
-                                    <div className="space-y-4">
-                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('calculator.isolation_choose', "Type d'isolation")}</label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: 'pur' }))}
-                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center gap-3">
-                                                <Wind className="w-8 h-8 text-indigo-500" />
-                                                <span className="font-bold text-base text-slate-900">PUR</span>
-                                                <span className="text-xs text-slate-500 text-center">{t('calculator.pur_desc', 'Mousse polyuréthane projetée')}</span>
-                                            </button>
-                                            <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: 'eps' }))}
-                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-emerald-400 hover:bg-emerald-50 transition-all flex flex-col items-center gap-3">
-                                                <Thermometer className="w-8 h-8 text-emerald-500" />
-                                                <span className="font-bold text-base text-slate-900">EPS</span>
-                                                <span className="text-xs text-slate-500 text-center">{t('calculator.eps_desc', 'Polystyrène expansé')}</span>
-                                            </button>
+                                    <>
+                                        <div className="space-y-4">
+                                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('calculator.isolation_choose', "Type d'isolation")}</label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: 'pur' }))}
+                                                    className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center gap-3">
+                                                    <Wind className="w-8 h-8 text-indigo-500" />
+                                                    <span className="font-bold text-base text-slate-900">PUR</span>
+                                                    <span className="text-xs text-slate-500 text-center">{t('calculator.pur_desc', 'Mousse polyuréthane projetée')}</span>
+                                                </button>
+                                                <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: 'eps' }))}
+                                                    className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-emerald-400 hover:bg-emerald-50 transition-all flex flex-col items-center gap-3">
+                                                    <Thermometer className="w-8 h-8 text-emerald-500" />
+                                                    <span className="font-bold text-base text-slate-900">EPS</span>
+                                                    <span className="text-xs text-slate-500 text-center">{t('calculator.eps_desc', 'Polystyrène expansé')}</span>
+                                                </button>
+                                            </div>
                                         </div>
                                         <button type="button" onClick={() => setFormData(p => ({ ...p, needs_isolation: false, isolation_type: '' }))}
-                                            className="text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+                                            className="mt-auto pt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1 w-fit">
                                             <ChevronLeft className="w-4 h-4" /> {t('common.back', 'Retour')}
                                         </button>
-                                    </div>
+                                    </>
                                 )}
 
                                 {/* PUR Form */}
                                 {formData.isolation_type === 'pur' && (
-                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                    <div className="space-y-4 animate-in fade-in duration-200 flex-1 flex flex-col">
                                         <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
                                             <Wind className="w-5 h-5 text-indigo-600" />
                                             <span className="font-bold text-sm text-indigo-900">{t('calculator.pur_selected', 'Isolation PUR sélectionnée')}</span>
@@ -656,7 +658,7 @@ export default function DevisOnline() {
                                                 </label>
                                             ))}
                                         </div>
-                                        <div className="flex gap-3">
+                                        <div className="flex gap-3 mt-auto pt-4">
                                             <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: '' }))}
                                                 className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
                                                 <ChevronLeft className="w-5 h-5" /> {t('common.back', 'Retour')}
@@ -675,7 +677,7 @@ export default function DevisOnline() {
 
                                 {/* EPS Form */}
                                 {formData.isolation_type === 'eps' && (
-                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                    <div className="space-y-4 animate-in fade-in duration-200 flex-1 flex flex-col">
                                         <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
                                             <Thermometer className="w-5 h-5 text-emerald-600" />
                                             <span className="font-bold text-sm text-emerald-900">{t('calculator.eps_selected', 'Isolation EPS sélectionnée')}</span>
@@ -702,7 +704,7 @@ export default function DevisOnline() {
                                                 </span>
                                             </div>
                                         )}
-                                        <div className="flex gap-3">
+                                        <div className="flex gap-3 mt-auto pt-4">
                                             <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: '' }))}
                                                 className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
                                                 <ChevronLeft className="w-5 h-5" /> {t('common.back', 'Retour')}
