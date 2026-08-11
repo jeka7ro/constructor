@@ -3139,12 +3139,14 @@ export default function AdminOverview() {
                                     return <div className="w-full h-full flex items-center justify-center text-slate-500">Coordonatele lipsesc. Vă rugăm să editați devizul pentru a geocoda adresa.</div>;
                                 }
 
-                                const lines = routeSegments.map(seg => {
-                                    if (seg.from_lat && seg.from_lng && seg.to_lat && seg.to_lng) {
-                                        return [[seg.from_lat, seg.from_lng], [seg.to_lat, seg.to_lng]];
-                                    }
-                                    return null;
-                                }).filter(Boolean);
+                                const pathPoints = routeSegments
+                                    .filter(seg => seg.from_lat && seg.from_lng)
+                                    .map(seg => [parseFloat(seg.from_lat), parseFloat(seg.from_lng)]);
+                                
+                                // Ensure the final destination is the site itself if not already in path
+                                if (pathPoints.length > 0) {
+                                    pathPoints.push([parseFloat(lat), parseFloat(lng)]);
+                                }
 
                                 let baseLat = null;
                                 let baseLng = null;
@@ -3190,9 +3192,9 @@ export default function AdminOverview() {
                                             <Marker position={[baseLat, baseLng]} icon={baseIcon} />
                                         )}
                                         
-                                        {lines.map((positions, idx) => (
-                                            <Polyline key={idx} positions={positions} color="#3b82f6" weight={4} opacity={0.6} dashArray="6, 8" />
-                                        ))}
+                                        {pathPoints.length > 1 && (
+                                            <Polyline positions={pathPoints} color="#3b82f6" weight={4} opacity={0.6} dashArray="6, 8" />
+                                        )}
                                     </MapContainer>
                                 );
                             })()}
