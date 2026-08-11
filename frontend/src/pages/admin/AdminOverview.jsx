@@ -3130,7 +3130,12 @@ export default function AdminOverview() {
                                 onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`)}
                                 data={pendingQuotes.slice().sort((a,b) => (starredQuotes.includes(b.id)?1:0) - (starredQuotes.includes(a.id)?1:0))}
                                 columns={[
-                                    { key: 'id', label: 'ID / Dată', sortable: true, sortValue: (row) => row.created_at, render: (row) => (
+                                    { key: 'id', label: (
+                                        <div className="flex flex-col leading-tight gap-0.5">
+                                            <span>ID</span>
+                                            <span>Dată</span>
+                                        </div>
+                                    ), sortable: true, sortValue: (row) => row.created_at, render: (row) => (
                                         <div>
                                             <div className="font-mono text-xs font-semibold text-blue-600">{row.quote_number || (row.id || '').substring(0,8).toUpperCase()}</div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 flex-wrap">
@@ -3162,7 +3167,13 @@ export default function AdminOverview() {
                                             </div>
                                         </div>
                                     )},
-                                    { key: 'surface', label: t('quotes.surface_thickness', 'Suprafață / Grosime'), sortable: true, sortValue: (row) => row.volumes?.[0]?.quantity || 0, render: (row) => {
+                                    { key: 'surface', label: (
+                                        <div className="flex flex-col leading-tight gap-0.5">
+                                            {t('quotes.surface_thickness', 'Suprafață / Grosime').split(' / ').map((text, i) => (
+                                                <span key={i}>{text}</span>
+                                            ))}
+                                        </div>
+                                    ), sortable: true, sortValue: (row) => row.volumes?.[0]?.quantity || 0, render: (row) => {
                                         const vol = row.volumes?.[0] || {};
                                         return (
                                             <div>
@@ -3171,7 +3182,12 @@ export default function AdminOverview() {
                                             </div>
                                         );
                                     }},
-                                    { key: 'distance', label: 'Distanță / Nisip', sortable: true, sortValue: (row) => parseFloat(row.distance_km || 0), render: (row) => (
+                                    { key: 'distance', label: (
+                                        <div className="flex flex-col leading-tight gap-0.5">
+                                            <span>Distanță</span>
+                                            <span>Nisip</span>
+                                        </div>
+                                    ), sortable: true, sortValue: (row) => parseFloat(row.distance_km || 0), render: (row) => (
                                         <div>
                                             <div className="text-sm font-semibold text-slate-700">
                                                 {row.distance_km ? `${parseFloat(row.distance_km).toFixed(1)} km` : '-'}
