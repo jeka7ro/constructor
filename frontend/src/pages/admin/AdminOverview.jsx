@@ -3152,7 +3152,10 @@ export default function AdminOverview() {
                                     )},
                                     { key: 'address', label: t('quotes.address', 'Adresă'), sortable: true, sortValue: (row) => row.site_address, render: (row) => (
                                         <div>
-                                            <div className="text-xs text-slate-600 font-medium mb-0.5">{row.client_phone || row.client_email || '-'}</div>
+                                            <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mb-0.5">
+                                                <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                                                <span>{row.client_phone || row.client_email || '-'}</span>
+                                            </div>
                                             <div className="flex items-start gap-1">
                                                 <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
                                                 <span className="text-sm truncate max-w-[200px]" title={row.site_address}>{row.site_address || '-'}</span>
