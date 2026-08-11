@@ -5,7 +5,8 @@ import {
     Users, Building2, Clock, CheckCircle, TrendingUp, Calendar, BarChart3, Activity,
     Loader2, Coffee, MapPin, RefreshCw, Timer, Trophy, AlertTriangle, Zap,
     ArrowUpRight, ArrowDownRight, ChevronRight, Eye, ShieldAlert, WifiOff,
-    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus, Edit2, Search, GripVertical
+    X, Phone, Mail, FileText, ArrowLeft, Package, ClipboardList, ExternalLink, Truck, Plus, Edit2, Search, GripVertical,
+    Star, Copy, CalendarDays
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -312,6 +313,18 @@ export default function AdminOverview() {
 
     const [clients, setClients] = useState([])
     const [pendingQuotes, setPendingQuotes] = useState([])
+    const [showPendingQuotesModal, setShowPendingQuotesModal] = useState(false)
+    const [starredQuotes, setStarredQuotes] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('starred_quotes') || '[]') } catch(e) { return [] }
+    })
+    
+    const toggleStar = (id) => {
+        setStarredQuotes(prev => {
+            const newStars = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+            localStorage.setItem('starred_quotes', JSON.stringify(newStars))
+            return newStars
+        })
+    }
 
     const fetchPendingQuotes = async () => {
         try {
@@ -1179,7 +1192,11 @@ export default function AdminOverview() {
                                     }
                                 }}
                             >
-                                <div className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent" style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}>
+                                <div 
+                                    className="px-4 h-[61px] shrink-0 flex items-center border-b border-transparent cursor-pointer hover:opacity-90 transition-opacity" 
+                                    style={{ backgroundColor: tenant?.primary_color || '#2563eb' }}
+                                    onClick={() => setShowPendingQuotesModal(true)}
+                                >
                                     <h3 className="font-extrabold text-white flex items-center gap-2 text-xs uppercase tracking-wide leading-tight">
                                         <ClipboardList className="w-4 h-4 text-white shrink-0" />
                                         <span>{t('overview.pending_quotes', 'Devis en attente')}</span>
@@ -1190,7 +1207,7 @@ export default function AdminOverview() {
                                     {pendingQuotes.length === 0 && (
                                         <p className="text-xs text-slate-400 p-2 text-center italic">{t('overview.no_pending_quotes', 'Aucun devis en attente')}</p>
                                     )}
-                                    {pendingQuotes.map(quote => (
+                                    {pendingQuotes.slice().sort((a,b) => (starredQuotes.includes(b.id)?1:0) - (starredQuotes.includes(a.id)?1:0)).map(quote => (
                                         <div 
                                             key={quote.id}
                                             draggable
@@ -1211,8 +1228,9 @@ export default function AdminOverview() {
                                             className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-rose-300 dark:hover:border-rose-700 relative group"
                                             title={`Client: ${quote.client_name || t('common.unknown_client', 'Client Inconnu')}\nAdresse: ${quote.site_address || 'Non spécifiée'}\nSurface: ${quote.volumes?.[0]?.quantity || '?'} m² · ${quote.volumes?.[0]?.thickness || '?'} cm\nDate souhaitée: ${quote.approximate_date ? new Date(quote.approximate_date).toLocaleDateString('fr-FR') : 'Non spécifiée'}\nDistance: ${quote.route_distance_km !== null && quote.route_distance_km !== undefined ? parseFloat(quote.route_distance_km).toFixed(0) + ' km' : '?'}`}
                                         >
-
-                                            
+                                            {starredQuotes.includes(quote.id) && (
+                                                <Star className="w-3.5 h-3.5 text-amber-500 fill-current absolute top-2 right-2 opacity-80" />
+                                            )}
                                             {/* ROW 1: Name + Date */}
                                             <div className="flex justify-between items-center pr-4">
                                                 <div className="font-bold text-[11px] truncate flex-1">
@@ -3086,6 +3104,118 @@ export default function AdminOverview() {
                             >
                                 {t('overview.go_to_order', 'Voir la commande')}
                             </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {showPendingQuotesModal && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <ClipboardList className="w-6 h-6 text-blue-600" />
+                                {t('overview.pending_quotes', 'Devis en attente')} ({pendingQuotes.length})
+                            </h2>
+                            <button 
+                                onClick={() => setShowPendingQuotesModal(false)}
+                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-auto p-4 bg-slate-50/50 dark:bg-slate-900 custom-scrollbar">
+                            <DataTable 
+                                onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`)}
+                                data={pendingQuotes.slice().sort((a,b) => (starredQuotes.includes(b.id)?1:0) - (starredQuotes.includes(a.id)?1:0))}
+                                columns={[
+                                    { key: 'id', label: 'ID / Dată', sortable: true, render: (row) => (
+                                        <div>
+                                            <div className="font-mono text-xs font-semibold text-blue-600">{(row.id || '').substring(0,8).toUpperCase()}</div>
+                                            <div className="text-[10px] text-slate-500">{row.created_at ? new Date(row.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                                            {row.source_system && (
+                                                <div className="text-[10px] font-bold mt-0.5 uppercase" style={{ color: row.source_system.includes('calculator') || row.source_system.includes('we-r') ? '#d97706' : '#2563eb' }}>
+                                                    {row.source_system.replace('_', ' ')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )},
+                                    { key: 'client_name', label: t('quotes.client', 'Client'), sortable: true, render: (row) => (
+                                        <div>
+                                            <div className="font-semibold text-slate-900">{row.client_name}</div>
+                                            <div className="text-xs text-slate-500">{row.client_phone || row.client_email}</div>
+                                        </div>
+                                    )},
+                                    { key: 'address', label: t('quotes.address', 'Adresă'), sortable: true, sortKey: 'site_address', render: (row) => (
+                                        <div className="flex items-start gap-1">
+                                            <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                            <span className="text-sm truncate max-w-[200px]" title={row.site_address}>{row.site_address || '-'}</span>
+                                        </div>
+                                    )},
+                                    { key: 'surface', label: t('quotes.surface_thickness', 'Suprafață / Grosime'), sortable: true, sortKey: (row) => row.volumes?.[0]?.quantity || 0, render: (row) => {
+                                        const vol = row.volumes?.[0] || {};
+                                        return (
+                                            <div>
+                                                <div className="font-semibold text-slate-700">{vol.quantity || 0} {vol.unit || 'm²'}</div>
+                                                <div className="text-xs text-slate-500">{vol.thickness || 0} CM</div>
+                                            </div>
+                                        );
+                                    }},
+                                    { key: 'distance', label: 'Distanță / Nisip', sortable: true, sortKey: (row) => parseFloat(row.distance_km || 0), render: (row) => (
+                                        <div>
+                                            <div className="text-sm font-semibold text-slate-700">
+                                                {row.distance_km ? `${parseFloat(row.distance_km).toFixed(1)} km` : '-'}
+                                            </div>
+                                            {row.route_sand_kg ? (
+                                                <div className="text-xs text-amber-600 font-medium">
+                                                    {(row.route_sand_kg / 1000).toFixed(1)} t nisip
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    )},
+                                    { key: 'price', label: t('quotes.price', 'Preț (€)'), sortable: true, sortKey: (row) => parseFloat(row.estimated_price || 0), render: (row) => (
+                                        <span className="font-bold text-slate-900">
+                                            {row.estimated_price ? `${parseFloat(row.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
+                                        </span>
+                                    )},
+                                    { key: 'actions', label: t('common.actions', 'Acțiuni'), render: (row) => (
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                title={t('quotes.star', 'Favorite')}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleStar(row.id);
+                                                }}
+                                                className={`w-8 h-8 flex items-center justify-center border border-slate-200 rounded-full transition-colors ${starredQuotes.includes(row.id) ? 'text-amber-500 bg-amber-50 border-amber-200' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50'}`}
+                                            >
+                                                <Star className={`w-4 h-4 ${starredQuotes.includes(row.id) ? 'fill-current' : ''}`} />
+                                            </button>
+                                            <button
+                                                title={t('quotes.copy_link', 'Copier le lien')}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
+                                                    if (window.showToast) window.showToast(t('quotes.link_copied', 'Lien copié!'), 'success');
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                title={t('overview.go_to_order', 'Voir la commande')}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/admin/work-orders/${row.id}`);
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                            >
+                                                <CalendarDays className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
+                                ]}
+                            />
                         </div>
                     </div>
                 </div>,
