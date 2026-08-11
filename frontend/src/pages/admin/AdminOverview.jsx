@@ -3135,27 +3135,28 @@ export default function AdminOverview() {
                                             <div className="font-mono text-xs font-semibold text-blue-600">{row.quote_number || (row.id || '').substring(0,8).toUpperCase()}</div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 flex-wrap">
                                                 <span className="whitespace-nowrap">{row.created_at ? new Date(row.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : '-'}</span>
-                                                {row.source_system && (
-                                                    <>
-                                                        <span>•</span>
-                                                        <span className="font-bold uppercase whitespace-nowrap" style={{ color: row.source_system.includes('calculator') || row.source_system.includes('we-r') ? '#d97706' : '#2563eb' }}>
-                                                            {row.source_system.replace('_', ' ')}
-                                                        </span>
-                                                    </>
-                                                )}
                                             </div>
                                         </div>
                                     )},
                                     { key: 'client_name', label: t('quotes.client', 'Client'), sortable: true, render: (row) => (
                                         <div>
                                             <div className="font-semibold text-slate-900">{row.client_name}</div>
-                                            <div className="text-xs text-slate-500">{row.client_phone || row.client_email}</div>
+                                            {row.source_system ? (
+                                                <div className="text-[10px] font-bold uppercase" style={{ color: row.source_system.includes('calculator') || row.source_system.includes('we-r') ? '#d97706' : '#2563eb' }}>
+                                                    {row.source_system.replace('_', ' ')}
+                                                </div>
+                                            ) : (
+                                                <div className="text-[10px] text-slate-400 italic">Manual</div>
+                                            )}
                                         </div>
                                     )},
                                     { key: 'address', label: t('quotes.address', 'Adresă'), sortable: true, sortKey: 'site_address', render: (row) => (
-                                        <div className="flex items-start gap-1">
-                                            <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                                            <span className="text-sm truncate max-w-[200px]" title={row.site_address}>{row.site_address || '-'}</span>
+                                        <div>
+                                            <div className="text-xs text-slate-600 font-medium mb-0.5">{row.client_phone || row.client_email || '-'}</div>
+                                            <div className="flex items-start gap-1">
+                                                <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                <span className="text-sm truncate max-w-[200px]" title={row.site_address}>{row.site_address || '-'}</span>
+                                            </div>
                                         </div>
                                     )},
                                     { key: 'surface', label: t('quotes.surface_thickness', 'Suprafață / Grosime'), sortable: true, sortKey: (row) => row.volumes?.[0]?.quantity || 0, render: (row) => {
