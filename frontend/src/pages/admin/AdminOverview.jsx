@@ -3130,7 +3130,7 @@ export default function AdminOverview() {
                                 onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`)}
                                 data={pendingQuotes.slice().sort((a,b) => (starredQuotes.includes(b.id)?1:0) - (starredQuotes.includes(a.id)?1:0))}
                                 columns={[
-                                    { key: 'id', label: 'ID / Dată', sortable: true, render: (row) => (
+                                    { key: 'id', label: 'ID / Dată', sortable: true, sortKey: 'created_at', render: (row) => (
                                         <div>
                                             <div className="font-mono text-xs font-semibold text-blue-600">{row.quote_number || (row.id || '').substring(0,8).toUpperCase()}</div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 flex-wrap">
