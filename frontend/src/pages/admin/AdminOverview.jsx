@@ -11,9 +11,6 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MapView from '../../components/MapView'
-import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
 import SiteMap from '../../components/SiteMap'
 import { reverseGeocode } from '../../lib/geocode'
 import {
@@ -3129,75 +3126,15 @@ export default function AdminOverview() {
                             </button>
                         </div>
                         <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800 relative z-0">
-                            {(() => {
-                                const lat = mapModalData.site_latitude || mapModalData.latitude;
-                                const lng = mapModalData.site_longitude || mapModalData.longitude;
-                                const routeSegments = mapModalData.route_segments || [];
-                                const hasCoords = lat && lng;
-                                
-                                if (!hasCoords) {
-                                    return <div className="w-full h-full flex items-center justify-center text-slate-500">Coordonatele lipsesc. Vă rugăm să editați devizul pentru a geocoda adresa.</div>;
-                                }
-
-                                const pathPoints = routeSegments
-                                    .filter(seg => seg.from_lat && seg.from_lng)
-                                    .map(seg => [parseFloat(seg.from_lat), parseFloat(seg.from_lng)]);
-                                
-                                // Ensure the final destination is the site itself if not already in path
-                                if (pathPoints.length > 0) {
-                                    pathPoints.push([parseFloat(lat), parseFloat(lng)]);
-                                }
-
-                                let baseLat = null;
-                                let baseLng = null;
-                                if (routeSegments.length > 0) {
-                                    baseLat = routeSegments[0].from_lat;
-                                    baseLng = routeSegments[0].from_lng;
-                                }
-
-                                const pinIcon = L.divIcon({
-                                    html: `<div style="color: #ef4444; transform: translate(-50%, -100%);">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                            <circle cx="12" cy="10" r="3" fill="white"></circle>
-                                        </svg>
-                                    </div>`,
-                                    className: '', iconSize: [0, 0], iconAnchor: [0, 0]
-                                });
-
-                                const baseIcon = L.divIcon({
-                                    html: `<div style="color: #3b82f6; transform: translate(-50%, -100%);">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                            <circle cx="12" cy="10" r="3" fill="white"></circle>
-                                            <text x="12" y="9.5" font-family="sans-serif" font-size="6" font-weight="900" fill="#2563eb" text-anchor="middle">B</text>
-                                        </svg>
-                                    </div>`,
-                                    className: '', iconSize: [0, 0], iconAnchor: [0, 0]
-                                });
-
-                                return (
-                                    <MapContainer 
-                                        center={[lat, lng]} 
-                                        zoom={10} 
-                                        style={{ height: '100%', width: '100%', zIndex: 0 }}
-                                    >
-                                        <TileLayer
-                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                                            attribution='&copy; OpenStreetMap contributors'
-                                        />
-                                        <Marker position={[lat, lng]} icon={pinIcon} />
-                                        
-                                        {baseLat && baseLng && (
-                                            <Marker position={[baseLat, baseLng]} icon={baseIcon} />
-                                        )}
-                                        
-                                        {pathPoints.length > 1 && (
-                                            <Polyline positions={pathPoints} color="#3b82f6" weight={4} opacity={0.6} dashArray="6, 8" />
-                                        )}
-                                    </MapContainer>
-                                );
-                            })()}
+                            <MapView 
+                                latitude={mapModalData.site_latitude || mapModalData.latitude}
+                                longitude={mapModalData.site_longitude || mapModalData.longitude}
+                                address={mapModalData.site_address}
+                                height="100%"
+                                zoom={12}
+                                routeSegments={mapModalData.route_segments}
+                                baseName="Base"
+                            />
                         </div>
                     </div>
                 </div>,
