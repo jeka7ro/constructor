@@ -10,6 +10,10 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import MapView from '../../components/MapView'
+import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
 import SiteMap from '../../components/SiteMap'
 import { reverseGeocode } from '../../lib/geocode'
 import {
@@ -314,7 +318,7 @@ export default function AdminOverview() {
     const [clients, setClients] = useState([])
     const [pendingQuotes, setPendingQuotes] = useState([])
     const [showPendingQuotesModal, setShowPendingQuotesModal] = useState(false)
-    const [mapModalAddress, setMapModalAddress] = useState(null)
+    const [mapModalData, setMapModalData] = useState(null)
     const [starredQuotes, setStarredQuotes] = useState(() => {
         try { return JSON.parse(localStorage.getItem('starred_quotes') || '[]') } catch(e) { return [] }
     })
@@ -3112,27 +3116,86 @@ export default function AdminOverview() {
             )}
 
             {/* Map Modal for quick location view */}
-            {mapModalAddress && createPortal(
+            {mapModalData && createPortal(
                 <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col h-[80vh]">
                         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
                             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-blue-600" />
-                                {mapModalAddress}
+                                {mapModalData.site_address}
                             </h3>
-                            <button onClick={() => setMapModalAddress(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500">
+                            <button onClick={() => setMapModalData(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800">
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                frameBorder="0"
-                                style={{ border: 0 }}
-                                src={`https://www.google.com/maps?q=${encodeURIComponent(mapModalAddress)}&output=embed`}
-                                allowFullScreen
-                            ></iframe>
+                        <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800 relative z-0">
+                            {(() => {
+                                const lat = mapModalData.site_latitude || mapModalData.latitude;
+                                const lng = mapModalData.site_longitude || mapModalData.longitude;
+                                const routeSegments = mapModalData.route_segments || [];
+                                const hasCoords = lat && lng;
+                                
+                                if (!hasCoords) {
+                                    return <div className="w-full h-full flex items-center justify-center text-slate-500">Coordonatele lipsesc. Vă rugăm să editați devizul pentru a geocoda adresa.</div>;
+                                }
+
+                                const lines = routeSegments.map(seg => {
+                                    if (seg.from_lat && seg.from_lng && seg.to_lat && seg.to_lng) {
+                                        return [[seg.from_lat, seg.from_lng], [seg.to_lat, seg.to_lng]];
+                                    }
+                                    return null;
+                                }).filter(Boolean);
+
+                                let baseLat = null;
+                                let baseLng = null;
+                                if (routeSegments.length > 0) {
+                                    baseLat = routeSegments[0].from_lat;
+                                    baseLng = routeSegments[0].from_lng;
+                                }
+
+                                const pinIcon = L.divIcon({
+                                    html: `<div style="color: #ef4444; transform: translate(-50%, -100%);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                            <circle cx="12" cy="10" r="3" fill="white"></circle>
+                                        </svg>
+                                    </div>`,
+                                    className: '', iconSize: [0, 0], iconAnchor: [0, 0]
+                                });
+
+                                const baseIcon = L.divIcon({
+                                    html: `<div style="color: #3b82f6; transform: translate(-50%, -100%);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                            <circle cx="12" cy="10" r="3" fill="white"></circle>
+                                            <text x="12" y="9.5" font-family="sans-serif" font-size="6" font-weight="900" fill="#2563eb" text-anchor="middle">B</text>
+                                        </svg>
+                                    </div>`,
+                                    className: '', iconSize: [0, 0], iconAnchor: [0, 0]
+                                });
+
+                                return (
+                                    <MapContainer 
+                                        center={[lat, lng]} 
+                                        zoom={10} 
+                                        style={{ height: '100%', width: '100%', zIndex: 0 }}
+                                    >
+                                        <TileLayer
+                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                            attribution='&copy; OpenStreetMap contributors'
+                                        />
+                                        <Marker position={[lat, lng]} icon={pinIcon} />
+                                        
+                                        {baseLat && baseLng && (
+                                            <Marker position={[baseLat, baseLng]} icon={baseIcon} />
+                                        )}
+                                        
+                                        {lines.map((positions, idx) => (
+                                            <Polyline key={idx} positions={positions} color="#3b82f6" weight={4} opacity={0.6} dashArray="6, 8" />
+                                        ))}
+                                    </MapContainer>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>,
@@ -3162,7 +3225,7 @@ export default function AdminOverview() {
                                     { key: 'id', label: (
                                         <div className="flex flex-col leading-tight gap-0.5">
                                             <span>ID</span>
-                                            <span>{t('common.date', 'Dată')}</span>
+                                            <span>{t('common.date', 'Date')}</span>
                                         </div>
                                     ), sortable: true, sortValue: (row) => row.created_at, render: (row) => (
                                         <div>
@@ -3188,7 +3251,7 @@ export default function AdminOverview() {
                                     { key: 'client_name', label: (
                                         <div className="flex flex-col leading-tight gap-0.5">
                                             <span>{t('quotes.client', 'Client')}</span>
-                                            <span>{t('quotes.requested_date', 'Dată solicitată')}</span>
+                                            <span>{t('quotes.requested_date', 'Date demandée')}</span>
                                         </div>
                                     ), sortable: true, render: (row) => (
                                         <div>
@@ -3215,7 +3278,7 @@ export default function AdminOverview() {
                                                     title={row.site_address}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (row.site_address) setMapModalAddress(row.site_address);
+                                                        if (row.site_latitude || row.site_address) setMapModalData(row);
                                                     }}
                                                 >
                                                     {row.site_address || '-'}
@@ -3240,8 +3303,8 @@ export default function AdminOverview() {
                                     }},
                                     { key: 'distance', label: (
                                         <div className="flex flex-col leading-tight gap-0.5">
-                                            <span>{t('quotes.distance', 'Distanță')}</span>
-                                            <span>{t('quotes.sand', 'Nisip')}</span>
+                                            <span>{t('quotes.distance', 'Distance')}</span>
+                                            <span>{t('quotes.sand', 'Sable')}</span>
                                         </div>
                                     ), sortable: true, sortValue: (row) => parseFloat(row.distance_km || 0), render: (row) => (
                                         <div>
