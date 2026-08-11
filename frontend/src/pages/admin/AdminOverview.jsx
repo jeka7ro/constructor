@@ -3133,12 +3133,17 @@ export default function AdminOverview() {
                                     { key: 'id', label: 'ID / Dată', sortable: true, render: (row) => (
                                         <div>
                                             <div className="font-mono text-xs font-semibold text-blue-600">{(row.id || '').substring(0,8).toUpperCase()}</div>
-                                            <div className="text-[10px] text-slate-500">{row.created_at ? new Date(row.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
-                                            {row.source_system && (
-                                                <div className="text-[10px] font-bold mt-0.5 uppercase" style={{ color: row.source_system.includes('calculator') || row.source_system.includes('we-r') ? '#d97706' : '#2563eb' }}>
-                                                    {row.source_system.replace('_', ' ')}
-                                                </div>
-                                            )}
+                                            <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                                <span>{row.created_at ? new Date(row.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                                                {row.source_system && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="font-bold uppercase" style={{ color: row.source_system.includes('calculator') || row.source_system.includes('we-r') ? '#d97706' : '#2563eb' }}>
+                                                            {row.source_system.replace('_', ' ')}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     )},
                                     { key: 'client_name', label: t('quotes.client', 'Client'), sortable: true, render: (row) => (
