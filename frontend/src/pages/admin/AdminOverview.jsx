@@ -3133,7 +3133,7 @@ export default function AdminOverview() {
                                     { key: 'id', label: (
                                         <div className="flex flex-col leading-tight gap-0.5">
                                             <span>ID</span>
-                                            <span>Dată</span>
+                                            <span>{t('common.date', 'Dată')}</span>
                                         </div>
                                     ), sortable: true, sortValue: (row) => row.created_at, render: (row) => (
                                         <div>
@@ -3156,7 +3156,12 @@ export default function AdminOverview() {
                                             </div>
                                         </div>
                                     )},
-                                    { key: 'client_name', label: t('quotes.client', 'Client'), sortable: true, render: (row) => (
+                                    { key: 'client_name', label: (
+                                        <div className="flex flex-col leading-tight gap-0.5">
+                                            <span>{t('quotes.client', 'Client')}</span>
+                                            <span>{t('quotes.requested_date', 'Dată solicitată')}</span>
+                                        </div>
+                                    ), sortable: true, render: (row) => (
                                         <div>
                                             <div className="font-semibold text-slate-900">{row.client_name}</div>
                                             {row.approximate_date ? (
@@ -3197,8 +3202,8 @@ export default function AdminOverview() {
                                     }},
                                     { key: 'distance', label: (
                                         <div className="flex flex-col leading-tight gap-0.5">
-                                            <span>Distanță</span>
-                                            <span>Nisip</span>
+                                            <span>{t('quotes.distance', 'Distanță')}</span>
+                                            <span>{t('quotes.sand', 'Nisip')}</span>
                                         </div>
                                     ), sortable: true, sortValue: (row) => parseFloat(row.distance_km || 0), render: (row) => (
                                         <div>
