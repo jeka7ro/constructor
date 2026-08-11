@@ -3132,7 +3132,7 @@ export default function AdminOverview() {
                                 columns={[
                                     { key: 'id', label: 'ID / Dată', sortable: true, render: (row) => (
                                         <div>
-                                            <div className="font-mono text-xs font-semibold text-blue-600">{(row.id || '').substring(0,8).toUpperCase()}</div>
+                                            <div className="font-mono text-xs font-semibold text-blue-600">{row.quote_number || (row.id || '').substring(0,8).toUpperCase()}</div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 flex-wrap">
                                                 <span className="whitespace-nowrap">{row.created_at ? new Date(row.created_at).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : '-'}</span>
                                                 {row.source_system && (
