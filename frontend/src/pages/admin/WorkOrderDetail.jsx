@@ -205,7 +205,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const [loadingGpsArrival, setLoadingGpsArrival] = useState(false)
 
     useEffect(() => {
-        if (!wo || !wo.start_date || !wo.assigned_team_id) return;
+        if (!wo || wo.is_quote || !wo.start_date || !wo.assigned_team_id) return;
         let mounted = true;
         
         const fetchGps = async () => {
@@ -236,7 +236,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         }
         fetchGps()
         return () => { mounted = false }
-    }, [wo])
+    }, [wo?.start_date, wo?.assigned_team_id, wo?.client_name, wo?.is_quote])
     const [signatureConfirm, setSignatureConfirm] = useState(false)
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [showCamera, setShowCamera] = useState(false)
