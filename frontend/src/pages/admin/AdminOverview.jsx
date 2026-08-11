@@ -314,6 +314,7 @@ export default function AdminOverview() {
     const [clients, setClients] = useState([])
     const [pendingQuotes, setPendingQuotes] = useState([])
     const [showPendingQuotesModal, setShowPendingQuotesModal] = useState(false)
+    const [mapModalAddress, setMapModalAddress] = useState(null)
     const [starredQuotes, setStarredQuotes] = useState(() => {
         try { return JSON.parse(localStorage.getItem('starred_quotes') || '[]') } catch(e) { return [] }
     })
@@ -3110,6 +3111,34 @@ export default function AdminOverview() {
                 document.body
             )}
 
+            {/* Map Modal for quick location view */}
+            {mapModalAddress && createPortal(
+                <div className="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col h-[80vh]">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-blue-600" />
+                                {mapModalAddress}
+                            </h3>
+                            <button onClick={() => setMapModalAddress(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                style={{ border: 0 }}
+                                src={`https://www.google.com/maps?q=${encodeURIComponent(mapModalAddress)}&output=embed`}
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {showPendingQuotesModal && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -3181,7 +3210,16 @@ export default function AdminOverview() {
                                             </div>
                                             <div className="flex items-start gap-1">
                                                 <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                                                <span className="text-sm truncate max-w-[200px]" title={row.site_address}>{row.site_address || '-'}</span>
+                                                <span 
+                                                    className="text-sm truncate max-w-[200px] hover:text-blue-600 hover:underline cursor-pointer" 
+                                                    title={row.site_address}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (row.site_address) setMapModalAddress(row.site_address);
+                                                    }}
+                                                >
+                                                    {row.site_address || '-'}
+                                                </span>
                                             </div>
                                         </div>
                                     )},
