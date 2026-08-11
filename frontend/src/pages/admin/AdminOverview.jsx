@@ -3204,7 +3204,7 @@ export default function AdminOverview() {
                                             ) : null}
                                         </div>
                                     )},
-                                    { key: 'address', label: t('quotes.address', 'Adresă'), sortable: true, sortValue: (row) => row.site_address, render: (row) => (
+                                    { key: 'address', label: t('quotes.address', 'Adresse'), sortable: true, sortValue: (row) => row.site_address, render: (row) => (
                                         <div>
                                             <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mb-0.5">
                                                 <Phone className="w-3 h-3 text-slate-400 shrink-0" />
@@ -3227,7 +3227,7 @@ export default function AdminOverview() {
                                     )},
                                     { key: 'surface', label: (
                                         <div className="flex flex-col leading-tight gap-0.5">
-                                            {t('quotes.surface_thickness', 'Suprafață / Grosime').split(' / ').map((text, i) => (
+                                            {t('quotes.surface_thickness', 'Surface / Épaisseur').split(' / ').map((text, i) => (
                                                 <span key={i}>{text}</span>
                                             ))}
                                         </div>
@@ -3252,19 +3252,19 @@ export default function AdminOverview() {
                                             </div>
                                             {row.route_sand_kg ? (
                                                 <div className="text-xs text-amber-600 font-medium">
-                                                    {(row.route_sand_kg / 1000).toFixed(1)} t nisip
+                                                    {(row.route_sand_kg / 1000).toFixed(1)} t sable
                                                 </div>
                                             ) : null}
                                         </div>
                                     )},
-                                    { key: 'price', label: t('quotes.price', 'Preț (€)'), sortable: true, sortValue: (row) => parseFloat(row.estimated_price || 0), render: (row) => (
+                                    { key: 'price', label: t('quotes.price', 'Prix (€)'), sortable: true, sortValue: (row) => parseFloat(row.estimated_price || 0), render: (row) => (
                                         <div>
                                             <div className="font-bold text-slate-900 whitespace-nowrap">
                                                 {row.estimated_price ? `${parseFloat(row.estimated_price).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
                                             </div>
                                         </div>
                                     )},
-                                    { key: 'actions', label: t('common.actions', 'Acțiuni'), render: (row) => (
+                                    { key: 'actions', label: t('common.actions', 'Actions'), render: (row) => (
                                         <div className="flex items-center gap-1">
                                             <button
                                                 title={t('quotes.star', 'Favorite')}
