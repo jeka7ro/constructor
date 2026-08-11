@@ -76,22 +76,49 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
         fallback = "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien dans votre navigateur :"
         footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de ne pas y répondre directement."
 
+    primary_color = "#0ea5e9"  # Default fallback if org is not found or has no color
+    try:
+        from app.database import SessionLocal
+        from app.models import Organization, WorkOrder
+        db = SessionLocal()
+        
+        if not org_id and wo_id:
+            wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+            if wo:
+                org_id = wo.organization_id
+        
+        if org_id:
+            org = db.query(Organization).filter(Organization.id == org_id).first()
+            if org and org.primary_color:
+                primary_color = org.primary_color
+        elif not org_id:
+            org = db.query(Organization).first()
+            if org and org.primary_color:
+                primary_color = org.primary_color
+    except Exception as e:
+        logger.error(f"Error fetching tenant primary_color for new quote email: {e}")
+    finally:
+        try:
+            db.close()
+        except:
+            pass
+
     html_content = f"""
     <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #f5a623;">
+        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid {primary_color};">
             <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 60px;" />
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
             <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
             <p style="font-size: 16px;">{intro}</p>
             <p style="font-size: 16px;">{body_main}</p>
-            <p style="font-size: 16px; color: #2b5c8f; font-weight: bold;">{contact_msg}</p>
+            <p style="font-size: 16px; color: {primary_color}; font-weight: bold;">{contact_msg}</p>
             
             <div style="text-align: center; margin: 35px 0;">
-                <a href="{signing_url}" style="background-color: #f5a623; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+                <a href="{signing_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: #2b5c8f;">{signing_url}</a></p>
+            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: {primary_color};">{signing_url}</a></p>
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
