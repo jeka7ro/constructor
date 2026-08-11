@@ -66,6 +66,41 @@ function computeQuoteTotalFromRow(row) {
                     if (vol.has_mesh)  items.push({ qty: surface, price: parseFloat(p.mesh  || 2.5) });
                     if (vol.has_fiber || vol.has_duramint)
                         items.push({ qty: surface, price: parseFloat(p.fiber || (surface <= 200 ? 2.5 : 2.0)) });
+                } else if (/isolation\s*pur/i.test(vol.label || '')) {
+                    const purThick = thick || 3;
+                    let purBase = parseFloat(p.pur_base_price_3cm || 13.95);
+                    if (purThick > 3 && purThick <= 10) {
+                        purBase += (purThick - 3) * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
+                    } else if (purThick > 10) {
+                        purBase += 7 * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
+                        purBase += (purThick - 10) * parseFloat(p.pur_extra_price_above_10cm || 2.10);
+                    }
+                    if (surface > 100) {
+                        purBase += Math.floor((surface - 100) / 100) * parseFloat(p.pur_surface_discount_step || -0.50);
+                    }
+                    purBase = Math.max(0, purBase);
+                    items.push({ qty: surface, price: purBase });
+                    if (vol.pur_aspiration) items.push({ qty: surface, price: parseFloat(p.pur_opt_aspiration || 2.00) });
+                    if (vol.pur_niveller) items.push({ qty: surface, price: parseFloat(p.pur_opt_niveller || 4.25) });
+                    if (vol.pur_poncage) items.push({ qty: surface, price: parseFloat(p.pur_opt_poncage || 1.50) });
+                    if (vol.pur_protection) items.push({ qty: surface, price: parseFloat(p.pur_opt_protection || 1.50) });
+                } else if (/isolation\s*eps/i.test(vol.label || '')) {
+                    const epsVol = (surface * (thick || 1)) / 100;
+                    const epsTiers = p.eps_volume_thresholds || [
+                        { max_m3: 10, price_flat: 1495 },
+                        { max_m3: 20, price_per_m3: 160 },
+                        { max_m3: 40, price_per_m3: 155 },
+                        { max_m3: 99999, price_per_m3: 150 }
+                    ];
+                    let epsPrice = 0;
+                    for (let tier of epsTiers) {
+                        if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
+                            if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
+                            else epsPrice = epsVol * parseFloat(tier.price_per_m3 || 150);
+                            break;
+                        }
+                    }
+                    items.push({ qty: 1, price: epsPrice });
                 } else {
                     // Volume non-chape: price unitaire stocké ou estimated_price / surface
                     const unitPrice = parseFloat(vol.price || 0) || (parseFloat(wo.estimated_price || 0) / (surface || 1));
@@ -116,7 +151,7 @@ const EditablePrice = ({ row, onUpdate }) => {
 
     // Source unique de vérité: computed_total calculé sur le backend (= même logique que le PDF)
     // Fallback: estimated_price (pour anciens devis sans volumes ni proforma_data)
-    const displayValue = row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : null)
+    const displayValue = computeQuoteTotalFromRow(row) ?? (row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : null))
 
     const handleBlur = async () => {
         setIsEditing(false)
@@ -742,7 +777,7 @@ export default function QuotesManagement() {
                 const discountPct = row.prices?.discount_pct ? parseFloat(row.prices.discount_pct) : 0;
                 let discountAmount = 0;
                 if (discountPct > 0) {
-                    const finalPrice = row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : 0);
+                    const finalPrice = computeQuoteTotalFromRow(row) ?? (row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : 0));
                     if (finalPrice > 0 && discountPct < 100) {
                         const originalPrice = finalPrice / (1 - (discountPct / 100));
                         discountAmount = originalPrice - finalPrice;

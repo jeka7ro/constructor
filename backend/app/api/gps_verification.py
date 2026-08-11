@@ -233,6 +233,7 @@ def build_itinerary(track, base, orders):
         if lat and lng:
             pois.append({
                 "type": "work_order",
+                "id": str(wo.id),
                 "name": getattr(wo, 'client_name', None) or "Chantier",
                 "address": getattr(wo, 'site_address', None) or "—",
                 "lat": lat,
@@ -263,6 +264,7 @@ def build_itinerary(track, base, orders):
                     local_dep = datetime.fromtimestamp(last_seen_ts, tz=timezone.utc).astimezone(pytz.timezone('Europe/Brussels')).strftime("%H:%M")
                     itinerary.append({
                         "type": current_poi["type"],
+                        "id": current_poi.get("id"),
                         "name": current_poi["name"],
                         "address": current_poi["address"],
                         "arrived": local_arr,

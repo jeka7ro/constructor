@@ -219,7 +219,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     // Look through all vehicles' itineraries to find any vehicle that stopped at this work order
                     for (const vehicleRes of res.data.results) {
                         if (vehicleRes.itinerary) {
-                            const match = vehicleRes.itinerary.find(w => w.type === 'work_order' && w.name === wo.client_name)
+                            const match = vehicleRes.itinerary.find(w => w.type === 'work_order' && (w.id === wo.id || w.name === wo.client_name))
                             if (match && match.arrived) {
                                 foundWo = match;
                                 break;
@@ -911,7 +911,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
     let chapeFlags = {}; // has_foil, has_mesh, has_fiber, has_duramint
-    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0, discountPct: 0 };
+    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0 };
+    let purOpts = { aspiration: 0, niveller: 0, poncage: 0, protection: 0 };
+    let isoPurThick = 0;
+    let isoPurSurface = 0;
+    let isoEpsM3 = 0;
 
     (wo.volumes || []).forEach(vol => {
         const surface = parseFloat(vol.quantity) || 0;
@@ -933,6 +937,69 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             estimCalc.discount += c.discount;
             estimCalc.discountPct = c.discountPct;
             estimCalc.net   += c.net;
+        } else if (/isolation\s*pur/i.test(labelSafe) && surface > 0) {
+            isAuto = true;
+            isoPurThick = thickness || 3;
+            isoPurSurface += surface;
+            let purBase = parseFloat(wo.prices?.pur_base_price_3cm || 13.95);
+            if (isoPurThick > 3 && isoPurThick <= 10) {
+                purBase += (isoPurThick - 3) * parseFloat(wo.prices?.pur_step_price_up_to_10cm || 1.65);
+            } else if (isoPurThick > 10) {
+                purBase += 7 * parseFloat(wo.prices?.pur_step_price_up_to_10cm || 1.65);
+                purBase += (isoPurThick - 10) * parseFloat(wo.prices?.pur_extra_price_above_10cm || 2.10);
+            }
+            if (surface > 100) {
+                purBase += Math.floor((surface - 100) / 100) * parseFloat(wo.prices?.pur_surface_discount_step || -0.50);
+            }
+            purBase = Math.max(0, purBase);
+            const isoPurBaseCost = purBase * surface;
+            estimCalc.isoPurBase += isoPurBaseCost;
+            estimCalc.net += isoPurBaseCost;
+            
+            if (vol.pur_aspiration) {
+                let cost = parseFloat(wo.prices?.pur_opt_aspiration || 2.00) * surface;
+                estimCalc.isoPurOpt += cost;
+                purOpts.aspiration += cost;
+                estimCalc.net += cost;
+            }
+            if (vol.pur_niveller) {
+                let cost = parseFloat(wo.prices?.pur_opt_niveller || 4.25) * surface;
+                estimCalc.isoPurOpt += cost;
+                purOpts.niveller += cost;
+                estimCalc.net += cost;
+            }
+            if (vol.pur_poncage) {
+                let cost = parseFloat(wo.prices?.pur_opt_poncage || 1.50) * surface;
+                estimCalc.isoPurOpt += cost;
+                purOpts.poncage += cost;
+                estimCalc.net += cost;
+            }
+            if (vol.pur_protection) {
+                let cost = parseFloat(wo.prices?.pur_opt_protection || 1.50) * surface;
+                estimCalc.isoPurOpt += cost;
+                purOpts.protection += cost;
+                estimCalc.net += cost;
+            }
+        } else if (/isolation\s*eps/i.test(labelSafe) && surface > 0) {
+            isAuto = true;
+            let epsVol = (surface * (thickness || 1)) / 100;
+            isoEpsM3 += epsVol;
+            const epsTiers = wo.prices?.eps_volume_thresholds || [
+                { max_m3: 10, price_flat: 1495 },
+                { max_m3: 20, price_per_m3: 160 },
+                { max_m3: 40, price_per_m3: 155 },
+                { max_m3: 99999, price_per_m3: 150 }
+            ];
+            let epsPrice = 0;
+            for (let tier of epsTiers) {
+                if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
+                    if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
+                    else epsPrice = epsVol * parseFloat(tier.price_per_m3 || 150);
+                    break;
+                }
+            }
+            estimCalc.isoEpsBase += epsPrice;
+            estimCalc.net += epsPrice;
         }
     });
 
@@ -1272,7 +1339,9 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 <KPI icon={({ className }) => <TruckSVG color="white" className={className} />} label={t('work_order_detail.kpi.base_dist', 'Distance Base')}       
                     value={
                         <div className="flex items-center gap-1.5">
-                            <span>{wo.prices?.distance_km ? `${parseFloat(wo.prices.distance_km).toFixed(1)} km` : '—'}</span>
+                            <span>{wo.route_distance_km ? `${parseFloat(wo.route_distance_km).toFixed(1)} km` : (wo.prices?.distance_km ? `${(parseFloat(wo.prices.distance_km) * 2).toFixed(1)} km` : (
+                                (wo.route_segments && wo.route_segments.length > 0) ? `${(((wo.route_segments).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2).toFixed(1)} km` : '—'
+                            ))}</span>
                         </div>
                     } 
                     sub={t('work_order_detail.kpi.round_trip', 'aller-retour')} color="slate" />
@@ -1449,7 +1518,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)).toFixed(1)} km</span>
+                                                <span className="text-sm font-black text-slate-900 dark:text-white">{(((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2).toFixed(1)} km</span>
                                                 {wo.status !== 'completed' && wo.status !== 'cancelled' && (
                                                     <button 
                                                         onClick={handleRecalculateRoute}
@@ -2237,6 +2306,42 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                             <span className="text-right tabular-nums">
                                                 {surfaceForAuto} m² × {(wo.prices?.fiber_large !== undefined ? (surfaceForAuto > parseFloat(wo.prices.fiber_threshold) ? parseFloat(wo.prices.fiber_large) : parseFloat(wo.prices.fiber)) : parseFloat(wo.prices?.fiber || 2.5)).toFixed(2)} = <b>{autoFiber.toFixed(2)}&nbsp;EUR</b>
                                             </span>
+                                        </div>
+                                    )}
+                                    {estimCalc.isoPurBase > 0 && (
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                            <span className="font-medium">Isolation PUR ({isoPurThick} cm)</span>
+                                            <span className="text-right tabular-nums">{isoPurSurface} m² = <b>{estimCalc.isoPurBase.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {purOpts.aspiration > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span className="font-medium">↳ Aspiration</span>
+                                            <span className="text-right tabular-nums"><b>{purOpts.aspiration.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {purOpts.niveller > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span className="font-medium">↳ Nivellement au laser</span>
+                                            <span className="text-right tabular-nums"><b>{purOpts.niveller.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {purOpts.poncage > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span className="font-medium">↳ Ponçage de la mousse</span>
+                                            <span className="text-right tabular-nums"><b>{purOpts.poncage.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {purOpts.protection > 0 && (
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                            <span className="font-medium">↳ Protection au-dessus 1M</span>
+                                            <span className="text-right tabular-nums"><b>{purOpts.protection.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {estimCalc.isoEpsBase > 0 && (
+                                        <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                            <span className="font-medium">Isolation EPS ({isoEpsM3.toFixed(2)} m³)</span>
+                                            <span className="text-right tabular-nums"><b>{estimCalc.isoEpsBase.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {estimCalc.threshold > 0 && (

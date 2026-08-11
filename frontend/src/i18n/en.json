@@ -2836,7 +2836,21 @@
         "thickness": "Thickness (cm)",
         "workType": "Type of work",
         "address_placeholder": "Full site address",
-        "duramint": "Fibre"
+        "duramint": "Fibre",
+        "isolation_title": "Insulation",
+        "isolation_sub": "Do you need insulation for this site?",
+        "isolation_yes_sub": "I need insulation",
+        "isolation_no_sub": "Skip to next",
+        "chape_title": "Chape",
+        "pur_selected": "PUR insulation selected",
+        "eps_selected": "EPS insulation selected",
+        "pur_aspiration": "Aspiration",
+        "pur_niveller": "Laser levelling",
+        "pur_poncage": "Foam sanding",
+        "pur_poncage_sub": "required for underfloor heating",
+        "pur_protection": "Protection above 1M",
+        "always_included": "Always included",
+        "isolation_question": "Do you need insulation for this site?"
     },
     "planning": {
         "cannot_complete_future": "You cannot complete a future work order.",

@@ -1,45 +1,26 @@
 import json
-import os
 
-files = {
-    "ro.json": {
-        "message_updated": "Mesaj actualizat",
-        "error_updating_message": "Eroare la actualizarea mesajului",
-        "message_hidden": "Mesaj ascuns de client",
-        "message_visible": "Mesaj vizibil pentru client",
-        "error_toggling_visibility": "Eroare la modificarea vizibilității",
-        "hidden_from_client": "Ascuns de client",
-        "show_to_client": "Afișează la client",
-        "hide_from_client": "Ascunde de la client",
-        "edit_message": "Editează mesajul",
-        "mark_unread": "Marchează ca necitit"
-    },
-    "fr.json": {
-        "message_updated": "Message mis à jour",
-        "error_updating_message": "Erreur lors de la mise à jour du message",
-        "message_hidden": "Message masqué au client",
-        "message_visible": "Message visible pour le client",
-        "error_toggling_visibility": "Erreur lors de la modification de la visibilité",
-        "hidden_from_client": "Masqué au client",
-        "show_to_client": "Afficher au client",
-        "hide_from_client": "Masquer au client",
-        "edit_message": "Éditer le message",
-        "mark_unread": "Marquer comme non lu"
-    }
-}
+file_path = "frontend/src/i18n/nl.json"
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
 
-for filename, translations in files.items():
-    filepath = os.path.join("frontend/src/i18n", filename)
-    if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        
-        if "admin" not in data:
-            data["admin"] = {}
-            
-        for key, val in translations.items():
-            data["admin"][key] = val
-            
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-        print(f"Updated {filename}")
+# Fix NL translations that got cut off or translated badly
+if "pricing_settings" in data:
+    data["pricing_settings"]["pur_step"] = "Prijsstijging / cm (tot 10cm)"
+    data["pricing_settings"]["pur_extra"] = "Prijs / extra cm (>10cm)"
+
+with open(file_path, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+
+file_path_ro = "frontend/src/i18n/ro.json"
+with open(file_path_ro, "r", encoding="utf-8") as f:
+    data_ro = json.load(f)
+
+# Fix RO translations
+if "pricing_settings" in data_ro:
+    data_ro["pricing_settings"]["pur_step"] = "Creștere preț / cm (până la 10cm)"
+    data_ro["pricing_settings"]["pur_extra"] = "Preț / cm supl. (peste 10cm)"
+
+with open(file_path_ro, "w", encoding="utf-8") as f:
+    json.dump(data_ro, f, indent=2, ensure_ascii=False)
+    

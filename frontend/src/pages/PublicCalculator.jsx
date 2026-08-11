@@ -280,7 +280,9 @@ export default function PublicCalculator() {
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const offset = firstDay === 0 ? 6 : firstDay - 1;
         const days = [];
-        const weekdays = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
+        const weekdays = i18n.language === 'nl' ? ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'] :
+                         i18n.language === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] :
+                         ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
         const header = weekdays.map(wd => (
             <div key={wd} className="text-center text-xs font-bold text-slate-400 py-1">{wd}</div>
         ));
@@ -487,12 +489,15 @@ export default function PublicCalculator() {
                                         </div>
                                         <input type="checkbox" checked={formData.has_mesh} onChange={e => setFormData({ ...formData, has_mesh: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
                                     </label>
-                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.has_duramint ? 'border-yellow-400 bg-yellow-50/50' : 'border-slate-100 bg-slate-50 hover:border-yellow-200'}`}>
+                                    <label className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all border-yellow-400 bg-yellow-50/50 opacity-80 cursor-not-allowed`} title={t('calculator.duramint_always_included', 'Toujours inclus')}>
                                         <div className="flex items-center gap-3">
-                                            <Activity className={`w-5 h-5 ${formData.has_duramint ? 'text-yellow-600' : 'text-slate-400'}`} />
-                                            <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
+                                            <Layers className={`w-5 h-5 text-yellow-600`} />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm text-slate-900">{t('calculator.duramint', 'Fibre')}</span>
+                                                <span className="text-[10px] text-yellow-700">{t('calculator.always_included', 'Toujours inclus')}</span>
+                                            </div>
                                         </div>
-                                        <input type="checkbox" checked={formData.has_duramint} onChange={e => setFormData({ ...formData, has_duramint: e.target.checked })} className="w-4 h-4 accent-yellow-400" />
+                                        <input type="checkbox" checked={true} readOnly className="w-4 h-4 accent-yellow-400 cursor-not-allowed" />
                                     </label>
                                 </div>
 

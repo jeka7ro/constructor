@@ -38,6 +38,42 @@ class PricingSettingSchema(BaseModel):
     truck_distance_threshold_km: float = 50.0
     truck_extra_price_flat: float = 0.0
     truck_surface_threshold_free_sqm: float = 500.0
+    
+    is_foil_mandatory: bool = False
+    is_mesh_mandatory: bool = False
+    is_fiber_mandatory: bool = False
+    is_pur_aspiration_mandatory: bool = False
+    is_pur_niveller_mandatory: bool = False
+    is_pur_poncage_mandatory: bool = False
+    is_pur_protection_mandatory: bool = False
+    
+    pur_truck_distance_threshold_km: float = 50.0
+    pur_truck_extra_price_flat: float = 0.0
+    pur_truck_surface_threshold_free_sqm: float = 500.0
+    
+    eps_truck_distance_threshold_km: float = 50.0
+    eps_truck_extra_price_flat: float = 0.0
+    eps_truck_volume_threshold_free_m3: float = 40.0
+    
+    
+    # PUR
+    pur_base_price_3cm: float = 13.95
+    pur_step_price_up_to_10cm: float = 1.65
+    pur_extra_price_above_10cm: float = 2.10
+    pur_minimum_execution_price: float = 1375.00
+    pur_surface_discount_step: float = -0.50
+    pur_opt_aspiration: float = 2.00
+    pur_opt_niveller: float = 4.25
+    pur_opt_poncage: float = 1.50
+    pur_opt_protection: float = 1.50
+    
+    # EPS
+    eps_volume_thresholds: list = [
+        {"max_m3": 10.0, "price_flat": 1495.0, "price_per_m3": None},
+        {"max_m3": 20.0, "price_flat": None, "price_per_m3": 160.0},
+        {"max_m3": 40.0, "price_flat": None, "price_per_m3": 155.0},
+        {"max_m3": 99999.0, "price_flat": None, "price_per_m3": 150.0}
+    ]
 
 @router.get("/pricing-settings")
 def get_pricing_settings(
@@ -109,7 +145,42 @@ def get_pricing_settings(
         "truck_base_address": setting.truck_base_address,
         "truck_distance_threshold_km": setting.truck_distance_threshold_km if setting.truck_distance_threshold_km is not None else 50.0,
         "truck_extra_price_flat": setting.truck_extra_price_flat if setting.truck_extra_price_flat is not None else 0.0,
-        "truck_surface_threshold_free_sqm": setting.truck_surface_threshold_free_sqm if setting.truck_surface_threshold_free_sqm is not None else 500.0
+        "truck_surface_threshold_free_sqm": setting.truck_surface_threshold_free_sqm if setting.truck_surface_threshold_free_sqm is not None else 500.0,
+        
+        "is_foil_mandatory": getattr(setting, "is_foil_mandatory", False),
+        "is_mesh_mandatory": getattr(setting, "is_mesh_mandatory", False),
+        "is_fiber_mandatory": getattr(setting, "is_fiber_mandatory", False),
+        "is_pur_aspiration_mandatory": getattr(setting, "is_pur_aspiration_mandatory", False),
+        "is_pur_niveller_mandatory": getattr(setting, "is_pur_niveller_mandatory", False),
+        "is_pur_poncage_mandatory": getattr(setting, "is_pur_poncage_mandatory", False),
+        "is_pur_protection_mandatory": getattr(setting, "is_pur_protection_mandatory", False),
+        
+        "pur_truck_distance_threshold_km": getattr(setting, "pur_truck_distance_threshold_km", 50.0),
+        "pur_truck_extra_price_flat": getattr(setting, "pur_truck_extra_price_flat", 0.0),
+        "pur_truck_surface_threshold_free_sqm": getattr(setting, "pur_truck_surface_threshold_free_sqm", 500.0),
+        
+        "eps_truck_distance_threshold_km": getattr(setting, "eps_truck_distance_threshold_km", 50.0),
+        "eps_truck_extra_price_flat": getattr(setting, "eps_truck_extra_price_flat", 0.0),
+        "eps_truck_volume_threshold_free_m3": getattr(setting, "eps_truck_volume_threshold_free_m3", 40.0),
+        
+        # PUR
+        "pur_base_price_3cm": getattr(setting, "pur_base_price_3cm", 13.95),
+        "pur_step_price_up_to_10cm": getattr(setting, "pur_step_price_up_to_10cm", 1.65),
+        "pur_extra_price_above_10cm": getattr(setting, "pur_extra_price_above_10cm", 2.10),
+        "pur_minimum_execution_price": getattr(setting, "pur_minimum_execution_price", 1375.00),
+        "pur_surface_discount_step": getattr(setting, "pur_surface_discount_step", -0.50),
+        "pur_opt_aspiration": getattr(setting, "pur_opt_aspiration", 2.00),
+        "pur_opt_niveller": getattr(setting, "pur_opt_niveller", 4.25),
+        "pur_opt_poncage": getattr(setting, "pur_opt_poncage", 1.50),
+        "pur_opt_protection": getattr(setting, "pur_opt_protection", 1.50),
+        
+        # EPS
+        "eps_volume_thresholds": getattr(setting, "eps_volume_thresholds", [
+            {"max_m3": 10.0, "price_flat": 1495.0, "price_per_m3": None},
+            {"max_m3": 20.0, "price_flat": None, "price_per_m3": 160.0},
+            {"max_m3": 40.0, "price_flat": None, "price_per_m3": 155.0},
+            {"max_m3": 99999.0, "price_flat": None, "price_per_m3": 150.0}
+        ])
     }
 
 @router.put("/pricing-settings")
@@ -172,6 +243,52 @@ def update_pricing_settings(
     setting.truck_distance_threshold_km = payload.truck_distance_threshold_km
     setting.truck_extra_price_flat = payload.truck_extra_price_flat
     setting.truck_surface_threshold_free_sqm = payload.truck_surface_threshold_free_sqm
+    
+    is_foil_mandatory: bool = False
+    is_mesh_mandatory: bool = False
+    is_fiber_mandatory: bool = False
+    is_pur_aspiration_mandatory: bool = False
+    is_pur_niveller_mandatory: bool = False
+    is_pur_poncage_mandatory: bool = False
+    is_pur_protection_mandatory: bool = False
+    
+    pur_truck_distance_threshold_km: float = 50.0
+    pur_truck_extra_price_flat: float = 0.0
+    pur_truck_surface_threshold_free_sqm: float = 500.0
+    
+    eps_truck_distance_threshold_km: float = 50.0
+    eps_truck_extra_price_flat: float = 0.0
+    eps_truck_volume_threshold_free_m3: float = 40.0
+    
+    setting.is_foil_mandatory = payload.is_foil_mandatory
+    setting.is_mesh_mandatory = payload.is_mesh_mandatory
+    setting.is_fiber_mandatory = payload.is_fiber_mandatory
+    setting.is_pur_aspiration_mandatory = payload.is_pur_aspiration_mandatory
+    setting.is_pur_niveller_mandatory = payload.is_pur_niveller_mandatory
+    setting.is_pur_poncage_mandatory = payload.is_pur_poncage_mandatory
+    setting.is_pur_protection_mandatory = payload.is_pur_protection_mandatory
+    
+    setting.pur_truck_distance_threshold_km = payload.pur_truck_distance_threshold_km
+    setting.pur_truck_extra_price_flat = payload.pur_truck_extra_price_flat
+    setting.pur_truck_surface_threshold_free_sqm = payload.pur_truck_surface_threshold_free_sqm
+    
+    setting.eps_truck_distance_threshold_km = payload.eps_truck_distance_threshold_km
+    setting.eps_truck_extra_price_flat = payload.eps_truck_extra_price_flat
+    setting.eps_truck_volume_threshold_free_m3 = payload.eps_truck_volume_threshold_free_m3
+    
+    # PUR
+    setting.pur_base_price_3cm = payload.pur_base_price_3cm
+    setting.pur_step_price_up_to_10cm = payload.pur_step_price_up_to_10cm
+    setting.pur_extra_price_above_10cm = payload.pur_extra_price_above_10cm
+    setting.pur_minimum_execution_price = payload.pur_minimum_execution_price
+    setting.pur_surface_discount_step = payload.pur_surface_discount_step
+    setting.pur_opt_aspiration = payload.pur_opt_aspiration
+    setting.pur_opt_niveller = payload.pur_opt_niveller
+    setting.pur_opt_poncage = payload.pur_opt_poncage
+    setting.pur_opt_protection = payload.pur_opt_protection
+    
+    # EPS
+    setting.eps_volume_thresholds = payload.eps_volume_thresholds
     
     thresholds = []
     for t in payload.surface_thresholds:

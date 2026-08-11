@@ -464,8 +464,8 @@ export default function AdminOverview() {
 
     const getDateParams = () => {
         const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 28);
+        const start = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 12, 28);
         // slim=true: planning nu are nevoie de calcul preț, documente sau poze
         return `?start_date=${start.toISOString().split('T')[0]}&end_date=${end.toISOString().split('T')[0]}&slim=true&_t=${Date.now()}`;
     }

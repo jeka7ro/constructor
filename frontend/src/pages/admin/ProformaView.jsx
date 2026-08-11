@@ -207,6 +207,91 @@ export default function ProformaView({ workOrderData = null, config = null }) {
 
                     // Seuil de surface — calcul intern ASCUNS (nu apare ca linie in PDF)
                     // Se adauga la totalul final prin hiddenExtra (mai jos)
+                } else if (/isolation\s*pur/i.test(vol.label || '')) {
+                    // ── Isolation PUR ──
+                    const purPrices = activePrices;
+                    const purThick = parseFloat(vol.thickness || 3);
+                    
+                    // Base PUR price (3cm base)
+                    let purBasePrice = parseFloat(purPrices.pur_base_price_3cm || 13.95);
+                    // Extra thickness above 3cm
+                    if (purThick > 3 && purThick <= 10) {
+                        purBasePrice += (purThick - 3) * parseFloat(purPrices.pur_step_price_up_to_10cm || 1.65);
+                    } else if (purThick > 10) {
+                        purBasePrice += 7 * parseFloat(purPrices.pur_step_price_up_to_10cm || 1.65);
+                        purBasePrice += (purThick - 10) * parseFloat(purPrices.pur_extra_price_above_10cm || 2.10);
+                    }
+                    // Surface discount
+                    if (surfaceForAuto > 100) {
+                        const discountSteps = Math.floor((surfaceForAuto - 100) / 100);
+                        purBasePrice += discountSteps * parseFloat(purPrices.pur_surface_discount_step || -0.50);
+                    }
+                    purBasePrice = Math.max(0, purBasePrice);
+                    
+                    defaultFallbackItems.push({
+                        id: `pur_base_${idx}`,
+                        desc: `Isolation PUR ${purThick} cm`,
+                        qty: surfaceForAuto,
+                        price: purBasePrice
+                    });
+                    
+                    // PUR options as separate line items
+                    if (vol.pur_aspiration) {
+                        defaultFallbackItems.push({
+                            id: `pur_aspiration_${idx}`,
+                            desc: `Aspiration`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(purPrices.pur_opt_aspiration || 2.00)
+                        });
+                    }
+                    if (vol.pur_niveller) {
+                        defaultFallbackItems.push({
+                            id: `pur_niveller_${idx}`,
+                            desc: `Nivellement au laser`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(purPrices.pur_opt_niveller || 4.25)
+                        });
+                    }
+                    if (vol.pur_poncage) {
+                        defaultFallbackItems.push({
+                            id: `pur_poncage_${idx}`,
+                            desc: `Ponçage de la mousse`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(purPrices.pur_opt_poncage || 1.50)
+                        });
+                    }
+                    if (vol.pur_protection) {
+                        defaultFallbackItems.push({
+                            id: `pur_protection_${idx}`,
+                            desc: `Protection au-dessus 1M`,
+                            qty: surfaceForAuto,
+                            price: parseFloat(purPrices.pur_opt_protection || 1.50)
+                        });
+                    }
+                } else if (/isolation\s*eps/i.test(vol.label || '')) {
+                    // ── Isolation EPS ──
+                    const epsVolume = parseFloat(vol.volume_m3 || (surfaceForAuto * parseFloat(vol.thickness || 1) / 100));
+                    const epsTiers = purPrices?.eps_volume_thresholds || activePrices?.eps_volume_thresholds || [
+                        { max_m3: 10, price_flat: 1495, price_per_m3: null },
+                        { max_m3: 20, price_flat: null, price_per_m3: 160 },
+                        { max_m3: 40, price_flat: null, price_per_m3: 155 },
+                        { max_m3: 99999, price_flat: null, price_per_m3: 150 }
+                    ];
+                    let epsPrice = 0;
+                    for (const tier of epsTiers) {
+                        if (epsVolume <= parseFloat(tier.max_m3 || 99999)) {
+                            if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
+                            else epsPrice = epsVolume * parseFloat(tier.price_per_m3 || 150);
+                            break;
+                        }
+                    }
+                    defaultFallbackItems.push({
+                        id: `eps_${idx}`,
+                        desc: `Isolation EPS (${epsVolume.toFixed(2)} m³)`,
+                        qty: 1,
+                        unit: 'forfait',
+                        price: epsPrice
+                    });
                 } else {
                     defaultFallbackItems.push({
                         id: `vol_${idx}`,

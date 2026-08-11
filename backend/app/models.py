@@ -70,11 +70,47 @@ class PricingSetting(Base):
     
     surface_thresholds = Column(JSON, default=list) 
     
+    # ── Options Mandatory Flags ─────────────────────────────────────────────
+    is_foil_mandatory = Column(Boolean, default=False)
+    is_mesh_mandatory = Column(Boolean, default=False)
+    is_fiber_mandatory = Column(Boolean, default=False)
+    is_pur_aspiration_mandatory = Column(Boolean, default=False)
+    is_pur_niveller_mandatory = Column(Boolean, default=False)
+    is_pur_poncage_mandatory = Column(Boolean, default=False)
+    is_pur_protection_mandatory = Column(Boolean, default=False)
+    
     # ── Truck Distance Configuration ────────────────────────────────────────
     truck_base_address = Column(Text, nullable=True)
     truck_distance_threshold_km = Column(Float, default=50.0)
     truck_extra_price_flat = Column(Float, default=0.0)
     truck_surface_threshold_free_sqm = Column(Float, default=500.0)
+    
+    pur_truck_distance_threshold_km = Column(Float, default=50.0)
+    pur_truck_extra_price_flat = Column(Float, default=0.0)
+    pur_truck_surface_threshold_free_sqm = Column(Float, default=500.0)
+    
+    # ── PUR Configuration ───────────────────────────────────────────────────
+    pur_base_price_3cm = Column(Float, default=13.95)
+    pur_step_price_up_to_10cm = Column(Float, default=1.65)
+    pur_extra_price_above_10cm = Column(Float, default=2.10)
+    pur_minimum_execution_price = Column(Float, default=1375.00)
+    pur_surface_discount_step = Column(Float, default=-0.50)
+    pur_opt_aspiration = Column(Float, default=2.00)
+    pur_opt_niveller = Column(Float, default=4.25)
+    pur_opt_poncage = Column(Float, default=1.50)
+    pur_opt_protection = Column(Float, default=1.50)
+    
+    eps_truck_distance_threshold_km = Column(Float, default=50.0)
+    eps_truck_extra_price_flat = Column(Float, default=0.0)
+    eps_truck_volume_threshold_free_m3 = Column(Float, default=40.0)
+    
+    # ── EPS Configuration ───────────────────────────────────────────────────
+    eps_volume_thresholds = Column(JSON, default=lambda: [
+        {"max_m3": 10.0, "price_flat": 1495.0, "price_per_m3": None},
+        {"max_m3": 20.0, "price_flat": None, "price_per_m3": 160.0},
+        {"max_m3": 40.0, "price_flat": None, "price_per_m3": 155.0},
+        {"max_m3": 99999.0, "price_flat": None, "price_per_m3": 150.0}
+    ])
     
     # ── VAT Configuration ───────────────────────────────────────────────────
     vat_legal_entity = Column(Float, default=0.0)

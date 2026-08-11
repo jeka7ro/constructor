@@ -43,6 +43,17 @@ class CalculatorSubmitRequest(BaseModel):
     
     # Custom source override (e.g. 'we-r' for Jordi)
     source: Optional[str] = None
+    
+    # ── Isolation (PUR / EPS) ──
+    needs_isolation: bool = False
+    isolation_type: Optional[str] = None  # 'pur' or 'eps'
+    isolation_surface: Optional[float] = None
+    isolation_thickness: Optional[float] = None
+    # PUR options
+    isolation_pur_aspiration: bool = False
+    isolation_pur_niveller: bool = False
+    isolation_pur_poncage: bool = False
+    isolation_pur_protection: bool = False
 
 @router.get("/config")
 def get_calculator_config(domain: Optional[str] = None, slug: Optional[str] = None, db: Session = Depends(get_db)):
@@ -54,6 +65,7 @@ def get_calculator_config(domain: Optional[str] = None, slug: Optional[str] = No
     pricing_data = {}
     if pricing:
         pricing_data = {
+            # ── Chape pricing ──
             "base_price_sqm": pricing.base_price_sqm,
             "base_price_sqm_large": pricing.base_price_sqm_large,
             "base_large_threshold_sqm": pricing.base_large_threshold_sqm,
@@ -68,6 +80,22 @@ def get_calculator_config(domain: Optional[str] = None, slug: Optional[str] = No
             "vat_legal_entity": pricing.vat_legal_entity,
             "vat_physical_new": pricing.vat_physical_new,
             "vat_physical_repair": pricing.vat_physical_repair,
+            # ── PUR pricing ──
+            "pur_base_price_3cm": pricing.pur_base_price_3cm,
+            "pur_step_price_up_to_10cm": pricing.pur_step_price_up_to_10cm,
+            "pur_extra_price_above_10cm": pricing.pur_extra_price_above_10cm,
+            "pur_minimum_execution_price": pricing.pur_minimum_execution_price,
+            "pur_surface_discount_step": pricing.pur_surface_discount_step,
+            "pur_opt_aspiration": pricing.pur_opt_aspiration,
+            "pur_opt_niveller": pricing.pur_opt_niveller,
+            "pur_opt_poncage": pricing.pur_opt_poncage,
+            "pur_opt_protection": pricing.pur_opt_protection,
+            "is_pur_aspiration_mandatory": pricing.is_pur_aspiration_mandatory,
+            "is_pur_niveller_mandatory": pricing.is_pur_niveller_mandatory,
+            "is_pur_poncage_mandatory": pricing.is_pur_poncage_mandatory,
+            "is_pur_protection_mandatory": pricing.is_pur_protection_mandatory,
+            # ── EPS pricing ──
+            "eps_volume_thresholds": pricing.eps_volume_thresholds or [],
         }
 
     return {
@@ -131,6 +159,39 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
     except Exception as e:
         print(f"Error calculating distance: {e}")
     return 0.0
+
+def _build_volumes(payload: CalculatorSubmitRequest) -> list:
+    """Build volumes array: always Chape, optionally + Isolation PUR/EPS."""
+    volumes = [{
+        "label": "Chape",
+        "quantity": payload.surface,
+        "unit": "m²",
+        "thickness": payload.thickness,
+        "has_foil": payload.has_foil,
+        "has_mesh": payload.has_mesh,
+        "has_duramint": payload.has_duramint
+    }]
+    
+    if payload.needs_isolation and payload.isolation_type and payload.isolation_surface:
+        iso_vol = {
+            "quantity": payload.isolation_surface,
+            "thickness": payload.isolation_thickness or 3,
+        }
+        if payload.isolation_type == "pur":
+            iso_vol["label"] = "Isolation PUR"
+            iso_vol["unit"] = "m²"
+            iso_vol["pur_aspiration"] = payload.isolation_pur_aspiration
+            iso_vol["pur_niveller"] = payload.isolation_pur_niveller
+            iso_vol["pur_poncage"] = payload.isolation_pur_poncage
+            iso_vol["pur_protection"] = payload.isolation_pur_protection
+        elif payload.isolation_type == "eps":
+            iso_vol["label"] = "Isolation EPS"
+            iso_vol["unit"] = "m³"
+            # Volume = surface * thickness(cm) / 100
+            iso_vol["volume_m3"] = round(payload.isolation_surface * (payload.isolation_thickness or 1) / 100, 2)
+        volumes.append(iso_vol)
+    
+    return volumes
 
 @router.post("/submit")
 def submit_calculator(request: Request, payload: CalculatorSubmitRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -223,8 +284,54 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
                         if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
                             truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
         
-        estimated_price = base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra + truck_cost
-        
+        # Isolation cost
+        isolation_cost = 0
+        if payload.needs_isolation and payload.isolation_type and payload.isolation_surface:
+            if payload.isolation_type == "pur":
+                pur_thick = payload.isolation_thickness or 3
+                pur_base = getattr(pricing, 'pur_base_price_3cm', 13.95)
+                if 3 < pur_thick <= 10:
+                    pur_base += (pur_thick - 3) * getattr(pricing, 'pur_step_price_up_to_10cm', 1.65)
+                elif pur_thick > 10:
+                    pur_base += 7 * getattr(pricing, 'pur_step_price_up_to_10cm', 1.65)
+                    pur_base += (pur_thick - 10) * getattr(pricing, 'pur_extra_price_above_10cm', 2.10)
+                
+                if payload.isolation_surface > 100:
+                    discount_steps = int((payload.isolation_surface - 100) // 100)
+                    pur_base += discount_steps * getattr(pricing, 'pur_surface_discount_step', -0.50)
+                
+                pur_base = max(0, pur_base)
+                isolation_cost += pur_base * payload.isolation_surface
+                
+                if payload.isolation_pur_aspiration:
+                    isolation_cost += getattr(pricing, 'pur_opt_aspiration', 2.00) * payload.isolation_surface
+                if payload.isolation_pur_niveller:
+                    isolation_cost += getattr(pricing, 'pur_opt_niveller', 4.25) * payload.isolation_surface
+                if payload.isolation_pur_poncage:
+                    isolation_cost += getattr(pricing, 'pur_opt_poncage', 1.50) * payload.isolation_surface
+                if payload.isolation_pur_protection:
+                    isolation_cost += getattr(pricing, 'pur_opt_protection', 1.50) * payload.isolation_surface
+                    
+            elif payload.isolation_type == "eps":
+                eps_vol = round(payload.isolation_surface * (payload.isolation_thickness or 1) / 100, 2)
+                eps_tiers = getattr(pricing, 'eps_volume_thresholds', None) or [
+                    {"max_m3": 10, "price_flat": 1495},
+                    {"max_m3": 20, "price_per_m3": 160},
+                    {"max_m3": 40, "price_per_m3": 155},
+                    {"max_m3": 99999, "price_per_m3": 150}
+                ]
+                eps_price = 0
+                for tier in eps_tiers:
+                    if eps_vol <= float(tier.get("max_m3") or 99999):
+                        if tier.get("price_flat"):
+                            eps_price = float(tier["price_flat"])
+                        else:
+                            eps_price = eps_vol * float(tier.get("price_per_m3") or 150)
+                        break
+                isolation_cost += eps_price
+
+        estimated_price = base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra + truck_cost + isolation_cost
+
     use_vat = True
     vat_rate = 21.0
     if pricing:
@@ -247,7 +354,19 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         "vat_legal_entity": pricing.vat_legal_entity if pricing else 0,
         "vat_physical_new": pricing.vat_physical_new if pricing else 21,
         "vat_physical_repair": pricing.vat_physical_repair if pricing else 6,
-        "surface_thresholds": pricing.surface_thresholds if pricing else []
+        "surface_thresholds": pricing.surface_thresholds if pricing else [],
+        # PUR prices
+        "pur_base_price_3cm": getattr(pricing, 'pur_base_price_3cm', 13.95),
+        "pur_step_price_up_to_10cm": getattr(pricing, 'pur_step_price_up_to_10cm', 1.65),
+        "pur_extra_price_above_10cm": getattr(pricing, 'pur_extra_price_above_10cm', 2.10),
+        "pur_surface_discount_step": getattr(pricing, 'pur_surface_discount_step', -0.50),
+        "pur_minimum_execution_price": getattr(pricing, 'pur_minimum_execution_price', 1375.0),
+        "pur_opt_aspiration": getattr(pricing, 'pur_opt_aspiration', 2.00),
+        "pur_opt_niveller": getattr(pricing, 'pur_opt_niveller', 4.25),
+        "pur_opt_poncage": getattr(pricing, 'pur_opt_poncage', 1.50),
+        "pur_opt_protection": getattr(pricing, 'pur_opt_protection', 1.50),
+        # EPS tiers
+        "eps_volume_thresholds": getattr(pricing, 'eps_volume_thresholds', []) if pricing else [],
     }
 
     # 4. Create WorkOrder
@@ -265,15 +384,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
         client_email=client.email,
         client_phone=client.phone,
         client_language=payload.client_language,
-        volumes=[{
-            "label": "Chape",
-            "quantity": payload.surface,
-            "unit": "m²",
-            "thickness": payload.thickness,
-            "has_foil": payload.has_foil,
-            "has_mesh": payload.has_mesh,
-            "has_duramint": payload.has_duramint
-        }],
+        volumes=_build_volumes(payload),
         estimated_price=str(estimated_price) if estimated_price > 0 else None,
         prices=prices_dict,
         proforma_issued_at=datetime.utcnow(),

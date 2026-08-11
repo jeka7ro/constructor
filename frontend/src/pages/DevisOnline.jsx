@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, User, Loader2, CheckCircle2, HardHat, FileText, ChevronRight, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2 } from 'lucide-react';
+import { Building2, User, Loader2, CheckCircle2, HardHat, FileText, ChevronRight, Home, Layers, Grid3x3, ShieldCheck, ChevronLeft, Search, Camera, Trash2, Sun, Thermometer, Wind, Paintbrush, Shield, Ruler } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -38,7 +38,16 @@ export default function DevisOnline() {
         has_mesh: false,
         has_duramint: true,
         approximate_date: '',
-        honeypot: ''
+        honeypot: '',
+        // Isolation
+        needs_isolation: false,
+        isolation_type: '',
+        isolation_surface: '',
+        isolation_thickness: '',
+        isolation_pur_aspiration: false,
+        isolation_pur_niveller: false,
+        isolation_pur_poncage: false,
+        isolation_pur_protection: false
     });
 
     const [isSearchingVies, setIsSearchingVies] = useState(false);
@@ -168,7 +177,20 @@ export default function DevisOnline() {
         try {
             const domain = window.location.hostname;
             const urlSource = new URLSearchParams(window.location.search).get('source');
-            const res = await publicApi.post('/submit', { ...formData, domain, is_iframe: isIframe, source: urlSource });
+            const submitData = { ...formData, domain, is_iframe: isIframe, source: urlSource };
+            // Remove fields not expected by backend
+            delete submitData.b_name;
+            // Clean up isolation data: convert empty strings to null for float fields
+            if (!submitData.needs_isolation) {
+                delete submitData.isolation_type;
+                delete submitData.isolation_surface;
+                delete submitData.isolation_thickness;
+            } else {
+                if (submitData.isolation_surface === '') submitData.isolation_surface = null;
+                if (submitData.isolation_thickness === '') submitData.isolation_thickness = null;
+                if (submitData.isolation_type === '') submitData.isolation_type = null;
+            }
+            const res = await publicApi.post('/submit', submitData);
             if (res.data.token) {
                 if (photos.length > 0) {
                     try {
@@ -198,6 +220,10 @@ export default function DevisOnline() {
                         has_foil: formData.has_foil,
                         has_mesh: formData.has_mesh,
                         has_duramint: formData.has_duramint,
+                        needs_isolation: formData.needs_isolation,
+                        isolation_type: formData.isolation_type,
+                        isolation_surface: formData.isolation_surface,
+                        isolation_thickness: formData.isolation_thickness,
                         source_domain: domain,
                         is_iframe: isIframe,
                         submitted_at: new Date().toISOString(),
@@ -402,14 +428,14 @@ export default function DevisOnline() {
                 </div>
 
                 {/* ── CARD ── */}
-                <div className="w-full bg-white border border-slate-100 p-5 sm:p-8 rounded-2xl shadow-lg">
+                <div className="w-full bg-white border border-slate-100 p-5 sm:p-8 rounded-2xl shadow-lg min-h-[520px] flex flex-col">
                     {error && (
                         <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium">
                             {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-5 flex-1 flex flex-col">
                         {/* honeypot */}
                         <input type="text" name="b_name" value={formData.b_name || ''} onChange={e => setFormData({ ...formData, b_name: e.target.value })} style={{ display: 'none' }} tabIndex="-1" autoComplete="off" />
 
@@ -420,7 +446,7 @@ export default function DevisOnline() {
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
                                 <div>
                                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1 text-slate-900 tracking-tight">
-                                        {t('calculator.projectDetails', 'Détails du Projet')}
+                                        {t('calculator.chape_title', 'Chape')}
                                     </h1>
                                     <p className="text-slate-500 text-sm sm:text-base">
                                         {t('calculator.projectDetailsSub', 'Décrivez le chantier pour que nous puissions calculer les matériaux.')}
@@ -466,7 +492,7 @@ export default function DevisOnline() {
                                             className={`w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all ${errorField === 'surface' ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' : 'border-slate-100 focus:border-yellow-400'}`} />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                        <label className={`block text-[11px] font-bold mb-1.5 uppercase tracking-wider ${errorField === 'thickness' ? 'text-red-500' : 'text-slate-500'}`}>{t('calculator.thickness', 'Épaisseur (cm)')}</label>
                                         <input type="number" required min="5" step="0.5" placeholder="5"
                                             value={formData.thickness} onChange={e => {
                                                 setFormData({ ...formData, thickness: e.target.value });
@@ -516,10 +542,185 @@ export default function DevisOnline() {
                                         setError(t('errors.thickness_min', "L'épaisseur minimale est de 5 cm."));
                                         return;
                                     }
-                                    setError(''); setStep(2);
+                                    setError(''); setStep(1.5);
                                 }} className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 sm:py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
                                     {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
                                 </button>
+                            </div>
+                        )}
+
+                        {/* ═══════════════════════════════════ */}
+                        {/* ÉTAPE 1.5 — ISOLATION (PUR / EPS)   */}
+                        {/* ═══════════════════════════════════ */}
+                        {step === 1.5 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5 flex-1 flex flex-col">
+                                <div>
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                                        {t('calculator.isolation_title', 'Isolation')}
+                                    </h1>
+                                    <p className="text-slate-500 text-sm sm:text-base">
+                                        {t('calculator.isolation_sub', "Avez-vous besoin d'isolation pour ce chantier ?")}
+                                    </p>
+                                </div>
+
+                                {/* Yes / No buttons */}
+                                {!formData.needs_isolation && !formData.isolation_type && (
+                                    <div className="space-y-4 mt-auto">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button type="button" onClick={() => { setFormData(p => ({ ...p, needs_isolation: true })); }}
+                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col items-center gap-3">
+                                                <Sun className="w-8 h-8 text-amber-500" />
+                                                <span className="font-bold text-base text-slate-900">{t('common.yes', 'Oui')}</span>
+                                                <span className="text-xs text-slate-500 text-center">{t('calculator.isolation_yes_sub', "J'ai besoin d'isolation")}</span>
+                                            </button>
+                                            <button type="button" onClick={() => { setFormData(p => ({ ...p, needs_isolation: false })); setStep(2); }}
+                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-slate-300 transition-all flex flex-col items-center gap-3">
+                                                <ChevronRight className="w-8 h-8 text-slate-400" />
+                                                <span className="font-bold text-base text-slate-900">{t('common.no', 'Non')}</span>
+                                                <span className="text-xs text-slate-500 text-center">{t('calculator.isolation_no_sub', 'Passer à la suite')}</span>
+                                            </button>
+                                        </div>
+                                        <button type="button" onClick={() => setStep(1)}
+                                            className="text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+                                            <ChevronLeft className="w-4 h-4" /> {t('common.back', 'Retour')}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* PUR vs EPS choice */}
+                                {formData.needs_isolation && !formData.isolation_type && (
+                                    <div className="space-y-4">
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('calculator.isolation_choose', "Type d'isolation")}</label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: 'pur' }))}
+                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50 transition-all flex flex-col items-center gap-3">
+                                                <Wind className="w-8 h-8 text-indigo-500" />
+                                                <span className="font-bold text-base text-slate-900">PUR</span>
+                                                <span className="text-xs text-slate-500 text-center">{t('calculator.pur_desc', 'Mousse polyuréthane projetée')}</span>
+                                            </button>
+                                            <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: 'eps' }))}
+                                                className="p-5 rounded-xl border-2 border-slate-100 bg-slate-50 hover:border-emerald-400 hover:bg-emerald-50 transition-all flex flex-col items-center gap-3">
+                                                <Thermometer className="w-8 h-8 text-emerald-500" />
+                                                <span className="font-bold text-base text-slate-900">EPS</span>
+                                                <span className="text-xs text-slate-500 text-center">{t('calculator.eps_desc', 'Polystyrène expansé')}</span>
+                                            </button>
+                                        </div>
+                                        <button type="button" onClick={() => setFormData(p => ({ ...p, needs_isolation: false, isolation_type: '' }))}
+                                            className="text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+                                            <ChevronLeft className="w-4 h-4" /> {t('common.back', 'Retour')}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* PUR Form */}
+                                {formData.isolation_type === 'pur' && (
+                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                        <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                            <Wind className="w-5 h-5 text-indigo-600" />
+                                            <span className="font-bold text-sm text-indigo-900">{t('calculator.pur_selected', 'Isolation PUR sélectionnée')}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.surface', 'Surface (m²)')}</label>
+                                                <input type="number" required min="1" placeholder="120"
+                                                    value={formData.isolation_surface} onChange={e => setFormData(p => ({ ...p, isolation_surface: e.target.value }))}
+                                                    className="w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all border-slate-100 focus:border-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                                <input type="number" required min="3" step="0.5" placeholder="3"
+                                                    value={formData.isolation_thickness} onChange={e => setFormData(p => ({ ...p, isolation_thickness: e.target.value }))}
+                                                    className="w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all border-slate-100 focus:border-indigo-400" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">{t('calculator.options', 'Options')}</label>
+                                            {[
+                                                { key: 'isolation_pur_aspiration', label: t('calculator.pur_aspiration', 'Aspiration'), icon: Wind, mandatory: config?.pricing?.is_pur_aspiration_mandatory },
+                                                { key: 'isolation_pur_niveller', label: t('calculator.pur_niveller', 'Nivellement au laser'), icon: Ruler, mandatory: config?.pricing?.is_pur_niveller_mandatory },
+                                                { key: 'isolation_pur_poncage', label: t('calculator.pur_poncage', 'Ponçage de la mousse'), sublabel: t('calculator.pur_poncage_sub', 'obligatoire pour chauffage au sol'), icon: Paintbrush, mandatory: config?.pricing?.is_pur_poncage_mandatory },
+                                                { key: 'isolation_pur_protection', label: t('calculator.pur_protection', 'Protection au-dessus 1M'), icon: Shield, mandatory: config?.pricing?.is_pur_protection_mandatory },
+                                            ].map(opt => (
+                                                <label key={opt.key} className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${opt.mandatory ? 'border-indigo-400 bg-indigo-50/50 opacity-80 cursor-not-allowed' : formData[opt.key] ? 'border-indigo-400 bg-indigo-50/50 cursor-pointer' : 'border-slate-100 bg-slate-50 hover:border-indigo-200 cursor-pointer'}`}>
+                                                    <div className="flex items-center gap-3">
+                                                        <opt.icon className={`w-5 h-5 ${(formData[opt.key] || opt.mandatory) ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-sm text-slate-900">{opt.label}</span>
+                                                            {opt.sublabel && <span className="text-[10px] text-amber-600 italic">{opt.sublabel}</span>}
+                                                            {opt.mandatory && <span className="text-[10px] text-indigo-700">{t('calculator.always_included', 'Toujours inclus')}</span>}
+                                                        </div>
+                                                    </div>
+                                                    <input type="checkbox" checked={opt.mandatory || formData[opt.key]} disabled={opt.mandatory}
+                                                        onChange={e => { if (!opt.mandatory) setFormData(p => ({ ...p, [opt.key]: e.target.checked })); }}
+                                                        className="w-4 h-4 accent-indigo-500" />
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: '' }))}
+                                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                                                <ChevronLeft className="w-5 h-5" /> {t('common.back', 'Retour')}
+                                            </button>
+                                            <button type="button" onClick={() => {
+                                                if (!formData.isolation_surface || parseFloat(formData.isolation_surface) <= 0) {
+                                                    setError(t('errors.surface_required', 'La surface est obligatoire.')); return;
+                                                }
+                                                setError(''); setStep(2);
+                                            }} className="flex-[2] bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                                {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* EPS Form */}
+                                {formData.isolation_type === 'eps' && (
+                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                        <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                                            <Thermometer className="w-5 h-5 text-emerald-600" />
+                                            <span className="font-bold text-sm text-emerald-900">{t('calculator.eps_selected', 'Isolation EPS sélectionnée')}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.surface', 'Surface (m²)')}</label>
+                                                <input type="number" required min="1" placeholder="120"
+                                                    value={formData.isolation_surface} onChange={e => setFormData(p => ({ ...p, isolation_surface: e.target.value }))}
+                                                    className="w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all border-slate-100 focus:border-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">{t('calculator.thickness', 'Épaisseur (cm)')}</label>
+                                                <input type="number" required min="1" step="0.5" placeholder="5"
+                                                    value={formData.isolation_thickness} onChange={e => setFormData(p => ({ ...p, isolation_thickness: e.target.value }))}
+                                                    className="w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all border-slate-100 focus:border-emerald-400" />
+                                            </div>
+                                        </div>
+                                        {formData.isolation_surface && formData.isolation_thickness && (
+                                            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                                <span className="text-sm text-slate-600">{t('calculator.eps_volume_calc', 'Volume calculé')}:</span>
+                                                <span className="font-bold text-lg text-slate-900">
+                                                    {(parseFloat(formData.isolation_surface) * parseFloat(formData.isolation_thickness) / 100).toFixed(2)} m³
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-3">
+                                            <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: '' }))}
+                                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                                                <ChevronLeft className="w-5 h-5" /> {t('common.back', 'Retour')}
+                                            </button>
+                                            <button type="button" onClick={() => {
+                                                if (!formData.isolation_surface || parseFloat(formData.isolation_surface) <= 0) {
+                                                    setError(t('errors.surface_required', 'La surface est obligatoire.')); return;
+                                                }
+                                                setError(''); setStep(2);
+                                            }} className="flex-[2] bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                                {t('calculator.continue', 'Continuer')} <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Skip button (always visible when choosing) */}
+                                {formData.needs_isolation && formData.isolation_type && null}
                             </div>
                         )}
 
@@ -547,7 +748,7 @@ export default function DevisOnline() {
                                 />
 
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={() => setStep(1)}
+                                    <button type="button" onClick={() => setStep(1.5)}
                                         className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition-colors">
                                         {t('calculator.back', 'Retour')}
                                     </button>

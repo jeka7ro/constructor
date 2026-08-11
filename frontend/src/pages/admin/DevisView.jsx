@@ -21,6 +21,12 @@ const DEVIS_LANG = {
         fiber: 'Fibre + Duramint',
         forfait: 'forfait', travaux: 'Travaux selon devis',
         signClient: 'Cachet / Signature',
+        purBase: (cm) => `Isolation PUR ${cm} cm`,
+        aspiration: 'Aspiration',
+        nivellement: 'Nivellement au laser',
+        poncage: 'Ponçage de la mousse',
+        protection: 'Protection au-dessus 1M',
+        epsBase: (m3) => `Isolation EPS (${m3} m³)`,
     },
     en: {
         devis: 'QUOTE', validDays: 'Valid 30 days', date: 'Date:',
@@ -30,13 +36,19 @@ const DEVIS_LANG = {
         condTitle: 'Terms & Conditions',
         condText: 'This document is an estimate. Prices are valid for 30 days from the date of issue. To confirm, please return this quote signed with the mention «Bon pour accord».',
         dateEst: 'Estimated work date:',
-        chapeBase: (cm) => `Screed installation ${cm} cm`,
+        chapeBase: (cm) => `Chape ${cm} cm`,
         chapeExtra: (cm) => `Additional thickness (${cm} cm)`,
         foil: 'Plastic sheet (Visqueen)',
         mesh: 'Reinforcement mesh',
         fiber: 'Fibre + Duramint',
         forfait: 'lump sum', travaux: 'Works per quote',
         signClient: 'Stamp / Signature',
+        purBase: (cm) => `PUR Insulation ${cm} cm`,
+        aspiration: 'Aspiration',
+        nivellement: 'Laser levelling',
+        poncage: 'Foam sanding',
+        protection: 'Protection above 1M',
+        epsBase: (m3) => `EPS Insulation (${m3} m³)`,
     },
     nl: {
         devis: 'OFFERTE', validDays: 'Geldig 30 dagen', date: 'Datum:',
@@ -53,6 +65,12 @@ const DEVIS_LANG = {
         fiber: 'Vezel + Duramint',
         forfait: 'forfait', travaux: 'Werken volgens offerte',
         signClient: 'Stempel / Handtekening',
+        purBase: (cm) => `PUR Isolatie ${cm} cm`,
+        aspiration: 'Aspiratie',
+        nivellement: 'Laser nivellering',
+        poncage: 'Schuimschuren',
+        protection: 'Bescherming boven 1M',
+        epsBase: (m3) => `EPS Isolatie (${m3} m³)`,
     },
 }
 
@@ -148,6 +166,10 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 
                 if (surface > 0) {
                     if (isChape) {
+                        // Section header for Chape
+                        if (items.length === 0 || !items[items.length - 1]?.isHeader) {
+                            items.push({ isHeader: true, headerLabel: 'CHAPE' });
+                        }
                         const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
                         const extraThick = Math.max(0, thick - stdThick)
                         
@@ -158,6 +180,43 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) })
                         if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) })
                         if (vol.has_fiber || vol.has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) })
+                    } else if (/isolation\s*pur/i.test(vol.label || '')) {
+                        // Section header for Isolation PUR
+                        items.push({ isHeader: true, headerLabel: 'ISOLATION PUR' });
+                        // ── Isolation PUR ──
+                        const p = wo.prices || {};
+                        const purThick = parseFloat(vol.thickness || 3);
+                        let purBase = parseFloat(p.pur_base_price_3cm || 13.95);
+                        if (purThick > 3 && purThick <= 10) purBase += (purThick - 3) * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
+                        else if (purThick > 10) {
+                            purBase += 7 * parseFloat(p.pur_step_price_up_to_10cm || 1.65);
+                            purBase += (purThick - 10) * parseFloat(p.pur_extra_price_above_10cm || 2.10);
+                        }
+                        if (surface > 100) purBase += Math.floor((surface - 100) / 100) * parseFloat(p.pur_surface_discount_step || -0.50);
+                        purBase = Math.max(0, purBase);
+                        
+                        items.push({ desc: T.purBase(purThick), qty: surface, unit: 'm²', price: purBase });
+                        if (vol.pur_aspiration) items.push({ desc: T.aspiration, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_aspiration || 2.00) });
+                        if (vol.pur_niveller) items.push({ desc: T.nivellement, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_niveller || 4.25) });
+                        if (vol.pur_poncage) items.push({ desc: T.poncage, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_poncage || 1.50) });
+                        if (vol.pur_protection) items.push({ desc: T.protection, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_protection || 1.50) });
+                    } else if (/isolation\s*eps/i.test(vol.label || '')) {
+                        // Section header for Isolation EPS
+                        items.push({ isHeader: true, headerLabel: 'ISOLATION EPS' });
+                        // ── Isolation EPS ──
+                        const epsVol = parseFloat(vol.volume_m3 || (surface * parseFloat(vol.thickness || 1) / 100));
+                        const tiers = wo.prices?.eps_volume_thresholds || [
+                            { max_m3: 10, price_flat: 1495 }, { max_m3: 20, price_per_m3: 160 },
+                            { max_m3: 40, price_per_m3: 155 }, { max_m3: 99999, price_per_m3: 150 }
+                        ];
+                        let epsPrice = 0;
+                        for (const tier of tiers) {
+                            if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
+                                epsPrice = tier.price_flat ? parseFloat(tier.price_flat) : epsVol * parseFloat(tier.price_per_m3 || 150);
+                                break;
+                            }
+                        }
+                        items.push({ desc: T.epsBase(epsVol.toFixed(2)), qty: 1, unit: T.forfait, price: epsPrice });
                     } else {
                         items.push({ desc: vol.label || `Volume ${idx + 1}`, qty: surface, unit: 'm²', price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surface || 1) })
                     }
@@ -211,7 +270,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
         })
     }
 
-    const totalNet = items.reduce((s, i) => s + i.qty * i.price, 0)
+    const totalNet = items.filter(i => !i.isHeader).reduce((s, i) => s + i.qty * i.price, 0)
     const discountPct = parseFloat(wo.prices?.discount_pct || 0)
     const discountAmount = (totalNet * discountPct) / 100
     const netAfterDiscount = totalNet - discountAmount
@@ -301,6 +360,11 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                     <div className="col-span-2 text-right">{T.total}</div>
                                 </div>
                                 {items.map((item, i) => (
+                                    item.isHeader ? (
+                                        <div key={i} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-2 bg-slate-200/60 rounded-xl border border-slate-200 items-center break-inside-avoid mt-3 first:mt-0">
+                                            <div className="col-span-12 text-slate-700 font-black text-[11px] uppercase tracking-widest">{item.headerLabel}</div>
+                                        </div>
+                                    ) : (
                                     <div key={i} className="grid grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-slate-50 rounded-2xl border border-slate-100 items-center break-inside-avoid">
                                         <div className="col-span-5 text-slate-700 font-medium text-xs sm:text-sm">{item.desc}</div>
                                         <div className="col-span-2 text-center text-slate-600 font-medium text-sm">{item.qty}</div>
@@ -308,6 +372,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                                         <div className="col-span-2 text-right text-slate-600 text-sm">{item.price.toFixed(2)}</div>
                                         <div className="col-span-2 text-right font-bold text-slate-800 text-sm">{(item.qty * item.price).toFixed(2)}</div>
                                     </div>
+                                    )
                                 ))}
                             </div>
                         </div>

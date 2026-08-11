@@ -214,7 +214,7 @@ const LANG_DICT = {
         errorConfirming: 'Confirmation error. Try again.',
         updateNotification: 'Important update! The intervention date or estimated price has been modified. Please review the new information.',
         clientDocuments: 'Client Documents (Plans / Photos)',
-        addDocument: 'Add Document',
+
         noDocuments: 'No documents uploaded.',
         orderCancelled: 'This order has been cancelled.',
         rescheduleTitle: 'Request another date',
@@ -223,7 +223,11 @@ const LANG_DICT = {
         rescheduleSubmit: 'Send Request',
         rescheduleSuccess: 'Request sent successfully!',
         reschedulePending: 'You requested a reschedule. Our team will contact you.',
-        contactChatToReschedule: 'If you wish to modify this date, please contact us via chat.'
+        contactChatToReschedule: 'If you wish to modify this date, please contact us via chat.',
+        addDocument: 'Add Documents / Plans / Photos',
+        communication: 'COMMUNICATION',
+        noMessages: 'No messages yet.',
+        writeMessage: 'Write a message...',
     },
     fr: {
         workOrder: 'Bon de travail',
@@ -269,7 +273,7 @@ const LANG_DICT = {
         errorConfirming: 'Erreur de confirmation. Réessayez.',
         updateNotification: 'Mise à jour importante ! La date d\'intervention ou le devis a été modifié. Veuillez vérifier les nouvelles informations.',
         clientDocuments: 'Documents Client (Plans / Photos)',
-        addDocument: 'Ajouter un Document',
+
         noDocuments: 'Aucun document chargé.',
         orderCancelled: 'Cette commande a été annulée.',
         rescheduleTitle: 'Demander une autre date',
@@ -278,7 +282,11 @@ const LANG_DICT = {
         rescheduleSubmit: 'Envoyer la demande',
         rescheduleSuccess: 'Demande envoyée avec succès !',
         reschedulePending: 'Vous avez demandé une autre date. Notre équipe vous contactera.',
-        contactChatToReschedule: 'Si vous souhaitez modifier cette date, veuillez nous contacter via le chat.'
+        contactChatToReschedule: 'Si vous souhaitez modifier cette date, veuillez nous contacter via le chat.',
+        addDocument: 'Ajouter des Documents / Plans / Photos',
+        communication: 'COMMUNICATION',
+        noMessages: 'Aucun message pour le moment.',
+        writeMessage: 'Écrivez un message...',
     },
     de: {
         workOrder: 'Arbeitsauftrag',
@@ -381,7 +389,11 @@ const LANG_DICT = {
         rescheduleSuccess: 'Verzoek succesvol verzonden!',
         reschedulePending: 'U heeft om een andere datum gevraagd. Ons team neemt contact met u op.',
         updateNotification: 'Belangrijke update! De interventiedatum of de offerte is gewijzigd. Controleer de nieuwe informatie.',
-        contactChatToReschedule: 'Als u deze datum wilt wijzigen, neem dan contact met ons op via de chat.'
+        contactChatToReschedule: 'Als u deze datum wilt wijzigen, neem dan contact met ons op via de chat.',
+        addDocument: 'Documenten / Plannen / Foto\'s toevoegen',
+        communication: 'COMMUNICATIE',
+        noMessages: 'Nog geen berichten.',
+        writeMessage: 'Schrijf een bericht...',
     },
     ru: {
         workOrder: 'Заказ-наряд',
@@ -431,8 +443,8 @@ const translateDynamic = (text, lang) => {
     let t = text.toString();
     
     const rules = [
-        { regex: /montaj[ \-]*[sșş]ap[aăâ]/i, fr: 'Chape', nl: 'Chape', en: 'Screed' },
-        { regex: /^[sșş]ap[aăâ]$/i, fr: 'Chape', nl: 'Chape', en: 'Screed' },
+        { regex: /montaj[ \-]*[sșş]ap[aăâ]/i, fr: 'Chape', nl: 'Chape', en: 'Chape' },
+        { regex: /^[sșş]ap[aăâ]$/i, fr: 'Chape', nl: 'Chape', en: 'Chape' },
         { regex: /manoper[aăâ]/i, fr: "Main-d'œuvre", nl: 'Arbeid', en: 'Labor' }
     ];
 
@@ -1299,7 +1311,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 <MessageSquare className="w-4 h-4 text-blue-600" />
                             </div>
                             <h3 className="font-black text-slate-800 uppercase text-sm tracking-wider">
-                                {lang === 'ro' ? 'Comunicare' : lang === 'fr' ? 'Communication' : 'Communication'}
+                                {t.communication || 'COMMUNICATION'}
                             </h3>
                         </div>
                         
@@ -1327,7 +1339,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                     <div ref={chatContainerRef} className="h-64 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
                         {messages.length === 0 ? (
                             <div className="text-center text-slate-400 py-10 text-sm font-semibold">
-                                {lang === 'ro' ? 'Niciun mesaj încă. Începeți conversația!' : lang === 'fr' ? 'Aucun message pour le moment. Commencez la conversation !' : 'No messages yet.'}
+                                {t.noMessages || 'No messages yet.'}
                             </div>
                         ) : (
                             messages.map(msg => {
@@ -1409,7 +1421,7 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                             value={chatMessage}
                             onChange={e => setChatMessage(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                            placeholder={lang === 'ro' ? 'Scrie un mesaj...' : lang === 'fr' ? 'Écrivez un message...' : 'Write a message...'}
+                            placeholder={t.writeMessage || 'Write a message...'}
                             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
                         <button
