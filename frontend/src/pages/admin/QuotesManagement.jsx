@@ -892,10 +892,12 @@ export default function QuotesManagement() {
             }
         },
         {
-            key: 'actions',
-            label: t('common.actions', 'Actions'),
-            render: (row) => (
-                <div className="flex justify-end gap-2 items-center">
+            name: 'ACȚIUNI',
+            align: 'right',
+            render: (row) => {
+                const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
+                return (
+                <div className="flex flex-wrap justify-end gap-1.5 w-[108px] ml-auto">
                     {row.status === 'deleted' ? (
                         <button
                             title={t('quotes.btn_restore_short', 'Restaurer')}
@@ -925,6 +927,26 @@ export default function QuotesManagement() {
                         </button>
                     ) : (
                         <>
+                            <button
+                                title={isRead ? t('quotes.mark_unread', 'Marquer comme non lu') : t('quotes.mark_read', 'Marquer comme lu')}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        if (isRead) {
+                                            await api.post(`/admin/work-orders/${row.id}/mark-unread`);
+                                        } else {
+                                            await api.post(`/admin/work-orders/${row.id}/mark-read`);
+                                        }
+                                        fetchQuotes();
+                                    } catch (err) {
+                                        console.error(err);
+                                    }
+                                }}
+                                className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors ${isRead ? 'text-slate-400' : 'text-blue-500'}`}
+                            >
+                                {isRead ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+
                             {row.token && (
                                 <button 
                                     title={t('quotes.copy_link', 'Copier le lien client')}
@@ -998,9 +1020,10 @@ export default function QuotesManagement() {
                         </>
                     )}
                 </div>
-            )
+                )
+            }
         }
-    ]
+    ];
 
     // Calculation variables for render
     let autoNet = 0;
