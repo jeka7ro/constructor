@@ -1169,10 +1169,22 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             // Calcul nou estimat
             const newCalc = computeChapeTotal(surface, thickness, calcEditForm, newPrices);
 
+            // Sincronizare automată TVA în funcție de noile date de client/lucrare
+            let newVatType = newPrices.vat_type;
+            if (calcEditForm.client_type === 'pj' || calcEditForm.client_type === 'juridica') {
+                newVatType = '0';
+            } else if (calcEditForm.work_type === 'repair') {
+                newVatType = '6';
+            } else {
+                newVatType = '21';
+            }
+            newPrices.vat_type = newVatType;
+
             // Update the legacy proforma_data object so the public page sees the changes
             const newProformaData = {
                 ...(wo.proforma_data || {}),
                 discountPct: newPrices.discount_pct,
+                vatRate: newVatType,
                 // also resync items if we have them so the price update applies
                 items: null // clearing items forces the public page to re-render using the fallback logic which correctly uses `prices`
             };
@@ -1186,6 +1198,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                 proforma_data: newProformaData
             });
             setWo(res.data);
+            setVatType(String(newVatType));
             setCalcEditOpen(false);
             showToast(t('work_order_detail.calc_edit.saved', 'Calcul mis à jour avec succès. Le discount a été appliqué !'));
         } catch (e) {

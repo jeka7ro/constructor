@@ -415,8 +415,19 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }) : defaultFallbackItems
 
     // Calcul seuil de surface — adaugat ca linie in deviz
-    if (activePrices.surface_thresholds && Array.isArray(activePrices.surface_thresholds)) {
-        const surfCheck = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : parseFloat(wo.volumes?.[0]?.quantity || 0)
+    const surfCheck = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : parseFloat(wo.volumes?.[0]?.quantity || 0)
+    if (activePrices.custom_threshold !== undefined && activePrices.custom_threshold !== null && activePrices.custom_threshold !== '') {
+        const charge = parseFloat(activePrices.custom_threshold) || 0
+        if (charge > 0) {
+            items.push({
+                id: `custom_threshold`,
+                desc: 'Forfait',
+                qty: 1,
+                unit: 'Forfait',
+                price: charge
+            })
+        }
+    } else if (activePrices.surface_thresholds && Array.isArray(activePrices.surface_thresholds)) {
         activePrices.surface_thresholds.forEach(thresh => {
             const minS = parseFloat(thresh.min_sqm || 0)
             const maxS = parseFloat(thresh.max_sqm || 999999)
