@@ -175,7 +175,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         
                         items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) })
                         if (extraThick > 0) {
-                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm ?? 1.25) })
+                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra ?? 1.25) })
                         }
                         if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) })
                         if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) })
@@ -264,7 +264,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     const extraThick = Math.max(0, thick - stdThick);
                     
                     items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) });
-                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra ?? wo.prices?.extra_thickness_price_per_cm ?? 1.25) });
+                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra ?? 1.25) });
                     if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) });
                     if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) });
                     if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) });
