@@ -259,11 +259,21 @@ export default function AdminOverview() {
         const timeout = setTimeout(async () => {
             setIsSearchingClients(true)
             try {
-                // Parallel search: Local DB + Google Places (only establishments)
-                const [localRes, placesRes] = await Promise.all([
-                    api.get(`/admin/clients/search?q=${encodeURIComponent(clientSearchQuery)}`).catch(() => ({ data: [] })),
-                    fetch(`/api/places/autocomplete?input=${encodeURIComponent(clientSearchQuery)}&types=establishment`).then(res => res.json()).catch(() => ({ predictions: [] }))
-                ])
+                // Parallel search: Local DB + Google Places (only establishments, only if juridica)
+                const searchPromises = [
+                    api.get(`/admin/clients/search?q=${encodeURIComponent(clientSearchQuery)}`).catch(() => ({ data: [] }))
+                ];
+                
+                if (quickCreateClientForm.type === 'juridica') {
+                    const countryParam = quickCreateClientForm.country || 'BE';
+                    searchPromises.push(
+                        fetch(`/api/places/autocomplete?input=${encodeURIComponent(clientSearchQuery)}&types=establishment&components=country:${countryParam}`).then(res => res.json()).catch(() => ({ predictions: [] }))
+                    );
+                } else {
+                    searchPromises.push(Promise.resolve({ predictions: [] }));
+                }
+
+                const [localRes, placesRes] = await Promise.all(searchPromises);
                 
                 setClientSearchResults(localRes.data || [])
                 setPlacesSearchResults(placesRes.predictions || [])
@@ -276,7 +286,7 @@ export default function AdminOverview() {
         }, 300)
 
         return () => clearTimeout(timeout)
-    }, [clientSearchQuery])
+    }, [clientSearchQuery, quickCreateClientForm.type, quickCreateClientForm.country])
     const [detectingLocation, setDetectingLocation] = useState(false)
 
     const [quickRouteDist, setQuickRouteDist] = useState(null)
