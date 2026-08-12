@@ -2449,7 +2449,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {autoExtra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({extraThickForAuto} cm)</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{autoExtra.toFixed(2)}&nbsp;EUR</b></span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {extraThickForAuto} cm × {(autoExtra / (surfaceForAuto * extraThickForAuto)).toFixed(2)} = <b>{autoExtra.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {autoFoil > 0 && (
@@ -2606,7 +2606,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {realCalc.extra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.extra', 'Épaisseur extra (>5cm)')} ({realCalc.extraThick} cm)</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {realCalc.extraThick} cm × {parseFloat(wo.prices?.extra || 1.25).toFixed(2)} = <b>{realCalc.extra.toFixed(2)}&nbsp;EUR</b></span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {realCalc.extraThick} cm × {(realCalc.extra / (realSurface * realCalc.extraThick)).toFixed(2)} = <b>{realCalc.extra.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.foil > 0 && (
