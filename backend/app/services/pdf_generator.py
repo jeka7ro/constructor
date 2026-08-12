@@ -231,7 +231,7 @@ def get_quote_html_template(work_order, client=None):
     def safe_str(val):
         return str(val) if val is not None else ""
         
-    quote_number = safe_str(work_order.quote_number or f"EST-{work_order.id[:6]}")
+    quote_number = safe_str(work_order.quote_number or f"DEV-{work_order.id[:6]}")
     issue_date = work_order.created_at.strftime('%Y-%m-%d') if work_order.created_at else datetime.now().strftime('%Y-%m-%d')
     
     client_name = safe_str(client.name if client else work_order.client_name)

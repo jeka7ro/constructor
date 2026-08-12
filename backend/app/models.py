@@ -1092,6 +1092,9 @@ class WorkOrder(Base):
     # ── Chat ──────────────────────────────────────────────────────────────────
     is_chat_closed  = Column(Boolean, default=False, nullable=False, server_default='0')
 
+    # ── Stare de Citire ───────────────────────────────────────────────────────
+    read_by_admins  = Column(JSON, default=list, nullable=False, server_default='[]')
+
     # ── Confirmare client ─────────────────────────────────────────────────────
     confirmed_at        = Column(DateTime, nullable=True)
     confirmed_by_name   = Column(String(255), nullable=True)

@@ -268,6 +268,21 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             price: parseFloat(purPrices.pur_opt_protection || 1.50)
                         });
                     }
+                    
+                    const purDiscountPct = parseFloat(purPrices.pur_discount_pct || 0);
+                    if (purDiscountPct > 0) {
+                        let totalPurGross = defaultFallbackItems
+                            .filter(item => item.id.startsWith('pur_') && item.id.endsWith(`_${idx}`))
+                            .reduce((sum, item) => sum + (item.qty * item.price), 0);
+                        
+                        defaultFallbackItems.push({
+                            id: `pur_discount_${idx}`,
+                            desc: `Remise PUR (${purDiscountPct}%)`,
+                            qty: 1,
+                            unit: 'forfait',
+                            price: -(totalPurGross * purDiscountPct / 100)
+                        });
+                    }
                 } else if (/isolation\s*eps/i.test(vol.label || '')) {
                     // ── Isolation EPS ──
                     const epsVolume = parseFloat(vol.volume_m3 || (surfaceForAuto * parseFloat(vol.thickness || 1) / 100));
@@ -278,11 +293,17 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         { max_m3: 99999, price_flat: null, price_per_m3: 150 }
                     ];
                     let epsPrice = 0;
-                    for (const tier of epsTiers) {
-                        if (epsVolume <= parseFloat(tier.max_m3 || 99999)) {
-                            if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
-                            else epsPrice = epsVolume * parseFloat(tier.price_per_m3 || 150);
-                            break;
+                    if (activePrices.custom_eps_price_flat !== undefined && activePrices.custom_eps_price_flat !== null && !isNaN(activePrices.custom_eps_price_flat)) {
+                        epsPrice = parseFloat(activePrices.custom_eps_price_flat);
+                    } else if (activePrices.custom_eps_price_per_m3 !== undefined && activePrices.custom_eps_price_per_m3 !== null && !isNaN(activePrices.custom_eps_price_per_m3)) {
+                        epsPrice = epsVolume * parseFloat(activePrices.custom_eps_price_per_m3);
+                    } else {
+                        for (const tier of epsTiers) {
+                            if (epsVolume <= parseFloat(tier.max_m3 || 99999)) {
+                                if (tier.price_flat) epsPrice = parseFloat(tier.price_flat);
+                                else epsPrice = epsVolume * parseFloat(tier.price_per_m3 || 150);
+                                break;
+                            }
                         }
                     }
                     defaultFallbackItems.push({
@@ -292,6 +313,17 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                         unit: 'forfait',
                         price: epsPrice
                     });
+
+                    const epsDiscountPct = parseFloat(activePrices.eps_discount_pct || 0);
+                    if (epsDiscountPct > 0) {
+                        defaultFallbackItems.push({
+                            id: `eps_discount_${idx}`,
+                            desc: `Remise EPS (${epsDiscountPct}%)`,
+                            qty: 1,
+                            unit: 'forfait',
+                            price: -(epsPrice * epsDiscountPct / 100)
+                        });
+                    }
                 } else {
                     defaultFallbackItems.push({
                         id: `vol_${idx}`,
@@ -416,8 +448,22 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     const priceRaw = items.reduce((acc, item) => acc + (item.qty * item.price), 0)
+    
+    // The general discount should ONLY apply to Chape items (not PUR/EPS since they have their own)
+    const isChapeItem = (desc) => {
+        if (!desc) return true;
+        const d = desc.toLowerCase();
+        if (d.includes('pur') || d.includes('eps')) return false;
+        if (d.includes('aspiration') || d.includes('aspirare')) return false;
+        if (d.includes('nivellement') || d.includes('nivelare')) return false;
+        if (d.includes('ponçage') || d.includes('poncage') || d.includes('slefuire')) return false;
+        if (d.includes('protection') || d.includes('protecție')) return false;
+        return true;
+    };
+    const chapeRaw = items.filter(i => isChapeItem(i.desc)).reduce((acc, item) => acc + (item.qty * item.price), 0);
+    
     const activeDiscountPct = parseFloat(activePrices.discount_pct || discountPct || 0)
-    const discountAmount = (priceRaw * (activeDiscountPct / 100)) + parseFloat(activePrices.discount || 0)
+    const discountAmount = (chapeRaw * (activeDiscountPct / 100)) + parseFloat(activePrices.discount || 0)
     const subtotal = priceRaw - discountAmount
     const vatAmount = subtotal * (vatRate / 100)
     const totalAmount = subtotal + vatAmount
@@ -448,7 +494,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 )}
                             </h2>
                             <p className="text-xs font-bold text-slate-400 mt-0.5 uppercase tracking-wider whitespace-nowrap">
-                                N° {isInvoiceView ? (wo.invoice_number || 'INV 0840') : (wo.quote_number || 'EST 0840')}
+                                N° {isInvoiceView ? (wo.invoice_number || 'INV 0840') : (wo.quote_number || 'DEV 0905')}
                             </p>
                         </div>
                         <div className="text-sm text-slate-500 flex flex-col gap-1 items-end border-l border-slate-200 pl-6">
@@ -519,7 +565,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                                 </div>
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between mb-2 text-green-600">
-                                        <span className="font-bold text-sm">{activeDiscountPct > 0 ? `Remise (${activeDiscountPct}%)` : 'Remise (Discount)'}</span>
+                                        <span className="font-bold text-sm">{activeDiscountPct > 0 ? `Remise Chape (${activeDiscountPct}%)` : 'Remise Chape'}</span>
                                         <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                                     </div>
                                 )}
@@ -545,7 +591,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
                             <>
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between mb-2 text-green-600">
-                                        <span className="font-bold text-sm">{activeDiscountPct > 0 ? `Remise (${activeDiscountPct}%)` : 'Remise (Discount)'}</span>
+                                        <span className="font-bold text-sm">{activeDiscountPct > 0 ? `Remise Chape (${activeDiscountPct}%)` : 'Remise Chape'}</span>
                                         <span className="font-bold whitespace-nowrap">- {discountAmount.toFixed(2)} EUR</span>
                                     </div>
                                 )}

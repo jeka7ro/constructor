@@ -200,6 +200,20 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         if (vol.pur_niveller) items.push({ desc: T.nivellement, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_niveller || 4.25) });
                         if (vol.pur_poncage) items.push({ desc: T.poncage, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_poncage || 1.50) });
                         if (vol.pur_protection) items.push({ desc: T.protection, qty: surface, unit: 'm²', price: parseFloat(p.pur_opt_protection || 1.50) });
+                        
+                        const purDiscountPct = parseFloat(p.pur_discount_pct || 0);
+                        if (purDiscountPct > 0) {
+                            let totalPurGross = items
+                                .filter(item => item.desc?.includes('PUR') || item.desc === T.aspiration || item.desc === T.nivellement || item.desc === T.poncage || item.desc === T.protection)
+                                .reduce((sum, item) => sum + (item.qty * item.price), 0);
+                            
+                            items.push({
+                                desc: `Remise PUR (${purDiscountPct}%)`,
+                                qty: 1,
+                                unit: T.forfait,
+                                price: -(totalPurGross * purDiscountPct / 100)
+                            });
+                        }
                     } else if (/isolation\s*eps/i.test(vol.label || '')) {
                         // Section header for Isolation EPS
                         items.push({ isHeader: true, headerLabel: 'ISOLATION EPS' });
@@ -210,13 +224,29 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             { max_m3: 40, price_per_m3: 155 }, { max_m3: 99999, price_per_m3: 150 }
                         ];
                         let epsPrice = 0;
-                        for (const tier of tiers) {
-                            if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
-                                epsPrice = tier.price_flat ? parseFloat(tier.price_flat) : epsVol * parseFloat(tier.price_per_m3 || 150);
-                                break;
+                        if (wo.prices?.custom_eps_price_flat !== undefined && wo.prices.custom_eps_price_flat !== null && !isNaN(wo.prices.custom_eps_price_flat)) {
+                            epsPrice = parseFloat(wo.prices.custom_eps_price_flat);
+                        } else if (wo.prices?.custom_eps_price_per_m3 !== undefined && wo.prices.custom_eps_price_per_m3 !== null && !isNaN(wo.prices.custom_eps_price_per_m3)) {
+                            epsPrice = epsVol * parseFloat(wo.prices.custom_eps_price_per_m3);
+                        } else {
+                            for (const tier of tiers) {
+                                if (epsVol <= parseFloat(tier.max_m3 || 99999)) {
+                                    epsPrice = tier.price_flat ? parseFloat(tier.price_flat) : epsVol * parseFloat(tier.price_per_m3 || 150);
+                                    break;
+                                }
                             }
                         }
                         items.push({ desc: T.epsBase(epsVol.toFixed(2)), qty: 1, unit: T.forfait, price: epsPrice });
+                        
+                        const epsDiscountPct = parseFloat(wo.prices?.eps_discount_pct || 0);
+                        if (epsDiscountPct > 0) {
+                            items.push({
+                                desc: `Remise EPS (${epsDiscountPct}%)`,
+                                qty: 1,
+                                unit: T.forfait,
+                                price: -(epsPrice * epsDiscountPct / 100)
+                            });
+                        }
                     } else {
                         items.push({ desc: vol.label || `Volume ${idx + 1}`, qty: surface, unit: 'm²', price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') / (surface || 1) })
                     }
@@ -271,8 +301,16 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     }
 
     const totalNet = items.filter(i => !i.isHeader).reduce((s, i) => s + i.qty * i.price, 0)
+    
+    const isChapeItem = (desc) => {
+        const d = (desc || '').toLowerCase();
+        return !d.includes('eps') && !d.includes('pur') && !d.includes('isolation') && !d.includes('ponçage') && !d.includes('aspiration') && !d.includes('nivellement') && !d.includes('protection');
+    };
+    
+    const chapeTotalGross = items.filter(i => !i.isHeader && isChapeItem(i.desc)).reduce((s, i) => s + i.qty * i.price, 0);
+    
     const discountPct = parseFloat(wo.prices?.discount_pct || 0)
-    const discountAmount = (totalNet * discountPct) / 100
+    const discountAmount = (chapeTotalGross * discountPct) / 100
     const netAfterDiscount = totalNet - discountAmount
     
     let vatRate = 0
@@ -290,7 +328,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const vatAmount = netAfterDiscount * (vatRate / 100)
     const totalGross = netAfterDiscount + vatAmount
 
-    const devisNum = wo.quote_number || 'EST 0840'
+    const devisNum = wo.quote_number || 'DEV 0905'
     const dateStr = wo.approximate_date ? new Date(wo.approximate_date).toLocaleDateString(locale) : new Date().toLocaleDateString(locale)
     const primaryColor = tenant?.primary_color || '#059669'
 
@@ -380,7 +418,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                             <div className="w-72 space-y-1 text-sm">
                                 {discountAmount > 0 && (
                                     <div className="flex justify-between gap-2 py-1 px-4 font-bold text-emerald-600">
-                                        <span>Remise (Discount) ({discountPct}%)</span>
+                                        <span>{discountPct > 0 ? `Remise Chape (${discountPct}%)` : 'Remise Chape'}</span>
                                         <span className="whitespace-nowrap">- {discountAmount.toFixed(2)} €</span>
                                     </div>
                                 )}

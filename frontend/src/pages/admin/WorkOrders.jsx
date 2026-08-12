@@ -6,7 +6,7 @@ import {
     ClipboardList, Plus, Send, Eye, Pencil, Trash2,
     CheckCircle2, Clock, CircleDot, XCircle, Copy,
     ExternalLink, ChevronDown, ChevronUp, Filter, Pen, X, Timer, User, Package, Trash,
-    FileText, CheckCircle, Play, Ban, MapPin, Mail, Truck, Activity, Wrench, Calendar
+    FileText, CheckCircle, Play, Ban, MapPin, Mail, Truck, Activity, Wrench, Calendar, Search, Calendar as CalendarIcon, ChevronRight, MessageSquare, Phone, Save, ShieldAlert, Zap, Droplets, Wind, Zap as Flash, Printer, Map, Settings, ArrowRight, Loader2, Route, Check, EyeOff
 } from 'lucide-react'
 import api from '../../lib/api'
 import KPICard from '../../components/KPICard'
@@ -179,6 +179,24 @@ export default function WorkOrders() {
     const [matSaving, setMatSaving] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
     const [deleteModal, setDeleteModal] = useState(null)      // { wo: object }
+    const [selectedIds, setSelectedIds] = useState([])
+
+    const handleBulkMarkStatus = async (isRead) => {
+        if (selectedIds.length === 0) return;
+        const previous = [...workOrders];
+        const updated = workOrders.map(q => selectedIds.includes(q.id) ? { ...q, is_read: isRead } : q);
+        setWorkOrders(updated);
+        
+        try {
+            await Promise.all(selectedIds.map(id => api.post(`/admin/work-orders/${id}/mark-${isRead ? 'read' : 'unread'}`)));
+            showToast(isRead ? 'Marcate ca citite.' : 'Marcate ca necitite.', 'success');
+            setSelectedIds([]);
+        } catch (err) {
+            console.error('Bulk mark status error', err);
+            setWorkOrders(previous);
+            showToast(t('common.error', 'A apărut o eroare'), 'error');
+        }
+    };
 
     const getPeriodDates = (period) => {
         const now = new Date()
@@ -724,6 +742,26 @@ export default function WorkOrders() {
                         <ClipboardList className="w-4 h-4 text-white" /> {t('work_orders.table_title', 'Tableau des Commandes de Travail')}
                     </h2>
                     
+                    {selectedIds.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handleBulkMarkStatus(true)}
+                                className="bg-white/20 text-white hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-white/10"
+                                title="Marchează ca citite"
+                            >
+                                <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={() => handleBulkMarkStatus(false)}
+                                className="bg-white/20 text-white hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-white/10"
+                                title="Marchează ca noi (necitite)"
+                            >
+                                <EyeOff className="w-4 h-4" />
+                            </button>
+                            <span className="text-white text-sm font-bold ml-2">({selectedIds.length} selectate)</span>
+                        </div>
+                    )}
+                    
                     <div className="flex bg-white/20 p-1 rounded-xl w-full sm:w-auto">
                         <button
                             onClick={() => setViewMode('active')}
@@ -753,6 +791,8 @@ export default function WorkOrders() {
                     data={workOrders.filter(w => filterTeam ? w.assigned_team_id === filterTeam : true)}
                     loading={loading}
                     searchable={true}
+                    selectedIds={selectedIds}
+                    onSelectionChange={setSelectedIds}
                     defaultSortKey="start_date"
                     defaultSortDir="desc"
                     searchPlaceholder={t('work_orders.search', 'Rechercher une commande...')}

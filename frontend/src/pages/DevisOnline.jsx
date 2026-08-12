@@ -696,14 +696,7 @@ export default function DevisOnline() {
                                                     className="w-full bg-slate-50 border-2 rounded-xl px-3 py-2.5 text-base focus:outline-none focus:bg-white transition-all border-slate-100 focus:border-emerald-400" />
                                             </div>
                                         </div>
-                                        {formData.isolation_surface && formData.isolation_thickness && (
-                                            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                                <span className="text-sm text-slate-600">{t('calculator.eps_volume_calc', 'Volume calculé')}:</span>
-                                                <span className="font-bold text-lg text-slate-900">
-                                                    {(parseFloat(formData.isolation_surface) * parseFloat(formData.isolation_thickness) / 100).toFixed(2)} m³
-                                                </span>
-                                            </div>
-                                        )}
+
                                         <div className="flex gap-3 mt-auto pt-4">
                                             <button type="button" onClick={() => setFormData(p => ({ ...p, isolation_type: '' }))}
                                                 className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">

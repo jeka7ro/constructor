@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Body, Query, BackgroundTasks
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session, joinedload
@@ -185,7 +185,7 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "computed_total": None,  # nu se calculeaza in slim mode
         "documents": [],
         "photos": [],
-        "proforma_data": None,
+        "proforma_data": wo.proforma_data,
         "prices": wo.prices or {},
         "distance_km": (wo.prices or {}).get("distance_km") if isinstance(wo.prices, dict) else None,
         "route_distance_km": wo.route_distance_km,
@@ -198,6 +198,7 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "checkout_at": wo.checkout_at.isoformat() if wo.checkout_at else None,
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
+        "read_by_admins": wo.read_by_admins or [],
     }
 
 
@@ -246,6 +247,7 @@ def _serialize_invoice_mode(wo: WorkOrder) -> dict:
         "prices": wo.prices or {},
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
+        "read_by_admins": wo.read_by_admins or [],
     }
 
 
@@ -474,6 +476,7 @@ def _serialize(wo: WorkOrder, db: Session = None, force_recalc: bool = False) ->
         "source_system": wo.source_system or "manual",
         "created_at": wo.created_at.isoformat() if wo.created_at else None,
         "updated_at": wo.updated_at.isoformat() if wo.updated_at else None,
+        "read_by_admins": wo.read_by_admins or [],
         # Billtobox
         "billtobox_status": wo.billtobox_status,
         "billtobox_error": wo.billtobox_error,
@@ -819,16 +822,16 @@ def create_work_order(
     if wo.is_quote:
         max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
             WorkOrder.organization_id == current_admin.organization_id,
-            WorkOrder.quote_number.like('EST%')
+            WorkOrder.quote_number.like('DEV%')
         ).scalar()
         if max_quote:
             try:
-                next_num = int(max_quote.replace('EST', '')) + 1
+                next_num = int(max_quote.replace('DEV', '')) + 1
             except ValueError:
-                next_num = 841
+                next_num = 905
         else:
-            next_num = 841
-        wo.quote_number = f"EST{str(next_num).zfill(4)}"
+            next_num = 905
+        wo.quote_number = f"DEV{next_num}"
     else:
         max_inv = db.query(func.max(WorkOrder.invoice_number)).filter(
             WorkOrder.organization_id == current_admin.organization_id,
@@ -1096,6 +1099,7 @@ def batch_recalculate_routes(
 def update_work_order(
     wo_id: str,
     payload: WorkOrderUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin)
 ):
@@ -1126,6 +1130,9 @@ def update_work_order(
     for f in fields:
         if f in update_data:
             setattr(wo, f, update_data[f])
+            
+    if "client_type" in update_data and wo.client:
+        wo.client.client_type = update_data["client_type"]
     
     # flag_modified pe coloanele JSON — fără asta SQLAlchemy NU detectează schimbarea și NU o salvează!
     from sqlalchemy.orm.attributes import flag_modified
@@ -1380,7 +1387,37 @@ def update_work_order(
     # Commit any remaining changes (e.g., auto_msg from discount update)
     db.commit()
 
+    # Dacă au apărut modificări la prețuri, volume sau date financiare, regenerăm PDF-ul automat
+    needs_pdf = any(k in update_data for k in ["volumes", "prices", "proforma_data", "estimated_price"])
+    if needs_pdf and (wo.is_quote or wo.is_invoiced or getattr(wo, 'pdf_path', None)):
+        background_tasks.add_task(regenerate_pdf_task, wo.id)
+
     return _serialize(wo, db)
+
+async def regenerate_pdf_task(wo_id: str):
+    from app.database import SessionLocal
+    from app.models import WorkOrder
+    from app.services.pdf_generator import generate_quote_pdf, generate_invoice_pdf
+    
+    db = SessionLocal()
+    try:
+        wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+        if not wo:
+            return
+            
+        client = wo.client
+        if getattr(wo, 'is_invoiced', False):
+            new_pdf = await generate_invoice_pdf(wo, client)
+        else:
+            new_pdf = await generate_quote_pdf(wo, client)
+            
+        if new_pdf:
+            wo.pdf_path = new_pdf
+            db.commit()
+    except Exception as e:
+        print(f"Eroare generare PDF auto-update: {e}")
+    finally:
+        db.close()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1701,6 +1738,54 @@ def delete_instruction_photo(
         pass
     db.delete(photo)
     db.commit()
+    return {"ok": True}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# READ/UNREAD
+# ──────────────────────────────────────────────────────────────────────────────
+@router.post("/work-orders/{wo_id}/mark-read")
+def mark_work_order_read(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    reads = list(wo.read_by_admins) if wo.read_by_admins else []
+    if current_admin.id not in reads:
+        reads.append(current_admin.id)
+        wo.read_by_admins = reads
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(wo, "read_by_admins")
+        db.commit()
+    return {"ok": True}
+
+@router.post("/work-orders/{wo_id}/mark-unread")
+def mark_work_order_unread(
+    wo_id: str,
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    reads = list(wo.read_by_admins) if wo.read_by_admins else []
+    if current_admin.id in reads:
+        reads.remove(current_admin.id)
+        wo.read_by_admins = reads
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(wo, "read_by_admins")
+        db.commit()
     return {"ok": True}
 
 
@@ -2380,13 +2465,24 @@ def generate_proforma(
     wo.proforma_path = proforma_route
     wo.proforma_issued_at = datetime.utcnow()
     
-    # Genereaza numar secvential EST daca nu exista
+    # Genereaza numar secvential DEV daca nu exista
     if not wo.quote_number:
-        count = db.query(WorkOrder).filter(
+        from sqlalchemy import func
+        max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
             WorkOrder.organization_id == current_admin.organization_id,
-            WorkOrder.quote_number.isnot(None)
-        ).count()
-        wo.quote_number = f"EST{str(count + 841).zfill(4)}"
+            WorkOrder.quote_number.like('DEV%')
+        ).scalar()
+        
+        if max_quote:
+            try:
+                num_part = max_quote.replace('DEV', '')
+                next_num = int(num_part) + 1
+            except ValueError:
+                next_num = 905
+        else:
+            next_num = 905
+            
+        wo.quote_number = f"DEV{next_num}"
     
     if payload:
         # Extrage si salveaza clientul

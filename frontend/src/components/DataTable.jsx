@@ -221,11 +221,11 @@ export default function DataTable({
                                         onRowClick(row)
                                     } : undefined}
                                 >
-                                    <td className="px-4 py-4 text-center text-slate-500 font-medium tabular-nums">
+                                    <td className="px-4 py-4 text-center text-slate-500 tabular-nums">
                                         {from + idx + 1}
                                     </td>
                                     {columns.map(col => (
-                                        <td key={col.key} className="px-4 py-4 align-middle text-slate-900 dark:text-white font-medium">
+                                        <td key={col.key} className="px-4 py-4 align-middle text-slate-900 dark:text-white">
                                             {col.render ? col.render(row, from + idx) : (row[col.key] ?? '—')}
                                         </td>
                                     ))}

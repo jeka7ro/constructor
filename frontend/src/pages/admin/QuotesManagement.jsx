@@ -1,7 +1,9 @@
 // v2 - with delete button
 import { useState, useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import { useAdminStore } from '../../store/adminStore'
 import { createPortal } from 'react-dom'
-import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye, Route, Copy, ExternalLink, MessageSquare } from 'lucide-react'
+import { Plus, Search, Calendar as CalendarIcon, User, MapPin, FileText, CalendarDays, Loader2, X, RefreshCw, CheckCircle2, AlertCircle, Save, Link, Phone, Check, ChevronRight, Pencil, Trash2, Paperclip, Eye, EyeOff, Route, Copy, ExternalLink, MessageSquare, Wind, Thermometer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import DataTable from '../../components/DataTable'
@@ -27,7 +29,7 @@ function haversine(lat1, lon1, lat2, lon2) {
  * Calcule le prix total du devis — LOGIQUE IDENTIQUE À DevisView.buildItems().
  * Priorité: proforma_data.items → fallback volumes → fallback estimated_price.
  */
-function computeQuoteTotalFromRow(row) {
+function computeQuoteDataFromRow(row) {
     const wo = row;
     const p = wo.prices || {};
     let items = [];
@@ -59,13 +61,13 @@ function computeQuoteTotalFromRow(row) {
                 if (isChape) {
                     const stdThick  = parseFloat(p.standard_thickness || 5);
                     const extraThick = Math.max(0, thick - stdThick);
-                    items.push({ qty: surface, price: parseFloat(p.base || 12.5) });
+                    items.push({ qty: surface, price: parseFloat(p.base || 12.5), isChape: true });
                     if (extraThick > 0)
-                        items.push({ qty: surface, price: extraThick * parseFloat(p.extra_thickness_price_per_cm || p.extra || 1.25) });
-                    if (vol.has_foil)  items.push({ qty: surface, price: parseFloat(p.foil  || 1.2) });
-                    if (vol.has_mesh)  items.push({ qty: surface, price: parseFloat(p.mesh  || 2.5) });
+                        items.push({ qty: surface, price: extraThick * parseFloat(p.extra_thickness_price_per_cm || p.extra || 1.25), isChape: true });
+                    if (vol.has_foil)  items.push({ qty: surface, price: parseFloat(p.foil  || 1.2), isChape: true });
+                    if (vol.has_mesh)  items.push({ qty: surface, price: parseFloat(p.mesh  || 2.5), isChape: true });
                     if (vol.has_fiber || vol.has_duramint)
-                        items.push({ qty: surface, price: parseFloat(p.fiber || (surface <= 200 ? 2.5 : 2.0)) });
+                        items.push({ qty: surface, price: parseFloat(p.fiber || (surface <= 200 ? 2.5 : 2.0)), isChape: true });
                 } else if (/isolation\s*pur/i.test(vol.label || '')) {
                     const purThick = thick || 3;
                     let purBase = parseFloat(p.pur_base_price_3cm || 13.95);
@@ -84,6 +86,16 @@ function computeQuoteTotalFromRow(row) {
                     if (vol.pur_niveller) items.push({ qty: surface, price: parseFloat(p.pur_opt_niveller || 4.25) });
                     if (vol.pur_poncage) items.push({ qty: surface, price: parseFloat(p.pur_opt_poncage || 1.50) });
                     if (vol.pur_protection) items.push({ qty: surface, price: parseFloat(p.pur_opt_protection || 1.50) });
+                    
+                    const purDiscountPct = parseFloat(p.pur_discount_pct || 0);
+                    if (purDiscountPct > 0) {
+                        let totalPurGross = purBase * surface;
+                        if (vol.pur_aspiration) totalPurGross += parseFloat(p.pur_opt_aspiration || 2.00) * surface;
+                        if (vol.pur_niveller) totalPurGross += parseFloat(p.pur_opt_niveller || 4.25) * surface;
+                        if (vol.pur_poncage) totalPurGross += parseFloat(p.pur_opt_poncage || 1.50) * surface;
+                        if (vol.pur_protection) totalPurGross += parseFloat(p.pur_opt_protection || 1.50) * surface;
+                        items.push({ qty: 1, price: -(totalPurGross * purDiscountPct / 100), desc: `Remise PUR (${purDiscountPct}%)` });
+                    }
                 } else if (/isolation\s*eps/i.test(vol.label || '')) {
                     const epsVol = (surface * (thick || 1)) / 100;
                     const epsTiers = p.eps_volume_thresholds || [
@@ -100,7 +112,17 @@ function computeQuoteTotalFromRow(row) {
                             break;
                         }
                     }
+                    // overrides from devis explicitly
+                    if (p.custom_eps_price_flat !== undefined && p.custom_eps_price_flat !== null && !isNaN(p.custom_eps_price_flat)) {
+                        epsPrice = parseFloat(p.custom_eps_price_flat);
+                    } else if (p.custom_eps_price_per_m3 !== undefined && p.custom_eps_price_per_m3 !== null && !isNaN(p.custom_eps_price_per_m3)) {
+                        epsPrice = epsVol * parseFloat(p.custom_eps_price_per_m3);
+                    }
                     items.push({ qty: 1, price: epsPrice });
+                    const epsDiscountPct = parseFloat(p.eps_discount_pct || 0);
+                    if (epsDiscountPct > 0) {
+                        items.push({ qty: 1, price: -(epsPrice * epsDiscountPct / 100), desc: `Remise EPS (${epsDiscountPct}%)` });
+                    }
                 } else {
                     // Volume non-chape: price unitaire stocké ou estimated_price / surface
                     const unitPrice = parseFloat(vol.price || 0) || (parseFloat(wo.estimated_price || 0) / (surface || 1));
@@ -116,7 +138,7 @@ function computeQuoteTotalFromRow(row) {
         p.surface_thresholds.forEach(t => {
             if (surfCheck >= parseFloat(t.min_sqm || 0) && surfCheck <= parseFloat(t.max_sqm || 999999)) {
                 const charge = parseFloat(t.extra_charge || 0);
-                if (charge > 0) items.push({ qty: 1, price: charge });
+                if (charge > 0) items.push({ qty: 1, price: charge, isChape: true });
             }
         });
     }
@@ -125,7 +147,12 @@ function computeQuoteTotalFromRow(row) {
     if (items.length === 0) return null;
 
     const totalNet        = items.reduce((s, i) => s + i.qty * i.price, 0);
-    const netAfterDiscount = totalNet - parseFloat(p.discount || 0);
+    const chapeNet        = items.filter(i => i.isChape).reduce((s, i) => s + i.qty * i.price, 0);
+    const discountPct     = parseFloat(p.discount_pct || 0);
+    
+    // Only apply discountPct to Chape items
+    const discountAmount = (chapeNet * (discountPct / 100)) + parseFloat(p.discount || 0);
+    const netAfterDiscount = totalNet - discountAmount;
 
     // TVA — identique à DevisView (vat_type est un pourcentage: 21, 6, 0)
     let vatRate = 0;
@@ -140,11 +167,26 @@ function computeQuoteTotalFromRow(row) {
     }
 
     const totalGross = netAfterDiscount * (1 + vatRate / 100);
-    return totalGross > 0 ? totalGross : null;
+    
+    const discounts = items.filter(i => i.price < 0);
+    if (discountAmount > 0) {
+        discounts.push({ desc: `Remise Chape (${discountPct}%)`, price: -discountAmount });
+    }
+    
+    return {
+        totalGross: totalGross > 0 ? totalGross : null,
+        discounts
+    };
+}
+
+function computeQuoteTotalFromRow(row) {
+    const data = computeQuoteDataFromRow(row);
+    return data ? data.totalGross : null;
 }
 
 /** Affiche le prix calculé — identique au PDF. Source: backend computed_total. Clic pour saisie manuelle. */
 const EditablePrice = ({ row, onUpdate }) => {
+    const { admin } = useAdminStore()
     const [isEditing, setIsEditing] = useState(false)
     const [manualInput, setManualInput] = useState(row.estimated_price ?? '')
     const [isSaving, setIsSaving] = useState(false)
@@ -152,6 +194,7 @@ const EditablePrice = ({ row, onUpdate }) => {
     // Source unique de vérité: computed_total calculé sur le backend (= même logique que le PDF)
     // Fallback: estimated_price (pour anciens devis sans volumes ni proforma_data)
     const displayValue = computeQuoteTotalFromRow(row) ?? (row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : null))
+    const isRead = row.read_by_admins?.map(String).includes(String(admin?.id))
 
     const handleBlur = async () => {
         setIsEditing(false)
@@ -196,11 +239,11 @@ const EditablePrice = ({ row, onUpdate }) => {
         >
             {isSaving
                 ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                : <span className="text-sm font-bold text-slate-800 transition-colors">
+                : <span className={`text-sm transition-colors ${!isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}`}>
                     {displayValue != null ? fmt(displayValue) : '—'}
                   </span>
             }
-            <span className="text-xs text-slate-500 font-semibold">€</span>
+            <span className={`text-xs ${!isRead ? 'font-bold text-slate-600' : 'font-medium text-slate-400'}`}>€</span>
         </div>
     )
 }
@@ -253,6 +296,7 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
 }
 
 export default function QuotesManagement() {
+    const { admin } = useAdminStore()
     const { t } = useTranslation()
     const navigate = useNavigate()
     const [quotes, setQuotes] = useState([])
@@ -355,6 +399,23 @@ export default function QuotesManagement() {
         }
     };
 
+    const handleBulkMarkStatus = async (isRead) => {
+        if (selectedIds.length === 0) return;
+        const previousQuotes = [...quotes];
+        const newQuotes = quotes.map(q => selectedIds.includes(q.id) ? { ...q, is_read: isRead } : q);
+        setQuotes(newQuotes);
+        
+        try {
+            await Promise.all(selectedIds.map(id => api.post(`/admin/work-orders/${id}/mark-${isRead ? 'read' : 'unread'}`)));
+            showToast(isRead ? t('quotes.bulk_mark_read_success', 'Marcate ca citite.') : t('quotes.bulk_mark_unread_success', 'Marcate ca necitite.'), 'success');
+            setSelectedIds([]);
+        } catch (err) {
+            console.error('Bulk mark status error', err);
+            setQuotes(previousQuotes);
+            showToast(t('common.error', 'A apărut o eroare'), 'error');
+        }
+    };
+
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: 'danger', title: '', message: '', confirmText: '', action: null })
 
     const updateVolume = (index, key, value) => {
@@ -448,8 +509,8 @@ export default function QuotesManagement() {
         if (!silent) setLoading(true)
         try {
             const endpoint = viewMode === 'archived'
-                ? '/admin/work-orders?is_quote=true&status=deleted'
-                : '/admin/work-orders?is_quote=true';
+                ? '/admin/work-orders?is_quote=true&status=deleted&slim=true'
+                : '/admin/work-orders?is_quote=true&slim=true';
             // Add timestamp cache buster to force fresh data from server
             const res = await api.get(`${endpoint}&_t=${Date.now()}`)
             const activeQuotes = res.data.filter(q => q.status !== 'cancelled');
@@ -603,13 +664,15 @@ export default function QuotesManagement() {
             ),
             sortable: false,
             render: (row) => (
-                <input 
-                    type="checkbox" 
-                    checked={selectedIds.includes(row.id)}
-                    onChange={(e) => handleSelectRow(e, row.id)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
-                />
+                <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(row.id)}
+                        onChange={(e) => handleSelectRow(e, row.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
             )
         },
         {
@@ -620,7 +683,8 @@ export default function QuotesManagement() {
                 let display = '-'
                 if (row.created_at) {
                     try {
-                        const d = new Date(row.created_at)
+                        const dateStr = row.created_at.endsWith('Z') ? row.created_at : `${row.created_at}Z`
+                        const d = new Date(dateStr)
                         if (!isNaN(d.getTime())) {
                             display = d.toLocaleDateString('ro-RO')
                             if (row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online') {
@@ -671,19 +735,18 @@ export default function QuotesManagement() {
                     )
                     return null
                 }
+                const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
                 return (
                     <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-sm text-slate-700">
-                            <span>
-                                {row.quote_number || '-'}
-                            </span>
+                        <div className={`flex items-center gap-1.5 text-sm whitespace-nowrap ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                            <span>{row.quote_number || '-'}</span>
                             <span className="text-slate-300">•</span>
-                            <div className="flex items-center gap-1 text-slate-500">
-                                <CalendarDays className="w-4 h-4 text-slate-400" />
-                                <span>{display}</span>
+                            <div className={`flex items-center gap-1 text-[11px] ${!isRead ? 'font-bold text-slate-600' : 'font-medium text-slate-400'}`}>
+                                <CalendarDays className="w-3 h-3 shrink-0" />
+                                {display}
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
+                        <div className="flex items-center gap-2">
                             {getStatusDot(row.status)}
                             {getSourceBadge(row.source_system)}
                         </div>
@@ -697,26 +760,27 @@ export default function QuotesManagement() {
             sortable: true,
             render: (row) => {
                 const addr = row.site_address;
+                const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
 
                 return (
                     <div className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]">
-                        <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                        <div className="flex items-center gap-2 text-sm text-slate-700">
                             {row.source_system === 'calculator_public' || row.source_system === 'we-r' ? (
-                                <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full" title="WE-R">
+                                <span className={`bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full ${!isRead ? 'font-bold' : 'font-medium'}`} title="WE-R">
                                     {row.client_name || '-'}
                                 </span>
                             ) : row.source_system === 'devis_online' ? (
-                                <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full" title="Devis en ligne">
+                                <span className={`bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full ${!isRead ? 'font-bold' : 'font-medium'}`} title="Devis en ligne">
                                     {row.client_name || '-'}
                                 </span>
                             ) : (
                                 <>
                                     <User className="w-4 h-4 text-slate-400 shrink-0" />
-                                    <span className="truncate" title={row.client_name}>{row.client_name || '-'}</span>
+                                    <span className={`truncate ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`} title={row.client_name}>{row.client_name || '-'}</span>
                                 </>
                             )}
                         </div>
-                        <div className={`flex items-center gap-2 text-sm text-slate-500 ${row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online' ? '' : 'pl-6'}`}>
+                        <div className={`flex items-center gap-2 text-sm text-slate-500 ${row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online' ? '' : 'pl-6'} ${!isRead ? 'font-bold' : 'font-medium'}`}>
                             {addr ? (
                                 <span className="truncate" title={addr}>{addr}</span>
                             ) : (
@@ -742,14 +806,17 @@ export default function QuotesManagement() {
                     } catch(e) {}
                 }
                 
+                const distance = row.route_distance_km ? parseFloat(row.route_distance_km) : (row.prices?.distance_km ? parseFloat(row.prices.distance_km) * 2 : 0);
+                const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
+                
                 return (
-                    <div className="flex flex-col gap-0.5 text-sm text-slate-700">
+                    <div className={`flex flex-col gap-0.5 text-sm ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
                         <div className="flex items-center gap-1.5">
                             <span>{row.volumes?.[0]?.quantity ? `${row.volumes[0].quantity} m²` : '-'}</span>
-                            {row.route_distance_km > 0 && (
+                            {distance > 0 && (
                                 <>
                                     <span className="text-slate-300">•</span>
-                                    <span className="text-slate-500">{Math.round(row.route_distance_km)} km</span>
+                                    <span className="text-slate-500">{Math.round(distance)} km</span>
                                 </>
                             )}
                         </div>
@@ -774,23 +841,51 @@ export default function QuotesManagement() {
             label: t('quotes.price', 'Prix (€)'),
             sortable: true,
             render: (row) => {
-                const discountPct = row.prices?.discount_pct ? parseFloat(row.prices.discount_pct) : 0;
-                let discountAmount = 0;
-                if (discountPct > 0) {
-                    const finalPrice = computeQuoteTotalFromRow(row) ?? (row.computed_total ?? (row.estimated_price ? parseFloat(row.estimated_price) : 0));
-                    if (finalPrice > 0 && discountPct < 100) {
-                        const originalPrice = finalPrice / (1 - (discountPct / 100));
-                        discountAmount = originalPrice - finalPrice;
+                let discounts = [];
+                if (row.proforma_data?.items) {
+                    discounts = row.proforma_data.items.filter(i => i.price < 0 && (i.desc || '').toLowerCase().includes('remise'));
+                } else {
+                    const data = computeQuoteDataFromRow(row);
+                    if (data && data.discounts) {
+                        discounts = data.discounts;
                     }
                 }
                 
+                const isolationVol = row.volumes?.find(v => v.label?.includes('Isolation'));
+                
                 return (
                     <div className="flex flex-col gap-0.5">
-                        <EditablePrice row={row} onUpdate={fetchQuotes} />
-                        {discountPct > 0 && discountAmount > 0 && (
-                            <span className="text-emerald-600 text-[10px] font-bold whitespace-nowrap tracking-tight bg-emerald-50 px-1.5 py-0.5 rounded w-fit mt-0.5">
-                                - {new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(discountAmount)} € ({discountPct}%)
-                            </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <EditablePrice row={row} onUpdate={fetchQuotes} />
+                            {isolationVol && (
+                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">
+                                    {isolationVol.label.toLowerCase().includes('pur') ? (
+                                        <Wind className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> 
+                                    ) : (
+                                        <Thermometer className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    )}
+                                    <span className="uppercase tracking-wider">
+                                        {isolationVol.label.replace(/Isolation/i, '').trim()}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {discounts.length > 0 && (
+                            <div className="flex flex-nowrap items-center gap-1.5 mt-0.5">
+                                {discounts.map((d, idx) => {
+                                    const match = (d.desc || '').match(/\(([\d.]+%)\)/);
+                                    const pct = match ? match[1] : '';
+                                    let label = (d.desc || '').replace(/\s*\([^)]+\)/, '').trim();
+                                    label = label.replace(/Remise/i, '').trim(); 
+                                    
+                                    return (
+                                        <span key={idx} className="text-emerald-600 text-[10px] font-bold whitespace-nowrap tracking-tight bg-emerald-50 px-1.5 py-0.5 rounded">
+                                            - {new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(d.price))} € {label ? `${label} ` : ''}{pct ? `(${pct})` : ''}
+                                        </span>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 )
@@ -824,7 +919,7 @@ export default function QuotesManagement() {
                                     }
                                 });
                             }}
-                            className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                            className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
                         >
                             <RefreshCw className="w-4 h-4" />
                         </button>
@@ -838,7 +933,7 @@ export default function QuotesManagement() {
                                         navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
                                         showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'), 'success');
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                    className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
                                 >
                                     <Copy className="w-4 h-4" />
                                 </button>
@@ -849,7 +944,7 @@ export default function QuotesManagement() {
                                     e.stopPropagation();
                                     navigate(`/admin/chats?wo_id=${row.id}`);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
                             >
                                 <MessageSquare className="w-4 h-4" />
                             </button>
@@ -859,7 +954,7 @@ export default function QuotesManagement() {
                                     e.stopPropagation();
                                     setPreviewPdfId(row.id);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
                             >
                                 <FileText className="w-4 h-4" />
                             </button>
@@ -871,7 +966,7 @@ export default function QuotesManagement() {
                                     setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' })
                                     setPlanningModal(row)
                                 }}
-                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
                             >
                                 <CalendarDays className="w-4 h-4" />
                             </button>
@@ -896,7 +991,7 @@ export default function QuotesManagement() {
                                         }
                                     })
                                 }}
-                                className="w-8 h-8 flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -1048,7 +1143,7 @@ export default function QuotesManagement() {
                                         <div className="flex gap-1">
                                             <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.cui} onChange={e => setNewClient({...newClient, cui: e.target.value})} />
                                             {newClient.client_type === 'juridica' && (
-                                                <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Rechercher l'entreprise dans VIES">
+                                                <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 w-9 bg-blue-50 text-blue-600 rounded-full border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Rechercher l'entreprise dans VIES">
                                                     {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                                 </button>
                                             )}
@@ -1179,7 +1274,7 @@ export default function QuotesManagement() {
                                             )}
 
                                             {index > 0 && (
-                                                <button type="button" onClick={() => removeVolume(index)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                                <button type="button" onClick={() => removeVolume(index)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             )}
@@ -1359,12 +1454,26 @@ export default function QuotesManagement() {
                     {selectedIds.length > 0 && (
                         <div className="flex items-center gap-2">
                             <button 
+                                onClick={() => handleBulkMarkStatus(true)}
+                                className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-slate-200"
+                                title={t('quotes.mark_read', 'Marchează ca citite')}
+                            >
+                                <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={() => handleBulkMarkStatus(false)}
+                                className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-slate-200"
+                                title={t('quotes.mark_unread', 'Marchează ca noi (necitite)')}
+                            >
+                                <EyeOff className="w-4 h-4" />
+                            </button>
+                            <button 
                                 onClick={handleBulkRecalculate}
                                 disabled={isBulkRecalculating}
                                 className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors border border-blue-200 disabled:opacity-50"
                             >
                                 {isBulkRecalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}
-                                {t('quotes.recalculate_distances', 'Recalculer distances')} ({selectedIds.length})
+                                {t('quotes.recalculate_distances', 'Recalculare distanțe')} ({selectedIds.length})
                             </button>
                             <button 
                                 onClick={() => setShowBulkDeleteConfirm(true)}
@@ -1389,7 +1498,7 @@ export default function QuotesManagement() {
                     searchPlaceholder={t('quotes.search', 'Rechercher un devis...')}
                     emptyText={t('quotes.empty', 'Aucun devis en attente.')}
                     onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes' } })}
-                    rowClassName={() => 'cursor-pointer hover:bg-blue-50/40 transition-colors'}
+                    rowClassName={(row) => `cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${!row.read_by_admins?.map(String).includes(String(admin?.id)) ? 'font-bold' : 'font-normal text-slate-700'}`}
                     mobileCard={(row, index) => (
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 relative mb-2">
                             <div className="flex justify-between items-start">
@@ -1406,8 +1515,8 @@ export default function QuotesManagement() {
                                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mb-1 ${row.status === 'planning' ? 'bg-emerald-100 text-emerald-700' : row.status === 'archived' ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-700'}`}>
                                         {row.status === 'planning' ? 'En Planification' : row.status === 'archived' ? 'Archivé' : 'En Attente'}
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-400">
-                                        EST{String(row.id).padStart(4, '0')}
+                                    <span className="text-[11px] font-mono text-slate-500 tracking-wider">
+                                        {row.quote_number || `DEV${String(row.id).padStart(4, '0')}`}
                                     </span>
                                 </div>
                             </div>
@@ -1428,14 +1537,14 @@ export default function QuotesManagement() {
                                 {row.token && (
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`); showToast(t('quotes.link_copied', 'Lien copié!'), 'success'); }}
-                                        className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors shrink-0"
+                                        className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors shrink-0"
                                     >
                                         <Link className="w-4 h-4" />
                                     </button>
                                 )}
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); setPreviewPdfId(row.id); }}
-                                    className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 h-9 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
+                                    className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 h-9 rounded-full text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
                                 >
                                     <FileText className="w-4 h-4" /> PDF
                                 </button>
@@ -1446,7 +1555,7 @@ export default function QuotesManagement() {
                                         setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' }); 
                                         setPlanningModal(row); 
                                     }}
-                                    className="flex-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-9 rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
+                                    className="flex-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-9 rounded-full text-xs font-bold transition-colors flex justify-center items-center gap-1.5"
                                 >
                                     <CalendarDays className="w-4 h-4" /> Planifier
                                 </button>
@@ -1750,7 +1859,7 @@ export default function QuotesManagement() {
                                 <div className="font-bold text-slate-800 dark:text-white text-sm truncate max-w-[280px]">{planningModal.client_name || planningModal.title}</div>
                                 <div className="text-xs text-slate-400 truncate">{planningModal.site_address}</div>
                             </div>
-                            <button onClick={() => setPlanningModal(null)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
+                            <button onClick={() => setPlanningModal(null)} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>

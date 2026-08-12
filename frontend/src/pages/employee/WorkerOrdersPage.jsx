@@ -949,7 +949,23 @@ function TabMatériaux({ order, onSaveConsumed, actualSurface, setActualSurface,
             {order.volumes?.length > 0 && (
                 <Section label="Quantités planifiées / estimées">
                     {order.volumes.map((v, i) => (
-                        <Row key={i} label={translateDynamicLabel(v.label) || `Position ${i + 1}`} value={`${v.quantity} ${v.unit}`} />
+                        <div key={i} className="py-2 border-b border-slate-100 last:border-0">
+                            <div className="flex justify-between text-[13px] sm:text-sm items-center">
+                                <span className="text-slate-500">{translateDynamicLabel(v.label) || `Position ${i + 1}`}</span>
+                                <span className="font-semibold text-slate-800 text-right">
+                                    {v.quantity} {v.unit}
+                                    {v.thickness ? <span className="text-slate-400 ml-1 font-normal">({v.thickness} cm)</span> : ''}
+                                </span>
+                            </div>
+                            {v.label?.includes('PUR') && (v.pur_aspiration || v.pur_niveller || v.pur_poncage || v.pur_protection) && (
+                                <div className="mt-1 text-xs text-slate-500 flex flex-wrap gap-2">
+                                    {v.pur_aspiration && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Aspiration</span>}
+                                    {v.pur_niveller && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Leveling</span>}
+                                    {v.pur_poncage && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Ponçage</span>}
+                                    {v.pur_protection && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Protection &gt;1M</span>}
+                                </div>
+                            )}
+                        </div>
                     ))}
                     
                     {/* Necesar Matériaux Calculat automat */}

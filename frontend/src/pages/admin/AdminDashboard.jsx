@@ -308,7 +308,7 @@ export default function AdminDashboard() {
         if (['/admin/expenses', '/admin/import-factura'].includes(path)) return tenantFeatures.includes('expenses')
         if (path === '/admin/reports') return tenantFeatures.includes('reports')
         if (path === '/admin/invoicing') return tenantFeatures.includes('invoicing')
-        if (path === '/admin/pricing-settings') return isScreeds && !(admin?.role === 'SUPER_ADMIN' || admin?.is_super_admin)
+        if (path === '/admin/pricing-settings') return isScreeds
         return true
     }
 

@@ -283,11 +283,22 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
     else:
         wo.source_system = "we-r"
         
-    count = db.query(WorkOrder).filter(
+    from sqlalchemy import func
+    max_quote = db.query(func.max(WorkOrder.quote_number)).filter(
         WorkOrder.organization_id == wo.organization_id,
-        WorkOrder.quote_number.isnot(None)
-    ).count()
-    wo.quote_number = f"EST{str(count + 841).zfill(4)}"
+        WorkOrder.quote_number.like('DEV%')
+    ).scalar()
+    
+    if max_quote:
+        try:
+            num_part = max_quote.replace('DEV', '')
+            next_num = int(num_part) + 1
+        except ValueError:
+            next_num = 905
+    else:
+        next_num = 905
+        
+    wo.quote_number = f"DEV{next_num}"
     wo.proforma_path = f"/proforma/{wo.id}" # We set the internal path for consistency
     
     db.add(wo)
