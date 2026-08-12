@@ -280,24 +280,47 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
 
     const items = buildItems()
     
-    // Calcul seuil de surface
-    if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
-        const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0)
-        wo.prices.surface_thresholds.forEach(thresh => {
-            const minS = parseFloat(thresh.min_sqm || 0)
-            const maxS = parseFloat(thresh.max_sqm || 999999)
-            if (surfCheck >= minS && surfCheck <= maxS) {
-                const charge = parseFloat(thresh.extra_charge || 0)
-                if (charge > 0) {
-                    items.push({
-                        desc: t('devis.flat_rate', 'Forfait'),
-                        qty: 1,
-                        unit: t('devis.flat_rate_unit', 'Forfait'),
-                        price: charge
-                    })
-                }
+    // Calcul seuil de surface (Forfait)
+    let forfaitItem = null;
+    const surfCheck = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
+    
+    if (wo.prices?.custom_threshold !== undefined && wo.prices?.custom_threshold !== null && wo.prices?.custom_threshold !== '') {
+        const charge = parseFloat(wo.prices.custom_threshold) || 0;
+        if (charge > 0) {
+            forfaitItem = {
+                desc: t('devis.flat_rate', 'Forfait'),
+                qty: 1,
+                unit: t('devis.flat_rate_unit', 'Forfait'),
+                price: charge
+            };
+        }
+    } else if (wo.prices?.surface_thresholds && Array.isArray(wo.prices.surface_thresholds)) {
+        const match = wo.prices.surface_thresholds.find(thresh => {
+            const minS = parseFloat(thresh.min_sqm || 0);
+            const maxS = parseFloat(thresh.max_sqm || 999999);
+            return surfCheck >= minS && surfCheck <= maxS;
+        });
+        if (match) {
+            const charge = parseFloat(match.extra_charge || 0);
+            if (charge > 0) {
+                forfaitItem = {
+                    desc: t('devis.flat_rate', 'Forfait'),
+                    qty: 1,
+                    unit: t('devis.flat_rate_unit', 'Forfait'),
+                    price: charge
+                };
             }
-        })
+        }
+    }
+
+    if (forfaitItem) {
+        // Insert right before any non-CHAPE header to keep it in the CHAPE group
+        const insertIndex = items.findIndex(item => item.isHeader && item.headerLabel !== 'CHAPE');
+        if (insertIndex !== -1) {
+            items.splice(insertIndex, 0, forfaitItem);
+        } else {
+            items.push(forfaitItem);
+        }
     }
 
     const totalNet = items.filter(i => !i.isHeader).reduce((s, i) => s + i.qty * i.price, 0)
