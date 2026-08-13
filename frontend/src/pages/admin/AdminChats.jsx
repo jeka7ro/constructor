@@ -73,7 +73,16 @@ export default function AdminChats() {
                     api.get(`/admin/work-orders/${activeWoId}/messages`)
                 ])
                 setActiveWo(woRes.data)
-                setMessages(msgRes.data || [])
+                
+                let msgs = [];
+                if (Array.isArray(msgRes.data)) {
+                    msgs = msgRes.data;
+                } else if (msgRes.data && Array.isArray(msgRes.data.data)) {
+                    msgs = msgRes.data.data;
+                } else if (msgRes.data && Array.isArray(msgRes.data.messages)) {
+                    msgs = msgRes.data.messages;
+                }
+                setMessages(msgs)
                 
                 // update URL
                 setSearchParams({ wo_id: activeWoId }, { replace: true })
@@ -102,7 +111,15 @@ export default function AdminChats() {
                     api.get(`/admin/work-orders/${activeWoId}/messages`)
                 ]).then(([woRes, msgRes]) => {
                     setActiveWo(woRes.data)
-                    setMessages(msgRes.data || [])
+                    let msgs = [];
+                    if (Array.isArray(msgRes.data)) {
+                        msgs = msgRes.data;
+                    } else if (msgRes.data && Array.isArray(msgRes.data.data)) {
+                        msgs = msgRes.data.data;
+                    } else if (msgRes.data && Array.isArray(msgRes.data.messages)) {
+                        msgs = msgRes.data.messages;
+                    }
+                    setMessages(msgs)
                     loadChats() // Refresh the sidebar too
                 }).catch(e => console.error("Auto-refresh failed", e))
             }
@@ -447,13 +464,13 @@ export default function AdminChats() {
                                     <div className="h-full flex items-center justify-center">
                                         <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                     </div>
-                                ) : messages.length === 0 ? (
+                                ) : !messages || messages.length === 0 ? (
                                     <div className="h-full flex items-center justify-center text-slate-400">
                                         {t('admin.no_messages_in_chat', 'Il n\'y a aucun message dans cette conversation.')}
                                     </div>
                                 ) : (
                                     <div className="space-y-4 md:max-w-3xl md:mx-auto w-full">
-                                        {messages.map(msg => {
+                                        {(messages || []).map(msg => {
                                             const isSystem = msg.sender === 'system' || msg.is_hidden;
                                             const isOwn = !isSystem && msg.sender !== 'client';
                                             return (
@@ -501,10 +518,16 @@ export default function AdminChats() {
                                                             
                                                             {/* Translation Display */}
                                                             {msg.translations && Object.keys(msg.translations).length > 0 && (
-                                                                <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                                    <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
-                                                                    {Object.values(msg.translations)[0]}
-                                                                </div>
+                                                                (() => {
+                                                                    const transText = Object.values(msg.translations)[0] || '';
+                                                                    if (transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
+                                                                    return (
+                                                                        <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
+                                                                            <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
+                                                                            {transText}
+                                                                        </div>
+                                                                    );
+                                                                })()
                                                             )}
                                                         </>
                                                     )}

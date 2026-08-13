@@ -301,6 +301,7 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
     const [works, setWorks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [hasFetched, setHasFetched] = useState(false);
+    const { t } = useTranslation();
 
     const handleOpen = () => {
         setIsOpen(true);
@@ -326,6 +327,9 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
         in_progress: 'bg-blue-100 text-blue-700',
     };
 
+    const locale = i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : i18n.language === 'ro' ? 'ro-RO' : 'en-GB';
+    const formattedDate = new Date(date).toLocaleDateString(locale);
+
     return (
         <div 
             className="relative inline-flex items-center"
@@ -335,7 +339,7 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
         >
             <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-xs shrink-0 whitespace-nowrap cursor-pointer hover:bg-blue-100 transition-colors">
                 <CalendarDays className="w-3 h-3" />
-                {new Date(date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')}
+                {formattedDate}
             </span>
 
             {isOpen && (
@@ -344,11 +348,11 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
                     onClick={e => e.stopPropagation()}
                 >
                     <div className="text-xs font-semibold text-slate-700 mb-2 border-b pb-1">
-                        Travaux prévus le {new Date(date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')}
+                        {t('quotes.scheduled_works', 'Lucrări planificate pe')} {formattedDate}
                     </div>
                     {loading ? (
                         <div className="text-xs text-slate-500 py-2 text-center flex items-center justify-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Chargement...
+                            <Loader2 className="w-3 h-3 animate-spin" /> {t('common.loading', 'Se încarcă...')}
                         </div>
                     ) : works.length > 0 ? (
                         <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
@@ -356,7 +360,7 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
                                 <div key={w.id} className="text-xs bg-slate-50 p-1.5 rounded border border-slate-100">
                                     <div className="flex items-center gap-1.5">
                                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColors[w.status] || 'bg-slate-100 text-slate-600'}`}>
-                                            {w.status === 'planning' ? 'Planifié' : w.status === 'confirmed' ? 'Confirmé' : 'En cours'}
+                                            {w.status === 'planning' ? t('status.planning', 'Planificat') : w.status === 'confirmed' ? t('status.confirmed', 'Confirmat') : t('status.in_progress', 'În curs')}
                                         </span>
                                         <span className="font-medium text-slate-800 truncate">{w.client_name || '-'}</span>
                                     </div>
@@ -365,14 +369,14 @@ const DateScheduleTooltip = ({ date, i18n, navigate }) => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-xs text-slate-500 py-2 text-center">Aucun travail prévu.</div>
+                        <div className="text-xs text-slate-500 py-2 text-center">{t('quotes.no_works_scheduled', 'Nicio lucrare planificată.')}</div>
                     )}
                     <div className="mt-1.5 pt-1.5 border-t border-slate-100">
                         <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/admin/planning?date=${date.split('T')[0]}`); }}
                             className="w-full text-center text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded py-1 transition-colors"
                         >
-                            → Voir le planning
+                            → {t('quotes.view_planning', 'Vezi planificarea')}
                         </button>
                     </div>
                 </div>
@@ -740,6 +744,7 @@ export default function QuotesManagement() {
     const columns = [
         {
             key: 'checkbox',
+            className: 'w-[32px] max-w-[32px] !px-1',
             label: (
                 <input 
                     type="checkbox" 
@@ -750,7 +755,7 @@ export default function QuotesManagement() {
             ),
             sortable: false,
             render: (row) => (
-                <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center w-full h-full min-h-[40px]">
+                <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
                     <input 
                         type="checkbox" 
                         checked={selectedIds.includes(row.id)}
@@ -763,19 +768,19 @@ export default function QuotesManagement() {
         },
         {
             key: 'created_at',
-            label: t('quotes.quote_details', 'N° Devis / Date'),
+            label: t('quotes.quote_details', 'Citat Nr. / Data'),
             sortable: true,
+            className: 'w-[175px] max-w-[180px]',
             render: (row) => {
                 let display = '-'
+                let timeDisplay = ''
                 if (row.created_at) {
                     try {
                         const dateStr = row.created_at.endsWith('Z') ? row.created_at : `${row.created_at}Z`
                         const d = new Date(dateStr)
                         if (!isNaN(d.getTime())) {
                             display = d.toLocaleDateString('ro-RO')
-                            if (row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online') {
-                                display += ` ${d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`
-                            }
+                            timeDisplay = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
                         } else {
                             display = row.created_at
                         }
@@ -798,15 +803,16 @@ export default function QuotesManagement() {
                         </span>
                     )
                 }
-                const getSourceBadge = (src) => {
+                const getSourceBadge = (src, lang) => {
+                    const flag = lang ? (lang.toLowerCase() === 'fr' ? '🇫🇷' : lang.toLowerCase() === 'nl' ? '🇳🇱' : lang.toLowerCase() === 'en' ? '🇬🇧' : '') : '';
                     if (src === 'calculator_public' || src === 'we-r') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-500 whitespace-nowrap">
-                            {t('source.we_r', 'WE-R')}
+                            {t('source.we_r', 'WE-R')} {flag && <span className="text-sm">{flag}</span>}
                         </span>
                     )
                     if (src === 'devis_online') return (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-500 whitespace-nowrap">
-                            {t('source.devis', 'Devis en ligne')}
+                            {t('source.devis', 'Devis en ligne')} {flag && <span className="text-sm">{flag}</span>}
                         </span>
                     )
                     if (src === 'robaws') return (
@@ -823,18 +829,18 @@ export default function QuotesManagement() {
                 }
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
                 return (
-                    <div className="flex flex-col gap-1">
-                        <div className={`flex items-center gap-1.5 text-sm whitespace-nowrap ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
-                            <span>{row.quote_number || '-'}</span>
+                    <div className="flex flex-col gap-0.5">
+                        <div className={`flex items-center gap-1.5 text-sm ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                            <span className="shrink-0">{row.quote_number || '-'}</span>
                             <span className="text-slate-300">•</span>
                             <div className={`flex items-center gap-1 text-[11px] ${!isRead ? 'font-bold text-slate-600' : 'font-medium text-slate-400'}`}>
                                 <CalendarDays className="w-3 h-3 shrink-0" />
-                                {display}
+                                <span className="truncate">{display}</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                             {getStatusDot(row.status)}
-                            {getSourceBadge(row.source_system)}
+                            {getSourceBadge(row.source_system, row.client_language)}
                         </div>
                     </div>
                 )
@@ -842,29 +848,32 @@ export default function QuotesManagement() {
         },
         {
             key: 'client_name',
-            label: t('quotes.client_address', 'Client & Adresse'),
+            label: t('quotes.client_address', 'Client & Adresă'),
             sortable: true,
+            className: 'w-[200px]',
             render: (row) => {
                 const addr = row.site_address;
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
+                const distance = row.route_distance_km ? parseFloat(row.route_distance_km) : (row.prices?.distance_km ? parseFloat(row.prices.distance_km) * 2 : 0);
+
+                let badgeColor = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+                if (row.source_system === 'calculator_public' || row.source_system === 'we-r') {
+                    badgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400';
+                } else if (row.source_system === 'devis_online') {
+                    badgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400';
+                } else if (row.source_system === 'robaws') {
+                    badgeColor = 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400';
+                }
 
                 return (
-                    <div className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]">
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
-                            {row.source_system === 'calculator_public' || row.source_system === 'we-r' ? (
-                                <span className={`bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-[150px] ${!isRead ? 'font-bold' : 'font-medium'}`} title="WE-R">
-                                    {row.client_name || '-'}
-                                </span>
-                            ) : row.source_system === 'devis_online' ? (
-                                <span className={`bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-[150px] ${!isRead ? 'font-bold' : 'font-medium'}`} title="Devis en ligne">
-                                    {row.client_name || '-'}
-                                </span>
-                            ) : (
-                                <>
-                                    <User className="w-4 h-4 text-slate-400 shrink-0" />
-                                    <span className={`truncate max-w-[150px] ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`} title={row.client_name}>{row.client_name || '-'}</span>
-                                </>
-                            )}
+                    <div className="flex flex-col gap-0.5 max-w-[220px]">
+                        <div className="flex items-center gap-1.5 text-sm text-slate-700 overflow-hidden">
+                            <span 
+                                className={`truncate shrink min-w-0 px-2 py-0.5 rounded-full ${badgeColor} ${!isRead ? 'font-bold' : 'font-medium'}`} 
+                                title={row.client_name}
+                            >
+                                {row.client_name || '-'}
+                            </span>
                             {row.approximate_date && (
                                 <>
                                     <span className="text-slate-300 shrink-0">•</span>
@@ -872,12 +881,14 @@ export default function QuotesManagement() {
                                 </>
                             )}
                         </div>
-                        <div className={`flex flex-wrap items-center gap-2 text-sm text-slate-500 ${row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online' ? '' : 'pl-6'} ${!isRead ? 'font-bold' : 'font-medium'}`}>
-                            {addr ? (
-                                <span className="truncate max-w-[200px]" title={addr}>{addr}</span>
-                            ) : (
-                                <span className="italic">—</span>
+                        <div className={`flex items-center gap-1.5 text-sm text-slate-500 overflow-hidden ${!isRead ? 'font-bold' : 'font-medium'}`}>
+                            {distance > 0 && (
+                                <>
+                                    <span className="text-slate-500 shrink-0">{Math.round(distance)} km</span>
+                                    <span className="text-slate-300 shrink-0">•</span>
+                                </>
                             )}
+                            <span className="truncate" title={addr}>{addr || '—'}</span>
                         </div>
                     </div>
                 );
@@ -887,6 +898,7 @@ export default function QuotesManagement() {
             key: 'surface_thickness',
             label: t('quotes.surface_thickness', 'Suprafață / Grosime'),
             sortable: true,
+            className: 'w-[190px]',
             render: (row) => {
                 let displayDate = '';
                 if (row.approximate_date) {
@@ -898,31 +910,43 @@ export default function QuotesManagement() {
                     } catch(e) {}
                 }
                 
-                const distance = row.route_distance_km ? parseFloat(row.route_distance_km) : (row.prices?.distance_km ? parseFloat(row.prices.distance_km) * 2 : 0);
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
+                const isolationVol = row.volumes?.find(v => v.label?.toLowerCase().includes('isolation') || v.label?.toLowerCase().includes('pur') || v.type === 'isolation');
                 
                 return (
-                    <div className={`flex flex-col gap-0.5 text-sm ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                    <div className={`flex flex-col gap-1.5 text-sm ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                        {/* Chape */}
                         <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-400 font-normal w-[42px] shrink-0">Chape:</span>
                             <span>{row.volumes?.[0]?.quantity ? `${row.volumes[0].quantity} m²` : '-'}</span>
-                            {distance > 0 && (
-                                <>
-                                    <span className="text-slate-300">•</span>
-                                    <span className="text-slate-500">{Math.round(distance)} km</span>
-                                </>
-                            )}
+                            <span className="text-slate-300">•</span>
+                            <span className="uppercase text-slate-500">{row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-slate-500">
-                            <span className="uppercase">{row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}</span>
-                        </div>
+                        
+                        {/* Isolation */}
+                        {isolationVol && (
+                            <div className="flex items-center gap-1.5 text-sm mt-0.5">
+                                <div className="w-[42px] flex justify-start shrink-0">
+                                    {isolationVol.label.toLowerCase().includes('pur') ? (
+                                        <Wind className="w-4 h-4 text-indigo-400" />
+                                    ) : (
+                                        <Thermometer className="w-4 h-4 text-emerald-400" />
+                                    )}
+                                </div>
+                                <span>{isolationVol.quantity ? `${isolationVol.quantity} m²` : '-'}</span>
+                                <span className="text-slate-300">•</span>
+                                <span className="uppercase text-slate-500">{isolationVol.thickness ? `${isolationVol.thickness} cm` : '-'}</span>
+                            </div>
+                        )}
                     </div>
                 );
             }
         },
         {
             key: 'estimated_price',
-            label: t('quotes.price', 'Prix (€)'),
+            label: t('quotes.price', 'Preț (€)'),
             sortable: true,
+            className: 'w-[90px]',
             render: (row) => {
                 let discounts = [];
                 if (row.proforma_data?.items) {
@@ -940,18 +964,6 @@ export default function QuotesManagement() {
                     <div className="flex flex-col gap-0.5">
                         <div className="flex flex-wrap items-center gap-2">
                             <EditablePrice row={row} onUpdate={fetchQuotes} />
-                            {isolationVol && (
-                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">
-                                    {isolationVol.label.toLowerCase().includes('pur') ? (
-                                        <Wind className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> 
-                                    ) : (
-                                        <Thermometer className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                    )}
-                                    <span className="uppercase tracking-wider">
-                                        {isolationVol.label.replace(/Isolation/i, '').trim()}
-                                    </span>
-                                </div>
-                            )}
                         </div>
                         
                         {discounts.length > 0 && (
@@ -975,12 +987,12 @@ export default function QuotesManagement() {
             }
         },
         {
-            name: 'ACȚIUNI',
-            align: 'right',
+            label: 'ACȚIUNI',
+            className: 'w-[110px]',
             render: (row) => {
                 const isRead = row.read_by_admins?.map(String).includes(String(admin?.id));
                 return (
-                <div className="flex flex-wrap justify-end gap-1.5 w-[108px] ml-auto">
+                <div className="grid grid-cols-3 gap-1 w-[96px]">
                     {row.status === 'deleted' ? (
                         <button
                             title={t('quotes.btn_restore_short', 'Restaurer')}
@@ -1004,7 +1016,7 @@ export default function QuotesManagement() {
                                     }
                                 });
                             }}
-                            className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                            className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
                         >
                             <RefreshCw className="w-4 h-4" />
                         </button>
@@ -1025,7 +1037,7 @@ export default function QuotesManagement() {
                                         console.error(err);
                                     }
                                 }}
-                                className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors ${isRead ? 'text-slate-400' : 'text-blue-500'}`}
+                                className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors ${isRead ? 'text-slate-400 dark:text-slate-500' : 'text-blue-500 dark:text-blue-400'}`}
                             >
                                 {isRead ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -1038,7 +1050,7 @@ export default function QuotesManagement() {
                                         navigator.clipboard.writeText(`${window.location.origin}/confirm/${row.token}`);
                                         showToast(t('quotes.link_copied', 'Le lien du client a été copié dans le presse-papiers !'), 'success');
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                                    className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
                                 >
                                     <Copy className="w-4 h-4" />
                                 </button>
@@ -1049,7 +1061,7 @@ export default function QuotesManagement() {
                                     e.stopPropagation();
                                     navigate(`/admin/chats?wo_id=${row.id}`);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
                             >
                                 <MessageSquare className="w-4 h-4" />
                             </button>
@@ -1059,7 +1071,7 @@ export default function QuotesManagement() {
                                     e.stopPropagation();
                                     setPreviewPdfId(row.id);
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
                             >
                                 <FileText className="w-4 h-4" />
                             </button>
@@ -1071,7 +1083,7 @@ export default function QuotesManagement() {
                                     setPlanningForm({ date: row.approximate_date ? row.approximate_date.split('T')[0] : todayStr, time: '07:00', teamId: '' })
                                     setPlanningModal(row)
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
                             >
                                 <CalendarDays className="w-4 h-4" />
                             </button>
@@ -1096,7 +1108,7 @@ export default function QuotesManagement() {
                                         }
                                     })
                                 }}
-                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -1295,6 +1307,7 @@ export default function QuotesManagement() {
                 
                 <DataTable 
                     columns={columns}
+                    tableClassName="table-fixed"
                     data={quotes}
                     loading={loading}
                     defaultPageSize={25}

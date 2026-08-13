@@ -58,6 +58,52 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
         return false;
     };
 
+    // Calculate price when entering step 4
+    useEffect(() => {
+        if (step === 4 && !form.estimated_price) {
+            let total = 0;
+            const sArea = parseFloat(sapa.surface) || 0;
+            if (sapa.enabled && sArea > 0) {
+                let base = 12.5;
+                const thick = parseFloat(sapa.thickness) || 5;
+                if (thick > 5) base += (thick - 5) * 1.25;
+                if (sapa.has_foil) base += 1.2;
+                if (sapa.has_mesh) base += 2.5;
+                if (sapa.has_fiber || sapa.has_duramint) base += (sArea <= 200 ? 2.5 : 2.0);
+                total += base * sArea;
+            }
+            const iArea = parseFloat(isolation.surface) || sArea;
+            if (isolation.enabled && iArea > 0) {
+                if (isolation.type === 'PUR') {
+                    let base = 13.95;
+                    const thick = parseFloat(isolation.thickness) || 3;
+                    if (thick > 3 && thick <= 10) base += (thick - 3) * 1.65;
+                    else if (thick > 10) base += (7 * 1.65) + ((thick - 10) * 2.10);
+                    if (iArea > 100) base += Math.floor((iArea - 100) / 100) * -0.50;
+                    
+                    if (isolation.pur_aspiration) base += 2.00;
+                    if (isolation.pur_niveller) base += 4.25;
+                    if (isolation.pur_poncage) base += 1.50;
+                    if (isolation.pur_protection) base += 1.50;
+                    total += Math.max(0, base) * iArea;
+                } else if (isolation.type === 'EPS') {
+                    const vol = (iArea * (parseFloat(isolation.thickness) || 1)) / 100;
+                    let epsPrice = 150 * vol;
+                    if (vol <= 10) epsPrice = 1495;
+                    else if (vol <= 20) epsPrice = 160 * vol;
+                    else if (vol <= 40) epsPrice = 155 * vol;
+                    total += epsPrice;
+                }
+            }
+            // Note: truck_cost (déplacement camion) will be auto-added by backend if distance > 125km
+            const vatRate = form.work_type === 'repair' ? 1.06 : 1.21;
+            const gross = total * vatRate;
+            if (gross > 0) {
+                setForm(prev => ({ ...prev, estimated_price: gross.toFixed(2) }));
+            }
+        }
+    }, [step, sapa, isolation, form.work_type]);
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
@@ -376,21 +422,53 @@ export default function QuickAddWizard({ onClose, onSuccess, clients = [], showT
                                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Récapitulatif</h4>
                                 <div className="space-y-3">
                                     {sapa.enabled && (
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="font-bold text-slate-700">Șapă</span>
-                                            <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono">{sapa.surface}m² / {sapa.thickness}cm</span>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="font-bold text-slate-700">Șapă</span>
+                                                <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono">{sapa.surface}m² / {sapa.thickness}cm</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5 ml-2">
+                                                {sapa.has_foil && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">Folie PVC</span>}
+                                                {sapa.has_mesh && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">Plasă</span>}
+                                                {sapa.has_fiber && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">Fibră</span>}
+                                                {sapa.has_duramint && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">Duramint</span>}
+                                            </div>
                                         </div>
                                     )}
                                     {isolation.enabled && (
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="font-bold text-slate-700">Isolation {isolation.type}</span>
-                                            <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono">{isolation.surface || sapa.surface}m² / {isolation.thickness}cm</span>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="font-bold text-slate-700">Isolation {isolation.type}</span>
+                                                <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono">{isolation.surface || sapa.surface}m² / {isolation.thickness}cm</span>
+                                            </div>
+                                            {isolation.type === 'PUR' && (
+                                                <div className="flex flex-wrap gap-1.5 ml-2">
+                                                    {isolation.pur_aspiration && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-md font-bold">Aspiration</span>}
+                                                    {isolation.pur_niveller && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-md font-bold">Niveller</span>}
+                                                    {isolation.pur_poncage && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-md font-bold">Ponçage</span>}
+                                                    {isolation.pur_protection && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-md font-bold">Protection</span>}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                    <div className="flex justify-between items-center text-sm">
+                                    <div className="flex justify-between items-center text-sm pb-2 border-b border-slate-100">
                                         <span className="font-bold text-slate-700">TVA Applicable</span>
                                         <span className="text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded">{form.work_type === 'new' ? '21% (Nou)' : '6% (Rénovation)'}</span>
                                     </div>
+                                    <div className="flex justify-between items-center pt-2">
+                                        <span className="font-black text-slate-800 uppercase tracking-tight">Prix Estimé (TTC)</span>
+                                        <div className="relative w-32">
+                                            <input 
+                                                type="number" 
+                                                step="0.01"
+                                                className="w-full text-right font-black text-lg bg-blue-50 border border-blue-200 text-blue-700 rounded-lg py-1.5 pr-8 pl-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                value={form.estimated_price}
+                                                onChange={e => setForm({...form, estimated_price: e.target.value})}
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold">€</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-1 italic text-right">⚠️ Si distance &gt; 125 km → +250 € déplacement camion (auto)</p>
                                 </div>
                             </div>
 

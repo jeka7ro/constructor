@@ -82,33 +82,46 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const navigate = useNavigate()
     const { tenant } = useTenantStore()
     const [wo, setWo] = useState(null)
-    const [proformaItems, setProformaItems] = useState(null) // items din proforma_data (tarife corecte)
+    const [proformaItems, setProformaItems] = useState(null)
+    const [pricingSettings, setPricingSettings] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
     useEffect(() => {
         const endpoint = token ? `/public/work-orders/${token}` : `/admin/work-orders/${id}`;
-        api.get(endpoint)
-            .then(res => {
-                setWo(res.data)
-                // Dacă are proforma_data cu items valide, le folosim
-                const pItems = res.data?.proforma_data?.items
-                if (pItems && pItems.length > 0) {
-                    const descLower = String(pItems[0].desc || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
-                    const isPlaceholder = pItems.length === 1 && 
-                        (pItems[0].id === 'default' || 
-                         descLower.includes('conform deviz') || 
-                         descLower.includes('manoper') ||
-                         descLower === 'chape' ||
-                         descLower === 'sapa' ||
-                         descLower.match(/sapa|chape/i) ||
-                         descLower.startsWith('sapa') ||
-                         descLower.startsWith('chape'))
-                    if (!isPlaceholder) setProformaItems(pItems)
-                }
+        
+        Promise.all([
+            api.get(endpoint),
+            api.get('/admin/pricing-settings').catch(err => {
+                console.error('Failed to load pricing settings:', err);
+                return { data: null };
             })
-            .catch(err => { console.error(err); setError(t('devis.not_found', 'Devis introuvable.')) })
-            .finally(() => setLoading(false))
+        ]).then(([woRes, pricingRes]) => {
+            setWo(woRes.data);
+            if (pricingRes.data) {
+                setPricingSettings(pricingRes.data);
+            }
+            
+            const pItems = woRes.data?.proforma_data?.items;
+            if (pItems && pItems.length > 0) {
+                const descLower = String(pItems[0].desc || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                const isPlaceholder = pItems.length === 1 && 
+                    (pItems[0].id === 'default' || 
+                     descLower.includes('conform deviz') || 
+                     descLower.includes('manoper') ||
+                     descLower === 'chape' ||
+                     descLower === 'sapa' ||
+                     descLower.match(/sapa|chape/i) ||
+                     descLower.startsWith('sapa') ||
+                     descLower.startsWith('chape'));
+                if (!isPlaceholder) setProformaItems(pItems);
+            }
+        }).catch(err => {
+            console.error(err); 
+            setError(t('devis.not_found', 'Devis introuvable.'));
+        }).finally(() => {
+            setLoading(false);
+        });
     }, [id, token])
 
     useEffect(() => {
@@ -131,7 +144,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const buildItems = () => {
         // PRIORITATE: proforma_data.items (prețuri din pagina de tarife, inclusiv prețuri preferențiale)
         if (proformaItems) {
-            return proformaItems.map(item => {
+            const parsedItems = proformaItems.map(item => {
                 let newDesc = item.desc || '';
                 const lang = tenant?.invoice_language || 'fr';
                 if (lang === 'fr' || i18nGlobal.language === 'fr') {
@@ -154,6 +167,37 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     price: parseFloat(item.price || 0)
                 }
             })
+            
+            // Verificăm dacă transportul este deja în items
+            const hasTransport = parsedItems.some(i => i.desc?.toLowerCase().includes('transport') || i.desc?.toLowerCase().includes('déplacement'));
+            if (!hasTransport) {
+                let truckCost = parseFloat(wo.prices?.truck_cost || 0);
+                
+                let distKm = parseFloat(wo.route_distance_km || 0);
+                if (distKm <= 0 && wo.prices?.distance_km) distKm = parseFloat(wo.prices.distance_km) * 2;
+                if (distKm <= 0 && wo.route_segments?.length > 0) {
+                    distKm = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
+                }
+                if (truckCost <= 0 && pricingSettings && distKm > 0) {
+                    const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
+                    const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
+                    const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
+                    const oneWay = distKm > 500 ? distKm : distKm / 2;
+                    const totalSurface = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
+                    if (truckFlat > 0 && oneWay > distThreshold && totalSurface <= surfThreshold) {
+                        truckCost = truckFlat;
+                    }
+                }
+                if (truckCost > 0 || distKm > 0) {
+                    parsedItems.push({
+                        desc: `Transport${distKm > 0 ? ` (${Math.round(distKm)} km)` : ''}`,
+                        qty: 1,
+                        unit: T.forfait,
+                        price: truckCost
+                    });
+                }
+            }
+            return parsedItems;
         }
         
         // FALLBACK: calcul din grosimi (folosit doar dacă proforma_data lipsește)
@@ -273,6 +317,33 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
             if (items.length === 0) {
                 items.push({ desc: wo.title || T.travaux, qty: 1, unit: T.forfait, price: parseFloat(wo.estimated_price?.replace(/[^0-9.]/g, '') || '0') })
             }
+        }
+        
+        // Add Transport (Frais de déplacement)
+        let truckCost = parseFloat(wo.prices?.truck_cost || 0);
+        
+        let distKm = parseFloat(wo.route_distance_km || 0);
+        if (distKm <= 0 && wo.prices?.distance_km) distKm = parseFloat(wo.prices.distance_km) * 2;
+        if (distKm <= 0 && wo.route_segments?.length > 0) {
+            distKm = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
+        }
+        if (truckCost <= 0 && pricingSettings && distKm > 0) {
+            const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
+            const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
+            const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
+            const oneWay = distKm > 500 ? distKm : distKm / 2;
+            const totalSurface = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
+            if (truckFlat > 0 && oneWay > distThreshold && totalSurface <= surfThreshold) {
+                truckCost = truckFlat;
+            }
+        }
+        if (truckCost > 0 || distKm > 0) {
+            items.push({
+                desc: `Transport${distKm > 0 ? ` (${Math.round(distKm)} km)` : ''}`,
+                qty: 1,
+                unit: T.forfait,
+                price: truckCost
+            });
         }
         
         return items

@@ -185,6 +185,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     const nextId = currentIndex >= 0 && currentIndex < quoteIds.length - 1 ? quoteIds[currentIndex + 1] : null;
 
     const [wo, setWo]           = useState(null)
+    const [pricingSettings, setPricingSettings] = useState(null)
     const [sessions, setSessions] = useState(null)
     const [photos, setPhotos]   = useState([])
 
@@ -547,6 +548,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
 
 
     useEffect(() => { load() }, [load])
+
+    // Fetch pricing settings (tarife) pentru calcul transport
+    useEffect(() => {
+        api.get('/admin/pricing-settings')
+            .then(res => setPricingSettings(res.data))
+            .catch(err => console.error('Failed to load pricing settings:', err))
+    }, [])
 
     const handleTranslatePreview = async () => {
         if (!chatMessage.trim() || targetLang === 'none') return;
@@ -911,10 +919,28 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             );
             if (match) threshold = parseFloat(match.extra_charge) || 0;
         }
-        const truck_cost = parseFloat(prices?.truck_cost || 0);
+        let truck_cost = parseFloat(prices?.truck_cost || 0);
+        // Fallback: calculează din pricing settings dacă nu e setat în prices
+        let actualDistKm = parseFloat(wo?.route_distance_km || 0);
+        if (actualDistKm <= 0 && prices?.distance_km) {
+            actualDistKm = parseFloat(prices.distance_km) * 2; // Assuming distance_km is one-way
+        }
+        if (actualDistKm <= 0 && wo?.route_segments && wo.route_segments.length > 0) {
+            actualDistKm = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
+        }
+
+        if (truck_cost <= 0 && pricingSettings && actualDistKm > 0) {
+            const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
+            const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
+            const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
+            const oneWay = actualDistKm > 500 ? actualDistKm : actualDistKm / 2;
+            if (truckFlat > 0 && oneWay > distThreshold && surface <= surfThreshold) {
+                truck_cost = truckFlat;
+            }
+        }
         const grossBeforeDiscount = base + extra + foil + mesh + fiber + threshold + truck_cost;
         const discountAmount = (grossBeforeDiscount * discountPct) / 100;
-        return { base, extra, foil, mesh, fiber, threshold, truck_cost, discountPct, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick };
+        return { base, extra, foil, mesh, fiber, threshold, truck_cost, discountPct, discount: discountAmount, net: grossBeforeDiscount - discountAmount, extraThick, actualDistKm };
     };
 
     // Calculation Logic for Sapa — Estimatif (din volumes[])
@@ -946,7 +972,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
     let surfaceForAuto = 0;
     let extraThickForAuto = 0;
     let chapeFlags = {}; // has_foil, has_mesh, has_fiber, has_duramint
-    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0 };
+    let estimCalc = { base: 0, extra: 0, foil: 0, mesh: 0, fiber: 0, threshold: 0, truck_cost: 0, discount: 0, net: 0, discountPct: 0, isoPurBase: 0, isoPurOpt: 0, isoEpsBase: 0, purDiscount: 0, purDiscountPct: 0, epsDiscount: 0, epsDiscountPct: 0 };
     let purOpts = { aspiration: 0, niveller: 0, poncage: 0, protection: 0 };
 
     (wo.volumes || []).forEach(vol => {
@@ -966,9 +992,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             estimCalc.mesh  += c.mesh;
             estimCalc.fiber += c.fiber;
             estimCalc.threshold += c.threshold;
+            estimCalc.truck_cost += c.truck_cost;
             estimCalc.discount += c.discount;
             estimCalc.discountPct = c.discountPct;
             estimCalc.net   += c.net;
+            estimCalc.actualDistKm = c.actualDistKm;
         } else if (/isolation\s*pur/i.test(labelSafe) && surface > 0) {
             isAuto = true;
             let purBase = parseFloat(wo.prices?.pur_base_price_3cm || 13.95);
@@ -2014,10 +2042,16 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                                     
                                                     {/* Translation Display */}
                                                     {msg.translations && Object.keys(msg.translations).length > 0 && (
-                                                        <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                            <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
-                                                            {Object.values(msg.translations)[0]}
-                                                        </div>
+                                                        (() => {
+                                                            const transText = Object.values(msg.translations)[0] || '';
+                                                            if (transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
+                                                            return (
+                                                                <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
+                                                                    <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
+                                                                    {transText}
+                                                                </div>
+                                                            );
+                                                        })()
                                                     )}
                                                 </>
                                             )}
@@ -2556,6 +2590,12 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
                                             <span className="font-medium">{t('work_order_detail.invoicing.discount_chape', 'Remise Chape')} ({estimCalc.discountPct}%)</span>
                                             <span className="text-right tabular-nums">- <b>{estimCalc.discount.toFixed(2)}&nbsp;EUR</b></span>
+                                        </div>
+                                    )}
+                                    {estimCalc.actualDistKm > 0 && (
+                                        <div className={`flex justify-between font-semibold mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 ${estimCalc.truck_cost > 0 ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                                            <span className="font-medium">{t('work_order_detail.invoicing.transport', 'Transport')} ({Math.round(estimCalc.actualDistKm)} km)</span>
+                                            <span className="text-right tabular-nums">{estimCalc.truck_cost > 0 ? `+ ` : ''}<b>{estimCalc.truck_cost.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {/* TVA Auto-calculated */}

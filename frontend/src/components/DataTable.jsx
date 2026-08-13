@@ -29,7 +29,8 @@ export default function DataTable({
     onRowClick,
     mobileCard,
     pageSizeOptions,
-    storageKey
+    storageKey,
+    tableClassName
 }) {
     const { t } = useTranslation()
     const [page, setPage] = useState(1)
@@ -171,24 +172,25 @@ export default function DataTable({
 
             {/* Table */}
             <div className={`overflow-x-auto pb-4 ${mobileCard ? 'hidden md:block' : ''}`}>
-                <table className="w-full text-sm text-left">
+                <table className={`w-full text-sm text-left ${tableClassName || ''}`}>
                     <thead className="bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold uppercase tracking-wider">
                         <tr>
                             {/* Row number column */}
-                            <th className="px-4 py-4 text-center w-16 select-none">
+                            <th className="px-1 py-2 text-center w-8 select-none">
                                 {t('common.row_number')}
                             </th>
                             {columns.map(col => (
                                 <th
-                                    key={col.key}
+                                    key={col.key || col.label}
                                     className={[
-                                        'px-4 py-4 text-left whitespace-nowrap select-none',
+                                        'px-2 py-2 whitespace-nowrap select-none',
+                                        col.align === 'right' ? 'text-right' : 'text-left',
                                         col.sortable ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : '',
                                         col.className || ''
                                     ].filter(Boolean).join(' ')}
                                     onClick={col.sortable ? () => handleSort(col.key) : undefined}
                                 >
-                                    <span className="inline-flex items-center">
+                                    <span className={`inline-flex items-center ${col.align === 'right' ? 'justify-end w-full' : ''}`}>
                                         {col.label}
                                         <SortIcon col={col} />
                                     </span>
@@ -221,11 +223,11 @@ export default function DataTable({
                                         onRowClick(row, sorted)
                                     } : undefined}
                                 >
-                                    <td className="px-4 py-4 text-center text-slate-500 tabular-nums">
+                                    <td className="px-1 py-2 text-center text-slate-500 tabular-nums text-xs">
                                         {from + idx + 1}
                                     </td>
                                     {columns.map(col => (
-                                        <td key={col.key} className="px-4 py-4 align-middle text-slate-900 dark:text-white">
+                                        <td key={col.key || col.label} className={`px-2 py-2 align-middle text-slate-900 dark:text-white ${col.align === 'right' ? 'text-right' : ''} ${col.className || ''}`}>
                                             {col.render ? col.render(row, from + idx) : (row[col.key] ?? '—')}
                                         </td>
                                     ))}

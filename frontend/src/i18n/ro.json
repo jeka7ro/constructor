@@ -2117,12 +2117,12 @@
     "all": "Toate Perioadele"
   },
   "status": {
-    "in_progress": "En cours",
-    "draft": "NOUVEAU",
-    "sent": "ENVOYÉ",
-    "confirmed": "CONFIRMÉ",
-    "completed": "TERMINÉ",
-    "cancelled": "ANNULÉ",
+    "in_progress": "În curs",
+    "draft": "NOU",
+    "sent": "TRIMIS",
+    "confirmed": "CONFIRMAT",
+    "completed": "FINALIZAT",
+    "cancelled": "ANULAT",
     "isoflex": "ISOFLEX",
     "planning": "În planificare",
     "pending": "În așteptare",

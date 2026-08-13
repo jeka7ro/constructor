@@ -172,6 +172,7 @@ def _serialize_slim(wo: WorkOrder) -> dict:
         "client_email": wo.client_email,
         "client_phone": wo.client_phone,
         "client_type": wo.client.client_type if wo.client else "juridica",
+        "client_language": wo.client_language,
         "volumes": wo.volumes or [],
         "assigned_team_id": wo.assigned_team_id,
         "assigned_team_name": wo.assigned_team.name if wo.assigned_team else None,
@@ -929,6 +930,43 @@ def create_work_order(
 
     except Exception as _route_err:
         print(f"Route calc warning (non-fatal): {_route_err}")
+
+    # ── Auto-calculate truck_cost based on distance ──
+    try:
+        from app.models import PricingSetting
+        pricing = db.query(PricingSetting).filter(
+            PricingSetting.organization_id == current_admin.organization_id
+        ).first()
+        if pricing and wo.route_distance_km:
+            total_surface = sum(
+                float(v.get('quantity') or 0) for v in (wo.volumes or [])
+                if any(k in str(v.get('label') or '').lower() for k in ['chape', 'sapa', 'şapă', 'șapă'])
+            )
+            surface_threshold = getattr(pricing, 'truck_surface_threshold_free_sqm', 500.0)
+            distance_threshold = getattr(pricing, 'truck_distance_threshold_km', 50.0)
+            truck_flat = getattr(pricing, 'truck_extra_price_flat', 0.0)
+            
+            # one-way distance is route_distance_km / 2
+            one_way_km = wo.route_distance_km / 2.0
+            
+            if total_surface <= surface_threshold and one_way_km > distance_threshold and truck_flat > 0:
+                truck_cost = truck_flat
+                # Store in prices JSON
+                prices_json = wo.prices or {}
+                prices_json['truck_cost'] = truck_cost
+                prices_json['distance_km'] = one_way_km
+                wo.prices = prices_json
+                
+                # Add truck_cost to estimated_price if we have one
+                if wo.estimated_price and wo.estimated_price > 0:
+                    wo.estimated_price = float(wo.estimated_price) + truck_cost
+                    print(f"Added truck_cost {truck_cost}€ to estimated_price. New total: {wo.estimated_price}")
+                else:
+                    print(f"Truck cost {truck_cost}€ stored in prices but no estimated_price to add to")
+            else:
+                print(f"No truck cost: surface={total_surface} (threshold={surface_threshold}), distance={one_way_km}km (threshold={distance_threshold}km)")
+    except Exception as truck_err:
+        print(f"Truck cost calc warning (non-fatal): {truck_err}")
 
     db.commit()
     db.refresh(wo)
@@ -2622,7 +2660,7 @@ def get_work_order_messages(
             "id": "initial-req",
             "sender": "client",
             "message": f"Detalii lucrare:\n{req_text}",
-            "created_at": wo.created_at.isoformat()
+            "created_at": wo.created_at.isoformat() if wo.created_at else ""
         })
     elif wo.notes:
         initial_messages.append({
@@ -2637,7 +2675,7 @@ def get_work_order_messages(
             "id": "reschedule-req",
             "sender": "client",
             "message": f"Cerere de reprogramare:\n{wo.reschedule_reason}",
-            "created_at": wo.updated_at.isoformat()
+            "created_at": wo.updated_at.isoformat() if wo.updated_at else ""
         })
     
     db_messages = [
@@ -2645,7 +2683,7 @@ def get_work_order_messages(
             "id": m.id,
             "sender": m.sender,
             "message": m.message,
-            "created_at": m.created_at.isoformat() + "Z",
+            "created_at": (m.created_at.isoformat() + "Z") if m.created_at else "",
             "translations": m.translations,
             "reactions": m.reactions,
             "is_hidden": m.is_hidden,
@@ -2694,11 +2732,23 @@ def post_work_order_message(
     
     # Auto-translate to the 3 public languages if deep_translator is available
     try:
+        import time
         from deep_translator import GoogleTranslator
         for target_lang in ['fr', 'nl', 'en']:
             if target_lang not in translations:
-                translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
-                translations[target_lang] = translated
+                for attempt in range(3):
+                    try:
+                        translated = GoogleTranslator(source='auto', target=target_lang).translate(payload.message)
+                        if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
+                            print(f"Translation attempt {attempt+1} for {target_lang} returned Error 500, retrying...")
+                            time.sleep(1)
+                            continue
+                        translations[target_lang] = translated
+                        break
+                    except Exception as retry_err:
+                        print(f"Translation attempt {attempt+1} for {target_lang} failed: {retry_err}")
+                        if attempt < 2:
+                            time.sleep(1)
     except Exception as e:
         print(f"Auto-translation failed: {e}")
             

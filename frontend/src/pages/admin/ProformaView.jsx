@@ -18,6 +18,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     const [wo, setWo] = useState(workOrderData)
     const [loading, setLoading] = useState(!workOrderData)
     const [viewMode, setViewMode] = useState(typeParam || 'proforma')
+    const [pricingSettings, setPricingSettings] = useState(null)
 
     useEffect(() => {
         if (wo && !typeParam) {
@@ -79,6 +80,13 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         }
         loadWorkOrder()
     }, [id, workOrderData])
+
+    // Fetch pricing settings (tarife)
+    useEffect(() => {
+        api.get('/admin/pricing-settings')
+            .then(res => setPricingSettings(res.data))
+            .catch(err => console.error('Failed to load pricing settings:', err))
+    }, [])
 
     const pData = config || wo?.proforma_data || null
     
@@ -446,12 +454,28 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         })
     }
 
-    // Transport (Frais de déplacement) - adaugat din prices.truck_cost
-    const truckCost = parseFloat(activePrices.truck_cost || 0);
-    if (truckCost > 0) {
+    // Transport (Frais de déplacement) - calculat din TARIFE (pricing settings)
+    let truckCost = parseFloat(activePrices.truck_cost || 0);
+    if (truckCost <= 0 && pricingSettings) {
+        const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
+        const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
+        const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
+        const distKm = parseFloat(activePrices.distance_km || wo.route_distance_km || 0);
+        const oneWay = distKm > 500 ? distKm : distKm / 2;
+        const totalSurface = (wo.volumes || []).reduce((sum, v) => {
+            const lbl = (v.label || '').toLowerCase();
+            if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
+            return sum;
+        }, 0);
+        if (truckFlat > 0 && oneWay > distThreshold && totalSurface <= surfThreshold) {
+            truckCost = truckFlat;
+        }
+    }
+    const distKmPdf = parseFloat(activePrices.distance_km || wo.route_distance_km || 0);
+    if (truckCost > 0 || distKmPdf > 0) {
         items.push({
             id: 'transport',
-            desc: 'Frais de déplacement (Transport)',
+            desc: `Transport${distKmPdf > 0 ? ` (${Math.round(distKmPdf)} km)` : ''}`,
             qty: 1,
             unit: 'Forfait',
             price: truckCost

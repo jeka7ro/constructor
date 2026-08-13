@@ -511,10 +511,22 @@ def post_public_work_order_message(
         
     translations = {}
     try:
+        import time
         # Auto-translate client message to Romanian for the admin
         from deep_translator import GoogleTranslator
-        translated = GoogleTranslator(source='auto', target='ro').translate(payload.message)
-        translations['ro'] = translated
+        for attempt in range(3):
+            try:
+                translated = GoogleTranslator(source='auto', target='ro').translate(payload.message)
+                if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
+                    print(f"Public translation attempt {attempt+1} returned Error 500, retrying...")
+                    time.sleep(1)
+                    continue
+                translations['ro'] = translated
+                break
+            except Exception as retry_err:
+                print(f"Public translation attempt {attempt+1} failed: {retry_err}")
+                if attempt < 2:
+                    time.sleep(1)
     except Exception as e:
         print(f"Translation failed: {e}")
 
