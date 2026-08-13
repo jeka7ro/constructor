@@ -70,8 +70,8 @@ const calculateOrderSand = (wo) => {
                 autoSandKg += (surface * thickness * 16);
             });
         } else {
-            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
-            const fallbackThick = parseFloat(wo.thickness) || 0;
+            const fallbackSurface = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+            const fallbackThick = parseFloat(wo.thickness) || parseFloat(wo.thickness_cm) || 0;
             autoSandKg = fallbackSurface * fallbackThick * 16;
         }
     }
@@ -350,9 +350,10 @@ export default function ShortWorksCalendar({
     const [bases, setBases] = useState([]);
     const getDistanceTextForOrder = (wo) => {
         // REGULĂ STRICTĂ: Totul se citește din baza de date
-        if (!wo.route_distance_km || wo.route_distance_km === 0) return null;
+        const rawDist = wo.route_distance_km || (wo.prices?.distance_km ? parseFloat(wo.prices.distance_km) * 2 : 0);
+        if (!rawDist || rawDist === 0) return null;
         
-        const dist = Math.round(wo.route_distance_km);
+        const dist = Math.round(rawDist);
         const orderIndex = teamDailyOrderIndices[wo.id] || 0;
         
         // Dacă e a doua (sau următoarea) lucrare pe ziua respectivă pentru această echipă, se adaugă '+'
@@ -1292,7 +1293,7 @@ export default function ShortWorksCalendar({
                                             {(() => {
                                                 const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
                                                 const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
-                                                const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || 0;
+                                                const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
                                                 const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
                                                 const estSurf = parseFloat(wo.estimated_surface) || 0;
                                                 const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
