@@ -1284,38 +1284,41 @@ export default function ShortWorksCalendar({
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
                                             <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>
                                         </div>
-                                        <div className="mt-1 flex items-center gap-1.5 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
-                                            {getDistanceTextForOrder(wo) && (
-                                                <span className="text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 whitespace-nowrap" title="Distanță Rută (Planning)">
-                                                    {getDistanceTextForOrder(wo)}
-                                                </span>
-                                            )}
-                                            {(() => {
-                                                const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
-                                                const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
-                                                const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
-                                                const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
-                                                const estSurf = parseFloat(wo.estimated_surface) || 0;
-                                                const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
-                                                
-                                                const displaySurf = isCompleted && finalSurf > 0 ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
-                                                const isReal = isCompleted && finalSurf > 0;
+                                        {(() => {
+                                            const distText = getDistanceTextForOrder(wo);
+                                            const sandVal = calculateOrderSand(wo);
+                                            
+                                            const finalVols = Array.isArray(wo.volumes) ? wo.volumes : [];
+                                            const sumVol = finalVols.reduce((sum, v) => sum + (parseFloat(v.quantity) || 0), 0);
+                                            const fallbackSurf = parseFloat(wo.surface_area) || parseFloat(wo.surface) || parseFloat(wo.surface_m2) || 0;
+                                            const finalSurf = sumVol > 0 ? sumVol : fallbackSurf;
+                                            const estSurf = parseFloat(wo.estimated_surface) || 0;
+                                            const isCompleted = wo.status === 'completed' || wo.status === 'invoiced';
+                                            const displaySurf = isCompleted && finalSurf > 0 ? finalSurf : (estSurf > 0 ? estSurf : finalSurf);
+                                            const isReal = isCompleted && finalSurf > 0;
+                                            
+                                            if (!distText && !(displaySurf > 0) && !(sandVal > 0)) return null;
 
-                                                if (displaySurf > 0) {
-                                                    return (
+                                            return (
+                                                <div className="mt-1 flex items-center gap-1.5 w-fit max-w-full overflow-hidden bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-200 dark:border-slate-700/50">
+                                                    {distText && (
+                                                        <span className="text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 whitespace-nowrap" title="Distanță Rută (Planning)">
+                                                            {distText}
+                                                        </span>
+                                                    )}
+                                                    {displaySurf > 0 && (
                                                         <span className={`text-[9px] font-bold ${isReal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`} title={isReal ? "Surface Réelle" : "Surface Estimée"}>
                                                             {displaySurf}m²
                                                         </span>
-                                                    )
-                                                }
-                                                return null;
-                                            })()}
-                                            {calculateOrderSand(wo) > 0 && (
-                                                <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">
-                                                    {calculateOrderSand(wo).toFixed(1)}T
-                                                </span>
-                                            )}
-                                        </div>
+                                                    )}
+                                                    {sandVal > 0 && (
+                                                        <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">
+                                                            {sandVal.toFixed(1)}T
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 );
                             });
