@@ -11,6 +11,7 @@ import AddressAutocomplete from '../../components/AddressAutocomplete'
 import SearchableSelect from '../../components/SearchableSelect'
 import ConfirmModal from '../../components/ConfirmModal'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
+import QuickAddWizard from '../../components/QuickAddWizard'
 import api from '../../lib/api'
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -297,7 +298,7 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
 
 export default function QuotesManagement() {
     const { admin } = useAdminStore()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const [quotes, setQuotes] = useState([])
     const [clients, setClients] = useState([])
@@ -764,25 +765,34 @@ export default function QuotesManagement() {
 
                 return (
                     <div className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]">
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
                             {row.source_system === 'calculator_public' || row.source_system === 'we-r' ? (
-                                <span className={`bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full ${!isRead ? 'font-bold' : 'font-medium'}`} title="WE-R">
+                                <span className={`bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-[150px] ${!isRead ? 'font-bold' : 'font-medium'}`} title="WE-R">
                                     {row.client_name || '-'}
                                 </span>
                             ) : row.source_system === 'devis_online' ? (
-                                <span className={`bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-full ${!isRead ? 'font-bold' : 'font-medium'}`} title="Devis en ligne">
+                                <span className={`bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2.5 py-0.5 rounded-full inline-block truncate max-w-[150px] ${!isRead ? 'font-bold' : 'font-medium'}`} title="Devis en ligne">
                                     {row.client_name || '-'}
                                 </span>
                             ) : (
                                 <>
                                     <User className="w-4 h-4 text-slate-400 shrink-0" />
-                                    <span className={`truncate ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`} title={row.client_name}>{row.client_name || '-'}</span>
+                                    <span className={`truncate max-w-[150px] ${!isRead ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`} title={row.client_name}>{row.client_name || '-'}</span>
+                                </>
+                            )}
+                            {row.approximate_date && (
+                                <>
+                                    <span className="text-slate-300 shrink-0">•</span>
+                                    <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-xs shrink-0 whitespace-nowrap">
+                                        <CalendarDays className="w-3 h-3" />
+                                        {new Date(row.approximate_date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')}
+                                    </span>
                                 </>
                             )}
                         </div>
-                        <div className={`flex items-center gap-2 text-sm text-slate-500 ${row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online' ? '' : 'pl-6'} ${!isRead ? 'font-bold' : 'font-medium'}`}>
+                        <div className={`flex flex-wrap items-center gap-2 text-sm text-slate-500 ${row.source_system === 'calculator_public' || row.source_system === 'we-r' || row.source_system === 'devis_online' ? '' : 'pl-6'} ${!isRead ? 'font-bold' : 'font-medium'}`}>
                             {addr ? (
-                                <span className="truncate" title={addr}>{addr}</span>
+                                <span className="truncate max-w-[200px]" title={addr}>{addr}</span>
                             ) : (
                                 <span className="italic">—</span>
                             )}
@@ -822,15 +832,6 @@ export default function QuotesManagement() {
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-500">
                             <span className="uppercase">{row.volumes?.[0]?.thickness ? `${row.volumes[0].thickness} cm` : '-'}</span>
-                            {displayDate && (
-                                <>
-                                    <span className="text-slate-300">•</span>
-                                    <span className="flex items-center gap-1">
-                                        <CalendarDays className="w-4 h-4 text-slate-400" />
-                                        {displayDate}
-                                    </span>
-                                </>
-                            )}
                         </div>
                     </div>
                 );
@@ -1132,315 +1133,16 @@ export default function QuotesManagement() {
 
             {/* Quick Add Form */}
             {showQuickAdd && (
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 shrink-0 relative">
-                    <button onClick={() => setShowQuickAdd(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1">
-                        <X className="w-5 h-5" />
-                    </button>
-                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-emerald-600" />
-                        {t('quotes.quick_add', 'Ajout Rapide Devis')}
-                    </h3>
-
-                {!editingId && (
-                    <div className="space-y-4">
-                        {quickAddStep === 'new-client' && (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-blue-100 relative mb-2">
-                                <button onClick={() => { setQuickAddStep(1); setForm({...form, client_id: ''}) }} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600 p-1">
-                                    <X className="w-4 h-4" />
-                                </button>
-                                <h4 className="text-sm font-bold text-blue-800 mb-3">{t('quotes.add_new_client', 'Ajouter un Nouveau Client')}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_type', 'Type de Client')}</label>
-                                        <select className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.client_type} onChange={e => setNewClient({...newClient, client_type: e.target.value})}>
-                                            <option value="fizica">{t('dashboard.quick_create.individual', 'Particulier')}</option>
-                                            <option value="juridica">{t('dashboard.quick_create.legal_entity', 'Entreprise')}</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.client_name', 'Nom / Raison Sociale *')}</label>
-                                        <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">{newClient.client_type === 'juridica' ? t('dashboard.quick_create.cui', 'TVA (Optionnel)') : t('dashboard.quick_create.cnp', 'Numéro National (Optionnel)')}</label>
-                                        <div className="flex gap-1">
-                                            <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.cui} onChange={e => setNewClient({...newClient, cui: e.target.value})} />
-                                            {newClient.client_type === 'juridica' && (
-                                                <button type="button" onClick={handleViesSearch} disabled={isSearchingVies || !newClient.cui} className="h-9 w-9 bg-blue-50 text-blue-600 rounded-full border border-blue-100 hover:bg-blue-100 disabled:opacity-50 flex items-center justify-center shrink-0" title="Rechercher l'entreprise dans VIES">
-                                                    {isSearchingVies ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.phone', 'Téléphone')}</label>
-                                        <input type="text" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 mb-1">{t('dashboard.quick_create.email', 'Email')}</label>
-                                        <input type="email" className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm" value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                            {/* Row 1 */}
-                            {quickAddStep !== 'new-client' && (
-                            <div className="md:col-span-3">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.field_client', 'Client')}</label>
-                                <SearchableSelect
-                                    value={form.client_id}
-                                    onChange={val => {
-                                        if (val === 'NEW') setQuickAddStep('new-client')
-                                        else setForm({...form, client_id: val})
-                                    }}
-                                    options={[
-                                        { value: 'NEW', label: `+ ${t('quotes.new_client', 'Nouveau Client')}` },
-                                        ...clients.map(c => ({
-                                            value: c.id,
-                                            label: c.name || c.company_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || t('quotes.unknown', 'Inconnu'),
-                                            subLabel: c.phone || c.email || c.address || c.company_address || ''
-                                        }))
-                                    ]}
-                                    placeholder={t('common.select', '- Sélectionner -')}
-                                    buttonClassName="rounded-xl h-9 border-slate-200 !text-sm bg-white"
-                                />
-                            </div>
-                            )}
-
-                            <div className={`md:col-span-2 ${quickAddStep === 'new-client' ? 'md:col-start-1' : ''}`}>
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.approx_date', 'Date Aprox.')}</label>
-                                <input 
-                                    type="date"
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.approximate_date}
-                                    onChange={e => setForm({...form, approximate_date: e.target.value})}
-                                />
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.total_est', 'Total Est. (€)')}</label>
-                                <input type="number" step="0.01" min="0" placeholder="0.00"
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.estimated_price ?? ''}
-                                    onChange={e => setForm({...form, estimated_price: e.target.value})}
-                                />
-                            </div>
-
-                            <div className={`md:col-span-${quickAddStep === 'new-client' ? '8' : '5'}`}>
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.details_notes', 'Détails / Observations')}</label>
-                                <input type="text" placeholder="..."
-                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={form.notes ?? ''}
-                                    onChange={e => setForm({...form, notes: e.target.value})}
-                                />
-                            </div>
-
-                            <div className="md:col-span-12">
-                                <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">{t('quotes.volumes', 'Travaux / Étages')}</label>
-                                <div className="space-y-3">
-                                    {form.volumes.map((vol, index) => {
-                                        const isSapa = (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('sapa') || (vol.label ?? '').toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes('chape');
-                                        
-                                        return (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-slate-100 relative group">
-                                            <div className="md:col-span-4">
-                                                <label className="block text-[11px] font-medium text-slate-500 mb-1">{t('quotes.field_title', 'Type de Travail')}</label>
-                                                <select 
-                                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                                                    value={vol.label}
-                                                    onChange={e => updateVolume(index, 'label', e.target.value)}
-                                                >
-                                                    <option value="">- {t('common.activities', 'Activité')} -</option>
-                                                    {activities.map(a => <option key={a.id || a.name} value={a.name}>{a.name}</option>)}
-                                                </select>
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="block text-[11px] font-medium text-slate-500 mb-1">M²</label>
-                                                <input type="number" min="0" placeholder="150"
-                                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    value={vol.quantity}
-                                                    onChange={e => updateVolume(index, 'quantity', e.target.value)}
-                                                />
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="block text-[11px] font-medium text-slate-500 mb-1">Cm</label>
-                                                <input type="number" step="any" min="0" placeholder="5.5"
-                                                    className="w-full h-9 border border-slate-200 rounded-xl px-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    value={vol.thickness}
-                                                    onChange={e => updateVolume(index, 'thickness', e.target.value)}
-                                                />
-                                            </div>
-
-                                            {isSapa && (
-                                                <div className="md:col-span-12 lg:col-span-4 flex flex-wrap gap-x-3 gap-y-1 items-end pb-2">
-                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                                        <input type="checkbox" checked={vol.has_foil} onChange={e => updateVolume(index, 'has_foil', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                                        {t('quotes.foil', 'Film PVC')}
-                                                    </label>
-                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                                        <input type="checkbox" checked={vol.has_mesh} onChange={e => updateVolume(index, 'has_mesh', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                                        {t('quotes.mesh', 'Treillis')}
-                                                    </label>
-                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                                        <input type="checkbox" checked={vol.has_fiber} onChange={e => updateVolume(index, 'has_fiber', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                                        {t('quotes.duramint', 'Fibre')}
-                                                    </label>
-                                                    <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 cursor-pointer">
-                                                        <input type="checkbox" checked={vol.has_duramint} onChange={e => updateVolume(index, 'has_duramint', e.target.checked)} className="rounded border-slate-300 w-3.5 h-3.5 text-blue-600 focus:ring-blue-500" />
-                                                        {t('quotes.duramint', 'Duramint')}
-                                                    </label>
-                                                </div>
-                                            )}
-
-                                            {index > 0 && (
-                                                <button type="button" onClick={() => removeVolume(index)} className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    )})}
-                                    <div className="flex justify-end">
-                                        <button type="button" onClick={addVolume} className="flex items-center justify-center gap-1 px-3 h-8 border border-dashed border-emerald-300 text-emerald-600 hover:bg-emerald-50 rounded-xl text-[11px] font-bold transition-colors w-fit">
-                                            <Plus className="w-3 h-3" /> {t('quotes.add_another', 'Ajouter un autre')}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="md:col-span-12">
-                                <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
-                                    <span>{t('quotes.field_address', 'Adresse')}</span>
-                                    {form.latitude && form.longitude && (
-                                        <span className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded text-[9px] font-bold">
-                                            Aller: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude))).toFixed(1)}km | Retour: {(haversine(50.88243, 4.39343, parseFloat(form.latitude), parseFloat(form.longitude)) * 2).toFixed(1)}km
-                                        </span>
-                                    )}
-                                </label>
-                                <AddressAutocomplete 
-                                    onSelect={({ address, lat, lon }) => setForm(f => ({...f, address: address ?? '', latitude: lat ?? '', longitude: lon ?? ''}))}
-                                    value={form.address}
-                                    className="h-9 rounded-xl"
-                                />
-                            </div>
-
-                            {isAutoRender && (
-                                <div className="md:col-span-12 bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 text-[11px] shadow-sm">
-                                    <div className="flex items-center gap-4 border-r border-indigo-200 pr-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-indigo-800 font-black text-[10px] tracking-widest">{t('quotes.calc_label', 'CALCUL:')}</span>
-                                            <span className="text-slate-500 font-bold text-[10px] uppercase">{t('quotes.base', 'BASE')}</span>
-                                            <input type="number" step="0.1" value={form.prices?.base ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, base: e.target.value}}))} className="w-14 h-7 px-1 border border-slate-200 rounded shadow-inner text-center font-black text-indigo-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                        </div>
-                                        {extraThickForAuto > 0 && (
-                                            <div className="flex items-center gap-1.5" title="Grosime suplimentară (>5cm)">
-                                                <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.extra_cm', 'EXTRA CM')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.extra ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, extra: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                            </div>
-                                        )}
-                                        {form.volumes.some(v => v.has_foil) && (
-                                            <div className="flex items-center gap-1.5" title="Folie PVC">
-                                                <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.foil', 'FOLIE')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.foil ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, foil: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                            </div>
-                                        )}
-                                        {form.volumes.some(v => v.has_mesh) && (
-                                            <div className="flex items-center gap-1.5" title="Treillis métallique">
-                                                <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.mesh', 'PLASĂ')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.mesh ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, mesh: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                            </div>
-                                        )}
-                                        {form.volumes.some(v => v.has_fiber || v.has_duramint) && (
-                                            <div className="flex items-center gap-1.5" title="Duramint (Fibră)">
-                                                <span className="text-slate-500 font-medium text-[10px] uppercase">{t('quotes.duramint', 'FIBRĂ')}</span>
-                                                <input type="number" step="0.1" value={form.prices?.fiber ?? ''} onChange={e => setForm(p => ({...p, prices: {...p.prices, fiber: e.target.value}}))} className="w-12 h-6 px-1 border border-slate-200 rounded shadow-inner text-center font-bold text-slate-700 bg-white focus:ring-1 focus:ring-indigo-500 outline-none" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 border-l border-indigo-200 pl-3">
-                                        {/* TVA Toggle */}
-                                        <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-1.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setForm(f => ({ ...f, vat_enabled: !f.vat_enabled }))}
-                                                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
-                                                        form.vat_enabled ? 'bg-amber-500' : 'bg-slate-300'
-                                                    }`}
-                                                >
-                                                    <span className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${
-                                                        form.vat_enabled ? 'translate-x-4' : 'translate-x-0.5'
-                                                    }`} />
-                                                </button>
-                                                <span className="text-[9px] font-bold text-amber-600 uppercase">TVA</span>
-                                            </div>
-                                            {form.vat_enabled && (
-                                                <div className="flex gap-1.5 mt-0.5">
-                                                    <label className="flex items-center gap-0.5 cursor-pointer">
-                                                        <input type="radio" name="vatTypeForm" value="21"
-                                                            checked={form.vat_type === '21'}
-                                                            onChange={() => setForm(f => ({ ...f, vat_type: '21' }))}
-                                                            className="w-3 h-3 text-amber-500"
-                                                        />
-                                                        <span className="text-[9px] text-amber-700 font-bold">21% Nou</span>
-                                                    </label>
-                                                    <label className="flex items-center gap-0.5 cursor-pointer">
-                                                        <input type="radio" name="vatTypeForm" value="6"
-                                                            checked={form.vat_type === '6'}
-                                                            onChange={() => setForm(f => ({ ...f, vat_type: '6' }))}
-                                                            className="w-3 h-3 text-amber-500"
-                                                        />
-                                                        <span className="text-[9px] text-amber-700 font-bold">6% Renov.</span>
-                                                    </label>
-                                                    {clientForRender?.client_type === 'juridica' && (
-                                                        <label className="flex items-center gap-0.5 cursor-pointer">
-                                                            <input type="radio" name="vatTypeForm" value="0"
-                                                                checked={form.vat_type === '0'}
-                                                                onChange={() => setForm(f => ({ ...f, vat_type: '0' }))}
-                                                                className="w-3 h-3 text-amber-500"
-                                                            />
-                                                            <span className="text-[9px] text-amber-700 font-bold">0% BTW</span>
-                                                        </label>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col items-end leading-tight">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{t('quotes.net', 'Net')}</span>
-                                            <span className="text-slate-600 font-bold">{autoNet.toFixed(2)}</span>
-                                        </div>
-                                        {form.vat_enabled && autoVat > 0 && (
-                                            <div className="flex flex-col items-end leading-tight">
-                                                <span className="text-[9px] font-bold text-amber-500 uppercase">TVA {form.vat_type}%</span>
-                                                <span className="text-amber-600 font-bold">{autoVat.toFixed(2)}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-2 bg-indigo-600 text-white px-2 py-1 rounded shadow-sm ml-1">
-                                            <span className="text-[10px] font-medium uppercase opacity-90">{t('quotes.total_est_short', 'Total Est.')}</span>
-                                            <span className="text-sm font-black">{totalGross.toFixed(2)} €</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-
-                            <div className="md:col-span-3 flex justify-end gap-2">
-                                <button 
-                                    onClick={handleCreateQuote}
-                                    disabled={isSaving || (quickAddStep === 'new-client' && (!newClient.name || !form.volumes[0]?.label))}
-                                    className="flex-1 h-9 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
-                                >
-                                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                                    {quickAddStep === 'new-client' ? t('quotes.btn_save_with_client', 'Créer Client & Enregistrer Devis') : t('quotes.btn_save', 'Enregistrer le Devis')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                <QuickAddWizard 
+                    onClose={() => setShowQuickAdd(false)} 
+                    onSuccess={() => {
+                        setShowQuickAdd(false);
+                        fetchQuotes();
+                        showToast(t('quotes.success_create', 'Le devis a été enregistré avec succès.'), 'success');
+                    }}
+                    showToast={showToast}
+                    clients={clients} 
+                />
             )}
 
             {/* Table */}
@@ -1520,7 +1222,7 @@ export default function QuotesManagement() {
                     searchable={true}
                     searchPlaceholder={t('quotes.search', 'Rechercher un devis...')}
                     emptyText={t('quotes.empty', 'Aucun devis en attente.')}
-                    onRowClick={(row) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes' } })}
+                    onRowClick={(row, filtered) => navigate(`/admin/work-orders/${row.id}`, { state: { from: '/admin/quotes', quoteIds: filtered?.map(q => q.id) || [] } })}
                     rowClassName={(row) => `cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${!row.read_by_admins?.map(String).includes(String(admin?.id)) ? 'font-bold' : 'font-normal text-slate-700'}`}
                     mobileCard={(row, index) => (
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-3 relative mb-2">

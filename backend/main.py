@@ -622,7 +622,7 @@ async def upload_logo(file: UploadFile = File(...), current_admin: Admin = Depen
     
     return {"logo_url": logo_url, "message": "Logo încărcat cu succes"}
 
-@app.get("/public/tenant-config")
+@app.get("/api/public/tenant-config")
 async def public_tenant_config(slug: str):
     """Fetch basic tenant info for public open graph injection"""
     from fastapi import HTTPException

@@ -160,7 +160,7 @@ export default function DataTable({
                         slice.map((row, idx) => (
                             <div key={row.id ?? idx} className={onRowClick ? 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-800' : ''} onClick={onRowClick ? (e) => {
                                 if (e.target.closest('button,a,input,select,textarea')) return;
-                                onRowClick(row);
+                                onRowClick(row, filtered);
                             } : undefined}>
                                 {mobileCard(row, from + idx)}
                             </div>
@@ -218,7 +218,7 @@ export default function DataTable({
                                     onClick={onRowClick ? (e) => {
                                         // Nu naviga daca s-a dat click pe un buton/link/input din rand
                                         if (e.target.closest('button,a,input,select,textarea')) return
-                                        onRowClick(row)
+                                        onRowClick(row, filtered)
                                     } : undefined}
                                 >
                                     <td className="px-4 py-4 text-center text-slate-500 tabular-nums">

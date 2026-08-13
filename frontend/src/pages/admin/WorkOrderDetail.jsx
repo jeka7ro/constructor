@@ -179,6 +179,11 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
         if (from) navigate(from);
         else navigate(-1);
     };
+    const quoteIds = location.state?.quoteIds || [];
+    const currentIndex = quoteIds.findIndex(qid => String(qid) === String(id));
+    const prevId = currentIndex > 0 ? quoteIds[currentIndex - 1] : null;
+    const nextId = currentIndex >= 0 && currentIndex < quoteIds.length - 1 ? quoteIds[currentIndex + 1] : null;
+
     const [wo, setWo]           = useState(null)
     const [sessions, setSessions] = useState(null)
     const [photos, setPhotos]   = useState([])
@@ -1308,6 +1313,27 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                     </div>
                 </div>
                 <div className="flex gap-2 sm:ml-auto shrink-0 items-center">
+                    {quoteIds.length > 0 && (
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mr-1 sm:mr-3">
+                            <button 
+                                onClick={() => navigate(`/admin/work-orders/${prevId}`, { state: location.state })}
+                                disabled={!prevId}
+                                title={t('common.prev', 'Précédent')}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <span className="text-[10px] font-bold text-slate-400 px-1">{currentIndex + 1} / {quoteIds.length}</span>
+                            <button 
+                                onClick={() => navigate(`/admin/work-orders/${nextId}`, { state: location.state })}
+                                disabled={!nextId}
+                                title={t('common.next', 'Suivant')}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-colors"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
                     <HourlyWeather 
                         lat={lat || 50.8503} 
                         lon={lon || 4.3517} 
