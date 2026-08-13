@@ -1271,15 +1271,10 @@ export default function ShortWorksCalendar({
                                         )}
 
                                         <div className="text-[11px] font-bold text-slate-800 dark:text-white truncate pr-8 flex items-center gap-1" title={(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}>
-                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalizată" />}
+                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" title="Finalisée" />}
+                                            {wo.is_quote && <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 shadow-sm" title="Devis / Calculator" />}
                                             <span className="truncate">{(wo.client_name && wo.client_name !== 'None' ? wo.client_name : wo.title)}</span>
                                         </div>
-                                        {wo.is_quote && (
-                                            <div className="flex items-center gap-1 mt-0.5 mb-0.5">
-                                                <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" title="Provenit din Devis/Calculator Online" />
-                                                <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400">Devis / Calculator</span>
-                                            </div>
-                                        )}
                                         <div className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 truncate flex items-center gap-1 pointer-events-none">
                                             <MapPin className="w-2.5 h-2.5 shrink-0" />
                                             <span className="truncate">{formatAddressCityFirst((wo.site_name || wo.site_address) || t('common.no_location', 'Aucune adresse'))}</span>

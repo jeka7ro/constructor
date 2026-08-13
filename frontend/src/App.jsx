@@ -463,7 +463,8 @@ function SmartRedirect() {
 
     // Auto-correct the wrong link I provided to Jordi
     if (location.startsWith('/public/calculator')) {
-        return <Navigate to="/calculator" replace />
+        const qs = window.location.search || '';
+        return <Navigate to={`/calculator${qs}`} replace />
     }
 
     // Otherwise, show a generic 404 to avoid leaking employee interfaces

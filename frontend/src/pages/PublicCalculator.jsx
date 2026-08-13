@@ -175,44 +175,12 @@ export default function PublicCalculator() {
                         });
                     } catch (err) { console.error('Failed to upload photos', err); }
                 }
-                // Webhook n8n — fires AFTER backend so we have the token & signing_url
-                try {
-                    const signingUrl = `https://${domain}/public/proforma/${res.data.token}`;
-                    await axios.post('https://n8n-uk6n.onrender.com/webhook/davide-chape-form', {
-                        first_name: formData.client_first_name,
-                        last_name: formData.client_last_name,
-                        email: formData.client_email,
-                        phone: formData.client_phone,
-                        client_language: formData.client_language || 'fr',
-                        company_name: formData.client_company_name,
-                        client_type: formData.client_type,
-                        surface: formData.surface,
-                        thickness: formData.thickness,
-                        work_type: formData.work_type,
-                        site_address: formData.site_address,
-                        approximate_date: formData.approximate_date,
-                        has_foil: formData.has_foil,
-                        has_mesh: formData.has_mesh,
-                        has_duramint: formData.has_duramint,
-                        source_domain: domain,
-                        is_iframe: isIframe,
-                        submitted_at: new Date().toISOString(),
-                        signing_url: signingUrl,
-                        pricing_details: {
-                            base_price_sqm: config?.pricing?.base_price_sqm || 0,
-                            extra_thickness_price_per_cm: config?.pricing?.extra_thickness_price_per_cm || 0,
-                            plastic_foil_price_sqm: config?.pricing?.plastic_foil_price_sqm || 0,
-                            metal_mesh_price_sqm: config?.pricing?.metal_mesh_price_sqm || 0,
-                            estimated_total_incl_vat: calculateEstimatedPrice(),
-                            vat_rate: formData.client_type === 'juridica' ? config?.pricing?.vat_legal_entity : (formData.work_type === 'repair' ? config?.pricing?.vat_physical_repair : config?.pricing?.vat_physical_new)
-                        }
-                    });
-                } catch (webhookErr) { console.error('Webhook n8n failed:', webhookErr); }
+                // Webhook is fired by the backend (public_calculator.py) — no need to duplicate here
                 if (isIframe) {
                     const lang = formData.client_language || 'fr';
-                    if (lang === 'nl') window.top.location.href = 'https://davide-chape.webflow.io/nl/confirmation-contact';
-                    else if (lang === 'en') window.top.location.href = 'https://davide-chape.webflow.io/en/confirmation-contact';
-                    else window.top.location.href = 'https://davide-chape.webflow.io/confirmation-contact';
+                    if (lang === 'nl') window.top.location.href = 'https://www.davidechape.be/nl/confirmation-contact';
+                    else if (lang === 'en') window.top.location.href = 'https://www.davidechape.be/en/confirmation-contact';
+                    else window.top.location.href = 'https://www.davidechape.be/confirmation-contact';
                 } else {
                     navigate(`/public/proforma/${res.data.token}`);
                 }

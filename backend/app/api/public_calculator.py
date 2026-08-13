@@ -305,7 +305,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
     db.commit()
     db.refresh(wo)
     
-    webflow_base = "https://davide-chape.webflow.io"
+    webflow_base = "https://www.davidechape.be"
     if wo.client_language == "nl":
         webflow_base += "/nl"
     elif wo.client_language == "en":
