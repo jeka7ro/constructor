@@ -296,6 +296,68 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
     )
 }
 
+const DateScheduleTooltip = ({ date, i18n }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [works, setWorks] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [hasFetched, setHasFetched] = useState(false);
+
+    const handleOpen = () => {
+        setIsOpen(true);
+        if (!hasFetched && !loading) {
+            setLoading(true);
+            const dateStr = date.split('T')[0];
+            api.get(`/admin/work-orders?start_date=${dateStr}&end_date=${dateStr}&slim=true&limit=50`)
+                .then(res => {
+                    const filtered = res.data.filter(w => !w.is_quote && (w.status === 'planning' || w.status === 'confirmed' || w.status === 'in_progress'));
+                    setWorks(filtered);
+                    setHasFetched(true);
+                })
+                .catch(err => console.error(err))
+                .finally(() => setLoading(false));
+        }
+    };
+
+    return (
+        <div 
+            className="relative inline-flex items-center"
+            onMouseEnter={handleOpen}
+            onMouseLeave={() => setIsOpen(false)}
+            onClick={(e) => { e.stopPropagation(); if(isOpen) { setIsOpen(false) } else { handleOpen() } }}
+        >
+            <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-xs shrink-0 whitespace-nowrap cursor-pointer hover:bg-blue-100 transition-colors">
+                <CalendarDays className="w-3 h-3" />
+                {new Date(date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')}
+            </span>
+
+            {isOpen && (
+                <div 
+                    className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 shadow-xl rounded-lg p-2 z-[9999]"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="text-xs font-semibold text-slate-700 mb-2 border-b pb-1">
+                        Lucrări pe {new Date(date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : 'en-GB')}
+                    </div>
+                    {loading ? (
+                        <div className="text-xs text-slate-500 py-2 text-center">Încărcare...</div>
+                    ) : works.length > 0 ? (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                            {works.map(w => (
+                                <div key={w.id} className="text-xs bg-slate-50 p-1.5 rounded border border-slate-100">
+                                    <div className="font-medium text-slate-800 truncate">{w.client_name || '-'}</div>
+                                    <div className="text-slate-500 truncate">{w.site_address}</div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-xs text-slate-500 py-2 text-center">Nicio lucrare planificată.</div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function QuotesManagement() {
     const { admin } = useAdminStore()
     const { t, i18n } = useTranslation()
@@ -783,10 +845,7 @@ export default function QuotesManagement() {
                             {row.approximate_date && (
                                 <>
                                     <span className="text-slate-300 shrink-0">•</span>
-                                    <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-xs shrink-0 whitespace-nowrap">
-                                        <CalendarDays className="w-3 h-3" />
-                                        {new Date(row.approximate_date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')}
-                                    </span>
+                                    <DateScheduleTooltip date={row.approximate_date} i18n={i18n} />
                                 </>
                             )}
                         </div>
