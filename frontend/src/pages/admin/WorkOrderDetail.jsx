@@ -1653,7 +1653,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{t('work_order_detail.planning.total_dist', 'Distance Totale (Aller-Retour)')}</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-slate-900 dark:text-white">{(((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2).toFixed(1)} km</span>
+                                                <span className="text-sm font-black text-slate-900 dark:text-white">{((wo.route_segments || []).reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)).toFixed(1)} km</span>
                                                 {wo.status !== 'completed' && wo.status !== 'cancelled' && (
                                                     <button 
                                                         onClick={handleRecalculateRoute}

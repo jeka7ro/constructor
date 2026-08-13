@@ -307,15 +307,23 @@ const DateScheduleTooltip = ({ date, i18n }) => {
         if (!hasFetched && !loading) {
             setLoading(true);
             const dateStr = date.split('T')[0];
-            api.get(`/admin/work-orders?start_date=${dateStr}&end_date=${dateStr}&slim=true&limit=50`)
+            api.get(`/admin/work-orders?start_date=${dateStr}&end_date=${dateStr}&slim=true&limit=50&ignore_quote_filter=true`)
                 .then(res => {
-                    const filtered = res.data.filter(w => !w.is_quote && (w.status === 'planning' || w.status === 'confirmed' || w.status === 'in_progress'));
+                    const filtered = res.data.filter(w =>
+                        w.status === 'planning' || w.status === 'confirmed' || w.status === 'in_progress'
+                    );
                     setWorks(filtered);
                     setHasFetched(true);
                 })
                 .catch(err => console.error(err))
                 .finally(() => setLoading(false));
         }
+    };
+
+    const statusColors = {
+        planning: 'bg-yellow-100 text-yellow-700',
+        confirmed: 'bg-green-100 text-green-700',
+        in_progress: 'bg-blue-100 text-blue-700',
     };
 
     return (
@@ -332,25 +340,32 @@ const DateScheduleTooltip = ({ date, i18n }) => {
 
             {isOpen && (
                 <div 
-                    className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 shadow-xl rounded-lg p-2 z-[9999]"
+                    className="absolute top-full left-0 mt-1 w-72 bg-white border border-slate-200 shadow-xl rounded-lg p-2 z-[9999]"
                     onClick={e => e.stopPropagation()}
                 >
                     <div className="text-xs font-semibold text-slate-700 mb-2 border-b pb-1">
-                        Lucrări pe {new Date(date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : 'en-GB')}
+                        Travaux prévus le {new Date(date).toLocaleDateString(i18n.language === 'fr' ? 'fr-BE' : i18n.language === 'nl' ? 'nl-BE' : 'en-GB')}
                     </div>
                     {loading ? (
-                        <div className="text-xs text-slate-500 py-2 text-center">Încărcare...</div>
+                        <div className="text-xs text-slate-500 py-2 text-center flex items-center justify-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Chargement...
+                        </div>
                     ) : works.length > 0 ? (
                         <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
                             {works.map(w => (
                                 <div key={w.id} className="text-xs bg-slate-50 p-1.5 rounded border border-slate-100">
-                                    <div className="font-medium text-slate-800 truncate">{w.client_name || '-'}</div>
-                                    <div className="text-slate-500 truncate">{w.site_address}</div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColors[w.status] || 'bg-slate-100 text-slate-600'}`}>
+                                            {w.status === 'planning' ? 'Planifié' : w.status === 'confirmed' ? 'Confirmé' : 'En cours'}
+                                        </span>
+                                        <span className="font-medium text-slate-800 truncate">{w.client_name || '-'}</span>
+                                    </div>
+                                    <div className="text-slate-500 truncate mt-0.5 pl-0.5">{w.site_address || '—'}</div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-xs text-slate-500 py-2 text-center">Nicio lucrare planificată.</div>
+                        <div className="text-xs text-slate-500 py-2 text-center">Aucun travail prévu.</div>
                     )}
                 </div>
             )}
