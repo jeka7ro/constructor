@@ -296,7 +296,7 @@ const EditableUnitPrice = ({ row, onUpdate }) => {
     )
 }
 
-const DateScheduleTooltip = ({ date, i18n }) => {
+const DateScheduleTooltip = ({ date, i18n, navigate }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [works, setWorks] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -367,6 +367,14 @@ const DateScheduleTooltip = ({ date, i18n }) => {
                     ) : (
                         <div className="text-xs text-slate-500 py-2 text-center">Aucun travail prévu.</div>
                     )}
+                    <div className="mt-1.5 pt-1.5 border-t border-slate-100">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/planning?date=${date.split('T')[0]}`); }}
+                            className="w-full text-center text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded py-1 transition-colors"
+                        >
+                            → Voir le planning
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
@@ -860,7 +868,7 @@ export default function QuotesManagement() {
                             {row.approximate_date && (
                                 <>
                                     <span className="text-slate-300 shrink-0">•</span>
-                                    <DateScheduleTooltip date={row.approximate_date} i18n={i18n} />
+                                    <DateScheduleTooltip date={row.approximate_date} i18n={i18n} navigate={navigate} />
                                 </>
                             )}
                         </div>

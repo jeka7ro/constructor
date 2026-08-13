@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
@@ -132,7 +132,7 @@ def get_driving_distance_km(origin: str, destination: str) -> float:
     return 0.0
 
 @router.post("/submit")
-def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Session = Depends(get_db)):
+def submit_calculator(request: Request, payload: CalculatorSubmitRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Handles the public quote submission."""
     # 1. Honeypot check
     if payload.honeypot:
@@ -352,14 +352,34 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, db: Se
         except Exception as e:
             print(f"Error firing webhook to Jordi n8n: {e}")
 
-    # Fire asynchronously if running in FastAPI, or just call it directly since it's fast. 
-    # Actually, let's use FastAPI BackgroundTasks for proper async.
-    # Wait, public_calculator endpoint doesn't have BackgroundTasks parameter right now.
-    # Let's add it or just fire it synchronously with a short timeout.
-    # A short timeout is fine, but it's better to fire it inside a Thread.
-    import threading
-    threading.Thread(target=fire_webhook).start()
+    # Fire webhook in background
+    background_tasks.add_task(fire_webhook)
 
+    # Fire email in background (same logic as devis_online)
+    from app.services.email_service import send_quote_email, send_admin_new_quote_alert
+    
+    def send_email_without_pdf():
+        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+        send_quote_email(client.email, client.name, wo.client_language, proforma_url, None)
+
+    if client.email:
+        background_tasks.add_task(send_email_without_pdf)
+
+    def send_alerts_to_admins():
+        from app.models import Admin
+        proforma_url = f"https://davidechape.pontaj.app/public/proforma/{wo.token}"
+        admins = db.query(Admin).filter(Admin.organization_id == wo.organization_id, Admin.receive_quote_alerts == True).all()
+        
+        try:
+            send_admin_new_quote_alert("info@davidechape.be", client.name, client.phone, proforma_url)
+        except Exception as e:
+            print(f"Failed to send alert to info@davidechape.be: {e}")
+
+        for admin in admins:
+            if admin.email and admin.email != "info@davidechape.be":
+                send_admin_new_quote_alert(admin.email, client.name, client.phone, proforma_url)
+
+    background_tasks.add_task(send_alerts_to_admins)
     return {
         "message": "Deviz solicitat cu succes",
         "token": wo.token,

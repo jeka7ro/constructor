@@ -109,7 +109,15 @@ export default function ShortWorksCalendar({
     onOrderEdit,
     onOrderComplete
 }) {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const dateParam = params.get('date');
+        if (dateParam) {
+            const parsed = new Date(dateParam + 'T00:00:00');
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+    });
     const [syncing, setSyncing] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
     const hasAutoScrolled = useRef(false); // prevent re-jumping on data refresh
