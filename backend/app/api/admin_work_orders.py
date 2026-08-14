@@ -2847,6 +2847,29 @@ def post_work_order_message(
                 )
     except Exception as e:
         print(f"Failed to send chat notification email: {e}")
+
+    # WhatsApp Integration
+    try:
+        from app.services.whatsapp_service import send_chat_text_whatsapp, send_chat_attachment_whatsapp
+        import os
+        
+        client_phone = getattr(wo, 'client_phone', None)
+        if client_phone:
+            # Send text
+            if payload.message and payload.message.strip():
+                send_chat_text_whatsapp(client_phone, payload.message)
+            
+            # Send attachments
+            if payload.attachments:
+                for att in payload.attachments:
+                    att_url = att.get('url', '')
+                    if not att_url.startswith('http'):
+                        backend_url = os.getenv("API_URL", "https://api.pontaj.app")
+                        att_url = f"{backend_url}/{att_url.lstrip('/')}"
+                    
+                    send_chat_attachment_whatsapp(client_phone, att_url, att.get('name', 'Fisier'))
+    except Exception as e:
+        print(f"Failed to send chat WhatsApp notification: {e}")
             
     msg = WorkOrderMessage(
         work_order_id=wo.id,

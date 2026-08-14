@@ -259,24 +259,11 @@ export default function AdminOverview() {
         const timeout = setTimeout(async () => {
             setIsSearchingClients(true)
             try {
-                // Parallel search: Local DB + Google Places (only establishments, only if juridica)
-                const searchPromises = [
-                    api.get(`/admin/clients/search?q=${encodeURIComponent(clientSearchQuery)}`).catch(() => ({ data: [] }))
-                ];
-                
-                if (quickCreateClientForm.type === 'juridica') {
-                    const countryParam = quickCreateClientForm.country || 'BE';
-                    searchPromises.push(
-                        fetch(`/api/places/autocomplete?input=${encodeURIComponent(clientSearchQuery)}&types=establishment&components=country:${countryParam}`).then(res => res.json()).catch(() => ({ predictions: [] }))
-                    );
-                } else {
-                    searchPromises.push(Promise.resolve({ predictions: [] }));
-                }
-
-                const [localRes, placesRes] = await Promise.all(searchPromises);
+                // Local DB search only
+                const localRes = await api.get(`/admin/clients/search?q=${encodeURIComponent(clientSearchQuery)}`).catch(() => ({ data: [] }))
                 
                 setClientSearchResults(localRes.data || [])
-                setPlacesSearchResults(placesRes.predictions || [])
+                setPlacesSearchResults([])
                 setShowClientDropdown(true)
             } catch (err) {
                 console.error("Client search error:", err)
@@ -1428,10 +1415,7 @@ export default function AdminOverview() {
                                                 setQuickCreateForm(p => ({
                                                     ...p,
                                                     clientId: val,
-                                                    title: c && !p.title ? c.name : p.title,
-                                                    address: c && !p.address ? c.address : p.address,
-                                                    latitude: c && !p.latitude ? c.latitude : p.latitude,
-                                                    longitude: c && !p.longitude ? c.longitude : p.longitude
+                                                    title: c && !p.title ? c.name : p.title
                                                 }))
                                             }}
                                             options={clients.map(c => ({ value: String(c.id), label: c.name }))}
@@ -1637,7 +1621,7 @@ export default function AdminOverview() {
                                             </div>
                                         )}
                                         
-                                        {showClientDropdown && (clientSearchResults.length > 0 || placesSearchResults.length > 0) && (
+                                        {showClientDropdown && (clientSearchResults.length > 0) && (
                                             <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-64 overflow-y-auto z-50">
                                                 {clientSearchResults.length > 0 && (
                                                     <div className="p-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase text-slate-500">
@@ -1671,44 +1655,9 @@ export default function AdminOverview() {
                                                     </div>
                                                 ))}
 
-                                                {placesSearchResults.length > 0 && (
-                                                    <>
-                                                        <div className="p-2 bg-amber-50 dark:bg-slate-800 border-y border-slate-200 dark:border-slate-800 font-bold text-[10px] uppercase text-amber-600 flex items-center gap-1">
-                                                            <MapPin className="w-3 h-3" /> {t('overview.google_maps_new', 'Google Maps (Nouvelles entreprises)')}
-                                                        </div>
-                                                        {placesSearchResults.map(place => (
-                                                            <div 
-                                                                key={place.place_id}
-                                                                className="px-3 py-2 border-b border-slate-100 dark:border-slate-800/50 hover:bg-amber-50/50 dark:hover:bg-slate-800 cursor-pointer"
-                                                                onClick={async () => {
-                                                                    setClientSearchQuery(place.structured_formatting.main_text);
-                                                                    setQuickCreateClientForm(p => ({
-                                                                        ...p,
-                                                                        name: place.structured_formatting.main_text,
-                                                                        address: place.description // fallback
-                                                                    }));
-                                                                    setShowClientDropdown(false);
-                                                                    try {
-                                                                        const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(place.place_id)}`);
-                                                                        const data = await res.json();
-                                                                        if (data.status === 'OK' && data.result?.formatted_address) {
-                                                                            setQuickCreateClientForm(p => ({
-                                                                                ...p,
-                                                                                address: data.result.formatted_address
-                                                                            }));
-                                                                        }
-                                                                    } catch (err) {}
-                                                                }}
-                                                            >
-                                                                <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{place.structured_formatting.main_text}</div>
-                                                                <div className="text-[10px] text-slate-500 truncate">{place.structured_formatting.secondary_text}</div>
-                                                            </div>
-                                                        ))}
-                                                    </>
-                                                )}
                                             </div>
                                         )}
-                                        {showClientDropdown && clientSearchQuery.length >= 2 && clientSearchResults.length === 0 && placesSearchResults.length === 0 && !isSearchingClients && (
+                                        {showClientDropdown && clientSearchQuery.length >= 2 && clientSearchResults.length === 0 && !isSearchingClients && (
                                             <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 text-center text-xs text-slate-500 z-50">
                                                 {t('clients.no_results', 'Aucun client trouvé dans la base de données. Veuillez continuer la création.')}
                                             </div>
@@ -1894,10 +1843,7 @@ export default function AdminOverview() {
                                         setQuickEditForm(p => ({
                                             ...p,
                                             clientId: val,
-                                            title: c && !p.title ? c.name : p.title,
-                                            address: c && !p.address ? c.address : p.address,
-                                            latitude: c && !p.latitude ? c.latitude : p.latitude,
-                                            longitude: c && !p.longitude ? c.longitude : p.longitude
+                                            title: c && !p.title ? c.name : p.title
                                         }))
                                     }}
                                     options={clients.map(c => ({ value: String(c.id), label: c.name }))}

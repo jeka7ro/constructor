@@ -164,7 +164,14 @@ def admin_login(request: Request, credentials: AdminLogin, db: Session = Depends
     """Admin login with email and password"""
     from sqlalchemy import func
     email_clean = credentials.email.lower().strip()
-    admin = db.query(Admin).filter(func.lower(Admin.email) == email_clean).first()
+    
+    # Prioritize super admin if multiple accounts exist with the same email
+    admin = db.query(Admin).filter(
+        func.lower(Admin.email) == email_clean
+    ).order_by(
+        Admin.is_super_admin.desc(), 
+        Admin.role.desc()
+    ).first()
     
     if not admin or not verify_password(credentials.password, admin.password_hash):
         raise HTTPException(

@@ -101,3 +101,58 @@ def send_admin_new_quote_whatsapp(admin_phone: str, client_name: str, client_pho
     except Exception as e:
         logger.error(f"Failed to send admin WhatsApp alert to {formatted_phone}: {e}")
         return False
+
+def send_chat_text_whatsapp(phone_number: str, text: str):
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    
+    if not instance_id or not api_token or not phone_number:
+        return False
+
+    url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+    formatted_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+
+    payload = {
+        "token": api_token,
+        "to": formatted_phone,
+        "body": text
+    }
+
+    try:
+        response = httpx.post(url, data=payload, timeout=10.0)
+        response.raise_for_status()
+        logger.info(f"Chat text sent via WhatsApp to {formatted_phone}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send WhatsApp chat text to {formatted_phone}: {e}")
+        return False
+
+def send_chat_attachment_whatsapp(phone_number: str, file_url: str, filename: str):
+    instance_id = os.getenv("ULTRAMSG_INSTANCE_ID")
+    api_token = os.getenv("ULTRAMSG_API_TOKEN")
+    
+    if not instance_id or not api_token or not phone_number:
+        return False
+
+    formatted_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+    
+    # UltraMsg has /messages/document and /messages/image. 
+    # For simplicity and flexibility, /messages/document works for most files (PDFs, Images, etc.)
+    # We will use /document
+    url = f"https://api.ultramsg.com/{instance_id}/messages/document"
+
+    payload = {
+        "token": api_token,
+        "to": formatted_phone,
+        "document": file_url,
+        "filename": filename
+    }
+
+    try:
+        response = httpx.post(url, data=payload, timeout=15.0)
+        response.raise_for_status()
+        logger.info(f"Chat attachment sent via WhatsApp to {formatted_phone}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send WhatsApp chat attachment to {formatted_phone}: {e}")
+        return False

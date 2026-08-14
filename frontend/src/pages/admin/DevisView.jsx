@@ -87,42 +87,47 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
+    const getPrice = (woPrice, etalonPrice, defaultPrice) => {
+        if (woPrice !== undefined && woPrice !== null && woPrice !== '') return parseFloat(woPrice);
+        if (etalonPrice !== undefined && etalonPrice !== null && etalonPrice !== '') return parseFloat(etalonPrice);
+        return defaultPrice;
+    };
+
     useEffect(() => {
         const endpoint = token ? `/public/work-orders/${token}` : `/admin/work-orders/${id}`;
-        
-        Promise.all([
-            api.get(endpoint),
-            api.get('/admin/pricing-settings').catch(err => {
-                console.error('Failed to load pricing settings:', err);
-                return { data: null };
-            })
-        ]).then(([woRes, pricingRes]) => {
-            setWo(woRes.data);
-            if (pricingRes.data) {
-                setPricingSettings(pricingRes.data);
+        let isMounted = true;
+        const load = async () => {
+            try {
+                const woRes = await api.get(endpoint);
+                const woData = woRes.data;
+                let pricingPromise = Promise.resolve({ data: null });
+                if (!token) {
+                    pricingPromise = api.get(`/admin/pricing-settings${woData.client_id ? '?client_id=' + woData.client_id : ''}`).catch(err => {
+                        console.error('Failed to load pricing settings:', err);
+                        return { data: null };
+                    });
+                }
+                const [pricingRes] = await Promise.all([pricingPromise]);
+                if (isMounted) {
+                    setWo(woData);
+                    if (pricingRes.data) {
+                        setPricingSettings(pricingRes.data);
+                    }
+                    if (woData.proforma_data?.items) {
+                        setProformaItems(woData.proforma_data.items);
+                    }
+                    setLoading(false);
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setError(err);
+                    setLoading(false);
+                }
             }
-            
-            const pItems = woRes.data?.proforma_data?.items;
-            if (pItems && pItems.length > 0) {
-                const descLower = String(pItems[0].desc || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-                const isPlaceholder = pItems.length === 1 && 
-                    (pItems[0].id === 'default' || 
-                     descLower.includes('conform deviz') || 
-                     descLower.includes('manoper') ||
-                     descLower === 'chape' ||
-                     descLower === 'sapa' ||
-                     descLower.match(/sapa|chape/i) ||
-                     descLower.startsWith('sapa') ||
-                     descLower.startsWith('chape'));
-                if (!isPlaceholder) setProformaItems(pItems);
-            }
-        }).catch(err => {
-            console.error(err); 
-            setError(t('devis.not_found', 'Devis introuvable.'));
-        }).finally(() => {
-            setLoading(false);
-        });
-    }, [id, token])
+        };
+        load();
+        return () => { isMounted = false; };
+    }, [id, token]);
 
     useEffect(() => {
         if (wo) {
@@ -221,13 +226,13 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         const stdThick = parseFloat(wo.prices?.standard_thickness || 5)
                         const extraThick = Math.max(0, thick - stdThick)
                         
-                        items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) })
+                        items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) })
                         if (extraThick > 0) {
-                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra ?? 1.25) })
+                            items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) })
                         }
-                        if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) })
-                        if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) })
-                        if (vol.has_fiber || vol.has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) })
+                        if (vol.has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) })
+                        if (vol.has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) })
+                        if (vol.has_fiber || vol.has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: getPrice(wo.prices?.fiber, surface <= 200 ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surface <= 200 ? 2.5 : 2.0) })
                     } else if (/isolation\s*pur/i.test(vol.label || '')) {
                         // Section header for Isolation PUR
                         items.push({ isHeader: true, headerLabel: 'ISOLATION PUR' });
@@ -311,11 +316,11 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     const stdThick = parseFloat(wo.prices?.standard_thickness || 5);
                     const extraThick = Math.max(0, thick - stdThick);
                     
-                    items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: parseFloat(wo.prices?.base || 12.5) });
-                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * parseFloat(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra ?? 1.25) });
-                    if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.foil || 1.2) });
-                    if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.mesh || 2.5) });
-                    if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: parseFloat(wo.prices?.fiber || (surface <= 200 ? 2.5 : 2.0)) });
+                    items.push({ desc: T.chapeBase(Math.min(thick, stdThick)), qty: surface, unit: 'm²', price: getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) });
+                    if (extraThick > 0) items.push({ desc: T.chapeExtra(extraThick), qty: surface, unit: 'm²', price: extraThick * getPrice(wo.prices?.extra_thickness_price_per_cm ?? wo.prices?.extra, surface <= 200 ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25) });
+                    if (wo.has_foil || wo.actual_has_foil) items.push({ desc: T.foil, qty: surface, unit: 'm²', price: getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) });
+                    if (wo.has_mesh || wo.actual_has_mesh) items.push({ desc: T.mesh, qty: surface, unit: 'm²', price: getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) });
+                    if (wo.has_fiber || wo.actual_has_fiber || wo.has_duramint || wo.actual_has_duramint) items.push({ desc: T.fiber, qty: surface, unit: 'm²', price: getPrice(wo.prices?.fiber, surface <= 200 ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surface <= 200 ? 2.5 : 2.0) });
                 }
             }
             if (items.length === 0) {

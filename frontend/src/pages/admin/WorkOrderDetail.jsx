@@ -2501,7 +2501,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                         <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)}&nbsp;EUR</b></span>
+                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)}&nbsp;EUR</b></span>
                                     </div>
                                     {autoExtra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
@@ -2512,13 +2512,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {autoFoil > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)}&nbsp;EUR</b></span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2).toFixed(2)} = <b>{autoFoil.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {autoMesh > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
-                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)}&nbsp;EUR</b></span>
+                                            <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5).toFixed(2)} = <b>{autoMesh.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {autoFiber > 0 && (
@@ -2664,7 +2664,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                         <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.base || 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
+                                        <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
                                     </div>
                                     {realCalc.extra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
@@ -2675,13 +2675,13 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                     {realCalc.foil > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.foil', 'Feuille plastique')}</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.foil || 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)}&nbsp;EUR</b></span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2).toFixed(2)} = <b>{realCalc.foil.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.mesh > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                             <span className="font-medium">{t('work_order_detail.invoicing.mesh', 'Treillis métallique')}</span>
-                                            <span className="text-right tabular-nums">{realSurface} m² × {parseFloat(wo.prices?.mesh || 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)}&nbsp;EUR</b></span>
+                                            <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5).toFixed(2)} = <b>{realCalc.mesh.toFixed(2)}&nbsp;EUR</b></span>
                                         </div>
                                     )}
                                     {realCalc.fiber > 0 && (

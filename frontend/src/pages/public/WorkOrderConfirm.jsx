@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { FileText, CheckCircle2, ClipboardList, MapPin, Calendar, User, AlertCircle, Loader2, Pen, RotateCcw, Camera, Paperclip, X, ChevronLeft, ChevronRight, MessageSquare, Send, Trash2, Smile, Edit2 } from 'lucide-react'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
@@ -587,6 +588,12 @@ export default function WorkOrderConfirm({ hideMap = false }) {
     const [previewDocIndex, setPreviewDocIndex] = useState(null)
     const [chatMessage, setChatMessage] = useState("")
     const [sendingMessage, setSendingMessage] = useState(false)
+    const [previewAttachment, setPreviewAttachment] = useState(null)
+    const getImageUrl = (path) => {
+        if (!path) return "";
+        if (path.startsWith("http")) return path;
+        return `https://davidechape.pontaj.app${path.startsWith("/") ? "" : "/"}${path}`;
+    };
     const [lastReadTime, setLastReadTime] = useState(() => localStorage.getItem(`chat_last_read_${token}`) || null)
     const chatContainerRef = useRef(null)
     const scrollToBottom = () => {
@@ -1360,15 +1367,30 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                             <div className="mt-2 flex flex-col gap-2">
                                                 {msg.attachments.map((att, idx) => {
                                                     const url = (att.url || '').startsWith('http') ? att.url : `https://davidechape.pontaj.app${att.url.startsWith('/') ? '' : '/'}${att.url}`;
-                                                    return att.type === 'image' ? (
-                                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
-                                                            <img src={url} alt="attachment" className="max-w-full sm:max-w-[200px] rounded-lg border border-slate-200" />
-                                                        </a>
-                                                    ) : (
-                                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/10 p-2 rounded-lg border border-white/20 hover:bg-white/20 transition-colors">
-                                                            <FileText className="w-4 h-4" />
-                                                            <span className="text-sm font-medium truncate max-w-[150px]">{att.name}</span>
-                                                        </a>
+                                                    const attUrl = getImageUrl(att.url);
+                                                    const isImage = att.type === 'image' || att.url.match(/\.(jpeg|jpg|gif|png)$/i);
+                                                    const isPdf = att.url.match(/\.pdf$/i);
+                                                    return (
+                                                        <button 
+                                                            key={idx} 
+                                                            onClick={() => setPreviewAttachment({
+                                                                url: attUrl,
+                                                                name: att.name || 'Attachment',
+                                                                isImage: isImage,
+                                                                isPdf: isPdf,
+                                                                isInternalUrl: !attUrl.startsWith('http') || attUrl.includes('davidechape.pontaj.app')
+                                                            })}
+                                                            className="flex items-center gap-2 bg-white/10 p-2 rounded-lg border border-white/20 hover:bg-white/20 transition-colors text-left"
+                                                        >
+                                                            {isImage ? (
+                                                                <img src={attUrl} alt="attachment" className="max-w-[150px] sm:max-w-[200px] rounded border border-slate-200" />
+                                                            ) : (
+                                                                <>
+                                                                    <FileText className="w-4 h-4" />
+                                                                    <span className="text-sm font-medium truncate max-w-[150px]">{att.name || 'View File'}</span>
+                                                                </>
+                                                            )}
+                                                        </button>
                                                     );
                                                 })}
                                             </div>
@@ -1636,6 +1658,62 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                     </div>
                 </div>
             )}
+
+            
+            {previewAttachment && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPreviewAttachment(null)}></div>
+                    <div className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+                            <div className="flex items-center gap-3 truncate pr-4">
+                                <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                <h3 className="font-semibold text-slate-800 truncate">
+                                    {previewAttachment.name || 'Preview'}
+                                </h3>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <a 
+                                    href={previewAttachment.url} 
+                                    download 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors flex items-center gap-2 font-medium text-sm"
+                                >
+                                    <span className="hidden sm:inline">Descarcă</span>
+                                </a>
+                                <button 
+                                    onClick={() => setPreviewAttachment(null)}
+                                    className="p-2 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-red-500 rounded-xl transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-100/50 min-h-[50vh]">
+                            {previewAttachment.isImage ? (
+                                <img 
+                                    src={previewAttachment.url} 
+                                    alt={previewAttachment.name} 
+                                    className="max-w-full max-h-[70vh] object-contain rounded shadow-sm"
+                                />
+                            ) : previewAttachment.isPdf ? (
+                                <iframe
+                                    src={previewAttachment.url}
+                                    title="PDF Preview"
+                                    className="w-full h-[70vh] rounded shadow-sm bg-white"
+                                />
+                            ) : (
+                                <div className="text-center p-8 text-slate-500">
+                                    Format nesuportat pentru previzualizare directă.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            , document.body)}
 
             {previewDocIndex !== null && order?.client_documents && (
                 <DocumentPreviewModal 

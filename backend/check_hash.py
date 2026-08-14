@@ -6,8 +6,6 @@ engine = create_engine(os.environ.get("DATABASE_URL", "postgresql://postgres.ltx
 Session = sessionmaker(bind=engine)
 session = Session()
 
-res = session.execute(text("SELECT id, email, role, is_active, organization_id, is_super_admin FROM saas_app.admins WHERE lower(email) = 'jeka7ro@gmail.com'"))
-rows = res.fetchall()
-print(f"Total found: {len(rows)}")
-for row in rows:
-    print(row)
+res = session.execute(text("SELECT password_hash FROM saas_app.admins WHERE lower(email) = 'jeka7ro@gmail.com'"))
+for row in res:
+    print(row[0])
