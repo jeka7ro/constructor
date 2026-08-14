@@ -67,6 +67,11 @@ api.interceptors.request.use(
             }
         } catch (e) { }
 
+        // Let browser set the correct content-type with boundary for FormData
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+
         return config
     },
     (error) => Promise.reject(error)

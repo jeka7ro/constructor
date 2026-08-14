@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { createPortal } from 'react-dom'
 import {
-    MessageSquare, Send, Trash2, Search, ArrowLeft, CheckCircle2, XCircle, Clock, FileText, ClipboardList, EyeOff, Edit2, Eye, Mail, Smile, Globe, X
+    MessageSquare, Send, Trash2, Search, ArrowLeft, CheckCircle2, XCircle, Clock, FileText, ClipboardList, EyeOff, Edit2, Eye, Mail, Smile, Globe, X, Paperclip, Download
 } from 'lucide-react'
 import api from '../../lib/api'
 import { useUIStore } from '../../store/uiStore'
 import { useTenantStore } from '../../store/tenantStore'
+import PdfThumbnail from '../../components/PdfThumbnail'
 
 const getImageUrl = (url) => {
     if (!url) return '';
@@ -37,10 +39,23 @@ export default function AdminChats() {
     const [targetLang, setTargetLang] = useState('nl') // Default auto-translate to Dutch
     const [showEmojiPickerFor, setShowEmojiPickerFor] = useState(null)
     const messagesEndRef = useRef(null)
-
+    const fileInputRef = useRef(null)
+    const [selectedFiles, setSelectedFiles] = useState([])
+    const [isUploading, setIsUploading] = useState(false)
+    const [previewAttachment, setPreviewAttachment] = useState(null)
+    const [messageToDelete, setMessageToDelete] = useState(null)
     const getAvatarColor = (source_system) => {
         if (source_system === 'calculator_public' || source_system === 'we-r') return "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400";
         return "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"; // devis_online
+    };
+
+    const getFlagEmoji = (lang) => {
+        if (!lang) return '🇷🇴';
+        const l = lang.toLowerCase();
+        if (l === 'nl') return '🇳🇱';
+        if (l === 'fr') return '🇫🇷';
+        if (l === 'en') return '🇬🇧';
+        return '🇷🇴';
     };
 
     // Load list of chats
@@ -134,6 +149,12 @@ export default function AdminChats() {
         }
     }, [messages])
 
+    useEffect(() => {
+        if (activeWo && activeWo.client_language) {
+            setTargetLang(activeWo.client_language.toLowerCase());
+        }
+    }, [activeWo])
+
     const [previewTranslation, setPreviewTranslation] = useState('')
     const [isTranslating, setIsTranslating] = useState(false)
 
@@ -148,6 +169,7 @@ export default function AdminChats() {
             setPreviewTranslation(res.data.translatedText);
         } catch (e) {
             console.error("Translation error", e);
+            showToast(t('common.error', 'Erreur') + ': ' + (e.response?.data?.detail || e.message), "error");
         } finally {
             setIsTranslating(false);
         }
@@ -155,18 +177,38 @@ export default function AdminChats() {
 
     const handleSendMessage = async (e) => {
         e.preventDefault()
-        if (!chatMessage.trim() || isSending) return
+        if ((!chatMessage.trim() && selectedFiles.length === 0) || isSending || isUploading) return
         
         if (activeWo.is_chat_closed) {
             showToast(t('admin.chat_is_closed_cannot_send', 'Cette conversation est fermée. Vous ne pouvez plus envoyer de messages.'), "error")
             return
         }
 
+        setIsUploading(true)
+        let uploadedAttachments = []
+        try {
+            for (const file of selectedFiles) {
+                const formData = new FormData()
+                formData.append('file', file)
+                const res = await api.post(`/admin/work-orders/${activeWoId}/chat-attachment`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                uploadedAttachments.push(res.data)
+            }
+        } catch (err) {
+            console.error("Upload error", err.response?.data || err);
+            showToast("Eroare la încărcarea fișierului: " + (err.response?.data?.detail || err.message), "error")
+            setIsUploading(false)
+            return
+        }
+        setIsUploading(false)
+
         setIsSending(true)
         try {
             const payload = {
                 message: chatMessage,
-                target_lang: targetLang === 'none' ? null : targetLang
+                target_lang: targetLang === 'none' ? null : targetLang,
+                attachments: uploadedAttachments
             };
             if (previewTranslation.trim()) {
                 payload.translations = { [targetLang]: previewTranslation };
@@ -177,6 +219,7 @@ export default function AdminChats() {
             setMessages(prev => [...prev, res.data])
             setChatMessage('')
             setPreviewTranslation('')
+            setSelectedFiles([])
             
             // Update last_message in chats list for left sidebar
             setChats(prev => prev.map(c => 
@@ -236,15 +279,21 @@ export default function AdminChats() {
         }
     }
 
-    const handleDeleteMessage = async (msgId) => {
-        if (!window.confirm(t('admin.confirm_delete_message', 'Voulez-vous vraiment supprimer ce message ?'))) return
+    const handleDeleteMessage = (msgId) => {
+        setMessageToDelete(msgId)
+    }
+
+    const executeDeleteMessage = async () => {
+        if (!messageToDelete) return
         try {
-            await api.delete(`/admin/work-orders/${activeWoId}/messages/${msgId}`)
-            setMessages(prev => prev.filter(m => m.id !== msgId))
+            await api.delete(`/admin/work-orders/${activeWoId}/messages/${messageToDelete}`)
+            setMessages(prev => prev.filter(m => m.id !== messageToDelete))
             showToast(t('admin.message_deleted', 'Message supprimé'), "success")
             loadChats() // Refresh to update last message if needed
         } catch (err) {
             showToast(t('admin.error_deleting_message', 'Erreur lors de la suppression du message'), "error")
+        } finally {
+            setMessageToDelete(null)
         }
     }
 
@@ -288,13 +337,17 @@ export default function AdminChats() {
         }
     }
 
-    const toggleChatStatus = async () => {
-        if (!activeWo) return
-        const isClosed = activeWo.is_chat_closed
-        const endpoint = isClosed ? `/admin/work-orders/${activeWoId}/chat/open` : `/admin/work-orders/${activeWoId}/chat/close`
-        const confirmMsg = isClosed ? t('admin.confirm_reopen_chat', 'Rouvrir ce chat ?') : t('admin.confirm_close_chat', 'Fermer ce chat ? Le client ne pourra plus envoyer de messages.')
+    const [chatToToggle, setChatToToggle] = useState(null)
+
+    const handleToggleChatStatus = (isClosed) => {
+        setChatToToggle({ isClosed })
+    }
+
+    const executeToggleChatStatus = async () => {
+        if (!chatToToggle) return
+        const { isClosed } = chatToToggle
         
-        if (!window.confirm(confirmMsg)) return
+        const endpoint = isClosed ? `/admin/work-orders/${activeWoId}/chat/open` : `/admin/work-orders/${activeWoId}/chat/close`
         
         try {
             await api.post(endpoint)
@@ -303,6 +356,8 @@ export default function AdminChats() {
             showToast(isClosed ? t('admin.chat_reopened', 'Chat rouvert') : t('admin.chat_closed', 'Chat fermé'), "success")
         } catch (err) {
             showToast(t('common.error', 'Erreur'), "error")
+        } finally {
+            setChatToToggle(null)
         }
     }
 
@@ -312,7 +367,7 @@ export default function AdminChats() {
     )
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-160px)] md:h-full bg-white dark:bg-slate-900 md:rounded-xl md:shadow-sm md:border border-slate-200 dark:border-slate-800 overflow-hidden relative -mx-4 md:mx-0 -mb-24 md:mb-0">
+        <div className="flex flex-col h-[calc(100dvh-160px)] md:h-[calc(100vh-112px)] bg-white dark:bg-slate-900 md:rounded-xl md:shadow-sm md:border border-slate-200 dark:border-slate-800 overflow-hidden relative -mx-4 md:mx-0 -mb-24 md:mb-0">
             <div className="flex h-full min-h-0 w-full overflow-hidden">
                 
                 {/* LEFT SIDEBAR - CHATS LIST */}
@@ -359,9 +414,9 @@ export default function AdminChats() {
                                         onClick={() => setActiveWoId(chat.work_order_id)}
                                         className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative flex items-start gap-3 ${activeWoId === chat.work_order_id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                                     >
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-medium ${getAvatarColor(chat.source_system)}`}>
-                                            {chat.client_name ? chat.client_name.charAt(0).toUpperCase() : '#'}
-                                        </div>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-medium shadow-sm ${getAvatarColor(chat.source_system)}`}>
+                                        {getFlagEmoji(chat.client_language)}
+                                    </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start mb-1">
                                                 <h3 className="font-medium text-slate-900 dark:text-white truncate pr-2">
@@ -413,8 +468,8 @@ export default function AdminChats() {
                                     >
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-medium ${getAvatarColor(activeWo.source_system)}`}>
-                                        {activeWo.client_name ? activeWo.client_name.charAt(0).toUpperCase() : '#'}
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-medium ${getAvatarColor(activeWo.source_system)}`}>
+                                        {getFlagEmoji(activeWo.client_language)}
                                     </div>
                                     <div className="truncate">
                                         <h3 className="font-semibold text-slate-800 dark:text-white truncate">
@@ -430,7 +485,12 @@ export default function AdminChats() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button 
-                                        onClick={() => window.open(`/admin/quotes/${activeWo.id}/pdf`, '_blank')}
+                                        onClick={() => setPreviewAttachment({ 
+                                            url: `/admin/quotes/${activeWo.id}/pdf`, 
+                                            name: activeWo.is_quote ? (activeWo.quote_number || 'Devis / Offre') : (activeWo.invoice_number || 'Commande'),
+                                            isPdf: true,
+                                            isInternalUrl: true
+                                        })}
                                         className="px-3 py-1.5 text-xs font-medium rounded-lg border bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
                                         title={t('nav.quotes', 'Devis / Offres')}
                                     >
@@ -446,7 +506,7 @@ export default function AdminChats() {
                                         <span className="hidden lg:inline">{t('nav.work_orders', 'Commandes')}</span>
                                     </button>
                                     <button
-                                        onClick={toggleChatStatus}
+                                        onClick={() => handleToggleChatStatus(activeWo.is_chat_closed)}
                                         className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 border
                                             ${activeWo.is_chat_closed 
                                                 ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700' 
@@ -512,15 +572,67 @@ export default function AdminChats() {
                                                                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                 </span>
                                                             </div>
-                                                            <div className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
-                                                                {msg.message}
-                                                            </div>
+                                                            {msg.attachments && msg.attachments.length > 0 && (
+                                                                <div className="mb-2 flex flex-col gap-2">
+                                                                    {msg.attachments.map((att, idx) => {
+                                                                        const isPdf = att.type === 'pdf' || (att.url && att.url.toLowerCase().endsWith('.pdf'));
+                                                                        const isImage = att.type === 'image' || (att.url && att.url.match(/\.(jpeg|jpg|gif|png|webp)$/i));
+                                                                        
+                                                                        if (isImage || isPdf) {
+                                                                            return (
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    key={idx} 
+                                                                                    onClick={() => setPreviewAttachment({ ...att, isPdf, isImage })}
+                                                                                    className={`flex flex-col text-left rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-blue-500 transition-all shadow-sm ${isImage || isPdf ? 'p-0 w-[200px] sm:w-[240px] bg-white dark:bg-slate-800' : 'p-2.5 bg-white dark:bg-slate-800'}`}
+                                                                                >
+                                                                                    {isImage ? (
+                                                                                        <img src={getImageUrl(att.url)} alt="attachment" className="w-full object-cover" />
+                                                                                    ) : isPdf ? (
+                                                                                        <div className="flex flex-col w-full h-full">
+                                                                                            <div className="w-full h-[140px] bg-white relative">
+                                                                                                <PdfThumbnail url={getImageUrl(att.url)} className="w-full h-full" />
+                                                                                            </div>
+                                                                                            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 flex items-center gap-3 border-t border-slate-200 dark:border-slate-700/50">
+                                                                                                <div className="bg-red-500 text-white rounded w-8 h-9 flex items-center justify-center flex-shrink-0 shadow-sm relative overflow-hidden">
+                                                                                                    <span className="text-[10px] font-bold mt-1.5">PDF</span>
+                                                                                                    <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-600 rounded-bl shadow-sm"></div>
+                                                                                                </div>
+                                                                                                <div className="flex flex-col flex-1 min-w-0">
+                                                                                                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{att.name || 'Document'}</span>
+                                                                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Document PDF</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="flex items-center gap-2 p-2.5">
+                                                                                            <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                                                                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{att.name || 'Document'}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </button>
+                                                                            )
+                                                                        }
+                                                                        return (
+                                                                            <a key={idx} href={getImageUrl(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm w-fit">
+                                                                                <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                                                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{att.name || 'File'}</span>
+                                                                            </a>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                            {msg.message && (
+                                                                <div className={`text-sm whitespace-pre-wrap leading-relaxed ${msg.is_hidden ? 'opacity-70' : ''}`}>
+                                                                    {msg.message}
+                                                                </div>
+                                                            )}
                                                             
                                                             {/* Translation Display */}
-                                                            {msg.translations && Object.keys(msg.translations).length > 0 && (
+                                                            {msg.message && msg.translations && Object.keys(msg.translations).length > 0 && (
                                                                 (() => {
                                                                     const transText = Object.values(msg.translations)[0] || '';
-                                                                    if (transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
+                                                                    if (!transText.trim() || transText.includes('Error 500') || transText.includes('Eroare la traducere') || transText.includes("That's an error")) return null;
                                                                     return (
                                                                         <div className={`mt-2 pt-2 border-t text-xs italic ${isOwn ? 'border-blue-400 text-blue-100' : 'border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
                                                                             <span className="font-semibold block mb-0.5">🌐 Traducere:</span>
@@ -635,7 +747,40 @@ export default function AdminChats() {
                                 ) : (
                                     <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto flex flex-col gap-2">
                                         
-                                        <div className="flex gap-2 w-full">
+                                        {selectedFiles.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                {selectedFiles.map((f, i) => (
+                                                    <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-2 py-1 rounded shadow-sm text-xs border border-slate-200 dark:border-slate-700">
+                                                        <span className="truncate max-w-[150px] text-slate-700 dark:text-slate-300">{f.name}</span>
+                                                        <button type="button" onClick={() => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full p-0.5">
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="flex gap-2 w-full items-center">
+                                            <input
+                                                type="file"
+                                                multiple
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                accept="image/*,application/pdf"
+                                                onChange={e => {
+                                                    if (e.target.files) {
+                                                        setSelectedFiles(prev => [...prev, ...Array.from(e.target.files)])
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                                title="Adaugă atașament"
+                                            >
+                                                <Paperclip className="w-5 h-5" />
+                                            </button>
                                             <input
                                                 type="text"
                                                 value={chatMessage}
@@ -671,10 +816,14 @@ export default function AdminChats() {
                                             )}
                                             <button
                                                 type="submit"
-                                                disabled={!chatMessage.trim() && !previewTranslation.trim()}
-                                                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl px-4 py-2 flex items-center justify-center transition-colors shadow-sm"
+                                                disabled={(!chatMessage.trim() && selectedFiles.length === 0) || isSending || isUploading}
+                                                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl px-3 md:px-4 py-2 flex items-center justify-center transition-colors shadow-sm"
                                             >
-                                                <Send className="w-4 h-4" />
+                                                {isSending || isUploading ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <Send className="w-4 h-4 md:w-5 md:h-5" />
+                                                )}
                                             </button>
                                         </div>
                                         {previewTranslation !== '' && targetLang !== 'none' && (
@@ -708,6 +857,138 @@ export default function AdminChats() {
                 </div>
                 
             </div>
+            {/* Delete Confirmation Modal */}
+            {messageToDelete && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMessageToDelete(null)}></div>
+                    <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden p-6 text-center border border-slate-200 dark:border-slate-800">
+                        <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 mx-auto flex items-center justify-center mb-5">
+                            <Trash2 className="w-7 h-7" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                            {t('admin.confirm_delete_message', 'Voulez-vous vraiment supprimer ce message ?')}
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 px-2">
+                            {t('admin.action_cannot_be_undone', 'Cette action ne peut pas être annulée.')}
+                        </p>
+                        <div className="flex items-center gap-3 w-full">
+                            <button
+                                onClick={() => setMessageToDelete(null)}
+                                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium transition-colors"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                onClick={executeDeleteMessage}
+                                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors shadow-sm shadow-red-500/20"
+                            >
+                                {t('common.delete', 'Supprimer')}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Toggle Chat Status Confirmation Modal */}
+            {chatToToggle && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setChatToToggle(null)}></div>
+                    <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden p-6 text-center border border-slate-200 dark:border-slate-800">
+                        <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-500 mx-auto flex items-center justify-center mb-5">
+                            <Clock className="w-7 h-7" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                            {chatToToggle.isClosed ? t('admin.confirm_reopen_chat', 'Rouvrir ce chat ?') : t('admin.confirm_close_chat', 'Fermer ce chat ?')}
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 px-2">
+                            {chatToToggle.isClosed 
+                                ? t('admin.reopen_chat_desc', 'Le client pourra à nouveau envoyer des messages.')
+                                : t('admin.close_chat_desc', 'Le client ne pourra plus envoyer de messages.')}
+                        </p>
+                        <div className="flex items-center gap-3 w-full">
+                            <button
+                                onClick={() => setChatToToggle(null)}
+                                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium transition-colors"
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                onClick={executeToggleChatStatus}
+                                className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors shadow-sm shadow-amber-500/20"
+                            >
+                                {t('common.confirm', 'Confirmer')}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Attachment Preview Modal */}
+            {previewAttachment && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPreviewAttachment(null)}></div>
+                    <div className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+                            <div className="flex items-center gap-3 truncate pr-4">
+                                <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                <h3 className="font-semibold text-slate-800 dark:text-white truncate">
+                                    {previewAttachment.name || 'Previzualizare Fișier'}
+                                </h3>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                {!previewAttachment.isInternalUrl && (
+                                    <a 
+                                        href={getImageUrl(previewAttachment.url)} 
+                                        download 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors flex items-center gap-2 font-medium text-sm"
+                                        title="Descarcă Fișier"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Descarcă</span>
+                                    </a>
+                                )}
+                                <button
+                                    onClick={() => setPreviewAttachment(null)}
+                                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-100 dark:bg-black/50 p-4">
+                            {previewAttachment.isImage ? (
+                                <img 
+                                    src={getImageUrl(previewAttachment.url)} 
+                                    alt={previewAttachment.name} 
+                                    className="max-w-full max-h-[70vh] object-contain rounded shadow-sm"
+                                />
+                            ) : previewAttachment.isPdf ? (
+                                <iframe
+                                    src={previewAttachment.isInternalUrl ? previewAttachment.url : getImageUrl(previewAttachment.url)}
+                                    title="PDF Preview"
+                                    className="w-full h-[70vh] rounded shadow-sm bg-white"
+                                />
+                            ) : (
+                                <div className="text-center p-8 text-slate-500">
+                                    Format nesuportat pentru previzualizare directă.
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>,
+                document.body
+            )}
+
         </div>
     )
 }

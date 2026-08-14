@@ -412,3 +412,89 @@ def send_admin_new_quote_alert(admin_email: str, client_name: str, client_phone:
         logger.error(f"Failed to send admin quote alert: {e}")
         _log_email(org_id, wo_id, admin_email, "Admin", subject, html_content, "failed", str(e))
         return False
+def send_chat_notification_email(to_email: str, client_name: str, client_language: str, chat_url: str, org_id: str = None, wo_id: str = None):
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    if not brevo_api_key:
+        logger.warning("BREVO_API_KEY is not set. Email not sent.")
+        return False
+        
+    from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+    
+    if client_language == "nl":
+        subject = "Nieuw bericht van Davide Chape"
+        greeting = f"Beste {client_name}"
+        intro = "U heeft een nieuw bericht ontvangen van ons team."
+        body_main = "U kunt het bericht lezen en erop reageren via de onderstaande knop."
+        btn_text = "Bekijk bericht"
+        fallback = "Als de knop niet werkt, kopieer en plak deze link in uw browser:"
+        footer = "Het team van Davide Chape<br>Dit is een automatisch bericht, gelieve hier niet rechtstreeks op te antwoorden."
+    elif client_language == "en":
+        subject = "New message from Davide Chape"
+        greeting = f"Dear {client_name}"
+        intro = "You have received a new message from our team."
+        body_main = "You can read and reply to the message using the button below."
+        btn_text = "View message"
+        fallback = "If the button doesn't work, copy and paste this link into your browser:"
+        footer = "The Davide Chape Team<br>This is an automated message, please do not reply directly."
+    else: # Default to FR
+        subject = "Nouveau message de Davide Chape"
+        greeting = f"Bonjour {client_name}"
+        intro = "Vous avez reçu un nouveau message de notre équipe."
+        body_main = "Vous pouvez lire et répondre au message via le bouton ci-dessous."
+        btn_text = "Voir le message"
+        fallback = "Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur:"
+        footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de ne pas y répondre directement."
+
+    primary_color = "#3b82f6" # blue-500
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: {primary_color}; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Davide Chape</h1>
+        </div>
+        <div style="padding: 30px; background-color: #ffffff;">
+            <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
+            <p style="font-size: 16px;">{intro}</p>
+            <p style="font-size: 16px;">{body_main}</p>
+            
+            <div style="text-align: center; margin: 35px 0;">
+                <a href="{chat_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{chat_url}" style="color: {primary_color};">{chat_url}</a></p>
+        </div>
+        <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
+            <p style="margin: 0;">{footer}</p>
+        </div>
+    </div>
+    """
+
+    payload = {
+        "sender": {
+            "name": "Davide Chape",
+            "email": from_email
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+
+    try:
+        response = httpx.post(
+            BREVO_API_URL,
+            json=payload,
+            headers={
+                "api-key": brevo_api_key,
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            timeout=10.0
+        )
+        response.raise_for_status()
+        logger.info(f"Chat notification email sent successfully to {to_email}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "sent")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send chat notification email to {to_email}: {e}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "failed", str(e))
+        return False

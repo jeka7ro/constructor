@@ -1209,11 +1209,12 @@ class WorkOrderMessage(Base):
     id              = Column(String(36), primary_key=True, default=generate_uuid)
     work_order_id   = Column(String(36), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=False)
     sender          = Column(String(20), nullable=False) # 'admin' | 'client'
-    message         = Column(Text, nullable=False)
+    message         = Column(Text, nullable=True)
     is_read_by_admin= Column(Boolean, default=False)
     is_hidden       = Column(Boolean, default=False)
     translations    = Column(JSON, default={})
     reactions       = Column(JSON, default={})
+    attachments     = Column(JSON, default=[])
     created_at      = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     work_order = relationship("WorkOrder")

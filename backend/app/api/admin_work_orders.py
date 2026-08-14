@@ -2686,6 +2686,7 @@ def get_work_order_messages(
             "created_at": (m.created_at.isoformat() + "Z") if m.created_at else "",
             "translations": m.translations,
             "reactions": m.reactions,
+            "attachments": m.attachments or [],
             "is_hidden": m.is_hidden,
             "is_read_by_admin": m.is_read_by_admin
         } for m in messages
@@ -2697,22 +2698,89 @@ class MessageCreate(BaseModel):
     message: str
     target_lang: Optional[str] = None
     translations: Optional[dict] = None
+    attachments: Optional[list] = []
 
 class TranslateRequest(BaseModel):
     text: str
     target_lang: str
 
 @router.post("/translate")
-def translate_text(
+def translate_text_preview(
     payload: TranslateRequest,
     current_admin: Admin = Depends(get_current_admin)
 ):
     try:
+        import time
         from deep_translator import GoogleTranslator
-        translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.text)
-        return {"translatedText": translated}
+        
+        last_error = None
+        for attempt in range(3):
+            try:
+                translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.text)
+                if translated and ("Error 500" in translated or "That's an error" in translated or "Server Error" in translated):
+                    last_error = "Server Error string returned"
+                    time.sleep(1)
+                    continue
+                return {"translatedText": translated}
+            except Exception as retry_err:
+                last_error = str(retry_err)
+                if attempt < 2:
+                    time.sleep(1)
+        
+        raise HTTPException(status_code=500, detail=f"Traducerea a eșuat după 3 încercări: {last_error}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/work-orders/{wo_id}/chat-attachment")
+async def upload_chat_attachment(
+    wo_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin)
+):
+    """Uploads an attachment for a chat message and returns its URL."""
+    wo = db.query(WorkOrder).filter(
+        WorkOrder.id == wo_id,
+        WorkOrder.organization_id == current_admin.organization_id
+    ).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work Order not found")
+        
+    if getattr(wo, 'is_chat_closed', False):
+        raise HTTPException(status_code=403, detail="Chat is closed")
+        
+    allowed = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp"]
+    if file.content_type not in allowed:
+        raise HTTPException(status_code=400, detail="Only PDF and Images are allowed.")
+        
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max 10MB.")
+        
+    import uuid
+    from datetime import datetime
+    
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+    if file.content_type == "application/pdf":
+        ext = "pdf"
+    elif "image" in file.content_type:
+        ext = file.content_type.split('/')[-1]
+        
+    filename = f"chat_attachments/{wo_id}/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.{ext}"
+    
+    from app.storage import upload_file
+    try:
+        url = upload_file(content, filename, file.content_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        
+    file_type = "pdf" if file.content_type == "application/pdf" else "image"
+        
+    return {
+        "url": url,
+        "name": file.filename,
+        "type": file_type
+    }
 
 @router.post("/work-orders/{wo_id}/messages")
 def post_work_order_message(
@@ -2751,13 +2819,42 @@ def post_work_order_message(
                             time.sleep(1)
     except Exception as e:
         print(f"Auto-translation failed: {e}")
+        
+    # Anti-spam: check if we should send an email notification to the client
+    try:
+        from app.services.email_service import send_chat_notification_email
+        import os
+        from datetime import datetime, timedelta
+        
+        if wo.client_email:
+            last_admin_msg = db.query(WorkOrderMessage).filter(
+                WorkOrderMessage.work_order_id == wo.id, 
+                WorkOrderMessage.sender == "admin"
+            ).order_by(WorkOrderMessage.created_at.desc()).first()
+            
+            if not last_admin_msg or (datetime.utcnow() - last_admin_msg.created_at) > timedelta(minutes=5):
+                frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
+                chat_url = f"{frontend_url}/devisonline/{wo.token}"
+                client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
+                
+                send_chat_notification_email(
+                    to_email=wo.client_email,
+                    client_name=getattr(wo, 'client_name', 'Client') or 'Client',
+                    client_language=client_lang,
+                    chat_url=chat_url,
+                    org_id=wo.organization_id,
+                    wo_id=wo.id
+                )
+    except Exception as e:
+        print(f"Failed to send chat notification email: {e}")
             
     msg = WorkOrderMessage(
         work_order_id=wo.id,
         sender="admin",
         message=payload.message,
         is_read_by_admin=True,
-        translations=translations
+        translations=translations,
+        attachments=payload.attachments or []
     )
     db.add(msg)
     db.commit()
@@ -2769,7 +2866,8 @@ def post_work_order_message(
         "message": msg.message,
         "created_at": msg.created_at.isoformat() + "Z",
         "translations": msg.translations,
-        "reactions": msg.reactions
+        "reactions": msg.reactions,
+        "attachments": msg.attachments
     }
 
 class ReactionToggle(BaseModel):
@@ -3044,6 +3142,7 @@ def get_all_chats(
             "invoice_number": getattr(wo, 'invoice_number', None),
             "is_chat_closed": getattr(wo, 'is_chat_closed', False),
             "source_system": getattr(wo, 'source_system', 'manual'),
+            "client_language": getattr(wo, 'client_language', 'ro'),
             "unread_count": unread,
             "last_message": last_msg.message if last_msg else "",
             "last_message_time": last_msg_time.isoformat() + "Z" if last_msg_time else wo.created_at.isoformat() + "Z"
@@ -3079,21 +3178,3 @@ def open_work_order_chat(
     db.commit()
     return {"message": "Chat opened successfully"}
 
-class TranslateRequest(BaseModel):
-    text: str
-    target_lang: str
-
-@router.post("/translate")
-def translate_text(
-    payload: TranslateRequest,
-    db: Session = Depends(get_db),
-    current_admin: Admin = Depends(get_current_admin)
-):
-    try:
-        from deep_translator import GoogleTranslator
-        translated = GoogleTranslator(source='auto', target=payload.target_lang).translate(payload.text)
-        return {"translatedText": translated}
-    except ImportError:
-        return {"translatedText": "[Eroare: modulul deep_translator nu este instalat pe server]"}
-    except Exception as e:
-        return {"translatedText": f"[Eroare la traducere: {str(e)}]"}

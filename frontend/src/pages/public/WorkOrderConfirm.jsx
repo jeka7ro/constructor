@@ -1355,6 +1355,25 @@ export default function WorkOrderConfirm({ hideMap = false }) {
                                 <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative`}>
                                     <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm relative ${isOwn ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}`}>
                                         <p className="text-sm whitespace-pre-wrap">{displayMessage}</p>
+                                        
+                                        {msg.attachments && msg.attachments.length > 0 && (
+                                            <div className="mt-2 flex flex-col gap-2">
+                                                {msg.attachments.map((att, idx) => {
+                                                    const url = (att.url || '').startsWith('http') ? att.url : `https://davidechape.pontaj.app${att.url.startsWith('/') ? '' : '/'}${att.url}`;
+                                                    return att.type === 'image' ? (
+                                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                                                            <img src={url} alt="attachment" className="max-w-full sm:max-w-[200px] rounded-lg border border-slate-200" />
+                                                        </a>
+                                                    ) : (
+                                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/10 p-2 rounded-lg border border-white/20 hover:bg-white/20 transition-colors">
+                                                            <FileText className="w-4 h-4" />
+                                                            <span className="text-sm font-medium truncate max-w-[150px]">{att.name}</span>
+                                                        </a>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center justify-between mt-1 gap-4">
                                             <span className={`text-[9px] font-bold uppercase ${isOwn ? 'text-blue-200' : 'text-slate-400'}`}>
                                                 {new Date(msg.created_at).toLocaleString('ro-RO')}

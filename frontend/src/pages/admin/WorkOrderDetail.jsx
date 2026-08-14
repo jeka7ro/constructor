@@ -2153,6 +2153,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                             >
                                 <div className="flex gap-2 w-full">
                                     <input
+                                        id="chat-input-field"
                                         type="text"
                                         value={chatMessage}
                                         onChange={e => setChatMessage(e.target.value)}

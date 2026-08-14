@@ -1,15 +1,6 @@
-import asyncio
-from sqlalchemy import text
 from app.database import engine
-from sqlalchemy.orm import sessionmaker
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def main():
-    db = SessionLocal()
-    result = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='construction_sites'"))
-    cols = [r[0] for r in result.fetchall()]
-    print("Columns:", cols)
-
-if __name__ == "__main__":
-    main()
+from sqlalchemy import text
+with engine.connect() as conn:
+    res = conn.execute(text("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'work_order_messages';"))
+    for row in res:
+        print(f"{row[0]}: {row[1]}")

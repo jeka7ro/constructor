@@ -235,6 +235,7 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     if pricing and payload.surface > 0:
         # Truck transportation distance cost
         distance_km = 0.0
+        
         if payload.site_address:
             from app.models import LogisticBase
             bases = db.query(LogisticBase).filter(LogisticBase.organization_id == org.id).all()
