@@ -161,19 +161,8 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     }
                 }
                 
-                // Append km to existing Transport if it doesn't have it
-                if (newDesc.toLowerCase().includes('transport') || newDesc.toLowerCase().includes('déplacement')) {
-                    if (!newDesc.toLowerCase().includes('km')) {
-                        let distKmPdf = parseFloat(wo.route_distance_km || 0);
-                        if (distKmPdf <= 0 && wo.prices?.distance_km) distKmPdf = parseFloat(wo.prices.distance_km) * 2;
-                        if (distKmPdf <= 0 && wo.route_segments?.length > 0) {
-                            distKmPdf = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
-                        }
-                        if (distKmPdf > 0) {
-                            newDesc = `${newDesc} (${Math.round(distKmPdf)} km)`;
-                        }
-                    }
-                }
+                // Do not append km to PDF. Ensure we don't display 0.00 transport lines.
+                // We will handle filtering out 0 price transport lines after the map.
 
                 return {
                     desc: newDesc,
@@ -181,7 +170,13 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                     unit: item.unit || 'm²',
                     price: parseFloat(item.price || 0)
                 }
-            })
+            }).filter(item => {
+                // Remove Transport if price is 0
+                if (item.desc && (item.desc.toLowerCase().includes('transport') || item.desc.toLowerCase().includes('déplacement'))) {
+                    return item.price > 0;
+                }
+                return true;
+            });
             
             // Verificăm dacă transportul este deja în items
             const hasTransport = parsedItems.some(i => i.desc?.toLowerCase().includes('transport') || i.desc?.toLowerCase().includes('déplacement'));
@@ -203,9 +198,9 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         truckCost = truckFlat;
                     }
                 }
-                if (truckCost > 0 || distKm > 0) {
+                if (truckCost > 0) {
                     parsedItems.push({
-                        desc: `Transport${distKm > 0 ? ` (${Math.round(distKm)} km)` : ''}`,
+                        desc: `Transport`,
                         qty: 1,
                         unit: T.forfait,
                         price: truckCost

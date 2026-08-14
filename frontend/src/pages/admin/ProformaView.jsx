@@ -395,7 +395,7 @@ export default function ProformaView({ workOrderData = null, config = null }) {
     }
 
     // Try translating items on the fly if desc isn't hardcoded or uses translation keys
-    const items = !shouldUseFallback ? pData.items.map(item => {
+    let items = !shouldUseFallback ? pData.items.map(item => {
         let newDesc = item.desc;
         const match = newDesc?.match(/^(proforma\.items\.[a-zA-Z0-9_]+)(.*)$/);
         if (match) {
@@ -420,22 +420,18 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             }
         }
         
-        // Append km to existing Transport if it doesn't have it
-        if (newDesc && (newDesc.toLowerCase().includes('transport') || newDesc.toLowerCase().includes('déplacement'))) {
-            if (!newDesc.toLowerCase().includes('km')) {
-                let distKmPdf = parseFloat(wo.route_distance_km || 0);
-                if (distKmPdf <= 0 && wo.prices?.distance_km) distKmPdf = parseFloat(wo.prices.distance_km) * 2;
-                if (distKmPdf <= 0 && wo.route_segments?.length > 0) {
-                    distKmPdf = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
-                }
-                if (distKmPdf > 0) {
-                    newDesc = `${newDesc} (${Math.round(distKmPdf)} km)`;
-                }
-            }
-        }
-
+        // We no longer append km to existing Transport.
+        
         return { ...item, desc: newDesc };
-    }) : defaultFallbackItems
+    }) : defaultFallbackItems;
+
+    // Filter out Transport if price is 0 (from the initial items list)
+    items = items.filter(item => {
+        if (item.desc && (item.desc.toLowerCase().includes('transport') || item.desc.toLowerCase().includes('déplacement'))) {
+            return parseFloat(item.price || 0) > 0;
+        }
+        return true;
+    });
 
     // Calcul seuil de surface — adaugat ca linie in deviz
     const surfCheck = isInvoiceView && wo.actual_surface_m2 > 0 ? parseFloat(wo.actual_surface_m2) : parseFloat(wo.volumes?.[0]?.quantity || 0)
@@ -486,11 +482,10 @@ export default function ProformaView({ workOrderData = null, config = null }) {
             truckCost = truckFlat;
         }
     }
-    const distKmPdf = parseFloat(activePrices.distance_km || wo.route_distance_km || 0);
-    if (truckCost > 0 || distKmPdf > 0) {
+    if (truckCost > 0) {
         items.push({
             id: 'transport',
-            desc: `Transport${distKmPdf > 0 ? ` (${Math.round(distKmPdf)} km)` : ''}`,
+            desc: `Transport`,
             qty: 1,
             unit: 'Forfait',
             price: truckCost
