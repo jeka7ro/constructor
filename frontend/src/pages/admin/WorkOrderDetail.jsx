@@ -2502,7 +2502,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                         <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)}&nbsp;EUR</b></span>
+                                        <span className="text-right tabular-nums">{surfaceForAuto} m² × {getPrice(wo.prices?.base, surfaceForAuto <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{autoBase.toFixed(2)}&nbsp;EUR</b></span>
                                     </div>
                                     {autoExtra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">
@@ -2665,7 +2665,7 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                                 <div className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-slate-700 dark:text-slate-300">
                                         <span className="font-medium">{t('work_order_detail.invoicing.base', 'Chape de base (≤5cm)')}</span>
-                                        <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
+                                        <span className="text-right tabular-nums">{realSurface} m² × {getPrice(wo.prices?.base, realSurface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5).toFixed(2)} = <b>{realCalc.base.toFixed(2)}&nbsp;EUR</b></span>
                                     </div>
                                     {realCalc.extra > 0 && (
                                         <div className="flex justify-between text-slate-700 dark:text-slate-300">

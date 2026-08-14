@@ -498,14 +498,14 @@ export default function WorkOrderForm() {
             const standardThick = pricingSettings?.standard_thickness_cm ?? 5;
             const extraThickness = Math.max(0, thickness - standardThick);
             extraThickForAuto += extraThickness;
-            autoBase += (getPrice(form.prices?.base, surface <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) * surface);
-            const extraPrice = getPrice(form.prices?.extra, surface <= (pricingSettings?.extra_thickness_large_threshold_sqm ?? 200) ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25);
-            autoExtra += extraThickness * extraPrice * surface;
-            autoFoil += vol.has_foil ? getPrice(form.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) * surface : 0;
-            autoMesh += vol.has_mesh ? getPrice(form.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) * surface : 0;
+            autoBase += (getPrice(form.prices?.base, surfaceForAuto <= 200 ? pricingSettings?.base_price_sqm : pricingSettings?.base_price_sqm_large, 12.5) * surfaceForAuto);
+            const extraPrice = getPrice(form.prices?.extra, surfaceForAuto <= (pricingSettings?.extra_thickness_large_threshold_sqm ?? 200) ? pricingSettings?.extra_thickness_price_per_cm : pricingSettings?.extra_thickness_price_per_cm_large, 1.25);
+            autoExtra += extraThickness * extraPrice * surfaceForAuto;
+            autoFoil += vol.has_foil ? getPrice(form.prices?.foil, pricingSettings?.plastic_foil_price_sqm, 1.2) * surfaceForAuto : 0;
+            autoMesh += vol.has_mesh ? getPrice(form.prices?.mesh, pricingSettings?.metal_mesh_price_sqm, 2.5) * surfaceForAuto : 0;
             
             const fiberPrice = getPrice(form.prices?.fiber, surfaceForAuto <= (pricingSettings?.fiber_large_threshold_sqm ?? 200) ? pricingSettings?.fiber_price_sqm : pricingSettings?.fiber_price_sqm_large, surfaceForAuto <= 200 ? 2.5 : 2.0);
-            autoFiber += vol.has_fiber ? fiberPrice * surface : 0;
+            autoFiber += vol.has_fiber ? fiberPrice * surfaceForAuto : 0;
         }
     });
 
