@@ -160,6 +160,21 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                         newDesc = newDesc.replace(/manoper[aăâ]/gi, "Main-d'œuvre");
                     }
                 }
+                
+                // Append km to existing Transport if it doesn't have it
+                if (newDesc.toLowerCase().includes('transport') || newDesc.toLowerCase().includes('déplacement')) {
+                    if (!newDesc.toLowerCase().includes('km')) {
+                        let distKmPdf = parseFloat(wo.route_distance_km || 0);
+                        if (distKmPdf <= 0 && wo.prices?.distance_km) distKmPdf = parseFloat(wo.prices.distance_km) * 2;
+                        if (distKmPdf <= 0 && wo.route_segments?.length > 0) {
+                            distKmPdf = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
+                        }
+                        if (distKmPdf > 0) {
+                            newDesc = `${newDesc} (${Math.round(distKmPdf)} km)`;
+                        }
+                    }
+                }
+
                 return {
                     desc: newDesc,
                     qty: parseFloat(item.qty || 1),
