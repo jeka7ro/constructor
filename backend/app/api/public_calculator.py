@@ -171,58 +171,36 @@ def submit_calculator(request: Request, payload: CalculatorSubmitRequest, backgr
     pricing = db.query(PricingSetting).filter(PricingSetting.organization_id == org.id, PricingSetting.client_id == None).first()
     estimated_price = 0
     if pricing and payload.surface > 0:
-        base_rate = pricing.base_price_sqm
-        if hasattr(pricing, 'base_large_threshold_sqm') and payload.surface > (pricing.base_large_threshold_sqm or 200.0):
-            base_rate = getattr(pricing, 'base_price_sqm_large', pricing.base_price_sqm)
-            
-        base = base_rate * payload.surface
-        extra_thick = max(0, payload.thickness - pricing.standard_thickness_cm)
-        extra_thresh = getattr(pricing, 'extra_thickness_large_threshold_sqm', 200.0)
-        extra_price = getattr(pricing, 'extra_thickness_price_per_cm_large', pricing.extra_thickness_price_per_cm) if payload.surface > extra_thresh else pricing.extra_thickness_price_per_cm
-        extra_cost = extra_thick * extra_price * payload.surface
-        foil_cost = pricing.plastic_foil_price_sqm * payload.surface if payload.has_foil else 0
-        mesh_cost = pricing.metal_mesh_price_sqm * payload.surface if payload.has_mesh else 0
-        
-        # Fibre / Duramint (mereu inclusa conform noilor cerinte, ignora payload.has_duramint)
-        fiber_cost = 0
-        if payload.surface <= pricing.fiber_large_threshold_sqm:
-            fiber_cost = pricing.fiber_price_sqm * payload.surface
-        else:
-            fiber_cost = pricing.fiber_price_sqm_large * payload.surface
-        
-        # Determine hidden thresholds
-        hidden_extra = 0
-        if pricing.surface_thresholds:
-            for thresh in pricing.surface_thresholds:
-                min_s = float(thresh.get("min_sqm") or 0)
-                max_s = float(thresh.get("max_sqm") or 999999)
-                if min_s <= payload.surface < max_s:
-                    hidden_extra += float(thresh.get("extra_charge") or 0)
-                    
         # Truck transportation distance cost
-        truck_cost = 0
-        distance_km = 0
+        distance_km = 0.0
         if payload.site_address:
-            # Daca suprafata este mai mica sau egala decat pragul la care devine gratuita deplasarea
-            if payload.surface <= getattr(pricing, 'truck_surface_threshold_free_sqm', 500.0):
-                # Import the LogisticBase model
-                from app.models import LogisticBase
-                bases = db.query(LogisticBase).filter(LogisticBase.organization_id == org.id).all()
-                if bases:
-                    # Calculate distance for all bases and take the minimum
-                    min_dist = 999999.0
-                    for base_record in bases:
-                        if base_record.address:
-                            dist = get_driving_distance_km(base_record.address, payload.site_address)
-                            if 0 < dist < min_dist:
-                                min_dist = dist
-                    
-                    if min_dist < 999999.0:
-                        distance_km = min_dist
-                        if distance_km > getattr(pricing, 'truck_distance_threshold_km', 50.0):
-                            truck_cost = getattr(pricing, 'truck_extra_price_flat', 0.0)
+            from app.models import LogisticBase
+            bases = db.query(LogisticBase).filter(LogisticBase.organization_id == org.id).all()
+            if bases:
+                min_dist = 999999.0
+                for base_record in bases:
+                    if base_record.address:
+                        dist = get_driving_distance_km(base_record.address, payload.site_address)
+                        if 0 < dist < min_dist:
+                            min_dist = dist
+                if min_dist < 999999.0:
+                    distance_km = min_dist
+
+        payload_dict = payload.dict()
+        payload_dict['distance_km'] = distance_km
+
+        from app.services.pricing_engine import calculate_quote_price
+        calc_result = calculate_quote_price(payload_dict, pricing)
         
-        estimated_price = base + extra_cost + foil_cost + mesh_cost + fiber_cost + hidden_extra + truck_cost
+        base = calc_result["base"]
+        extra_cost = calc_result["extra"]
+        foil_cost = calc_result["foil"]
+        mesh_cost = calc_result["mesh"]
+        fiber_cost = calc_result["fiber"]
+        hidden_extra = calc_result["threshold"]
+        truck_cost = calc_result["truck_cost"]
+        isolation_cost = calc_result["isolation_cost"]
+        estimated_price = calc_result["total_net"]
         
     use_vat = True
     vat_rate = 21.0

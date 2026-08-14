@@ -920,21 +920,17 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
             if (match) threshold = parseFloat(match.extra_charge) || 0;
         }
         let truck_cost = parseFloat(prices?.truck_cost || 0);
-        // Fallback: calculează din pricing settings dacă nu e setat în prices
-        let actualDistKm = parseFloat(wo?.route_distance_km || 0);
-        if (actualDistKm <= 0 && prices?.distance_km) {
-            actualDistKm = parseFloat(prices.distance_km) * 2; // Assuming distance_km is one-way
-        }
-        if (actualDistKm <= 0 && wo?.route_segments && wo.route_segments.length > 0) {
-            actualDistKm = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
-        }
+        
+        // Regulă strictă: Folosim EXCLUSIV distanța unică (one-way) calculată la crearea devizului
+        // Nu mai folosim wo.route_distance_km sau wo.route_segments (care sunt din planificare)
+        const actualDistKm = parseFloat(prices?.distance_km || 0);
 
         if (truck_cost <= 0 && pricingSettings && actualDistKm > 0) {
             const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
             const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
             const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-            const oneWay = actualDistKm > 500 ? actualDistKm : actualDistKm / 2;
-            if (truckFlat > 0 && oneWay > distThreshold && surface <= surfThreshold) {
+            
+            if (truckFlat > 0 && actualDistKm > distThreshold && surface <= surfThreshold) {
                 truck_cost = truckFlat;
             }
         }

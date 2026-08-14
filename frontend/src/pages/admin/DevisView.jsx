@@ -178,23 +178,17 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
                 return true;
             });
             
-            // Verificăm dacă transportul este deja în items
             const hasTransport = parsedItems.some(i => i.desc?.toLowerCase().includes('transport') || i.desc?.toLowerCase().includes('déplacement'));
             if (!hasTransport) {
                 let truckCost = parseFloat(wo.prices?.truck_cost || 0);
+                const distKm = parseFloat(wo.prices?.distance_km || 0);
                 
-                let distKm = parseFloat(wo.route_distance_km || 0);
-                if (distKm <= 0 && wo.prices?.distance_km) distKm = parseFloat(wo.prices.distance_km) * 2;
-                if (distKm <= 0 && wo.route_segments?.length > 0) {
-                    distKm = (wo.route_segments.reduce((sum, seg) => sum + (parseFloat(seg.km) || 0), 0)) * 2;
-                }
                 if (truckCost <= 0 && pricingSettings && distKm > 0) {
                     const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
                     const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
                     const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-                    const oneWay = distKm > 500 ? distKm : distKm / 2;
                     const totalSurface = parseFloat(wo.volumes?.[0]?.quantity || wo.surface_m2 || 0);
-                    if (truckFlat > 0 && oneWay > distThreshold && totalSurface <= surfThreshold) {
+                    if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {
                         truckCost = truckFlat;
                     }
                 }

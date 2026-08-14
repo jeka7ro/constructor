@@ -471,14 +471,13 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         const truckFlat = parseFloat(pricingSettings.truck_extra_price_flat || 0);
         const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
         const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
-        const distKm = parseFloat(activePrices.distance_km || wo.route_distance_km || 0);
-        const oneWay = distKm > 500 ? distKm : distKm / 2;
+        const distKm = parseFloat(activePrices.distance_km || 0);
         const totalSurface = (wo.volumes || []).reduce((sum, v) => {
             const lbl = (v.label || '').toLowerCase();
             if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
             return sum;
         }, 0);
-        if (truckFlat > 0 && oneWay > distThreshold && totalSurface <= surfThreshold) {
+        if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {
             truckCost = truckFlat;
         }
     }
