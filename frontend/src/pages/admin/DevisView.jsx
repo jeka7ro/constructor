@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { getPrice } from '../../utils/pricingEngine';
 import { Loader2, Printer, ArrowLeft, FileText } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
@@ -87,11 +88,7 @@ export default function DevisView({ embeddedToken, signatureElement, lang = 'fr'
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    const getPrice = (woPrice, etalonPrice, defaultPrice) => {
-        if (woPrice !== undefined && woPrice !== null && woPrice !== '') return parseFloat(woPrice);
-        if (etalonPrice !== undefined && etalonPrice !== null && etalonPrice !== '') return parseFloat(etalonPrice);
-        return defaultPrice;
-    };
+
 
     useEffect(() => {
         const endpoint = token ? `/public/work-orders/${token}` : `/admin/work-orders/${id}`;

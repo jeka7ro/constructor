@@ -187,3 +187,9 @@ export const calculateQuotePrice = (payload, pricing) => {
         eps_discount_pct: eps_discount_pct
     };
 };
+
+export const getPrice = (woPrice, etalonPrice, defaultPrice) => {
+    if (woPrice !== undefined && woPrice !== null && woPrice !== '') return parseFloat(woPrice);
+    if (etalonPrice !== undefined && etalonPrice !== null && etalonPrice !== '') return parseFloat(etalonPrice);
+    return defaultPrice;
+};

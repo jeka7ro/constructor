@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { getPrice } from '../../utils/pricingEngine';
 import { Loader2, Printer } from 'lucide-react'
 import api from '../../lib/api'
 import { useTenantStore } from '../../store/tenantStore'
