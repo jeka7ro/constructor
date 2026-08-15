@@ -2660,19 +2660,19 @@ export default function WorkOrderDetail({ orderId, onBack, isEmbedded }) {
                         </div>
 
                         {/* Preview iframe cu click-to-fullpage */}
-                        <div
-                                className="relative w-full h-[700px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
-                                onClick={() => setDocDrawerState({ url: activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`, type: activeDocTab })}
-                            >
-                                {/* Overlay click hint */}
-                                <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                                    <span className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-slate-700 shadow-lg">
-                                        Ouvrir en plein écran
-                                    </span>
-                                </div>
+                        <div className="relative w-full h-[700px] rounded-xl overflow-hidden border border-slate-200">
+                                {/* Floating expand button */}
+                                <button
+                                    onClick={() => setDocDrawerState({ url: activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice` : `${window.location.origin}/admin/quotes/${wo.id}/pdf`, type: activeDocTab })}
+                                    className="absolute top-4 right-4 z-20 bg-slate-800/80 hover:bg-slate-900 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 text-xs font-bold transition-colors"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Ouvrir en plein écran
+                                </button>
+                                
                                 <iframe
                                     src={activeDocTab === 'facture' ? `${window.location.origin}/proforma/${wo.id}?type=invoice#bottom` : `${window.location.origin}/admin/quotes/${wo.id}/pdf#bottom`}
-                                    className="w-full h-full border-none pointer-events-none"
+                                    className="w-full h-full border-none"
                                     title={activeDocTab === 'facture' ? 'Facture PDF' : 'Devis PDF'}
                                     onLoad={(e) => {
                                         try {
