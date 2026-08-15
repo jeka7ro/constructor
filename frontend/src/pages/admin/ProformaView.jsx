@@ -501,11 +501,13 @@ export default function ProformaView({ workOrderData = null, config = null }) {
         const distThreshold = parseFloat(pricingSettings.truck_distance_threshold_km || 50);
         const surfThreshold = parseFloat(pricingSettings.truck_surface_threshold_free_sqm || 500);
         const distKm = parseFloat(activePrices.distance_km || 0);
-        const totalSurface = (wo.volumes || []).reduce((sum, v) => {
-            const lbl = (v.label || '').toLowerCase();
-            if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
-            return sum;
-        }, 0);
+        const totalSurface = isInvoiceView && wo.actual_surface_m2 > 0 
+            ? parseFloat(wo.actual_surface_m2) 
+            : (wo.volumes || []).reduce((sum, v) => {
+                const lbl = (v.label || '').toLowerCase();
+                if (/chape|sapa|[sșş]ap[aăâ]/i.test(lbl)) return sum + (parseFloat(v.quantity) || 0);
+                return sum;
+            }, 0);
         if (truckFlat > 0 && distKm > distThreshold && totalSurface <= surfThreshold) {
             truckCost = truckFlat;
         }

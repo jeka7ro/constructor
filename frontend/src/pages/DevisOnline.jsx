@@ -863,8 +863,6 @@ export default function DevisOnline() {
                                 )}
                             </div>
                         )}
-                            </div>
-                        )}
 
                         {/* ═══════════════════════════════════ */}
                         {/* ÉTAPE 2 — ADRESSE DU CHANTIER      */}
