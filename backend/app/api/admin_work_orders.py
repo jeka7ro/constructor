@@ -2851,7 +2851,7 @@ def post_work_order_message(
             
             if not last_admin_msg or (datetime.utcnow() - last_admin_msg.created_at) > timedelta(minutes=5):
                 frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
-                chat_url = f"{frontend_url}/devisonline/{wo.token}"
+                chat_url = f"{frontend_url}/public/proforma/{wo.token}"
                 client_lang = getattr(wo, 'client_language', 'fr') or 'fr'
                 
                 send_chat_notification_email(

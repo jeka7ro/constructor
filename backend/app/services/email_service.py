@@ -461,7 +461,10 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
                 <a href="{signing_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-
+            <p style="font-size: 13px; color: #666; margin-top: 30px;">
+                {fallback}<br>
+                <a href="{signing_url}" style="color: {primary_color}; word-break: break-all;">{signing_url}</a>
+            </p>
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
@@ -629,7 +632,10 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
                 <a href="{chat_url}#chat-section" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-
+            <p style="font-size: 13px; color: #666; margin-top: 30px;">
+                {fallback}<br>
+                <a href="{chat_url}#chat-section" style="color: {primary_color}; word-break: break-all;">{chat_url}#chat-section</a>
+            </p>
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
