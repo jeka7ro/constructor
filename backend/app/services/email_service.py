@@ -7,6 +7,54 @@ logger = logging.getLogger(__name__)
 
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
+def _build_calendar_links(new_date: str, client_name: str, address: str = "", wo_id: str = None):
+    """Generate Google Calendar URL and .ics download URL for a work order."""
+    from urllib.parse import quote
+    from datetime import datetime, timedelta
+    
+    # Parse date from "DD/MM/YYYY" or "DD/MM/YYYY (HH:MM)" format
+    date_part = new_date.split('(')[0].strip()
+    time_part = None
+    if '(' in new_date and ')' in new_date:
+        time_part = new_date.split('(')[1].replace(')', '').strip()
+    
+    try:
+        dt = datetime.strptime(date_part, "%d/%m/%Y")
+        if time_part:
+            try:
+                t = datetime.strptime(time_part, "%H:%M")
+                dt = dt.replace(hour=t.hour, minute=t.minute)
+            except:
+                dt = dt.replace(hour=7, minute=0)
+        else:
+            dt = dt.replace(hour=7, minute=0)
+    except:
+        return None, None
+    
+    dt_end = dt + timedelta(hours=8)
+    dt_fmt = dt.strftime("%Y%m%dT%H%M%S")
+    dt_end_fmt = dt_end.strftime("%Y%m%dT%H%M%S")
+    
+    title = f"Intervention Davide Chape - {client_name}"
+    location = address or ""
+    
+    # Google Calendar URL
+    gcal_url = (
+        f"https://calendar.google.com/calendar/render?action=TEMPLATE"
+        f"&text={quote(title)}"
+        f"&dates={dt_fmt}/{dt_end_fmt}"
+        f"&details={quote('Intervention planifiée par Davide Chape')}"
+        f"&location={quote(location)}"
+    )
+    
+    # .ics download URL (served by backend)
+    ics_url = None
+    if wo_id:
+        ics_url = f"https://davidechape.pontaj.app/api/work-orders/{wo_id}/calendar.ics"
+    
+    return gcal_url, ics_url
+
+
 def _log_email(org_id, wo_id, to_email, client_name, subject, html_content, status, error_message=None):
     from app.database import SessionLocal
     from app.models import EmailLog, WorkOrder, Organization
@@ -119,7 +167,7 @@ def send_quote_email(to_email: str, client_name: str, client_language: str, sign
                 <a href="{signing_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: {primary_color};">{signing_url}</a></p>
+
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
@@ -184,6 +232,9 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
         intro = f"De datum van uw interventie is bijgewerkt: <strong>{new_date}</strong>."
         body_main = "U kunt uw bijgewerkte offerte bekijken via onderstaande knop."
         btn_text = "Mijn offerte bekijken"
+        cal_label = "Toevoegen aan agenda"
+        gcal_label = "Google Agenda"
+        ics_label = "Outlook / Apple"
         fallback = "Als de knop niet werkt, kopieer en plak deze link:"
         footer = "Het team van Davide Chape"
     elif client_language == "en":
@@ -192,22 +243,98 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
         intro = f"The date of your intervention has been updated to: <strong>{new_date}</strong>."
         body_main = "You can view your updated quote by clicking the button below."
         btn_text = "View my quote"
+        cal_label = "Add to calendar"
+        gcal_label = "Google Calendar"
+        ics_label = "Outlook / Apple"
         fallback = "If the button does not work, copy and paste this link:"
         footer = "The Davide Chape Team"
 
     else:
-        subject = "Mise à jour de votre intervention – Davide Chape"
+        subject = "Mise à jour de votre intervention"
         greeting = f"Bonjour {client_name}"
         intro = f"La date de votre intervention a été mise à jour : <strong>{new_date}</strong>."
         body_main = "Vous pouvez consulter les détails en cliquant sur le bouton ci-dessous."
         btn_text = "Voir les détails"
+        cal_label = "Ajouter au calendrier"
+        gcal_label = "Google Agenda"
+        ics_label = "Outlook / Apple"
         fallback = "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien :"
-        footer = "L'équipe Davide Chape"
+        footer = "Ceci est un message automatique, merci de ne pas y répondre directement."
+
+    primary_color = "#3b82f6"
+    tenant_name = "Davide Chape"
+    tenant_logo = "https://davidechape.pontaj.app/davide_logo.png"
+    
+    try:
+        from app.database import SessionLocal
+        from app.models import Organization, WorkOrder
+        db = SessionLocal()
+        
+        if not org_id and wo_id:
+            wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+            if wo:
+                org_id = wo.organization_id
+        
+        if org_id:
+            org = db.query(Organization).filter(Organization.id == org_id).first()
+            if org:
+                if org.primary_color: primary_color = org.primary_color
+                if org.name: tenant_name = org.name
+                if org.logo_url: tenant_logo = org.logo_url
+        elif not org_id:
+            org = db.query(Organization).first()
+            if org:
+                if org.primary_color: primary_color = org.primary_color
+                if org.name: tenant_name = org.name
+                if org.logo_url: tenant_logo = org.logo_url
+    except Exception:
+        pass
+    finally:
+        try:
+            db.close()
+        except:
+            pass
+
+    # Append tenant name dynamically if not already in subject
+    if tenant_name not in subject:
+        subject = f"{subject} - {tenant_name}"
+    
+    footer = f"L'équipe {tenant_name}<br>{footer}"
+
+    # Build calendar links
+    wo_address = ""
+    try:
+        if wo_id:
+            from app.database import SessionLocal as SL2
+            from app.models import WorkOrder as WO2
+            db2 = SL2()
+            wo_obj = db2.query(WO2).filter(WO2.id == wo_id).first()
+            if wo_obj:
+                wo_address = wo_obj.site_address or ""
+            db2.close()
+    except:
+        pass
+    
+    gcal_url, ics_url = _build_calendar_links(new_date, client_name, wo_address, wo_id)
+    
+    calendar_html = ""
+    if gcal_url or ics_url:
+        cal_buttons = ""
+        if gcal_url:
+            cal_buttons += f'<a href="{gcal_url}" target="_blank" style="display:inline-block;padding:10px 18px;background-color:#4285f4;color:white;text-decoration:none;border-radius:5px;font-size:13px;font-weight:bold;margin:0 6px;">{gcal_label}</a>'
+        if ics_url:
+            cal_buttons += f'<a href="{ics_url}" style="display:inline-block;padding:10px 18px;background-color:#0078d4;color:white;text-decoration:none;border-radius:5px;font-size:13px;font-weight:bold;margin:0 6px;">{ics_label}</a>'
+        calendar_html = f'''
+            <div style="text-align:center;margin:25px 0 10px;">
+                <p style="font-size:13px;color:#888;margin-bottom:10px;">{cal_label}</p>
+                {cal_buttons}
+            </div>
+        '''
 
     html_content = f"""
     <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #f5a623;">
-            <img src="https://davidechape.pontaj.app/davide_logo.png" alt="Davide Chape" style="max-height: 60px;" />
+        <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid {primary_color};">
+            <img src="{tenant_logo}" alt="{tenant_name}" style="max-height: 60px;" />
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
             <p style="font-size: 16px;"><strong>{greeting}</strong>,</p>
@@ -215,10 +342,11 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
             <p style="font-size: 16px;">{body_main}</p>
             
             <div style="text-align: center; margin: 35px 0;">
-                <a href="{signing_url}" style="background-color: #f5a623; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
+                <a href="{signing_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: #2b5c8f;">{signing_url}</a></p>
+            {calendar_html}
+
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
@@ -227,7 +355,7 @@ def send_planning_update_email(to_email: str, client_name: str, client_language:
     """
 
     payload = {
-        "sender": {"name": "Davide Chape", "email": from_email},
+        "sender": {"name": tenant_name, "email": from_email},
         "to": [{"email": to_email}],
         "subject": subject,
         "htmlContent": html_content
@@ -333,7 +461,7 @@ def send_quote_update_email(to_email: str, client_name: str, client_language: st
                 <a href="{signing_url}" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{signing_url}" style="color: #2b5c8f;">{signing_url}</a></p>
+
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
@@ -501,7 +629,7 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
                 <a href="{chat_url}#chat-section" style="background-color: {primary_color}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">{btn_text}</a>
             </div>
             
-            <p style="font-size: 14px; color: #666;">{fallback}<br><a href="{chat_url}#chat-section" style="color: {primary_color};">{chat_url}</a></p>
+
         </div>
         <div style="background-color: #f9f9f9; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #e0e0e0;">
             <p style="margin: 0;">{footer}</p>
@@ -538,3 +666,143 @@ def send_chat_notification_email(to_email: str, client_name: str, client_languag
         logger.error(f"Failed to send chat notification email to {to_email}: {e}")
         _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "failed", str(e))
         return False
+
+def send_order_confirmation_email(to_email: str, client_name: str, client_language: str, signing_url: str, date_str: str, org_id: str = None, wo_id: str = None):
+    client_language = str(client_language).lower().split('-')[0].strip() if client_language else 'fr'
+    import os
+    from app.services.email_service import _log_email
+    brevo_api_key = os.getenv("BREVO_API_KEY")
+    if not brevo_api_key:
+        return False
+        
+    from_email = os.getenv("EMAIL_FROM", "info@davidechape.pontaj.app")
+
+    if client_language == "nl":
+        subject = "Orderbevestiging – Davide Chape"
+        greeting = f"Beste {client_name}"
+        intro = "Uw bestelling/offerte is succesvol bevestigd."
+        body_main = f"Wij hebben de volgende interventiedatum geregistreerd: <strong>{date_str}</strong>.<br><br>Bedankt voor uw vertrouwen!"
+        btn_text = "Mijn offerte bekijken"
+        fallback = "Als de knop niet werkt, kopieer en plak deze link:"
+        footer = "Het team van Davide Chape"
+    elif client_language == "en":
+        subject = "Order Confirmation – Davide Chape"
+        greeting = f"Dear {client_name}"
+        intro = "Your order/quote has been successfully confirmed."
+        body_main = f"We have registered the following intervention date: <strong>{date_str}</strong>.<br><br>Thank you for your trust!"
+        btn_text = "View my quote"
+        fallback = "If the button does not work, copy and paste this link:"
+        footer = "The Davide Chape Team"
+    else:
+        subject = "Confirmation de commande – Davide Chape"
+        greeting = f"Bonjour {client_name}"
+        intro = "Votre commande/devis a bien été confirmée."
+        body_main = f"Nous avons enregistré la date d'intervention suivante : <strong>{date_str}</strong>.<br><br>Merci pour votre confiance !"
+        btn_text = "Voir mon devis"
+        fallback = "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien :"
+        footer = "L'équipe Davide Chape<br>Ceci est un message automatique, merci de ne pas y répondre directement."
+
+    primary_color = "#10b981" # Green for confirmation
+    tenant_name = "Davide Chape"
+    tenant_logo = "https://davidechape.pontaj.app/davide_logo.png"
+    
+    try:
+        from app.database import SessionLocal
+        from app.models import Organization, WorkOrder
+        db = SessionLocal()
+        
+        if not org_id and wo_id:
+            wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+            if wo:
+                org_id = wo.organization_id
+        
+        if org_id:
+            org = db.query(Organization).filter(Organization.id == org_id).first()
+            if org:
+                if org.primary_color: primary_color = org.primary_color
+                if org.name: tenant_name = org.name
+                if org.logo_url: tenant_logo = org.logo_url
+        elif not org_id:
+            org = db.query(Organization).first()
+            if org:
+                if org.primary_color: primary_color = org.primary_color
+                if org.name: tenant_name = org.name
+                if org.logo_url: tenant_logo = org.logo_url
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error fetching tenant info: {e}")
+    finally:
+        db.close()
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f3f4f6; padding: 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background-color: {primary_color}; padding: 30px; text-align: center;">
+                                <img src="{tenant_logo}" alt="{tenant_name}" style="max-height: 50px; margin-bottom: 20px;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">{subject}</h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Body -->
+                        <tr>
+                            <td style="padding: 40px 30px; color: #374151; font-size: 16px; line-height: 1.6;">
+                                <p style="margin-top: 0;">{greeting},</p>
+                                <p>{intro}</p>
+                                <div style="background-color: #f8fafc; border-left: 4px solid {primary_color}; padding: 15px; margin: 25px 0;">
+                                    <p style="margin: 0;">{body_main}</p>
+                                </div>
+                                
+                                <div style="text-align: center; margin: 40px 0;">
+                                    <a href="{signing_url}" style="background-color: {primary_color}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: bold; display: inline-block;">
+                                        {btn_text}
+                                    </a>
+                                </div>
+                                
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 20px 30px; text-align: center; color: #9ca3af; font-size: 12px;">
+                                <p style="margin: 0;">{footer}</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    try:
+        import requests
+        headers = {
+            "api-key": brevo_api_key,
+            "Content-Type": "application/json"
+        }
+        data = {
+            "sender": {"email": from_email, "name": tenant_name},
+            "to": [{"email": to_email, "name": client_name}],
+            "subject": subject,
+            "htmlContent": html_content
+        }
+        resp = requests.post("https://api.brevo.com/v3/smtp/email", headers=headers, json=data, timeout=10)
+        resp.raise_for_status()
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "delivered")
+        return True
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send order confirmation email: {e}")
+        _log_email(org_id, wo_id, to_email, client_name, subject, html_content, "failed", str(e))
+        return False
+

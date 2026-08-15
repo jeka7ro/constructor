@@ -1,3 +1,4 @@
+from fastapi import BackgroundTasks
 """
 public_work_orders.py — Endpoint-uri publice (fără autentificare) pentru confirmarea comenzilor de lucru.
 Clientul accesează pagina cu tokenul unic, vede detaliile și confirmă.
@@ -309,10 +310,13 @@ def request_reschedule(token: str, payload: ReschedulePayload, request: Request,
     return _public_serialize(wo, org)
 
 @router.post("/public/work-orders/{token}/confirm")
+
+
 def confirm_work_order(
     token: str,
     payload: ConfirmPayload,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -376,6 +380,30 @@ def confirm_work_order(
 
     db.commit()
     db.refresh(wo)
+
+    # Send Order Confirmation Email
+    if wo.client_email:
+        try:
+            import os
+            from app.services.email_service import send_order_confirmation_email
+            frontend_url = os.getenv("FRONTEND_URL", "https://davidechape.pontaj.app")
+            signing_url = f"{frontend_url}/public/proforma/{wo.token}"
+            date_str = wo.start_date.strftime("%d/%m/%Y") if wo.start_date else "À déterminer"
+            if wo.start_time:
+                date_str += f" ({wo.start_time})"
+            
+            background_tasks.add_task(
+                send_order_confirmation_email,
+                to_email=wo.client_email,
+                client_name=wo.client_name or "Client",
+                client_language=getattr(wo, 'client_language', 'fr'),
+                signing_url=signing_url,
+                date_str=date_str,
+                org_id=wo.organization_id,
+                wo_id=wo.id
+            )
+        except Exception as e:
+            print(f"Eroare scheduling order confirmation email: {e}")
 
     org = db.query(Organization).filter(Organization.id == wo.organization_id).first()
     return _public_serialize(wo, org)
@@ -624,3 +652,89 @@ def delete_public_work_order_message(
     db.delete(msg)
     db.commit()
     return {"message": "Mesajul a fost șters cu succes."}
+
+
+@router.get("/work-orders/{wo_id}/calendar.ics")
+def download_calendar_ics(wo_id: str, db: Session = Depends(get_db)):
+    """Generate a downloadable .ics calendar file for a work order (public, no auth)."""
+    from fastapi.responses import Response
+    from datetime import timedelta
+    
+    wo = db.query(WorkOrder).filter(WorkOrder.id == wo_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    
+    if not wo.start_date:
+        raise HTTPException(status_code=400, detail="No scheduled date")
+    
+    # Build datetime
+    dt_start = wo.start_date
+    if wo.start_time:
+        try:
+            parts = str(wo.start_time).split(':')
+            dt_start = dt_start.replace(hour=int(parts[0]), minute=int(parts[1]) if len(parts) > 1 else 0)
+        except:
+            dt_start = dt_start.replace(hour=7, minute=0)
+    else:
+        dt_start = dt_start.replace(hour=7, minute=0)
+    
+    # If start_date is a date object (not datetime), convert it
+    if not hasattr(dt_start, 'hour'):
+        from datetime import datetime as _dt
+        if wo.start_time:
+            try:
+                parts = str(wo.start_time).split(':')
+                dt_start = _dt.combine(wo.start_date, _dt.strptime(f"{parts[0]}:{parts[1] if len(parts) > 1 else '00'}", "%H:%M").time())
+            except:
+                dt_start = _dt.combine(wo.start_date, _dt.strptime("07:00", "%H:%M").time())
+        else:
+            dt_start = _dt.combine(wo.start_date, _dt.strptime("07:00", "%H:%M").time())
+    
+    dt_end = dt_start + timedelta(hours=8)
+    
+    # Get org name
+    tenant_name = "Davide Chape"
+    try:
+        org = db.query(Organization).first()
+        if org and org.name:
+            tenant_name = org.name
+    except:
+        pass
+    
+    summary = f"Intervention {tenant_name} - {wo.client_name or 'Client'}"
+    location = wo.site_address or ""
+    description = f"Intervention planifiée par {tenant_name}"
+    if wo.token:
+        description += f"\\nDétails: https://davidechape.pontaj.app/public/proforma/{wo.token}"
+    
+    uid = f"{wo.id}@davidechape.pontaj.app"
+    now = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    dt_start_str = dt_start.strftime("%Y%m%dT%H%M%S")
+    dt_end_str = dt_end.strftime("%Y%m%dT%H%M%S")
+    
+    ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//{tenant_name}//Calendar//FR
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:{uid}
+DTSTART:{dt_start_str}
+DTEND:{dt_end_str}
+DTSTAMP:{now}
+SUMMARY:{summary}
+DESCRIPTION:{description}
+LOCATION:{location}
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR"""
+    
+    filename = f"intervention_{wo.start_date.strftime('%Y%m%d') if hasattr(wo.start_date, 'strftime') else 'rdv'}.ics"
+    
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
