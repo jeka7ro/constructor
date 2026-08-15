@@ -54,13 +54,10 @@ class Token(BaseModel):
     worker_data: Optional[dict] = None
 
 
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
-    return pwd_context.hash(password)
+    import bcrypt
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -71,7 +68,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     
     # Otherwise use standard bcrypt verification
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        import bcrypt
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
     except Exception:
         return False
 
